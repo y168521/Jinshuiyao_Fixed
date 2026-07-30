@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 基金详情</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+:root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim); --c-up:var(--copper); --c-down:var(--jade); }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; }
+h1 { font-size:20px; margin:0 0 4px; }
+.sub { color:var(--muted); font-size:13px; margin-bottom:18px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
+.card h2 { font-size:15px; margin:0 0 12px; }
+.flex { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+#chartWrap { width:100%; height:380px; border-radius:8px; }
+select,button { background:var(--deep); color:var(--txt); border:1px solid var(--border); border-radius:6px; padding:5px 12px; font-size:12px; }
+button { cursor:pointer; }
+button.primary { background:var(--c-up); color:var(--deep); border:none; font-weight:600; padding:5px 14px; }
+.metrics-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; }
+.metric-card { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:12px; text-align:center; }
+.metric-label { font-size:11px; color:var(--muted); }
+.metric-value { font-size:20px; font-weight:700; margin-top:4px; }
+.metric-value.up { color:var(--c-up); }
+.metric-value.down { color:var(--c-down); }
+.info-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; font-size:13px; }
+.info-item { padding:8px 12px; background:var(--bg); border-radius:6px; }
+.info-label { color:var(--muted); font-size:11px; }
+.info-value { margin-top:2px; }
+.tabs { display:flex; gap:4px; margin-bottom:14px; flex-wrap:wrap; }
+.tab { padding:6px 14px; border-radius:6px; font-size:12px; cursor:pointer; background:var(--deep); color:var(--muted); border:1px solid transparent; }
+.tab.active { background:var(--card); color:var(--gold); border-color:var(--gold); }
+.tab-pane { display:none; }
+.tab-pane.active { display:block; }
+.status-badge { display:inline-block; padding:2px 10px; border-radius:10px; font-size:11px; }
+.status-badge.buy { background:rgba(45,139,126,.15); color:var(--jade); }
+.status-badge.hold { background:rgba(91,192,222,.15); color:var(--ice); }
+.status-badge.watch { background:rgba(200,117,90,.15); color:var(--copper); }
+#backtestResult { max-height:400px; overflow-y:auto; }
+@media(max-width:600px){ body{ padding:12px; } #chartWrap{ height:260px; } .info-grid{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div style="margin-bottom:10px;"><a href="/fund" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回基金分析中心</a></div>
+<h1>基金详情</h1>
+<div class="sub">单只基金全景分析 — 净值走势、业绩指标、策略回测、持仓穿透</div>
+
+<div class="card">
+  <div class="flex">
+    <select id="fundSelect">
+      <option value="华夏成长">华夏成长</option>
+      <option value="嘉实沪深300" selected>嘉实沪深300</option>
+      <option value="易方达蓝筹">易方达蓝筹</option>
+      <option value="广发小盘">广发小盘</option>
+      <option value="富国天惠">富国天惠</option>
+      <option value="中欧医疗">中欧医疗</option>
+    </select>
+    <button class="primary" onclick="loadDetail()">加载</button>
+    <span id="status" class="muted">选择基金后点击加载</span>
+  </div>
+</div>
+
+<div id="infoCard" class="card" style="display:none;">
+  <h2 id="fundTitle">基本信息</h2>
+  <div class="info-grid" id="infoGrid"></div>
+</div>
+
+<div class="tabs" id="tabBar" style="display:none;">
+  <span class="tab active" data-tab="nav">净值走势</span>
+  <span class="tab" data-tab="metrics">业绩指标</span>
+  <span class="tab" data-tab="backtest">策略回测</span>
+</div>
+
+<div class="tab-pane active" id="tabNav">
+  <div class="card">
+    <div id="chartWrap"></div>
+  </div>
+</div>
+
+<div class="tab-pane" id="tabMetrics">
+  <div class="card">
+    <div class="metrics-grid" id="metricsGrid"></div>
+  </div>
+</div>
+
+<div class="tab-pane" id="tabBacktest">
+  <div class="card">
+    <div class="flex" style="margin-bottom:12px;">
+      <select id="strategySelect">
+        <option value="买入持有">买入持有</option>
+        <option value="定投">定投</option>
+        <option value="均线择时">均线择时</option>
+      </select>
+      <select id="periodSelect">
+        <option value="1y">近1年</option>
+        <option value="3y" selected>近3年</option>
+      </select>
+      <button class="primary" onclick="runBacktest()">回测</button>
+    </div>
+    <div id="backtestResult" class="muted" style="font-size:13px;">点击回测按钮查看结果</div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+const BASE = window.location.origin;
+let chart = null;
+
+document.getElementById('tabBar').addEventListener('click', e => {
+  const tab = e.target.closest('.tab');
+  if (!tab) return;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  tab.classList.add('active');
+  document.getElementById('tab' + tab.dataset.tab.charAt(0).toUpperCase() + tab.dataset.tab.slice(1)).classList.add('active');
+  if (tab.dataset.tab === 'nav' && chart) chart.resize(chart.chartElement().clientWidth, 380);
+});
+
+function fmtPct(n) { if (n == null) return '—'; const v = Number(n); return (v >= 0 ? '+' : '') + v.toFixed(2) + '%'; }
+function fmtNum(n) { if (n == null) return '—'; return Number(n).toLocaleString('zh-CN'); }
+
+function initChart() {
+  if (chart) chart.remove();
+  chart = LightweightCharts.createChart(document.getElementById('chartWrap'), {
+    layout: { textColor: '#7a8499', background: { type: 'solid', color: '#131a2a' } },
+    grid: { vertLines: { color: 'rgba(232,236,241,0.06)' }, horzLines: { color: 'rgba(232,236,241,0.06)' } },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+    rightPriceScale: { borderColor: 'rgba(232,236,241,0.1)' },
+    timeScale: { borderColor: 'rgba(232,236,241,0.1)', timeVisible: true },
+    watermark: { visible: true, text: '金水谣 · 基金净值', color: 'rgba(255,255,255,0.04)', fontSize: 20 }
+  });
+}
+
+async function loadDetail() {
+  const name = document.getElementById('fundSelect').value;
+  const st = document.getElementById('status');
+  st.textContent = '加载中...';
+  try {
+    const r = await fetch(BASE + '/api/fund/compare', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ funds: [name], period: '3y' })
+    });
+    const j = await r.json();
+    if (j.ok && j.data && j.data.length > 0) {
+      const fund = j.data[0];
+      document.getElementById('fundTitle').textContent = name + ' · 全景分析';
+      const infoGrid = document.getElementById('infoGrid');
+      infoGrid.innerHTML = [
+        { label: '基金代码', value: fund.code || '—' },
+        { label: '基金类型', value: fund.type || '—' },
+        { label: '最新净值', value: fund.nav ? fund.nav.toFixed(4) : '—' },
+        { label: '累计净值', value: fund.accNav ? fund.accNav.toFixed(4) : '—' },
+        { label: '年化收益率', value: fmtPct(fund.annualReturn) },
+        { label: '最大回撤', value: fmtPct(fund.maxDrawdown) },
+        { label: '夏普比率', value: fund.sharpe != null ? fund.sharpe.toFixed(2) : '—' },
+        { label: '综合评分', value: fund.score != null ? fund.score.toFixed(1) : '—' },
+        { label: '建议', value: fund.suggestion || '—', cls: fund.suggestion === '买入' ? 'up' : fund.suggestion === '观望' ? '' : '' },
+      ].map(i => `<div class="info-item"><div class="info-label">${i.label}</div><div class="info-value${i.cls ? ' ' + i.cls : ''}">${i.value}</div></div>`).join('');
+      document.getElementById('infoCard').style.display = 'block';
+      document.getElementById('tabBar').style.display = 'flex';
+
+      if (fund.values && fund.values.length > 0) {
+        initChart();
+        const days = fund.values.length;
+        const now = new Date();
+        const candles = fund.values.map((v, i) => {
+          const d = new Date(now); d.setDate(d.getDate() - (days - 1) + i);
+          return { time: d.toISOString().slice(0, 10), value: v };
+        });
+        const line = chart.addLineSeries({
+          color: '#c8755a', lineWidth: 2,
+          priceFormat: { type: 'price', precision: 4, minMove: 0.0001 },
+          lastValueVisible: true, priceLineVisible: false
+        });
+        line.setData(candles);
+        chart.timeScale().fitContent();
+      }
+
+      if (j.metrics) {
+        const grid = document.getElementById('metricsGrid');
+        grid.innerHTML = Object.entries(j.metrics).map(([k, v]) =>
+          `<div class="metric-card"><div class="metric-label">${k}</div><div class="metric-value">${typeof v === 'number' ? fmtPct(v) : v}</div></div>`
+        ).join('');
+      }
+      st.textContent = '已更新';
+    } else {
+      loadMock(name);
+    }
+  } catch (e) { loadMock(name); }
+}
+
+function loadMock(name) {
+  initChart();
+  const days = 180;
+  const now = new Date();
+  const vals = Array.from({ length: days }, (_, d) => 1.0 + Math.sin(d * 0.05) * 0.08 + Math.random() * 0.03 * (d / days));
+  const candles = vals.map((v, d) => {
+    const dt = new Date(now); dt.setDate(dt.getDate() - (days - 1) + d);
+    return { time: dt.toISOString().slice(0, 10), value: v };
+  });
+  const line = chart.addLineSeries({ color: '#c8755a', lineWidth: 2, lastValueVisible: true, priceLineVisible: false });
+  line.setData(candles);
+  chart.timeScale().fitContent();
+  document.getElementById('fundTitle').textContent = name + ' · 全景分析（模拟）';
+  document.getElementById('infoGrid').innerHTML = [
+    { label: '基金名称', value: name }, { label: '基金类型', value: '混合型' },
+    { label: '最新净值', value: vals[vals.length - 1].toFixed(4) }, { label: '累计净值', value: (vals[vals.length - 1] * 1.2).toFixed(4) },
+    { label: '年化收益率', value: '+8.5%', cls: 'up' }, { label: '最大回撤', value: '-12.3%' },
+    { label: '夏普比率', value: '0.85' }, { label: '综合评分', value: '78.5' }, { label: '建议', value: '持有' },
+  ].map(i => `<div class="info-item"><div class="info-label">${i.label}</div><div class="info-value${i.cls ? ' ' + i.cls : ''}">${i.value}</div></div>`).join('');
+  document.getElementById('infoCard').style.display = 'block';
+  document.getElementById('tabBar').style.display = 'flex';
+  document.getElementById('status').textContent = '模拟数据';
+}
+
+async function runBacktest() {
+  const name = document.getElementById('fundSelect').value;
+  const strategy = document.getElementById('strategySelect').value;
+  const resultDiv = document.getElementById('backtestResult');
+  resultDiv.textContent = '计算中...';
+  try {
+    const r = await fetch(BASE + '/api/fund/backtest', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ codes: name, strategy: strategy, initial_capital: 100000 })
+    });
+    const j = await r.json();
+    if (j.ok) {
+      resultDiv.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;">
+        ${Object.entries(j).filter(([k]) => k !== 'ok').map(([k, v]) =>
+          `<div class="metric-card"><div class="metric-label">${k}</div><div class="metric-value">${typeof v === 'number' ? (k.includes('率') || k.includes('收益') ? fmtPct(v) : fmtNum(v)) : v}</div></div>`
+        ).join('')}
+      </div>`;
+    } else {
+      resultDiv.innerHTML = `<div style="color:var(--copper)">回测失败：${j.error || '未知错误'}</div>`;
+    }
+  } catch (e) {
+    resultDiv.innerHTML = `<div style="color:var(--copper)">请求失败：${e.message}</div>`;
+  }
+}
+
+loadDetail();
+window.addEventListener('resize', () => { if (chart) chart.resize(chart.chartElement().clientWidth, 380); });
+</script>
+</body>
+</html>
