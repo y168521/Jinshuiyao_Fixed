@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 比赛列表</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+:root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim); --c-up:var(--copper); --c-down:var(--jade); }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; max-width:960px; margin:0 auto; }
+h1 { font-size:20px; margin:0 0 4px; }
+.sub { color:var(--muted); font-size:13px; margin-bottom:18px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
+.card h2 { font-size:15px; margin:0 0 12px; }
+.flex { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+select,button { background:var(--deep); color:var(--txt); border:1px solid var(--border); border-radius:6px; padding:5px 12px; font-size:12px; }
+button { cursor:pointer; }
+button.primary { background:var(--c-up); color:var(--deep); border:none; font-weight:600; padding:5px 14px; }
+.match-card { background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:10px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; cursor:pointer; transition:.15s; }
+.match-card:hover { border-color:var(--gold); }
+.match-teams { flex:1; min-width:200px; }
+.match-teams .home { font-size:15px; font-weight:600; }
+.match-teams .away { font-size:15px; font-weight:600; margin-top:4px; }
+.match-teams .vs { color:var(--muted); font-size:11px; margin:2px 0; }
+.match-info { text-align:center; min-width:80px; }
+.match-info .date { font-size:11px; color:var(--muted); }
+.match-info .league { font-size:10px; color:var(--gold); }
+.match-odds { display:flex; gap:8px; }
+.odds-box { text-align:center; padding:4px 10px; border-radius:6px; background:var(--card); min-width:50px; }
+.odds-box .label { font-size:10px; color:var(--muted); }
+.odds-box .value { font-size:14px; font-weight:600; }
+.status-badge { display:inline-block; padding:2px 8px; border-radius:8px; font-size:10px; }
+.status-badge.ready { background:rgba(45,139,126,.15); color:var(--jade); }
+.empty { text-align:center; padding:30px; color:var(--muted); font-size:13px; }
+@media(max-width:600px){ body{ padding:12px; } .match-card{ flex-direction:column; align-items:stretch; } .match-odds{ justify-content:center; } }
+</style>
+</head>
+<body>
+<div style="margin-bottom:10px;"><a href="/football" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回足彩分析中心</a></div>
+<h1>比赛列表</h1>
+<div class="sub">浏览各大联赛赛事 — 赔率对比、赛程安排</div>
+
+<div class="card">
+  <div class="flex">
+    <select id="leagueSelect">
+      <option value="">全部联赛</option>
+      <option value="英超">英超</option>
+      <option value="西甲">西甲</option>
+      <option value="德甲">德甲</option>
+      <option value="意甲">意甲</option>
+      <option value="法甲">法甲</option>
+    </select>
+    <button class="primary" onclick="loadMatches()">刷新</button>
+    <span id="status" class="muted">加载中...</span>
+  </div>
+</div>
+
+<div id="matchList"></div>
+
+<script>
+const BASE = window.location.origin;
+
+async function loadMatches() {
+  const league = document.getElementById('leagueSelect').value;
+  const st = document.getElementById('status');
+  const list = document.getElementById('matchList');
+  st.textContent = '加载中...';
+  try {
+    const r = await fetch(BASE + '/api/football/matches', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ league, limit: 50 })
+    });
+    const j = await r.json();
+    if (j.ok && j.matches && j.matches.length > 0) {
+      list.innerHTML = j.matches.map(m => `
+        <div class="match-card" onclick="location.href='/football/predict?home=${encodeURIComponent(m.home)}&away=${encodeURIComponent(m.away)}'">
+          <div class="match-teams">
+            <div class="home">${m.home}</div>
+            <div class="vs">VS</div>
+            <div class="away">${m.away}</div>
+          </div>
+          <div class="match-info">
+            <div class="date">${m.date || '—'}</div>
+            <div class="league">${m.league || ''}</div>
+          </div>
+          <div class="match-odds">
+            <div class="odds-box"><div class="label">主胜</div><div class="value" style="color:var(--c-up)">${m.home_odds || '—'}</div></div>
+            <div class="odds-box"><div class="label">平局</div><div class="value">${m.draw_odds || '—'}</div></div>
+            <div class="odds-box"><div class="label">客胜</div><div class="value" style="color:var(--c-down)">${m.away_odds || '—'}</div></div>
+          </div>
+        </div>
+      `).join('');
+      st.textContent = j.matches.length + ' 场比赛';
+    } else {
+      list.innerHTML = '<div class="empty">暂无比赛数据</div>';
+      st.textContent = '无数据';
+    }
+  } catch (e) {
+    list.innerHTML = '<div class="empty">加载失败</div>';
+    st.textContent = '请求失败';
+  }
+}
+
+loadMatches();
+</script>
+</body>
+</html>

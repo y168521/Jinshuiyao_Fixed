@@ -103,6 +103,8 @@ _SUBSYSTEM_ROUTES = {
     '/stock/detail':      os.path.join(BASE_DIR, 'frontend', 'stock', 'stock-detail.html'),
     '/football':          os.path.join(BASE_DIR, 'frontend', 'football', 'football-hub.html'),
     '/football/dashboard': os.path.join(BASE_DIR, 'frontend', 'football', 'dashboard.html'),
+    '/football/matches':   os.path.join(BASE_DIR, 'frontend', 'football', 'matches.html'),
+    '/football/predict':   os.path.join(BASE_DIR, 'frontend', 'football', 'predict.html'),
 }
 
 _PAGE_ERROR_MESSAGES = {

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 赛事预测</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+:root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim); --c-up:var(--copper); --c-down:var(--jade); }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; max-width:960px; margin:0 auto; }
+h1 { font-size:20px; margin:0 0 4px; }
+.sub { color:var(--muted); font-size:13px; margin-bottom:18px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
+.card h2 { font-size:15px; margin:0 0 12px; }
+.flex { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+select,input,button { background:var(--deep); color:var(--txt); border:1px solid var(--border); border-radius:6px; padding:5px 12px; font-size:12px; }
+button { cursor:pointer; }
+button.primary { background:var(--c-up); color:var(--deep); border:none; font-weight:600; padding:5px 14px; }
+.matchup { display:flex; justify-content:center; align-items:center; gap:20px; padding:20px 0; flex-wrap:wrap; }
+.team { text-align:center; min-width:120px; }
+.team .name { font-size:20px; font-weight:700; }
+.team .label { font-size:11px; color:var(--muted); margin-top:4px; }
+.vs-badge { font-size:16px; color:var(--gold); font-weight:700; padding:8px 16px; border:1px solid var(--border); border-radius:50%; }
+.prob-bar { display:flex; height:32px; border-radius:16px; overflow:hidden; margin:14px 0; font-size:11px; font-weight:600; }
+.prob-seg { display:flex; align-items:center; justify-content:center; transition:.3s; }
+.prob-home { background:var(--c-up); }
+.prob-draw { background:#5bc0de; }
+.prob-away { background:var(--c-down); }
+.prob-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); gap:10px; }
+.prob-card { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:10px; text-align:center; }
+.prob-label { font-size:11px; color:var(--muted); }
+.prob-value { font-size:18px; font-weight:700; margin-top:4px; }
+.score-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(80px,1fr)); gap:8px; }
+.score-item { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:8px; text-align:center; }
+.score-item .score { font-size:16px; font-weight:600; }
+.score-item .pct { font-size:11px; color:var(--muted); }
+.recommend { text-align:center; padding:16px; border-radius:10px; margin-top:14px; }
+.recommend.buy { background:rgba(45,139,126,.12); border:1px solid var(--jade); }
+.recommend.hold { background:rgba(91,192,222,.12); border:1px solid var(--ice); }
+.recommend.watch { background:rgba(200,117,90,.12); border:1px solid var(--copper); }
+.recommend .big { font-size:22px; font-weight:700; }
+@media(max-width:600px){ body{ padding:12px; } .team .name{ font-size:16px; } }
+</style>
+</head>
+<body>
+<div style="margin-bottom:10px;"><a href="/football" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回足彩分析中心</a></div>
+<h1>赛事预测</h1>
+<div class="sub">AI 赛事分析 — 概率估算、比分路径、投注参考</div>
+
+<div class="card">
+  <div class="flex">
+    <input id="homeInput" placeholder="主队名称" style="flex:1;min-width:100px;">
+    <span style="color:var(--muted);font-size:13px;">VS</span>
+    <input id="awayInput" placeholder="客队名称" style="flex:1;min-width:100px;">
+    <button class="primary" onclick="runPredict()">分析</button>
+  </div>
+</div>
+
+<div id="resultArea" style="display:none;">
+  <div class="card">
+    <div class="matchup" id="matchupHeader">
+      <div class="team"><div class="name" id="homeName">—</div><div class="label">主队</div></div>
+      <div class="vs-badge">VS</div>
+      <div class="team"><div class="name" id="awayName">—</div><div class="label">客队</div></div>
+    </div>
+
+    <div class="prob-bar" id="probBar">
+      <div class="prob-seg prob-home" id="homeProbSeg" style="width:40%;">主胜 40%</div>
+      <div class="prob-seg prob-draw" id="drawProbSeg" style="width:30%;">平 30%</div>
+      <div class="prob-seg prob-away" id="awayProbSeg" style="width:30%;">客胜 30%</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>概率分布</h2>
+    <div class="prob-grid" id="probGrid"></div>
+  </div>
+
+  <div class="card">
+    <h2>最可能比分</h2>
+    <div class="score-grid" id="scoreGrid"></div>
+  </div>
+
+  <div class="card">
+    <div id="recommendArea" class="recommend buy">
+      <div class="big" id="recText">推荐：主胜</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px;" id="recConf">信心：高</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE = window.location.origin;
+
+function getQuery(name) {
+  const p = new URLSearchParams(window.location.search);
+  return p.get(name) || '';
+}
+
+const qHome = getQuery('home');
+const qAway = getQuery('away');
+if (qHome) document.getElementById('homeInput').value = qHome;
+if (qAway) document.getElementById('awayInput').value = qAway;
+if (qHome || qAway) runPredict();
+
+async function runPredict() {
+  const home = document.getElementById('homeInput').value.trim() || '主队';
+  const away = document.getElementById('awayInput').value.trim() || '客队';
+  document.getElementById('resultArea').style.display = 'block';
+  document.getElementById('homeName').textContent = home;
+  document.getElementById('awayName').textContent = away;
+
+  try {
+    const r = await fetch(BASE + '/api/football/predict', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ home, away })
+    });
+    const j = await r.json();
+    if (j.ok && j.prediction) {
+      const p = j.prediction;
+      document.getElementById('homeProbSeg').style.width = p.home_prob + '%';
+      document.getElementById('homeProbSeg').textContent = '主胜 ' + p.home_prob + '%';
+      document.getElementById('drawProbSeg').style.width = p.draw_prob + '%';
+      document.getElementById('drawProbSeg').textContent = '平 ' + p.draw_prob + '%';
+      document.getElementById('awayProbSeg').style.width = p.away_prob + '%';
+      document.getElementById('awayProbSeg').textContent = '客胜 ' + p.away_prob + '%';
+
+      document.getElementById('probGrid').innerHTML = [
+        { label: '主胜概率', value: p.home_prob + '%', cls: 'up' },
+        { label: '平局概率', value: p.draw_prob + '%' },
+        { label: '客胜概率', value: p.away_prob + '%', cls: 'down' },
+      ].map(i => `<div class="prob-card"><div class="prob-label">${i.label}</div><div class="prob-value ${i.cls || ''}">${i.value}</div></div>`).join('');
+
+      if (p.score_paths) {
+        document.getElementById('scoreGrid').innerHTML = p.score_paths.map(s =>
+          `<div class="score-item"><div class="score">${s.score}</div><div class="pct">${s.prob}%</div></div>`
+        ).join('');
+      }
+
+      document.getElementById('recText').textContent = '推荐：' + (p.recommendation || '—');
+      document.getElementById('recConf').textContent = '信心：' + (p.confidence || '—');
+      const recArea = document.getElementById('recommendArea');
+      recArea.className = 'recommend ' + (p.recommendation === '主胜' ? 'buy' : p.recommendation === '客胜' ? 'watch' : 'hold');
+    } else {
+      document.getElementById('homeProbSeg').style.width = '40%';
+      document.getElementById('homeProbSeg').textContent = '主胜 40%';
+      document.getElementById('drawProbSeg').style.width = '30%';
+      document.getElementById('drawProbSeg').textContent = '平 30%';
+      document.getElementById('awayProbSeg').style.width = '30%';
+      document.getElementById('awayProbSeg').textContent = '客胜 30%';
+    }
+  } catch (e) {
+    document.getElementById('homeProbSeg').style.width = '40%';
+    document.getElementById('homeProbSeg').textContent = '主胜 40%';
+    document.getElementById('drawProbSeg').style.width = '30%';
+    document.getElementById('drawProbSeg').textContent = '平 30%';
+    document.getElementById('awayProbSeg').style.width = '30%';
+    document.getElementById('awayProbSeg').textContent = '客胜 30%';
+  }
+}
+</script>
+</body>
+</html>

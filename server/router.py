@@ -32,6 +32,7 @@ from .handlers import review as h_review
 from .handlers import trend as h_trend
 from .handlers import backtest as h_backtest
 from .handlers import fund as h_fund
+from .handlers import football as h_football
 from .handlers import stock as h_stock
 from .handlers import filter as h_filter
 
@@ -353,6 +354,17 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
             h_fund.handle_portfolio_remove(self, parsed)
             return
 
+        # /api/football/* — 足彩子系统专用路由
+        if parsed.path == '/api/football/status':
+            h_football.handle_status(self, parsed)
+            return
+        if parsed.path == '/api/football/matches':
+            h_football.handle_matches(self, parsed)
+            return
+        if parsed.path == '/api/football/predict':
+            h_football.handle_predict(self, parsed)
+            return
+
         # /api/backtest — 统一股基回测（type=fund|stock，默认 fund）
         if parsed.path == '/api/backtest':
             h_backtest.handle_backtest(self, parsed)
@@ -551,6 +563,17 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
             return
         if parsed.path == '/api/fund/portfolio/remove':
             h_fund.handle_portfolio_remove(self, parsed)
+            return
+
+        # /api/football/* — 足彩子系统专用路由（POST）
+        if parsed.path == '/api/football/status':
+            h_football.handle_status(self, parsed)
+            return
+        if parsed.path == '/api/football/matches':
+            h_football.handle_matches(self, parsed)
+            return
+        if parsed.path == '/api/football/predict':
+            h_football.handle_predict(self, parsed)
             return
 
         # /api/filter/smart — 智能缩水过滤
