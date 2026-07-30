@@ -102,32 +102,46 @@ def handle_matches(handler, parsed):
 
 
 def handle_predict(handler, parsed):
-    """GET/POST /api/football/predict — 比赛预测"""
+    """GET/POST /api/football/predict — 比赛预测（使用真实 ML Pipeline）"""
     params = _parse_params(handler, parsed)
     home = params.get("home", "").strip()
     away = params.get("away", "").strip()
+    bankroll = float(params.get("bankroll", 1000.0))
     try:
         domain = get_football_domain()
         if domain:
-            result = domain.generate()
+            result = domain.generate({"home": home, "away": away, "bankroll": bankroll})
         else:
             result = {}
-        prediction = {
-            "home": home or "主队",
-            "away": away or "客队",
-            "home_prob": round(30 + hash(home + away) % 20, 1),
-            "draw_prob": round(20 + hash(away + home) % 15, 1),
-            "away_prob": round(100 - (30 + hash(home + away) % 20) - (20 + hash(away + home) % 15), 1),
-            "recommendation": "主胜" if hash(home + away) % 3 == 0 else "客胜" if hash(home + away) % 3 == 1 else "平局",
-            "confidence": "高" if hash(home + away) % 4 == 0 else "中",
-            "score_paths": [
-                {"score": "1-0", "prob": 18.5}, {"score": "2-1", "prob": 14.2},
-                {"score": "1-1", "prob": 12.8}, {"score": "2-0", "prob": 11.3},
-                {"score": "0-0", "prob": 9.6},
-            ],
-        }
-        if domain and hasattr(domain, '_last_result') and domain._last_result:
-            prediction["domain_result"] = domain._last_result
+
+        # 构造标准响应
+        if result and result.get('status') == 'completed' and result.get('predictions'):
+            pred = result['predictions'][0]
+            prediction = {
+                "home": home or "主队",
+                "away": away or "客队",
+                "home_prob": round(result['model_prob'].get('win', 0.333) * 100, 1),
+                "draw_prob": round(result['model_prob'].get('draw', 0.333) * 100, 1),
+                "away_prob": round(result['model_prob'].get('lose', 0.333) * 100, 1),
+                "recommendation": pred.get('recommendation', '—'),
+                "confidence": pred.get('confidence', '中'),
+                "score_paths": result.get('score_paths', []),
+                "expected_goals": result.get('expected_goals', {}),
+                "market_margin": result.get('market_margin', 0),
+                "ev": pred.get('ev', 0),
+                "suggested_stake": pred.get('suggested_stake', 0),
+                "tier": pred.get('tier', 'medium'),
+            }
+        else:
+            prediction = {
+                "home": home or "主队",
+                "away": away or "客队",
+                "home_prob": 33.3, "draw_prob": 33.3, "away_prob": 33.3,
+                "recommendation": "数据不足", "confidence": "低",
+                "score_paths": [],
+                "expected_goals": {},
+            }
+
         handler._send_json({"ok": True, "prediction": prediction}, 200)
     except Exception as e:
         log(f"[football-predict] 异常: {e}")
