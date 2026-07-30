@@ -35,6 +35,7 @@ from .handlers import fund as h_fund
 from .handlers import football as h_football
 from .handlers import stock as h_stock
 from .handlers import filter as h_filter
+from .handlers import quant as h_quant
 
 
 class GuideHandler(http.server.SimpleHTTPRequestHandler):
@@ -576,6 +577,16 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
             h_football.handle_predict(self, parsed)
             return
 
+        # /api/quant/stock/* — 量化扫描股票数据
+        if parsed.path.startswith('/api/quant/stock/'):
+            h_quant.handle_stock(self, parsed)
+            return
+
+        # /api/quant/knowledge — 量化知识库检索
+        if parsed.path == '/api/quant/knowledge/search':
+            h_quant.handle_knowledge_search(self, parsed)
+            return
+
         # /api/filter/smart — 智能缩水过滤
         if parsed.path == '/api/filter/smart':
             h_filter.handle_smart_filter(self)
@@ -641,6 +652,11 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
         # /api/knowledge/crosslinks/discover — 触发双库交叉链接自动发现
         if parsed.path == '/api/knowledge/crosslinks/discover':
             h_knowledge.handle_crosslinks_discover(self)
+            return
+
+        # /api/quant/knowledge — 量化知识库 upsert（事件推演结论回写）
+        if parsed.path == '/api/quant/knowledge':
+            h_quant.handle_knowledge_upsert(self, parsed)
             return
 
         # /api/knowledge/graph/build — 重建知识图谱

@@ -117,9 +117,15 @@
       sym = sym || this.sym;
       let data = null, source = "static";
       try {
-        const r = await fetch(`/api/stock/${sym}`, { headers: { Accept: "application/json" } });
+        const r = await fetch(`/api/quant/stock/${sym}`, { headers: { Accept: "application/json" } });
         if (r.ok) { data = await r.json(); if (data && data.live) source = "live"; }
-      } catch (e) { /* 回退静态快照 */ }
+      } catch (e) { /* fallback to legacy api */ }
+      if (!data) {
+        try {
+          const r = await fetch(`/api/stock/${sym}`, { headers: { Accept: "application/json" } });
+          if (r.ok) { data = await r.json(); if (data && data.live) source = "live"; }
+        } catch (e) { /* fallback to static snapshot */ }
+      }
       if (!data) {
         try {
           const r = await fetch(`data/real_stock.json`, { headers: { Accept: "application/json" } });
@@ -359,7 +365,7 @@
       let cards = [];
       try {
         const q = encodeURIComponent((prompt || "") + " 板块 stock 量化 事件");
-        const r = await fetch(`/api/knowledge?q=${q}&limit=6`, { headers: { Accept: "application/json" } });
+        const r = await fetch(`/api/quant/knowledge/search?q=${q}&limit=6`, { headers: { Accept: "application/json" } });
         if (r.ok) { const d = await r.json(); cards = d.cards || []; }
       } catch (e) { cards = []; }
       Terminal.append("知识库", "flat", "LOW", `注入上下文：${cards.length} 张策略卡`);
@@ -462,7 +468,7 @@
         engine_hook: "event_deduction", source: "dashboard", priority: 5, subsystem: "stock",
       };
       try {
-        const r = await fetch("/api/knowledge", {
+        const r = await fetch("/api/quant/knowledge", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(card),
