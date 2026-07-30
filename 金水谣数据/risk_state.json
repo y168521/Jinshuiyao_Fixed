@@ -1,0 +1,99 @@
+{
+  "per_lot": {
+    "福彩3D": {
+      "consecutive_zeros": 0,
+      "pool_zeros": 0,
+      "last_pool": [
+        2,
+        1,
+        9
+      ],
+      "recent_forms": [
+        "组六",
+        "组六",
+        "组六",
+        "组六",
+        "组六",
+        "组六",
+        "组六",
+        "组六",
+        "组六",
+        "组六"
+      ]
+    },
+    "排列三": {
+      "consecutive_zeros": 0,
+      "pool_zeros": 0,
+      "last_pool": [
+        2,
+        8,
+        5
+      ],
+      "recent_forms": [
+        "组六",
+        "组六",
+        "组六",
+        "组六",
+        "组六",
+        "组六",
+        "组六",
+        "组六",
+        "组六",
+        "组六"
+      ]
+    },
+    "双色球": {
+      "consecutive_zeros": 1,
+      "pool_zeros": 0,
+      "last_pool": [
+        7,
+        8,
+        8
+      ],
+      "recent_forms": []
+    },
+    "七星彩": {
+      "consecutive_zeros": 0,
+      "pool_zeros": 0,
+      "last_pool": [
+        4,
+        5,
+        0,
+        8,
+        1,
+        6
+      ],
+      "recent_forms": []
+    },
+    "七乐彩": {
+      "consecutive_zeros": 0,
+      "pool_zeros": 0,
+      "last_pool": [
+        1,
+        3,
+        5
+      ],
+      "recent_forms": []
+    },
+    "快乐8": {
+      "consecutive_zeros": 0,
+      "pool_zeros": 0,
+      "last_pool": [
+        1,
+        3,
+        4
+      ],
+      "recent_forms": []
+    },
+    "大乐透": {
+      "consecutive_zeros": 1,
+      "pool_zeros": 0,
+      "last_pool": [
+        5,
+        6,
+        4
+      ],
+      "recent_forms": []
+    }
+  }
+}

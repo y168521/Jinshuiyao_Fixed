@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 交互式遗漏表格</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+:root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim); --c-hot:var(--copper); --c-warm:var(--gold); --c-cold:var(--jade); }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; }
+h1 { font-size:20px; margin:0 0 4px; }
+.sub { color:var(--muted); font-size:13px; margin-bottom:18px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
+.card h2 { font-size:15px; margin:0 0 12px; }
+.flex { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+select,input,button { background:var(--deep); color:var(--txt); border:1px solid var(--border); border-radius:6px; padding:5px 12px; font-size:12px; }
+button { cursor:pointer; }
+button.primary { background:var(--c-hot); color:var(--deep); border:none; font-weight:600; padding:5px 14px; }
+button.primary:hover { opacity:.85; }
+.muted { color:var(--muted); }
+.scroll-x { overflow-x:auto; }
+#omissionTable { width:100%; border-collapse:collapse; font-size:12px; }
+#omissionTable th, #omissionTable td { text-align:center; padding:5px 4px; border:1px solid var(--border); white-space:nowrap; }
+#omissionTable th { color:var(--muted); font-weight:600; font-size:11px; background:var(--deep); cursor:pointer; position:sticky; top:0; z-index:1; }
+#omissionTable th:hover { color:var(--gold); }
+#omissionTable td.cell-hot { background:rgba(200,117,90,.25); color:var(--c-hot); font-weight:700; }
+#omissionTable td.cell-warm { background:rgba(201,169,110,.15); }
+#omissionTable td.cell-cold { color:var(--muted); }
+#omissionTable td.cell-hit { background:rgba(45,139,126,.2); color:var(--jade); font-weight:700; }
+#omissionTable td.cell-max { background:rgba(200,117,90,.15); border:2px solid var(--c-hot); }
+.table-wrap { max-height:600px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; }
+.summary-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:8px; }
+.summary-item { text-align:center; padding:10px; background:var(--deep); border-radius:8px; border:1px solid var(--border); }
+.summary-item .val { font-size:20px; font-weight:700; }
+.summary-item .lbl { font-size:11px; color:var(--muted); margin-top:2px; }
+.filter-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.filter-tag { padding:3px 10px; border-radius:10px; font-size:11px; cursor:pointer; border:1px solid var(--border); background:transparent; color:var(--muted); transition:.15s; }
+.filter-tag:hover { border-color:var(--gold); }
+.filter-tag.active { background:rgba(200,117,90,.15); border-color:var(--c-hot); color:var(--c-hot); }
+@media(max-width:600px){ body{ padding:12px; } #omissionTable{ font-size:11px; } }
+</style>
+</head>
+<body>
+<div style="margin-bottom:10px;"><a href="/lottery" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回彩票分析中心</a></div>
+<h1>交互式遗漏表格</h1>
+<div class="sub">排序 · 筛选 · 高亮 — 各号码当前遗漏值与历史统计</div>
+
+<div class="card">
+  <div class="flex" style="margin-bottom:10px">
+    <select id="lotType"><option value="ssq">双色球（红球）</option><option value="dlt">大乐透（前区）</option><option value="fc3d">福彩3D</option><option value="pl3">排列三</option></select>
+    <button class="primary" onclick="loadData()">加载数据</button>
+    <span id="status" class="muted"><span class="spinner"></span>加载中...</span>
+  </div>
+  <div class="filter-row" id="filters"></div>
+</div>
+
+<div class="card" id="summaryCard" style="display:none;">
+  <div class="summary-grid" id="summaryGrid"></div>
+</div>
+
+<div class="card" id="tableCard" style="display:none;">
+  <div class="table-wrap" id="tableWrap"></div>
+</div>
+
+<script>
+const BASE = window.location.origin;
+const LOT_CFG = { ssq:{range:33,name:'双色球'}, dlt:{range:35,name:'大乐透'}, fc3d:{range:10,name:'福彩3D'}, pl3:{range:10,name:'排列三'} };
+let rawData = [];
+let sortKey = null, sortAsc = true;
+let filterMin = 0, filterMax = Infinity;
+
+function genMockData(lot){
+  const r = LOT_CFG[lot].range;
+  return Array.from({length:r},(_,i)=>({
+    number:i+1,
+    current:Math.floor(Math.random()*40),
+    max:Math.floor(Math.random()*60)+10,
+    avg:+(Math.random()*8+2).toFixed(1),
+    frequency:+(Math.random()*10+1).toFixed(2),
+    lastAppear:Math.floor(Math.random()*365)+1,
+    hotLevel:['冷','温','热','极热'][Math.floor(Math.random()*4)]
+  }));
+}
+
+function render(data){
+  rawData = data;
+  const range = LOT_CFG[document.getElementById('lotType').value].range;
+  if(!data||!data.length){ document.getElementById('tableWrap').innerHTML='<p class="muted" style="text-align:center;padding:20px">暂无数据</p>'; return; }
+
+  const hits = data.filter(d=>d.current===0).length;
+  const maxCur = Math.max(...data.map(d=>d.current));
+  const avgCur = +(data.reduce((s,d)=>s+d.current,0)/data.length).toFixed(1);
+  const hotCount = data.filter(d=>d.current>maxCur*0.7).length;
+
+  document.getElementById('summaryGrid').innerHTML = `
+    <div class="summary-item"><div class="val" style="color:var(--jade)">${hits}</div><div class="lbl">本期开出的号码</div></div>
+    <div class="summary-item"><div class="val" style="color:var(--c-hot)">${maxCur}</div><div class="lbl">最大遗漏（期）</div></div>
+    <div class="summary-item"><div class="val" style="color:var(--gold)">${avgCur}</div><div class="lbl">平均遗漏（期）</div></div>
+    <div class="summary-item"><div class="val" style="color:var(--copper)">${hotCount}</div><div class="lbl">高遗漏号码 (&gt;${Math.round(maxCur*0.7)}期)</div></div>`;
+
+  let sorted = [...data];
+  if(sortKey){ sorted.sort((a,b)=>{ const va=a[sortKey], vb=b[sortKey]; return sortAsc?va-vb:vb-va; }); }
+  if(filterMin>0) sorted = sorted.filter(d=>d.current>=filterMin);
+  if(filterMax<Infinity) sorted = sorted.filter(d=>d.current<=filterMax);
+
+  let html = '<table id="omissionTable"><thead><tr>';
+  const cols = [
+    {key:'number',label:'号码'},{key:'current',label:'当前遗漏'},
+    {key:'max',label:'最大遗漏'},{key:'avg',label:'平均遗漏'},
+    {key:'frequency',label:'出现频率(%)'},{key:'lastAppear',label:'上次出现(天前)'},
+    {key:'hotLevel',label:'冷热状态'}
+  ];
+  cols.forEach(c=>{
+    const arrow = sortKey===c.key?(sortAsc?' ▲':' ▼'):'';
+    html+=`<th onclick="sortBy('${c.key}')">${c.label}${arrow}</th>`;
+  });
+  html+='</tr></thead><tbody>';
+  sorted.forEach(d=>{
+    const isHit = d.current===0;
+    const isMax = d.current>=d.max*0.9;
+    const cold = d.current<maxCur*0.3?'cell-cold':d.current<maxCur*0.7?'cell-warm':'cell-hot';
+    html+=`<tr><th style="background:var(--card);font-weight:700">${String(d.number).padStart(2,'0')}</th>
+      <td class="${isHit?'cell-hit':cold}${isMax?' cell-max':''}">${isHit?'✓ 开出':d.current+'期'}</td>
+      <td>${d.max}期</td><td>${d.avg}期</td>
+      <td>${d.frequency}%</td><td>${d.lastAppear}天</td>
+      <td style="color:${d.hotLevel==='极热'?'var(--c-hot)':d.hotLevel==='热'?'var(--gold)':d.hotLevel==='温'?'var(--ice)':'var(--muted)'}">${d.hotLevel}</td></tr>`;
+  });
+  html+='</tbody></table>';
+  document.getElementById('tableWrap').innerHTML = html;
+
+  const filterLabels = ['全部','遗漏0期（已开出）','遗漏1~5期','遗漏6~15期','遗漏16期以上'];
+  const filterVals = [null,0,1,6,16];
+  document.getElementById('filters').innerHTML = filterLabels.map((l,i)=>{
+    const a = i===0?'active':'';
+    return `<span class="filter-tag ${a}" onclick="setFilter(${i})">${l}</span>`;
+  }).join('');
+}
+
+function setFilter(idx){
+  const vals = [null,0,1,6,16];
+  const v = vals[idx];
+  if(v===null){ filterMin=0; filterMax=Infinity; }
+  else if(idx===1){ filterMin=0; filterMax=0; }
+  else{ filterMin=v; filterMax=idx===3?15:Infinity; }
+  document.querySelectorAll('.filter-tag').forEach((t,i)=>t.classList.toggle('active',i===idx));
+  render(rawData);
+}
+
+function sortBy(key){
+  if(sortKey===key) sortAsc=!sortAsc;
+  else{ sortKey=key; sortAsc=true; }
+  render(rawData);
+}
+
+async function loadData(){
+  const lot = document.getElementById('lotType').value;
+  document.getElementById('status').innerHTML = '<span class="spinner"></span>加载中...';
+  document.getElementById('summaryCard').style.display='block';
+  document.getElementById('tableCard').style.display='block';
+  try{
+    const r = await fetch(BASE+'/api/lottery/omission-table', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lottery:lot})});
+    const j = await r.json();
+    if(j.ok && j.data){ render(j.data); document.getElementById('status').textContent = '已更新'; }
+    else{ render(genMockData(lot)); document.getElementById('status').textContent = '模拟数据（接口暂不可用）'; }
+  } catch(e){ render(genMockData(lot)); document.getElementById('status').textContent = '模拟数据（接口暂不可用）'; }
+}
+
+loadData();
+</script>
+</body>
+</html>

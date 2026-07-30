@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>操作留痕看板 - 金水谣</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+.back-link { margin-bottom:10px; } .back-link a { color:var(--ink-dim); font-size:13px; text-decoration:none; } .back-link a:hover { color:var(--gold); }
+.container { max-width: 1040px; margin: 0 auto; padding: 28px 20px 60px; position: relative; z-index: 1; }
+.page-title { font-size: 24px; margin-bottom: 4px; }
+.page-sub { color: var(--ink-dim); font-size: 13px; margin-bottom: 24px; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.stat-card { background: var(--card-bg); border: 1px solid var(--gold-border); border-radius: var(--radius-md); padding: 16px 20px; text-align: center; }
+.stat-card .lbl { font-size: 12px; color: var(--ink-dim); }
+.stat-card .val { font-size: 28px; font-weight: 700; margin-top: 4px; transition: color .3s; }
+.stat-card.ok .val { color: var(--jade); }
+.stat-card.fail .val { color: var(--copper); }
+.stat-card.warn .val { color: var(--gold); }
+.stat-card.neutral .val { color: var(--ice); }
+.card { background: var(--card-bg); border: 1px solid var(--gold-border); border-radius: var(--radius-md); padding: 20px 24px; margin-bottom: 16px; box-shadow: var(--shadow); }
+.card-title { font-size: 15px; font-weight: 600; margin-bottom: 14px; color: var(--ice); }
+.timeline { position: relative; padding-left: 28px; }
+.timeline::before { content: ''; position: absolute; left: 10px; top: 4px; bottom: 4px; width: 2px; background: var(--gold-border); }
+.tl-item { position: relative; margin-bottom: 18px; padding-left: 14px; }
+.tl-item::before { content: ''; position: absolute; left: -22px; top: 6px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--gold-border); background: var(--deep); transition: all .2s; }
+.tl-item:hover::before { border-color: var(--gold); background: var(--gold-soft); }
+.tl-item.event-session_start::before { border-color: var(--jade); background: rgba(45,139,126,.2); }
+.tl-item.event-session_close::before { border-color: var(--ice); background: rgba(91,192,222,.2); }
+.tl-item.event-commit::before { border-color: var(--gold); background: var(--gold-soft); }
+.tl-item.event-audit_fail::before, .tl-item.event-gate_fail::before, .tl-item.event-bypass::before { border-color: var(--copper); background: rgba(200,117,90,.2); }
+.tl-item.event-milestone::before { border-color: #a371f7; background: rgba(163,113,247,.2); }
+.tl-time { font-size: 11px; color: var(--ink-dim); }
+.tl-event { font-size: 14px; font-weight: 500; }
+.tl-detail { font-size: 13px; color: var(--ink-dim); margin-top: 2px; }
+.tl-files { font-size: 12px; color: var(--ink-dim); margin-top: 2px; word-break: break-all; opacity: .7; }
+.badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-right: 6px; margin-bottom: 4px; }
+.badge-ok { background: rgba(45,139,126,.12); color: var(--jade); }
+.badge-fail { background: rgba(200,117,90,.12); color: var(--copper); }
+.badge-warn { background: var(--gold-soft); color: var(--gold); }
+.badge-info { background: var(--ice-soft); color: var(--ice); }
+.status-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.empty-state { color: var(--ink-dim); text-align: center; padding: 40px 0; font-size: 14px; }
+.footer { text-align: center; color: var(--ink-dim); font-size: 12px; margin-top: 40px; padding: 16px; border-top: 1px solid var(--gold-border); }
+.loading { text-align: center; padding: 40px; color: var(--ink-dim); }
+.loading::after { content: ''; display: inline-block; width: 16px; height: 16px; border: 2px solid var(--gold-border); border-top-color: var(--gold); border-radius: 50%; animation: spin .8s linear infinite; margin-left: 8px; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.conclusion { font-size: 15px; font-weight: 700; margin-top: 10px; }
+.conclusion.ok { color: var(--jade); }
+.conclusion.warn { color: var(--gold); }
+.conclusion.fail { color: var(--copper); }
+@media (max-width: 768px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .container { padding: 16px 12px 40px; }
+  .page-title { font-size: 20px; }
+  .card { padding: 16px; }
+}
+@media (max-width: 480px) {
+  .stats { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-card { padding: 12px; }
+  .stat-card .val { font-size: 22px; }
+}
+@media (max-width: 480px) {
+  .card { overflow-x: auto; }
+  .tl-files { font-size: 11px; }
+  .status-row { gap: 4px; }
+  .badge { font-size: 11px; padding: 2px 7px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="back-link"><a href="/lottery">&larr; 返回彩票分析中心</a></div>
+<div class="page-title">操作留痕看板</div>
+  <div class="page-sub">金水谣 · 自动操作审计系统 — <span id="today-date">加载中...</span></div>
+
+  <div class="stats" id="stats">
+    <div class="stat-card neutral"><div class="lbl">操作人</div><div class="val" id="user-name">-</div></div>
+    <div class="stat-card neutral"><div class="lbl">今日操作数</div><div class="val" id="op-count">-</div></div>
+    <div class="stat-card" id="card-start"><div class="lbl">开工令</div><div class="val" id="start-status">-</div></div>
+    <div class="stat-card" id="card-close"><div class="lbl">收工令</div><div class="val" id="close-status">-</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">合规状态</div>
+    <div id="compliance-box"><div class="loading">加载合规报告中</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">今日操作时间线</div>
+    <div class="timeline" id="timeline"><div class="loading">加载操作记录中</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">系统完整性</div>
+    <div id="integrity-box"><div class="loading">验证中</div></div>
+  </div>
+
+  <div class="footer">金水谣 · 操作留痕引擎 v1</div>
+</div>
+
+<script>
+const EVENT_LABELS = {
+  session_start: '开工令', session_close: '收工令', commit: '代码提交',
+  audit_pass: '审查通过', audit_fail: '审查拦截',
+  gate_pass: '门禁通过', gate_fail: '门禁拦截',
+  bypass: '绕过检测', milestone: '里程碑', compliance: '合规报告',
+};
+
+async function loadData() {
+  const tl = document.getElementById('timeline');
+  try {
+    const resp = await fetch('/api/audit-trail');
+    const data = await resp.json();
+    render(data);
+  } catch(e) {
+    tl.innerHTML = '<div class="empty-state">无法加载数据，请确认服务器已启动</div>';
+  }
+}
+
+function render(data) {
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('today-date').textContent = today;
+  document.getElementById('user-name').textContent = data.user || '未知';
+  const events = data.events || [];
+  document.getElementById('op-count').textContent = events.length;
+
+  const hasStart = events.some(e => e.event === 'session_start');
+  const hasClose = events.some(e => e.event === 'session_close');
+  const bypassCount = events.filter(e => e.event === 'bypass').length;
+
+  const sEl = document.getElementById('start-status');
+  const sCard = document.getElementById('card-start');
+  sEl.textContent = hasStart ? '已执行' : '未执行';
+  sCard.className = 'stat-card ' + (hasStart ? 'ok' : 'fail');
+
+  const cEl = document.getElementById('close-status');
+  const cCard = document.getElementById('card-close');
+  if (hasClose) { cEl.textContent = '已执行'; cCard.className = 'stat-card ok'; }
+  else if (hasStart) { cEl.textContent = '未执行'; cCard.className = 'stat-card warn'; }
+  else { cEl.textContent = '-'; cCard.className = 'stat-card neutral'; }
+
+  renderCompliance(events, hasStart, hasClose, bypassCount);
+  renderTimeline(events);
+  renderIntegrity(data.chain_ok);
+}
+
+function renderCompliance(events, hasStart, hasClose, bypassCount) {
+  const box = document.getElementById('compliance-box');
+  const gateFails = events.filter(e => e.event === 'gate_fail').length;
+  const auditFails = events.filter(e => e.event === 'audit_fail').length;
+
+  let html = '<div class="status-row">';
+  html += `<span class="badge ${hasStart ? 'badge-ok' : 'badge-fail'}">开工: ${hasStart ? '已执行' : '未执行'}</span>`;
+  html += `<span class="badge ${hasClose ? 'badge-ok' : (hasStart ? 'badge-warn' : 'badge-info')}">收工: ${hasClose ? '已执行' : (hasStart ? '未执行' : '-')}</span>`;
+  html += `<span class="badge ${bypassCount > 0 ? 'badge-fail' : 'badge-ok'}">绕过: ${bypassCount > 0 ? bypassCount + '次' : '无'}</span>`;
+  html += `<span class="badge ${auditFails > 0 ? 'badge-fail' : 'badge-ok'}">审查拦截: ${auditFails}次</span>`;
+  html += `<span class="badge ${gateFails > 0 ? 'badge-fail' : 'badge-ok'}">门禁拦截: ${gateFails}次</span>`;
+  html += '</div>';
+
+  let cls = 'ok', txt = '今日流程完整，无违规';
+  if (!hasStart) { cls = 'fail'; txt = '流程不完整，请检查'; }
+  else if (hasStart && !hasClose) { cls = 'warn'; txt = '已开工但未收工，请执行 ops.py --close'; }
+  if (bypassCount > 0) { cls = 'fail'; txt = bypassCount + ' 次绕过行为!'; }
+  html += `<div class="conclusion ${cls}">${txt}</div>`;
+  box.innerHTML = html;
+}
+
+function renderTimeline(events) {
+  const tl = document.getElementById('timeline');
+  if (events.length === 0) { tl.innerHTML = '<div class="empty-state">今日暂无操作记录</div>'; return; }
+  let html = '';
+  events.slice().reverse().forEach(e => {
+    const label = EVENT_LABELS[e.event] || e.event;
+    const detail = e.detail || '';
+    const files = e.files || [];
+    const time = e.time || '';
+    html += `<div class="tl-item event-${e.event}">`;
+    html += `<div class="tl-time">${time}</div>`;
+    html += `<div class="tl-event">${label}</div>`;
+    if (detail) html += `<div class="tl-detail">${detail}</div>`;
+    if (files.length > 0) {
+      const shown = files.filter(f => f.length < 80).slice(0, 3);
+      html += `<div class="tl-files">${shown.join(' · ')}${files.length > 3 ? ' · ...' : ''}</div>`;
+    }
+    html += '</div>';
+  });
+  tl.innerHTML = html;
+}
+
+function renderIntegrity(chainOk) {
+  const box = document.getElementById('integrity-box');
+  if (chainOk === undefined) { box.innerHTML = '<div class="empty-state">无法验证</div>'; return; }
+  box.innerHTML = chainOk
+    ? '<div style="color:var(--jade);font-size:14px;">审计日志 Hash 链完整，数据未被篡改</div>'
+    : '<div style="color:var(--copper);font-size:14px;font-weight:600;">审计日志 Hash 链断裂，数据可能被篡改!</div>';
+}
+
+loadData();
+setInterval(loadData, 30000);
+</script>
+</body>
+</html>

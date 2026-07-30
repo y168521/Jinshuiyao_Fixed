@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "daily_limit_yuan": 20.0,
+  "per_minute_limit_yuan": 1.0,
+  "per_run_max_yuan": 0.05,
+  "prices": {
+    "deepseek": {
+      "input_yuan_per_1m": 0.5,
+      "output_yuan_per_1m": 4.0,
+      "note": "近似档位，实际以供应商当日报价为准；政策变动只改此处，不动代码"
+    }
+  },
+  "notify": {
+    "on_trip": true
+  }
+}

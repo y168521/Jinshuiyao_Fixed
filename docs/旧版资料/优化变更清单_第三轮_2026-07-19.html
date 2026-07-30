@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣系统优化变更清单 — 2026-07-19 第三轮</title>
+<style>
+  :root { --bg:#0d1117; --card:#161b22; --border:#30363d; --text:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --red:#f85149; --orange:#d29922; --green:#3fb950; --purple:#bc8cff; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:"Microsoft YaHei","Segoe UI",sans-serif; line-height:1.7; padding:2rem; max-width:1100px; margin:auto; }
+  h1 { font-size:1.6rem; color:var(--accent); border-bottom:2px solid var(--accent); padding-bottom:.5rem; margin-bottom:1rem; }
+  h2 { font-size:1.2rem; color:var(--purple); margin:2rem 0 1rem; padding-left:.5rem; border-left:4px solid var(--purple); }
+  table { width:100%; border-collapse:collapse; margin:1rem 0; font-size:.88rem; }
+  th { background:#21262d; color:var(--accent); padding:8px 12px; text-align:left; border:1px solid var(--border); }
+  td { padding:8px 12px; border:1px solid var(--border); vertical-align:top; }
+  tr:nth-child(even) td { background:#161b2288; }
+  code { background:#21262d; padding:2px 6px; border-radius:4px; font-family:monospace; font-size:.82rem; }
+  .badge { display:inline-block; padding:2px 10px; border-radius:12px; font-size:.72rem; font-weight:bold; margin-right:4px; }
+  .arch { background:#f8514933; color:var(--red); border:1px solid var(--red); }
+  .fix { background:#d2992233; color:var(--orange); border:1px solid var(--orange); }
+  .new { background:#3fb95033; color:var(--green); border:1px solid var(--green); }
+  .cleanup { background:#58a6ff33; color:var(--accent); border:1px solid var(--accent); }
+  .style { background:#bc8cff33; color:var(--purple); border:1px solid var(--purple); }
+  .stat-row { display:flex; gap:1rem; flex-wrap:wrap; margin:1rem 0; }
+  .stat { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:1rem 1.5rem; text-align:center; flex:1; min-width:120px; }
+  .stat-num { font-size:2rem; font-weight:bold; }
+  .stat-label { font-size:.78rem; color:var(--muted); }
+  p { font-size:.92rem; margin-bottom:.5rem; }
+  ul { padding-left:1.5rem; }
+  li { font-size:.9rem; margin-bottom:.3rem; }
+  .tree { font-family:monospace; font-size:.82rem; color:var(--muted); line-height:1.5; padding:1rem; background:#0d1117; border:1px solid var(--border); border-radius:6px; white-space:pre; overflow-x:auto; }
+  hr { border:none; border-top:1px solid var(--border); margin:2rem 0; }
+</style>
+</head>
+<body>
+
+<h1>金水谣万物引擎 · 优化变更清单（第三轮）</h1>
+<p style="color:var(--muted)">深度重构 + 安全加固 + 代码规范统一 · 2026-07-19</p>
+
+<div class="stat-row">
+  <div class="stat"><div class="stat-num" style="color:var(--red)">1</div><div class="stat-label">架构重构</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--orange)">3</div><div class="stat-label">安全/并发修复</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--green)">4</div><div class="stat-label">新增文件</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--accent)">1</div><div class="stat-label">目录清理</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--purple)">21</div><div class="stat-label">f-string 转换</div></div>
+</div>
+
+<!-- ====== 架构重构 ====== -->
+<h2>一、架构重构：guide_server.py 拆分</h2>
+
+<p>原 1758 行单体文件 <code>guide_server.py</code> 已拆分为 11 个职责清晰的模块文件，原文件保留为 57 行薄包装层（向后兼容）。</p>
+
+<div class="tree">
+server/
+├── __init__.py          (175行) 主入口 + main() + 公共接口导出
+├── config.py            (107行) 服务器常量：端口、路径、版本、线程池
+├── utils.py             (212行) 通用工具：日志、IP检测、外部调用熔断、文件服务
+├── router.py            (417行) GuideHandler 路由调度 + do_GET/do_POST 分发
+└── handlers/
+    ├── __init__.py      (5行)   包初始化
+    ├── health.py        (198行) /health, /status, /api/selfcheck, /api/ai/mode
+    ├── ai.py            (221行) /api/chat, /api/ask, /api/route, /api/extract
+    ├── knowledge.py     (369行) /api/knowledge/*, /api/memory, AI 记忆管理
+    ├── prediction.py    (140行) /api/prediction/*, 预测记录/列表/结果标注
+    ├── static.py        (185行) 静态文件服务、页面路由、/open
+    └── sync.py          (84行)  /sync, /sync-api/* 跨设备同步
+</div>
+
+<table>
+  <tr><th>设计决策</th><th>说明</th></tr>
+  <tr><td>向后兼容</td><td>原 <code>guide_server.py</code> 重导出所有公共接口（PORT、HTML_DIR、SYSTEM_PYTHON 等），现有调用方（main.py、launch_jinshuiyao.py、测试文件）无需修改</td></tr>
+  <tr><td>单向依赖链</td><td><code>config → utils → handlers/* → router → __init__</code>，无循环依赖</td></tr>
+  <tr><td>PORT 覆盖</td><td>支持外部在调用 main() 之前通过 <code>guide_server.PORT = xxxx</code> 覆盖端口</td></tr>
+  <tr><td>测试验证</td><td>26 项相关测试全部通过（test_guide_server 9项 + test_quality_pages 17项）</td></tr>
+</table>
+
+<!-- ====== 安全/并发修复 ====== -->
+<h2>二、安全与并发修复</h2>
+
+<table>
+  <tr><th style="width:5%">#</th><th style="width:25%">文件</th><th>问题</th><th>修复</th></tr>
+
+  <tr>
+    <td><span class="badge fix">1</span></td>
+    <td><code>core/circuit_breaker.py</code></td>
+    <td><strong>TOCTOU 竞争：</strong><code>can_execute()</code> 先调用 <code>self.state</code>（获取+释放锁），再获取锁检查状态。两次锁获取之间另一个线程可能触发熔断，导致本应被拦截的请求放行。</td>
+    <td><code>Lock()</code> → <code>RLock()</code>（可重入锁）；<code>can_execute()</code> 重构为单次锁获取，内联 OPEN→HALF_OPEN 状态转换检查。</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge fix">2</span></td>
+    <td><code>server/utils.py</code><br>(原 guide_server.py)</td>
+    <td><strong>SSRF DNS 重绑定：</strong><code>_is_safe_http_url()</code> 在验证时解析 DNS，但实际 HTTP 请求时再次解析。两次解析之间 DNS 记录可能变更（DNS rebinding 攻击），指向内网 IP。</td>
+    <td>增加二次 DNS 解析验证：要求两轮解析结果的 IP 集合完全一致才放行，阻断 TTL=0 旋转攻击。</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge fix">3</span></td>
+    <td><code>server/handlers/health.py</code><br>(原 guide_server.py)</td>
+    <td><strong>GET 触发状态变更：</strong><code>/api/ai/mode/set</code> 通过 GET 请求即可切换 AI 模式（online/offline）。浏览器预取、搜索引擎爬虫等可能意外触发模式切换。</td>
+    <td>将 <code>/api/ai/mode/set</code> 从 <code>_do_GET_impl</code> 移到 <code>_do_POST_impl</code>。GET 请求返回 405 Method Not Allowed。</td>
+  </tr>
+</table>
+
+<!-- ====== 硬编码路径清理 ====== -->
+<h2>三、硬编码路径清理</h2>
+
+<table>
+  <tr><th style="width:5%">#</th><th style="width:25%">新增文件</th><th>用途</th></tr>
+
+  <tr>
+    <td><span class="badge new">4</span></td>
+    <td><code>config/paths.json</code></td>
+    <td>集中化路径配置：Python 候选路径、FFmpeg 候选路径、系统 Python/PythonW 路径。所有路径支持环境变量展开（<code>%VAR%</code>）。</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge new">5</span></td>
+    <td><code>config/path_resolver.py</code></td>
+    <td>路径解析工具模块：<code>get_python_candidates()</code>、<code>get_ffmpeg_candidates()</code>、<code>get_system_python()</code>、<code>get_system_pythonw()</code>。自动展开环境变量并验证文件存在性。</td>
+  </tr>
+</table>
+
+<p>以下文件的硬编码路径已替换为 <code>config.path_resolver</code> 调用：</p>
+
+<table>
+  <tr><th>文件</th><th>修改内容</th></tr>
+  <tr><td><code>audio_toolkit.py</code></td><td>FFmpeg 候选路径列表 → <code>get_ffmpeg_candidates()</code></td></tr>
+  <tr><td><code>domains/music/domain.py</code></td><td>FFmpeg 候选路径列表 → <code>get_ffmpeg_candidates()</code></td></tr>
+  <tr><td><code>scripts/check_env.py</code></td><td><code>SYSTEM_PYTHON</code> / <code>SYSTEM_PYTHONW</code> → <code>get_system_python()</code></td></tr>
+</table>
+
+<!-- ====== 旧版目录清理 ====== -->
+<h2>四、旧版目录清理</h2>
+
+<p>3 个旧版备份目录已合并到 <code>_old_backups_consolidated/</code>，原始位置不再占用：</p>
+
+<table>
+  <tr><th>原始位置</th><th>新位置</th><th>内容</th></tr>
+  <tr>
+    <td><code>TianShu_Fixed.bak_rebrand/</code></td>
+    <td><code>_old_backups_consolidated/TianShu_Fixed.bak_rebrand/</code></td>
+    <td>旧品牌"天枢"完整项目副本</td>
+  </tr>
+  <tr>
+    <td><code>_rebrand_backup_root/</code></td>
+    <td><code>_old_backups_consolidated/_rebrand_backup_root/</code></td>
+    <td>4 个旧品牌根文件</td>
+  </tr>
+  <tr>
+    <td><code>旧版启动脚本/</code></td>
+    <td><code>_old_backups_consolidated/旧版启动脚本/</code></td>
+    <td>5 个旧启动脚本</td>
+  </tr>
+</table>
+
+<p><code>_old_backups_consolidated/README.md</code> 记录了合并日期和 30 天后安全删除建议。</p>
+
+<!-- ====== f-string 统一 ====== -->
+<h2>五、字符串格式化统一（% → f-string）</h2>
+
+<p>21 个文件共约 228 行 <code>%</code> 格式化已转换为 f-string。logger 调用（<code>logger.info("...: %s", e)</code>）和 strftime 格式字符串保持不变。</p>
+
+<table>
+  <tr><th>文件</th><th>转换行数</th></tr>
+  <tr><td>engines/health_check.py</td><td>~58</td></tr>
+  <tr><td>core/data_truth_guard.py</td><td>~36</td></tr>
+  <tr><td>run_tests.py</td><td>~35</td></tr>
+  <tr><td>AI代码助手(DeepSeek备用)/deepseek_coder.py</td><td>~14</td></tr>
+  <tr><td>engines/sync_manager.py</td><td>~16</td></tr>
+  <tr><td>tools/extract_browser_cookie.py</td><td>~12</td></tr>
+  <tr><td>knowledge/ai_test_generator.py</td><td>~10</td></tr>
+  <tr><td>AI代码助手(DeepSeek备用)/kb_bridge.py</td><td>~7</td></tr>
+  <tr><td>sync/device_sync.py</td><td>~5</td></tr>
+  <tr><td>jinshuiyao/data_fetcher.py</td><td>~4</td></tr>
+  <tr><td>smart-coder/qa_engine.py</td><td>~3</td></tr>
+  <tr><td>其余 10 个文件各 1-2 行</td><td>~28</td></tr>
+</table>
+
+<!-- ====== 日志统一 ====== -->
+<h2>六、日志方式统一</h2>
+
+<p><code>config/logging_config.py</code>（上一轮创建）已接入 3 个入口点：</p>
+
+<table>
+  <tr><th>文件</th><th>接入方式</th></tr>
+  <tr><td><code>main.py</code></td><td>替换 <code>logging.basicConfig()</code> → <code>setup_logging()</code>（ImportError 时回退 basicConfig）</td></tr>
+  <tr><td><code>server/__init__.py</code></td><td>在 <code>main()</code> 启动时调用 <code>setup_logging()</code>（异常时仅警告，不阻塞启动）</td></tr>
+  <tr><td><code>launch_jinshuiyao.py</code></td><td>在 <code>main()</code> 中、导入 guide_server 前调用 <code>setup_logging()</code></td></tr>
+</table>
+
+<p><code>setup_logging()</code> 是幂等的（<code>_initialized</code> 守卫），多次调用不会重复添加 handler。控制台 + RotatingFileHandler（10MB/5 份）+ 第三方库降噪。</p>
+
+<!-- ====== 新增文件汇总 ====== -->
+<h2>七、本轮新增文件汇总</h2>
+
+<table>
+  <tr><th>文件</th><th>行数</th><th>用途</th></tr>
+  <tr><td><code>server/__init__.py</code></td><td>175</td><td>服务器主入口 + 公共接口导出</td></tr>
+  <tr><td><code>server/config.py</code></td><td>107</td><td>服务器常量与共享状态</td></tr>
+  <tr><td><code>server/utils.py</code></td><td>212</td><td>通用工具函数</td></tr>
+  <tr><td><code>server/router.py</code></td><td>417</td><td>HTTP 路由调度</td></tr>
+  <tr><td><code>server/handlers/health.py</code></td><td>198</td><td>健康检查接口</td></tr>
+  <tr><td><code>server/handlers/ai.py</code></td><td>221</td><td>AI 对话/路由接口</td></tr>
+  <tr><td><code>server/handlers/knowledge.py</code></td><td>369</td><td>知识库管理接口</td></tr>
+  <tr><td><code>server/handlers/prediction.py</code></td><td>140</td><td>预测记录接口</td></tr>
+  <tr><td><code>server/handlers/static.py</code></td><td>185</td><td>静态文件服务</td></tr>
+  <tr><td><code>server/handlers/sync.py</code></td><td>84</td><td>跨设备同步接口</td></tr>
+  <tr><td><code>config/paths.json</code></td><td>~25</td><td>集中化路径配置</td></tr>
+  <tr><td><code>config/path_resolver.py</code></td><td>~70</td><td>路径解析工具</td></tr>
+  <tr><td><code>_old_backups_consolidated/README.md</code></td><td>~30</td><td>旧版备份索引</td></tr>
+</table>
+
+<hr>
+<p style="text-align:center; color:var(--muted); margin-top:2rem;">
+  金水谣万物引擎 · 第三轮优化变更清单 · 2026-07-19 · 由 QoderWork 生成
+</p>
+
+</body>
+</html>

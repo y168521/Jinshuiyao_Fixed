@@ -1,0 +1,56 @@
+classDiagram
+    direction LR
+    class SessionCoordinator {
+        <<复用④·不改>>
+        +acquire(intent, holder, stale_secs, wait_secs, poll) dict
+        +release(holder, force) bool
+        +heartbeat(holder) bool
+        +status() str
+        -CLAIM_PATH: Path
+        -STALE_SECS: int = 1800
+    }
+    class LayerRegistry {
+        <<复用④·修改>>
+        +LEASE_REQUIRED_FILES: list
+        +LIVE_WRITABLE_WHITELIST: list
+        +INSURANCE_PROTECTED: list
+        +SESSION_PROTECTED_FILES: list {static}
+        +JS_NUMBER_LOCK: str {static}
+        +classify(rel_path) Layer
+        +is_lease_required(rel_path) bool
+        +is_live_writable(rel_path) bool
+        +is_session_protected(rel_path) bool
+        +write_alert(message, level) void
+    }
+    class LeaseManager {
+        <<复用④·不改>>
+        +acquire_for_write(rel_path, intent, wait_secs) bool
+        +release() bool
+        +heartbeat() bool
+        +assert_live_writable(rel_path) bool
+        +write_protected(rel_path, intent, fn, wait_secs) bool
+    }
+    class SessionLeaseManager {
+        <<新增⑤>>
+        +SESSION_LEASE_RESOURCE: str {static}
+        +JS_NUMBER_LOCK: str {static}
+        +DEFAULT_TTL: int {static} = 60
+        -holder: str
+        -team: str
+        -_active: bool
+        -_claim_path: Path
+        +__init__(holder, team, repo_root, sc_module, registry)
+        +acquire_session_lease(ttl, wait_secs) bool
+        +release_session_lease() bool
+        +heartbeat() bool
+        +allocate_number(read_max_fn) int|None
+        +is_protected_resource(path) bool
+        +guard_four_docs_write(path) bool
+        +status() dict
+        +__enter__() SessionLeaseManager
+        +__exit__(exc_type, exc, tb) None
+    }
+    SessionLeaseManager ..> SessionCoordinator : 委托 acquire/release/heartbeat
+    SessionLeaseManager ..> LayerRegistry : 查询 SESSION_PROTECTED_FILES / write_alert
+    SessionLeaseManager ..> LeaseManager : 「包住」④文件级租约(调用顺序约定)
+    LeaseManager ..> SessionCoordinator : 委托

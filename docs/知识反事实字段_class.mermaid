@@ -1,0 +1,59 @@
+classDiagram
+    %% ===== 决策卡（ai_decisions.md，Layer A）字段 schema =====
+    class DecisionCard {
+        +str 属主
+        +str 做了什么
+        +str 为什么根因
+        +str 验证
+        +str 坑
+        +str 有效方法
+        +str 关联文件
+        +str 关联总索引
+        +str 反事实对照   %% 既有自由文本(保留)
+        +str 置信度       %% 既有自由文本(保留)
+        +str counterfactual_baseline  %% 新增：预测/彩票类必填
+        +str baseline_comparison     %% 新增：预测/彩票类必填
+        +str honesty_note           %% 新增：预测/彩票类必填
+    }
+    note for DecisionCard "10 既有 + 3 新增并存；3 新增 ADDITIVE\n旧卡缺新字段不算非法(祖父条款 AC-5)"
+
+    %% ===== 知识卡（MiroFish，Layer B，auto_knowledge 透传）=====
+    class KnowledgeCard {
+        +str category   %% skill/area/inspiration/resource/project
+        +list tags      %% 含 预测摘要/subsystem/待优化
+        +str counterfactual_baseline  %% 可选透传
+        +str baseline_comparison
+        +str honesty_note
+    }
+    DecisionCard ..> KnowledgeCard : auto_knowledge 抽取同步
+
+    %% ===== 门禁 [C] 扩展 =====
+    class CloseoutGate {
+        +REQUIRED_FIELDS
+        +COUNTERFACTUAL_TRIGGER_TAGS
+        +check_today_card(today)
+        +_is_counterfactual_scope(body) bool
+        +check_counterfactual(rep, header, body)
+    }
+    CloseoutGate ..> DecisionCard : 解析今日卡 + 三字段断言
+    note for CloseoutGate "[C] 扩展：预测/彩票类卡追加 AC-1/2/3\ncheck_counterfactual 抽出自 [C] 调用"
+
+    %% ===== 数据源（复用，不改动）=====
+    class MonteCarlo {
+        +montecarlo_backtest() : {strategy_hit_rate, random_baseline_rate, gain, n_sim, note}
+    }
+    MonteCarlo .. DecisionCard : counterfactual_baseline 首选取值
+
+    %% ===== 抽取（复用，不改主流程）=====
+    class AutoKnowledge {
+        +extract_from_review()
+        +extract_from_conversation()
+    }
+    AutoKnowledge ..> KnowledgeCard : 预测类 tags/subsystem 驱动
+    note for AutoKnowledge "预测类关键词：预测/推荐/概率...\nsubsystem=lottery 等"
+
+    %% ===== 标签触发常量 =====
+    class TriggerTags {
+        +COUNTERFACTUAL_TRIGGER_TAGS = {彩票,预测,预测摘要,lottery,prediction}
+    }
+    CloseoutGate ..> TriggerTags : _is_counterfactual_scope 匹配

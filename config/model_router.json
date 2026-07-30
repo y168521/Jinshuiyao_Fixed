@@ -1,0 +1,41 @@
+{
+  "policy": "auto",
+  "call_timeout_seconds": 60,
+  "max_concurrent": 8,
+  "acquire_timeout": 2.0,
+  "thresholds": {
+    "long_summary_chars": 1500,
+    "max_context_chars": 800
+  },
+  "deep_keywords": [
+    "深度",
+    "深入分析",
+    "为什么",
+    "推理",
+    "原理",
+    "推导",
+    "怎么理解",
+    "底层逻辑",
+    "方案",
+    "对比",
+    "评估",
+    "利弊",
+    "建议",
+    "规划",
+    "求证",
+    "解释一下",
+    "架构",
+    "设计",
+    "复盘",
+    "策略"
+  ],
+  "log_calls": true,
+  "shadow": {
+    "enabled": false,
+    "candidate_model_id": "",
+    "sample_rate": 0.05,
+    "min_samples": 30,
+    "auto_promote": false,
+    "note": "影子测试：候选模型仅吃 5% 流量，由裁判按数学评分卡打分；auto_promote=false 时只建议不自动改路由，最终决定权留给 owner"
+  }
+}

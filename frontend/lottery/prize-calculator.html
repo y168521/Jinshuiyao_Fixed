@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>金水谣 · 奖金计算器</title>
+  <style>
+    :root { --bg: #0b0f19; --card: #131a2a; --text: #e4e8f1; --muted: #7a8499; --border: #1e2a40; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif; color: var(--text); background: var(--bg); line-height: 1.6; min-height: 100vh; }
+    .header { padding: 0.6rem 2rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+    .header h1 { font-size: 1.4rem; font-weight: 700; }
+    .container { max-width: 1000px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem; margin-bottom: 1.2rem; }
+    .card-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+    .flex-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
+    select, input { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 0.4rem 0.7rem; font-size: 0.85rem; }
+    select:focus, input:focus { outline: none; border-color: var(--accent); }
+    .num-grid { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.5rem 0; }
+    .num-btn { width: 36px; height: 36px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text); font-size: 0.82rem; cursor: pointer; transition: all 0.15s; }
+    .num-btn:hover { border-color: var(--accent); }
+    .num-btn.selected { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+    .num-btn.blue { color: var(--ice); }
+    .num-btn.blue.selected { background: var(--ice); color: #000; }
+    .btn { padding: 0.45rem 1.2rem; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text); font-size: 0.88rem; cursor: pointer; transition: all 0.15s; }
+    .btn:hover { border-color: var(--accent); }
+    .btn-primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+    .btn-sm { padding: 0.3rem 0.7rem; font-size: 0.8rem; }
+    .section-label { color: var(--muted); font-size: 0.82rem; margin: 1rem 0 0.4rem; }
+    .result-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.8rem; }
+    .result-card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.8rem; text-align: center; }
+    .result-card .tier { font-size: 1.1rem; font-weight: 700; color: var(--gold); }
+    .result-card .desc { font-size: 0.78rem; color: var(--muted); margin: 0.2rem 0; }
+    .result-card .prize { font-size: 1.2rem; font-weight: 700; color: var(--accent); }
+    .result-card .count { font-size: 0.82rem; color: var(--ice); }
+    .result-card.hit { border-color: var(--gold); }
+    .prize-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 0.5rem; }
+    .prize-table th { background: var(--border); color: var(--muted); padding: 0.4rem; text-align: center; font-weight: 500; }
+    .prize-table td { padding: 0.35rem 0.4rem; text-align: center; border-bottom: 1px solid var(--border); }
+    .prize-table .hit-row { background: rgba(255,217,61,0.05); }
+    .prize-table .hit-row td { color: var(--gold); font-weight: 600; }
+    .total-box { background: rgba(0,212,170,0.1); border: 1px solid var(--accent); border-radius: 8px; padding: 1rem; text-align: center; margin-top: 1rem; }
+    .total-box .total { font-size: 1.6rem; font-weight: 700; color: var(--accent); }
+    .total-box .label { font-size: 0.82rem; color: var(--muted); }
+    .hidden { display: none; }
+    .match-badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.75rem; background: rgba(0,212,170,0.15); color: var(--accent); }
+    .note { color: var(--muted); font-size: 0.78rem; margin-top: 0.5rem; }
+    @media (max-width: 768px) { .container { padding: 1rem; } .num-btn { width: 30px; height: 30px; font-size: 0.75rem; } }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div><a href="/lottery" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回彩票分析中心</a></div>
+    <h1>金水谣 · 奖金计算器</h1>
+    <span style="color:var(--muted);font-size:0.85rem">选号对比 · 奖级估算</span>
+  </header>
+  <div class="container">
+    <div class="card">
+      <div class="card-title"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent)"></span>选择彩种与号码</div>
+      <div class="flex-row">
+        <label style="color:var(--muted)">彩种</label>
+        <select id="lotType" onchange="onLotTypeChange()">
+          <option value="双色球">双色球</option>
+          <option value="大乐透">大乐透</option>
+          <option value="福彩3D">福彩3D</option>
+          <option value="排列三">排列三</option>
+          <option value="七乐彩">七乐彩</option>
+          <option value="七星彩">七星彩</option>
+          <option value="快乐8">快乐8</option>
+        </select>
+      </div>
+      <div class="flex-row"><span style="color:var(--muted);font-size:0.82rem" id="myCount">我的号码: 0 个</span><button class="btn btn-sm" onclick="clearMyNums()">清空</button></div>
+      <div id="myRedGrid" class="num-grid"></div>
+      <div id="myBlueSection" class="hidden">
+        <div class="flex-row"><span style="color:var(--muted);font-size:0.82rem" id="myBlueCount">蓝球: 0 个</span></div>
+        <div id="myBlueGrid" class="num-grid"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span style="width:8px;height:8px;border-radius:50%;background:var(--gold)"></span>开奖号码</div>
+      <div class="flex-row">
+        <label style="color:var(--muted)">输入方式</label>
+        <select id="drawInputMode" onchange="onDrawModeChange()">
+          <option value="manual">手动输入</option>
+          <option value="grid">点选号码</option>
+        </select>
+      </div>
+      <div id="drawManual" class="flex-row">
+        <label style="color:var(--muted)">开奖号码</label>
+        <input type="text" id="drawInput" placeholder="例: 1,5,12,18,25,31+7" style="width:300px">
+        <button class="btn btn-sm" onclick="parseDrawInput()">解析</button>
+      </div>
+      <div id="drawGrid" class="hidden">
+        <div class="flex-row"><span style="color:var(--muted);font-size:0.82rem" id="drawCount">开奖: 0 个</span><button class="btn btn-sm" onclick="clearDrawNums()">清空</button></div>
+        <div id="drawRedGrid" class="num-grid"></div>
+        <div id="drawBlueSection" class="hidden">
+          <div id="drawBlueGrid" class="num-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="calcPrize()" style="margin-bottom:1rem">计算奖金</button>
+
+    <div id="resultSection" class="hidden">
+      <div class="card">
+        <div class="card-title"><span style="width:8px;height:8px;border-radius:50%;background:var(--gold)"></span>中奖结果</div>
+        <div id="matchSummary" style="margin-bottom:0.5rem"></div>
+        <table class="prize-table" id="prizeTable"><thead><tr><th>奖级</th><th>条件</th><th>固定奖金</th><th>中奖注数</th><th>小计</th></tr></thead><tbody id="prizeBody"></tbody></table>
+        <div class="total-box" id="totalBox"><div class="total" id="totalPrize">0</div><div class="label">合计奖金 (元)</div></div>
+        <div class="note">注：一等奖/二等奖为浮动奖，此处按固定奖估算；实际奖金以官方公告为准。</div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span style="width:8px;height:8px;border-radius:50%;background:var(--ice)"></span>奖级速查表</div>
+        <table class="prize-table" id="refTable"><thead><tr><th>奖级</th><th>条件</th><th>奖金</th></tr></thead><tbody id="refBody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var LOT_CONFIG = {
+      '双色球': { k: 6, bk: 1, redRange: [1,33], blueRange: [1,16], name: '双色球' },
+      '大乐透': { k: 5, bk: 2, redRange: [1,35], blueRange: [1,12], name: '大乐透' },
+      '福彩3D': { k: 3, bk: 0, redRange: [0,9], name: '福彩3D', digit: true },
+      '排列三': { k: 3, bk: 0, redRange: [0,9], name: '排列三', digit: true },
+      '七乐彩': { k: 7, bk: 0, redRange: [1,30], name: '七乐彩' },
+      '七星彩': { k: 7, bk: 0, redRange: [0,9], name: '七星彩', seq: true },
+      '快乐8': { k: 10, bk: 0, redRange: [1,80], name: '快乐8' },
+    };
+
+    var PRIZE_TABLES = {
+      '双色球': [
+        { tier: '一等奖', cond: '6+1', fixed: '浮动', min: 5000000 },
+        { tier: '二等奖', cond: '6+0', fixed: '浮动', min: 200000 },
+        { tier: '三等奖', cond: '5+1', fixed: 3000 },
+        { tier: '四等奖', cond: '5+0 / 4+1', fixed: 200 },
+        { tier: '五等奖', cond: '4+0 / 3+1', fixed: 10 },
+        { tier: '六等奖', cond: '2+1 / 1+1 / 0+1', fixed: 5 },
+      ],
+      '大乐透': [
+        { tier: '一等奖', cond: '5+2', fixed: '浮动', min: 5000000 },
+        { tier: '二等奖', cond: '5+1', fixed: '浮动', min: 200000 },
+        { tier: '三等奖', cond: '5+0', fixed: 10000 },
+        { tier: '四等奖', cond: '4+2', fixed: 3000 },
+        { tier: '五等奖', cond: '4+1', fixed: 300 },
+        { tier: '六等奖', cond: '3+2', fixed: 200 },
+        { tier: '七等奖', cond: '4+0 / 3+1 / 2+2', fixed: 100 },
+        { tier: '八等奖', cond: '3+0 / 1+2 / 2+1 / 0+2', fixed: 15 },
+        { tier: '九等奖', cond: '2+0 / 1+1 / 0+1', fixed: 5 },
+      ],
+      '福彩3D': [
+        { tier: '直选', cond: '百十个位全中(顺序)', fixed: 1040 },
+        { tier: '组三', cond: '三位中，有对子(不顺序)', fixed: 346 },
+        { tier: '组六', cond: '三位不同(不顺序)', fixed: 173 },
+      ],
+      '排列三': [
+        { tier: '直选', cond: '百十个位全中(顺序)', fixed: 1040 },
+        { tier: '组三', cond: '三位中，有对子(不顺序)', fixed: 346 },
+        { tier: '组六', cond: '三位不同(不顺序)', fixed: 173 },
+      ],
+      '七乐彩': [
+        { tier: '一等奖', cond: '7+0', fixed: '浮动', min: 500000 },
+        { tier: '二等奖', cond: '6+0', fixed: '浮动', min: 10000 },
+        { tier: '三等奖', cond: '5+0', fixed: '浮动', min: 1000 },
+        { tier: '四等奖', cond: '4+0', fixed: 200 },
+        { tier: '五等奖', cond: '3+0', fixed: 50 },
+        { tier: '六等奖', cond: '2+0', fixed: 10 },
+        { tier: '七等奖', cond: '1+0', fixed: 5 },
+      ],
+      '七星彩': [
+        { tier: '一等奖', cond: '7位全中(顺序)', fixed: '浮动', min: 5000000 },
+        { tier: '二等奖', cond: '连续6位中', fixed: '浮动', min: 100000 },
+        { tier: '三等奖', cond: '连续5位中', fixed: 3000 },
+        { tier: '四等奖', cond: '连续4位中', fixed: 500 },
+        { tier: '五等奖', cond: '连续3位中', fixed: 30 },
+        { tier: '六等奖', cond: '连续2位中', fixed: 5 },
+      ],
+      '快乐8': [
+        { tier: '选十中十', cond: '10/10', fixed: '浮动', min: 5000000 },
+        { tier: '选十中九', cond: '9/10', fixed: 8000 },
+        { tier: '选十中八', cond: '8/10', fixed: 800 },
+        { tier: '选十中七', cond: '7/10', fixed: 80 },
+        { tier: '选十中六', cond: '6/10', fixed: 5 },
+        { tier: '选十中五', cond: '5/10', fixed: 3 },
+        { tier: '选十中零', cond: '0/10', fixed: 2 },
+      ],
+    };
+
+    var myReds = [], myBlues = [], drawReds = [], drawBlues = [];
+
+    function onLotTypeChange() {
+      var type = document.getElementById('lotType').value;
+      renderGrids('my', type);
+      renderGrids('draw', type);
+      document.getElementById('resultSection').classList.add('hidden');
+      myReds = []; myBlues = []; drawReds = []; drawBlues = [];
+      updateAllCounts();
+    }
+
+    function renderGrids(prefix, type) {
+      var cfg = LOT_CONFIG[type];
+      if (!cfg) return;
+      var redGrid = document.getElementById(prefix+'RedGrid');
+      redGrid.innerHTML = '';
+      for (var i = cfg.redRange[0]; i <= cfg.redRange[1]; i++) {
+        var btn = document.createElement('button');
+        btn.className = 'num-btn';
+        btn.textContent = i;
+        btn.dataset.num = i;
+        btn.dataset.prefix = prefix;
+        btn.onclick = function() {
+          var p = this.dataset.prefix;
+          var n = parseInt(this.dataset.num);
+          var arr = p === 'my' ? (document.querySelector('#myRedGrid .num-btn.blue') ? myReds : myReds) : drawReds;
+          if (p === 'my') { toggleArr(myReds, n); } else { toggleArr(drawReds, n); }
+          this.classList.toggle('selected');
+          updateAllCounts();
+        };
+        redGrid.appendChild(btn);
+      }
+      if (cfg.blueRange) {
+        var blueGrid = document.getElementById(prefix+'BlueGrid');
+        var blueSection = document.getElementById(prefix+'BlueSection');
+        if (blueSection) blueSection.classList.remove('hidden');
+        if (blueGrid) {
+          blueGrid.innerHTML = '';
+          for (var i = cfg.blueRange[0]; i <= cfg.blueRange[1]; i++) {
+            var btn = document.createElement('button');
+            btn.className = 'num-btn blue';
+            btn.textContent = i;
+            btn.dataset.num = i;
+            btn.dataset.prefix = prefix;
+            btn.onclick = function() {
+              var p = this.dataset.prefix;
+              var n = parseInt(this.dataset.num);
+              if (p === 'my') { toggleArr(myBlues, n); } else { toggleArr(drawBlues, n); }
+              this.classList.toggle('selected');
+              updateAllCounts();
+            };
+            blueGrid.appendChild(btn);
+          }
+        }
+      }
+    }
+
+    function toggleArr(arr, n) {
+      var idx = arr.indexOf(n);
+      if (idx >= 0) arr.splice(idx, 1); else arr.push(n);
+    }
+
+    function updateAllCounts() {
+      document.getElementById('myCount').textContent = '我的号码: ' + myReds.length + ' 个';
+      var mb = document.getElementById('myBlueCount');
+      if (mb) mb.textContent = '蓝球: ' + myBlues.length + ' 个';
+      document.getElementById('drawCount').textContent = '开奖: ' + drawReds.length + ' 个';
+    }
+
+    function clearMyNums() {
+      myReds = []; myBlues = [];
+      document.querySelectorAll('#myRedGrid .num-btn, #myBlueGrid .num-btn').forEach(function(b) { b.classList.remove('selected'); });
+      updateAllCounts();
+      document.getElementById('resultSection').classList.add('hidden');
+    }
+
+    function clearDrawNums() {
+      drawReds = []; drawBlues = [];
+      document.querySelectorAll('#drawRedGrid .num-btn, #drawBlueGrid .num-btn').forEach(function(b) { b.classList.remove('selected'); });
+      updateAllCounts();
+    }
+
+    function onDrawModeChange() {
+      var mode = document.getElementById('drawInputMode').value;
+      document.getElementById('drawManual').classList.toggle('hidden', mode !== 'manual');
+      document.getElementById('drawGrid').classList.toggle('hidden', mode !== 'grid');
+    }
+
+    function parseDrawInput() {
+      var input = document.getElementById('drawInput').value.trim();
+      if (!input) return;
+      // Support formats: "1,5,12,18,25,31+7" or "1 5 12 18 25 31 7"
+      var parts = input.split(/[+＋]/);
+      var redParts = parts[0].split(/[,，\s]+/).filter(Boolean);
+      drawReds = redParts.map(Number).filter(function(n) { return !isNaN(n); });
+      if (parts.length > 1) {
+        var blueParts = parts[1].split(/[,，\s]+/).filter(Boolean);
+        drawBlues = blueParts.map(Number).filter(function(n) { return !isNaN(n); });
+      } else {
+        drawBlues = [];
+      }
+      // Update grid
+      updateAllCounts();
+      document.querySelectorAll('#drawRedGrid .num-btn').forEach(function(b) {
+        var n = parseInt(b.dataset.num);
+        b.classList.toggle('selected', drawReds.indexOf(n) >= 0);
+      });
+      document.querySelectorAll('#drawBlueGrid .num-btn').forEach(function(b) {
+        var n = parseInt(b.dataset.num);
+        b.classList.toggle('selected', drawBlues.indexOf(n) >= 0);
+      });
+    }
+
+    function calcPrize() {
+      var type = document.getElementById('lotType').value;
+      var cfg = LOT_CONFIG[type];
+      if (myReds.length < cfg.k) { alert('请至少选择 ' + cfg.k + ' 个号码'); return; }
+      if (drawReds.length < cfg.k) { alert('请填写开奖号码'); return; }
+
+      // Determine hit
+      var redHit = countHits(myReds, drawReds);
+      var blueHit = cfg.blueRange ? countHits(myBlues, drawBlues) : 0;
+
+      var prizeTable = PRIZE_TABLES[type];
+      var tierResults = [];
+
+      if (cfg.digit) {
+        // 3D/排列三
+        var myStr = myReds.slice(0,3).sort(function(a,b){return a-b;}).join('');
+        var drawStr = drawReds.slice(0,3).sort(function(a,b){return a-b;}).join('');
+        var myExact = myReds.slice(0,3).join('');
+        var drawExact = drawReds.slice(0,3).join('');
+        var isDuiZi = myReds[0]===myReds[1] || myReds[1]===myReds[2] || myReds[0]===myReds[2];
+        var isTongDuiZi = myReds[0]===myReds[1] && myReds[1]===myReds[2];
+
+        var hasZhiXuan = 0, hasZuSan = 0, hasZuLiu = 0;
+        var totalPrize = 0;
+
+        if (myExact === drawExact) { hasZhiXuan = 1; totalPrize += 1040; }
+        if (myStr === drawStr) {
+          if (isTongDuiZi) { /* 豹子，直选已覆盖 */ }
+          else if (isDuiZi) { hasZuSan = 1; totalPrize += 346; }
+          else { hasZuLiu = 1; totalPrize += 173; }
+        }
+
+        tierResults = [
+          { tier: '直选', count: hasZhiXuan, prize: 1040, subtotal: hasZhiXuan*1040 },
+          { tier: '组三', count: hasZuSan, prize: 346, subtotal: hasZuSan*346 },
+          { tier: '组六', count: hasZuLiu, prize: 173, subtotal: hasZuLiu*173 },
+        ];
+        document.getElementById('matchSummary').innerHTML = '我的号码: <b>' + myReds.slice(0,3).join(',') + '</b> | 开奖: <b>' + drawReds.slice(0,3).join(',') + '</b>';
+        displayPrizeResult(tierResults, totalPrize, type);
+        return;
+      }
+
+      if (cfg.seq) {
+        // 七星彩: sequential match
+        var seqHit = 0;
+        for (var i = 0; i < 7; i++) {
+          if (myReds[i] === drawReds[i]) seqHit++; else break;
+        }
+        var totalPrize = 0;
+        tierResults = prizeTable.map(function(t) {
+          var hit = 0;
+          if (t.tier.indexOf('一等奖') >= 0 && seqHit >= 7) hit = 1;
+          else if (t.tier.indexOf('二等奖') >= 0 && seqHit >= 6) hit = 1;
+          else if (t.tier.indexOf('三等奖') >= 0 && seqHit >= 5) hit = 1;
+          else if (t.tier.indexOf('四等奖') >= 0 && seqHit >= 4) hit = 1;
+          else if (t.tier.indexOf('五等奖') >= 0 && seqHit >= 3) hit = 1;
+          else if (t.tier.indexOf('六等奖') >= 0 && seqHit >= 2) hit = 1;
+          var p = typeof t.fixed === 'number' ? t.fixed : (t.min || 0);
+          totalPrize += hit * p;
+          return { tier: t.tier, cond: t.cond, count: hit, prize: p, subtotal: hit*p, isFloat: typeof t.fixed !== 'number' };
+        }).filter(function(r){ return r.count > 0; });
+        document.getElementById('matchSummary').innerHTML = '连续命中: <b>' + seqHit + '</b> 位';
+        displayPrizeResult(tierResults, totalPrize, type);
+        return;
+      }
+
+      // Standard ball lotteries (双色球 / 大乐透 / 七乐彩 / 快乐8)
+      var totalPrize = 0;
+      tierResults = [];
+      prizeTable.forEach(function(t) {
+        var matched = false;
+        var isFloat = typeof t.fixed !== 'number';
+
+        if (type === '双色球') {
+          if (t.tier === '一等奖' && redHit === 6 && blueHit >= 1) matched = true;
+          else if (t.tier === '二等奖' && redHit === 6) matched = true;
+          else if (t.tier === '三等奖' && redHit === 5 && blueHit >= 1) matched = true;
+          else if (t.tier === '四等奖' && ((redHit === 5) || (redHit === 4 && blueHit >= 1))) matched = true;
+          else if (t.tier === '五等奖' && ((redHit === 4) || (redHit === 3 && blueHit >= 1))) matched = true;
+          else if (t.tier === '六等奖' && blueHit >= 1) matched = true;
+        } else if (type === '大乐透') {
+          if (t.tier === '一等奖' && redHit === 5 && blueHit === 2) matched = true;
+          else if (t.tier === '二等奖' && redHit === 5 && blueHit === 1) matched = true;
+          else if (t.tier === '三等奖' && redHit === 5) matched = true;
+          else if (t.tier === '四等奖' && redHit === 4 && blueHit === 2) matched = true;
+          else if (t.tier === '五等奖' && redHit === 4 && blueHit === 1) matched = true;
+          else if (t.tier === '六等奖' && redHit === 3 && blueHit === 2) matched = true;
+          else if (t.tier === '七等奖' && ((redHit === 4) || (redHit === 3 && blueHit === 1) || (redHit === 2 && blueHit === 2))) matched = true;
+          else if (t.tier === '八等奖' && ((redHit === 3) || (redHit === 1 && blueHit === 2) || (redHit === 2 && blueHit === 1) || blueHit === 2)) matched = true;
+          else if (t.tier === '九等奖' && blueHit === 1) matched = true;
+        } else if (type === '七乐彩') {
+          if (t.tier === '一等奖' && redHit === 7) matched = true;
+          else if (t.tier === '二等奖' && redHit === 6) matched = true;
+          else if (t.tier === '三等奖' && redHit === 5) matched = true;
+          else if (t.tier === '四等奖' && redHit === 4) matched = true;
+          else if (t.tier === '五等奖' && redHit === 3) matched = true;
+          else if (t.tier === '六等奖' && redHit === 2) matched = true;
+          else if (t.tier === '七等奖' && redHit === 1) matched = true;
+        } else if (type === '快乐8') {
+          if (t.tier === '选十中十' && redHit === 10) matched = true;
+          else if (t.tier === '选十中九' && redHit === 9) matched = true;
+          else if (t.tier === '选十中八' && redHit === 8) matched = true;
+          else if (t.tier === '选十中七' && redHit === 7) matched = true;
+          else if (t.tier === '选十中六' && redHit === 6) matched = true;
+          else if (t.tier === '选十中五' && redHit === 5) matched = true;
+          else if (t.tier === '选十中零' && redHit === 0) matched = true;
+        }
+
+        if (matched) {
+          var p = isFloat ? (t.min || 0) : t.fixed;
+          totalPrize += p;
+          tierResults.push({ tier: t.tier, cond: t.cond, count: 1, prize: p, subtotal: p, isFloat: isFloat });
+        }
+      });
+
+      document.getElementById('matchSummary').innerHTML = '红球命中: <b>' + redHit + '/' + cfg.k + '</b> | 蓝球命中: <b>' + blueHit + '/' + (cfg.bk || 0) + '</b>';
+      displayPrizeResult(tierResults, totalPrize, type);
+    }
+
+    function countHits(a, b) {
+      var hits = 0;
+      for (var i = 0; i < a.length; i++) {
+        if (b.indexOf(a[i]) >= 0) hits++;
+      }
+      return hits;
+    }
+
+    function displayPrizeResult(tierResults, totalPrize, type) {
+      var section = document.getElementById('resultSection');
+      section.classList.remove('hidden');
+
+      var body = document.getElementById('prizeBody');
+      body.innerHTML = '';
+      if (tierResults.length === 0) {
+        body.innerHTML = '<tr><td colspan="5" style="color:var(--muted);padding:1rem">未中奖</td></tr>';
+      } else {
+        tierResults.forEach(function(r) {
+          var tr = document.createElement('tr');
+          tr.className = 'hit-row';
+          tr.innerHTML = '<td>' + r.tier + (r.isFloat ? '*':'') + '</td><td>' + (r.cond||'') + '</td><td>' + (r.isFloat ? r.prize.toLocaleString()+'起': r.prize.toLocaleString() ) + '</td><td>' + r.count + '</td><td>' + r.subtotal.toLocaleString() + '</td>';
+          body.appendChild(tr);
+        });
+      }
+      document.getElementById('totalPrize').textContent = totalPrize.toLocaleString();
+
+      // Reference table
+      var refBody = document.getElementById('refBody');
+      var prizeTable = PRIZE_TABLES[type];
+      refBody.innerHTML = '';
+      prizeTable.forEach(function(t) {
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td>' + t.tier + '</td><td>' + t.cond + '</td><td>' + (typeof t.fixed === 'number' ? t.fixed.toLocaleString() : t.fixed + (t.min ? ' ('+t.min.toLocaleString()+'起)': '')) + '</td>';
+        refBody.appendChild(tr);
+      });
+    }
+
+    // Init
+    onLotTypeChange();
+  </script>
+</body>
+</html>

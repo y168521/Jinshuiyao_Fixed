@@ -1,0 +1,48 @@
+{
+  "providers": {
+    "siliconflow": {
+      "base_url": "https://api.siliconflow.cn/v1/chat/completions",
+      "api_key_file": "siliconflow_key.txt",
+      "json_mode": true,
+      "models": [
+        {
+          "id": "THUDM/GLM-4-9B-0414",
+          "priority": 1,
+          "enabled": true,
+          "note": "默认免费最优（实测 8661 字符 prompt 3 秒返回、JSON 模式结构干净、抓 P0 准）"
+        },
+        {
+          "id": "Qwen/Qwen2.5-7B-Instruct",
+          "priority": 2,
+          "enabled": true,
+          "note": "备用：慢（~55s）且 JSON 模式质量易崩，仅主模型挂时顶上"
+        },
+        {
+          "id": "在此填写新接的免费模型 id",
+          "priority": 3,
+          "enabled": false,
+          "note": "预留位：用户接新免费模型时改这里（enabled=true + 填真实模型 id），不动代码"
+        }
+      ]
+    }
+  },
+  "fallback": {
+    "provider": "deepseek",
+    "api_key_file": "deepseek_key.txt",
+    "api_key_env": "DEEPSEEK_API_KEY",
+    "model_env": "DEEPSEEK_MODEL",
+    "default_model": "deepseek-v4-pro"
+  },
+  "health_check": {
+    "enabled": true,
+    "interval_minutes": 60,
+    "timeout_seconds": 15,
+    "probe_prompt": "ping",
+    "max_failures_before_down": 2
+  },
+  "notify": {
+    "on_all_free_down": true,
+    "channel": "log",
+    "status_file": "金水谣数据/free_model_status.json"
+  }
+}

@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>金水谣 · 旋转矩阵</title>
+  <style>
+    :root {
+      --bg: #0b0f19; --card: #131a2a; --primary: #00d4aa; --danger: #ff6b6b;
+      --gold: #ffd93d; --blue: #60a5fa; --text: #e4e8f1; --muted: #7a8499; --border: #1e2a40;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif; color: var(--text); background: var(--bg); line-height: 1.6; min-height: 100vh; }
+    .header { padding: 0.6rem 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; border-bottom: 1px solid var(--border); }
+    .header h1 { font-size: 1.4rem; font-weight: 700; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem; margin-bottom: 1.2rem; }
+    .card-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+    .form-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
+    .form-row label { color: var(--muted); font-size: 0.85rem; min-width: 80px; }
+    select, input { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 0.45rem 0.8rem; font-size: 0.88rem; }
+    select:focus, input:focus { outline: none; border-color: var(--primary); }
+    .num-grid { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.5rem 0; }
+    .num-btn { width: 38px; height: 38px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text); font-size: 0.85rem; cursor: pointer; transition: all 0.15s; }
+    .num-btn:hover { border-color: var(--primary); }
+    .num-btn.selected { background: var(--primary); color: #000; border-color: var(--primary); font-weight: 600; }
+    .num-btn.blue { color: var(--blue); }
+    .num-btn.blue.selected { background: var(--blue); color: #000; }
+    .btn { padding: 0.45rem 1.2rem; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text); font-size: 0.88rem; cursor: pointer; transition: all 0.15s; }
+    .btn:hover { border-color: var(--primary); }
+    .btn-primary { background: var(--primary); color: #000; border-color: var(--primary); font-weight: 600; }
+    .btn-primary:hover { background: #00c49a; }
+    .btn-group { display: flex; gap: 0; }
+    .btn-group .btn { border-radius: 0; }
+    .btn-group .btn:first-child { border-radius: 6px 0 0 6px; }
+    .btn-group .btn:last-child { border-radius: 0 6px 6px 0; }
+    .btn-group .btn:not(:last-child) { border-right: none; }
+    .btn-group .btn.active { background: var(--primary); color: #000; border-color: var(--primary); font-weight: 600; }
+    .note-box { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.8rem 1rem; margin: 0.5rem 0; font-size: 0.88rem; color: var(--gold); }
+    .wheel-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .wheel-table th { background: var(--border); color: var(--muted); padding: 0.4rem 0.5rem; text-align: center; font-weight: 500; position: sticky; top: 0; }
+    .wheel-table td { padding: 0.3rem 0.5rem; text-align: center; border-bottom: 1px solid var(--border); font-family: 'Consolas', monospace; }
+    .wheel-table tr:hover td { background: rgba(255,255,255,0.03); }
+    .wheel-table .num { display: inline-block; width: 24px; height: 24px; line-height: 24px; border-radius: 50%; background: rgba(0,212,170,0.15); color: var(--primary); font-size: 0.78rem; margin: 0 1px; }
+    .wheel-table .num.blue-num { background: rgba(96,165,250,0.15); color: var(--blue); }
+    .wheel-wrapper { max-height: 500px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.8rem; margin: 0.5rem 0; }
+    .stat-item { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.8rem; text-align: center; }
+    .stat-item .value { font-size: 1.4rem; font-weight: 700; color: var(--primary); display: block; }
+    .stat-item .label { font-size: 0.78rem; color: var(--muted); margin-top: 0.2rem; }
+    .hidden { display: none; }
+    @media (max-width: 768px) {
+      .container { padding: 1rem; }
+      .num-btn { width: 32px; height: 32px; font-size: 0.78rem; }
+      .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div><a href="/lottery" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回彩票分析中心</a></div>
+    <h1>金水谣 · 旋转矩阵</h1>
+    <span style="color:var(--muted);font-size:0.85rem">号码缩水 · 覆盖优化</span>
+  </header>
+  <div class="container">
+    <div class="card">
+      <div class="card-title"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--primary)"></span>参数设置</div>
+      <div class="form-row">
+        <label>彩种</label>
+        <select id="lotType" onchange="onLotTypeChange()">
+          <option value="双色球" data-k="6" data-t1="6" data-t2="5" data-t3="4">双色球 (6/33+1/16)</option>
+          <option value="大乐透" data-k="5" data-t1="5" data-t2="4" data-t3="3">大乐透 (5/35+2/12)</option>
+          <option value="福彩3D" data-k="3" data-t1="3" data-t2="0" data-t3="0" data-digit="1">福彩3D (组选包号)</option>
+          <option value="排列三" data-k="3" data-t1="3" data-t2="0" data-t3="0" data-digit="1">排列三 (组选包号)</option>
+        </select>
+        <label>覆盖类型</label>
+        <div class="btn-group" id="coverGroup">
+          <button class="btn active" data-cover="6-5" onclick="onCoverChange(this)">中6保5</button>
+          <button class="btn" data-cover="5-4" onclick="onCoverChange(this)">中5保4</button>
+          <button class="btn" data-cover="4-4" onclick="onCoverChange(this)">中4保4</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>选号</label>
+        <span style="color:var(--muted);font-size:0.82rem" id="selectedCount">已选 0 个</span>
+        <button class="btn" onclick="clearAll()">清空</button>
+        <button class="btn" onclick="quickPick()">机选</button>
+      </div>
+      <div id="redGrid" class="num-grid"></div>
+      <div id="blueSection" class="hidden">
+        <div class="form-row"><label>蓝球</label><span style="color:var(--muted);font-size:0.82rem" id="blueCount">已选 0 个</span></div>
+        <div id="blueGrid" class="num-grid"></div>
+      </div>
+      <div style="margin-top:1rem">
+        <button class="btn btn-primary" onclick="generate()">生成旋转矩阵</button>
+      </div>
+    </div>
+
+    <div id="resultSection" class="hidden">
+      <div class="card">
+        <div class="card-title"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gold)"></span>方案概览</div>
+        <div id="noteArea" class="note-box"></div>
+        <div class="stat-grid" id="statGrid"></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--blue)"></span>优化注单</div>
+        <div class="wheel-wrapper" id="wheelWrapper"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var LOT_CONFIG = {
+      '双色球': { k: 6, redRange: [1,33], blueRange: [1,16], blueCount: 1 },
+      '大乐透': { k: 5, redRange: [1,35], blueRange: [1,12], blueCount: 2 },
+      '福彩3D': { k: 3, redRange: [0,9], digit: true },
+      '排列三': { k: 3, redRange: [0,9], digit: true },
+    };
+
+    var COVER_MAP = { '6-5': '中6保5', '5-4': '中5保4', '4-4': '中4保4' };
+    var COVER_VALUES = { '6-5': {t:6}, '5-4': {t:5}, '4-4': {t:4} };
+
+    var selectedReds = [];
+    var selectedBlues = [];
+
+    function onLotTypeChange() {
+      var sel = document.getElementById('lotType');
+      var opt = sel.options[sel.selectedIndex];
+      var isDigit = opt.dataset.digit === '1';
+      var k = parseInt(opt.dataset.k);
+      updateCoverButtons(k, opt.value);
+      renderGrids();
+      var blueSection = document.getElementById('blueSection');
+      blueSection.classList.toggle('hidden', isDigit || !LOT_CONFIG[opt.value].blueRange);
+      document.getElementById('resultSection').classList.add('hidden');
+      selectedReds = [];
+      selectedBlues = [];
+      updateCounts();
+    }
+
+    function updateCoverButtons(k, type) {
+      var buttons = document.querySelectorAll('#coverGroup .btn');
+      if (type === '福彩3D' || type === '排列三') {
+        buttons[0].textContent = '组选包号';
+        buttons[0].dataset.cover = 'full';
+        buttons[1].classList.add('hidden');
+        buttons[2].classList.add('hidden');
+        return;
+      }
+      buttons[0].textContent = '中'+k+'保'+(k-1);
+      buttons[0].dataset.cover = k+'-'+(k-1);
+      buttons[1].textContent = '中'+(k-1)+'保'+(k-2);
+      buttons[1].dataset.cover = (k-1)+'-'+(k-2);
+      buttons[1].classList.remove('hidden');
+      buttons[2].textContent = '中'+(k-2)+'保'+(k-2);
+      buttons[2].dataset.cover = (k-2)+'-'+(k-2);
+      buttons[2].classList.remove('hidden');
+      // Reset active
+      buttons.forEach(function(b) { b.classList.remove('active'); });
+      buttons[0].classList.add('active');
+    }
+
+    function renderGrids() {
+      var sel = document.getElementById('lotType');
+      var type = sel.value;
+      var config = LOT_CONFIG[type];
+      if (!config) return;
+
+      // Reds
+      var redGrid = document.getElementById('redGrid');
+      redGrid.innerHTML = '';
+      for (var i = config.redRange[0]; i <= config.redRange[1]; i++) {
+        var btn = document.createElement('button');
+        btn.className = 'num-btn';
+        btn.textContent = i;
+        btn.dataset.num = i;
+        btn.onclick = function() {
+          var num = parseInt(this.dataset.num);
+          var idx = selectedReds.indexOf(num);
+          if (idx >= 0) { selectedReds.splice(idx, 1); this.classList.remove('selected'); }
+          else { selectedReds.push(num); this.classList.add('selected'); }
+          updateCounts();
+        };
+        redGrid.appendChild(btn);
+      }
+
+      // Blues
+      if (config.blueRange) {
+        var blueGrid = document.getElementById('blueGrid');
+        var blueSection = document.getElementById('blueSection');
+        blueSection.classList.remove('hidden');
+        blueGrid.innerHTML = '';
+        for (var i = config.blueRange[0]; i <= config.blueRange[1]; i++) {
+          var btn = document.createElement('button');
+          btn.className = 'num-btn blue';
+          btn.textContent = i;
+          btn.dataset.num = i;
+          btn.onclick = function() {
+            var num = parseInt(this.dataset.num);
+            var idx = selectedBlues.indexOf(num);
+            if (idx >= 0) { selectedBlues.splice(idx, 1); this.classList.remove('selected'); }
+            else { selectedBlues.push(num); this.classList.add('selected'); }
+            updateCounts();
+          };
+          blueGrid.appendChild(btn);
+        }
+      }
+    }
+
+    function updateCounts() {
+      document.getElementById('selectedCount').textContent = '已选 ' + selectedReds.length + ' 个红球';
+      var blueEl = document.getElementById('blueCount');
+      if (blueEl) blueEl.textContent = '已选 ' + selectedBlues.length + ' 个蓝球';
+    }
+
+    function clearAll() {
+      selectedReds = [];
+      selectedBlues = [];
+      document.querySelectorAll('.num-btn').forEach(function(b) { b.classList.remove('selected'); });
+      updateCounts();
+      document.getElementById('resultSection').classList.add('hidden');
+    }
+
+    function quickPick() {
+      var sel = document.getElementById('lotType');
+      var type = sel.value;
+      var config = LOT_CONFIG[type];
+      clearAll();
+      var k = config.k;
+      // Pick k+3 random reds
+      var count = Math.min(k + 3, config.redRange[1] - config.redRange[0] + 1);
+      var nums = [];
+      while (nums.length < count) {
+        var n = config.redRange[0] + Math.floor(Math.random() * (config.redRange[1] - config.redRange[0] + 1));
+        if (nums.indexOf(n) < 0) nums.push(n);
+      }
+      nums.sort(function(a,b){ return a-b; });
+      nums.forEach(function(n) {
+        selectedReds.push(n);
+        var btns = document.querySelectorAll('#redGrid .num-btn');
+        for (var i = 0; i < btns.length; i++) {
+          if (parseInt(btns[i].dataset.num) === n) btns[i].classList.add('selected');
+        }
+      });
+      if (config.blueRange) {
+        var blueCount = config.blueCount || 1;
+        var blueNums = [];
+        while (blueNums.length < blueCount) {
+          var n = config.blueRange[0] + Math.floor(Math.random() * (config.blueRange[1] - config.blueRange[0] + 1));
+          if (blueNums.indexOf(n) < 0) blueNums.push(n);
+        }
+        blueNums.forEach(function(n) {
+          selectedBlues.push(n);
+          var btns = document.querySelectorAll('#blueGrid .num-btn');
+          for (var i = 0; i < btns.length; i++) {
+            if (parseInt(btns[i].dataset.num) === n) btns[i].classList.add('selected');
+          }
+        });
+      }
+      updateCounts();
+    }
+
+    function onCoverChange(btn) {
+      document.querySelectorAll('#coverGroup .btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById('resultSection').classList.add('hidden');
+    }
+
+    function comb(n, k) {
+      if (k < 0 || k > n) return 0;
+      var r = 1;
+      for (var i = 1; i <= k; i++) r = r * (n - k + i) / i;
+      return Math.round(r);
+    }
+
+    function generate() {
+      var sel = document.getElementById('lotType');
+      var type = sel.value;
+      var config = LOT_CONFIG[type];
+      var isDigit = !!config.digit;
+
+      if (selectedReds.length < config.k) {
+        alert('请至少选择 ' + config.k + ' 个红球号码');
+        return;
+      }
+
+      var activeCover = document.querySelector('#coverGroup .btn.active');
+      var coverStr = activeCover ? activeCover.dataset.cover : '6-5';
+      var coverLabel = activeCover ? activeCover.textContent : '中6保5';
+
+      var result;
+      if (isDigit) {
+        result = generateDigitWheel(selectedReds);
+      } else {
+        var parts = coverStr.split('-');
+        var t = parseInt(parts[0]);
+        result = generateCovering(selectedReds, config.k, t);
+        if (selectedBlues.length > 0) {
+          result.blueNums = selectedBlues;
+        }
+      }
+
+      // Add blue balls
+      if (result.blueNums && result.blueNums.length > 0) {
+        var totalWithBlue = result.wheels.length * result.blueNums.length;
+        if (result.blueNums.length > 1 && config.blueCount > 1) {
+          totalWithBlue = result.wheels.length * comb(result.blueNums.length, config.blueCount);
+        }
+        result.totalWithBlue = totalWithBlue;
+      }
+
+      displayResult(type, coverLabel, result, isDigit);
+    }
+
+    function generateDigitWheel(nums) {
+      // All 3-combinations of selected digits
+      var wheels = [];
+      for (var i = 0; i < nums.length; i++) {
+        for (var j = i+1; j < nums.length; j++) {
+          for (var k = j+1; k < nums.length; k++) {
+            wheels.push([nums[i], nums[j], nums[k]]);
+          }
+        }
+      }
+      var total = wheels.length;
+      return {
+        wheels: wheels,
+        total: total,
+        fullCount: comb(nums.length, 3),
+        coverage: 100,
+        note: null
+      };
+    }
+
+    // Greedy covering in JS
+    function generateCovering(nums, k, t) {
+      var v = nums.length;
+      var allCombos = [];
+      // Generate all k-combinations from nums
+      function genCombos(arr, start, depth, cur) {
+        if (depth === k) {
+          allCombos.push(cur.slice());
+          return;
+        }
+        for (var i = start; i < arr.length; i++) {
+          cur.push(arr[i]);
+          genCombos(arr, i+1, depth+1, cur);
+          cur.pop();
+        }
+      }
+      genCombos(nums, 0, 0, []);
+
+      if (allCombos.length === 0) return { wheels: [], total: 0, coverage: 0, fullCount: comb(nums.length, k) };
+
+      // Generate t-subsets of nums, stored as strings for Set
+      var allTSubs = [];
+      genTSubs(nums, t, allTSubs);
+      var totalT = allTSubs.length;
+      var uncovered = new Set(allTSubs);
+
+      // Precompute which t-subsets each k-combo covers
+      var comboData = [];
+      for (var i = 0; i < allCombos.length; i++) {
+        var combo = allCombos[i];
+        var comboSet = new Set(combo);
+        var covers = [];
+        for (var j = 0; j < allTSubs.length; j++) {
+          var tSubArr = allTSubs[j].split(',').map(Number);
+          var covered = tSubArr.every(function(n) { return comboSet.has(n); });
+          if (covered) covers.push(allTSubs[j]);
+        }
+        comboData.push({ combo: combo, covers: covers });
+      }
+
+      var used = new Set();
+      var selected = [];
+
+      while (uncovered.size > 0 && selected.length < allCombos.length) {
+        var bestIdx = -1;
+        var bestCount = 0;
+        var bestCovers = [];
+
+        for (var i = 0; i < comboData.length; i++) {
+          if (used.has(i)) continue;
+          var count = 0;
+          var matchCovers = [];
+          for (var j = 0; j < comboData[i].covers.length; j++) {
+            if (uncovered.has(comboData[i].covers[j])) {
+              count++;
+              matchCovers.push(comboData[i].covers[j]);
+            }
+          }
+          if (count > bestCount) {
+            bestCount = count;
+            bestIdx = i;
+            bestCovers = matchCovers;
+            if (count === comb(k, t)) break;
+          }
+        }
+
+        if (bestIdx >= 0 && bestCount > 0) {
+          used.add(bestIdx);
+          selected.push(bestIdx);
+          for (var j = 0; j < bestCovers.length; j++) {
+            uncovered.delete(bestCovers[j]);
+          }
+        } else {
+          break;
+        }
+      }
+
+      var wheels = selected.map(function(i) { return comboData[i].combo; });
+      var coveredCount = totalT - uncovered.size;
+      var coverage = totalT > 0 ? (coveredCount / totalT * 100) : 0;
+
+      return {
+        wheels: wheels,
+        total: wheels.length,
+        fullCount: allCombos.length,
+        coverage: Math.round(coverage * 100) / 100
+      };
+    }
+
+    function genTSubs(nums, t, result) {
+      function go(start, depth, cur) {
+        if (depth === t) {
+          result.push(cur.join(','));
+          return;
+        }
+        for (var i = start; i < nums.length; i++) {
+          cur.push(nums[i]);
+          go(i+1, depth+1, cur);
+          cur.pop();
+        }
+      }
+      go(0, 0, []);
+    }
+
+    function displayResult(type, coverLabel, result, isDigit) {
+      var section = document.getElementById('resultSection');
+      section.classList.remove('hidden');
+
+      var note = '';
+      if (isDigit) {
+        note = selectedReds.length + '码组选包号 = ' + result.total + '注直选';
+      } else {
+        var v = selectedReds.length;
+        var k = LOT_CONFIG[type].k;
+        var parts = [];
+        parts.push(v + '码' + coverLabel);
+        parts.push('红球' + result.wheels.length + '注');
+        if (result.blueNums && result.blueNums.length > 0) {
+          parts.push('蓝球' + result.blueNums.length + '码');
+          parts.push('合计' + result.totalWithBlue + '注');
+        }
+        parts.push('理论最少' + Math.ceil(comb(v-coverLabel.charAt(1), k-coverLabel.charAt(1))/comb(k, k-coverLabel.charAt(1))) + '注');
+        parts.push('覆盖率' + result.coverage + '%');
+        note = parts.join(' · ');
+      }
+      if (result.note) note = result.note;
+      document.getElementById('noteArea').textContent = note;
+
+      var statGrid = document.getElementById('statGrid');
+      var stats = [
+        { value: result.wheels.length, label: '优化注数' },
+        { value: result.fullCount, label: '全组合注数' },
+        { value: result.fullCount > 0 ? Math.round(result.wheels.length / result.fullCount * 10000) / 100 + '%' : '-', label: '压缩比' },
+      ];
+      if (result.totalWithBlue) {
+        stats.push({ value: result.totalWithBlue, label: '含蓝球合计' });
+      }
+      if (!isDigit) {
+        stats.push({ value: result.coverage + '%', label: '理论覆盖率' });
+      }
+
+      statGrid.innerHTML = '';
+      stats.forEach(function(s) {
+        var item = document.createElement('div');
+        item.className = 'stat-item';
+        item.innerHTML = '<span class="value">' + s.value + '</span><span class="label">' + s.label + '</span>';
+        statGrid.appendChild(item);
+      });
+
+      var wheelWrapper = document.getElementById('wheelWrapper');
+      if (result.wheels.length === 0) {
+        wheelWrapper.innerHTML = '<p style="padding:1rem;color:var(--muted)">未生成注单</p>';
+        return;
+      }
+
+      var html = '<table class="wheel-table"><thead><tr><th>序号</th><th>号码</th></tr></thead><tbody>';
+      var displayWheels = result.wheels.length > 200 ? result.wheels.slice(0, 200) : result.wheels;
+
+      if (result.blueNums && result.blueNums.length > 0) {
+        // Show with blue combinations
+        var idx = 0;
+        for (var w = 0; w < result.wheels.length; w++) {
+          var reds = result.wheels[w];
+          if (result.blueNums.length <= 5) {
+            for (var b = 0; b < result.blueNums.length; b++) {
+              if (idx >= 200) break;
+              html += '<tr><td>' + (++idx) + '</td><td>';
+              reds.forEach(function(n) { html += '<span class="num">' + n + '</span>'; });
+              html += ' + ';
+              html += '<span class="num blue-num">' + result.blueNums[b] + '</span>';
+              html += '</td></tr>';
+            }
+          }
+        }
+      } else {
+        displayWheels.forEach(function(w, i) {
+          html += '<tr><td>' + (i+1) + '</td><td>';
+          w.forEach(function(n) { html += '<span class="num">' + n + '</span>'; });
+          html += '</td></tr>';
+        });
+      }
+      html += '</tbody></table>';
+
+      if (result.wheels.length > 200) {
+        html += '<p style="padding:0.5rem;color:var(--muted);text-align:center">显示前200注，共' + result.wheels.length + '注</p>';
+      }
+
+      wheelWrapper.innerHTML = html;
+    }
+
+    // Init
+    onLotTypeChange();
+  </script>
+</body>
+</html>

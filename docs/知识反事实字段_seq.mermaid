@@ -1,0 +1,39 @@
+%% ===== 主流程：[C] 扩展校验预测/彩票类决策卡三字段 =====
+sequenceDiagram
+    autonumber
+    actor Closeout as closeout_gate.py main()
+    participant C as check_today_card(today)
+    participant S as _is_counterfactual_scope(body)
+    participant CF as check_counterfactual(rep,header,body)
+    participant DC as 金水谣数据/log/ai_decisions.md
+
+    Closeout->>C: [C] 遍历今日卡
+    C->>DC: 读卡体(body)
+    loop 每张今日卡
+        C->>S: 卡体含触发标签?
+        alt 非预测/彩票类
+            S-->>C: False → 仅校验既有10字段
+        else 预测/彩票类(scope=True)
+            S-->>C: True
+            C->>CF: 校验三字段
+            CF->>CF: AC-1 counterfactual_baseline 非空?
+            CF->>CF: AC-2 含数值须可解析基线率(禁纯"随机"空话)
+            CF->>CF: AC-3 honesty_note 含关键词(随机/无法保证/运气/幸存偏差)
+            CF-->>C: 缺失项并入 incomplete
+        end
+    end
+    C-->>Closeout: ok = not incomplete（三字段缺失→[C]警告/失败）
+
+%% ===== 主流程：写预测/彩票类决策卡时取值（T03 提示词驱动）=====
+sequenceDiagram
+    autonumber
+    actor AI as 写卡AI(受⑧铁律+提示词约束)
+    participant MC as montecarlo.backtest()
+    participant MD as ai_decisions.md(卡片)
+
+    AI->>MC: 跑回测取 random_baseline_rate
+    MC-->>AI: {random_baseline_rate, strategy_hit_rate, gain, n_sim}
+    AI->>MD: 填 counterfactual_baseline=基线率
+    AI->>MD: 填 baseline_comparison(gain≈0须示"非模型能力")
+    AI->>MD: 填 honesty_note(含 随机/运气/幸存偏差)
+    Note over MD: 旧卡缺新字段≠非法(祖父条款 AC-5)

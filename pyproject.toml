@@ -1,0 +1,150 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "jinshuiyao"
+version = "23.6.0"
+description = "金水谣万物引擎 - 多领域预测分析平台"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "Proprietary"}
+authors = [
+    {name = "Jinshuiyao Team"},
+]
+keywords = ["prediction", "lottery", "stock", "football", "ai", "deepseek"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "requests>=2.28,<3.0",
+    "beautifulsoup4>=4.11,<5.0",
+    "numpy>=1.23,<3.0",
+    "pandas>=1.5,<4.0",
+    "cryptography>=39.0,<50.0",
+    "akshare>=1.10,<2.0",
+    "matplotlib>=3.6,<4.0",
+    "scipy>=1.9,<2.0",
+    "customtkinter>=5.0,<7.0",
+    "openpyxl>=3.0,<4.0",
+    "lxml>=4.9,<7.0",
+    "Pillow>=9.0,<13.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "flake8>=6.0",
+    "black>=23.0",
+]
+
+[project.scripts]
+jinshuiyao = "main:main"
+
+[tool.setuptools.packages.find]
+include = [
+    "core*",
+    "engines*",
+    "domains*",
+    "controllers*",
+    "fetchers*",
+    "filters*",
+    "gui*",
+    "jinshuiyao*",
+    "knowledge*",
+    "utils*",
+    "backtesting*",
+    "sync*",
+    "smart_coder*",
+    "importers*",
+    "models*",
+]
+
+[tool.setuptools.package-data]
+"*" = ["*.html", "*.js", "*.css", "*.json", "*.txt", "*.md"]
+
+[tool.black]
+line-length = 120
+target-version = ["py38", "py314"]
+
+# ====== ruff 代码审查规则集（金水谣 AI 审查 Pipeline 第一层）======
+[tool.ruff]
+line-length = 120
+target-version = "py38"
+src = ["core", "engines", "domains", "controllers", "fetchers", "filters", "gui", "knowledge", "utils", "backtesting", "sync", "server"]
+extend-exclude = [
+    "venv*", "_old_*", "archive", "*.pyc", "__pycache__",
+    "tests/fixtures", "金水谣数据",
+]
+
+[tool.ruff.lint]
+# 金水谣规则集：命名 + 格式 + 复杂度 + 安全 + 可维护性
+select = [
+    # 命名规范
+    "N",              # pep8-naming：函数/变量/类命名规范
+    # 格式规范
+    "E", "W",         # pycodestyle：空格/缩进/换行
+    "I",              # isort：import 排序
+    # 复杂度
+    "C90",            # mccabe 复杂度检查
+    # 安全漏洞
+    "S",              # flake8-bandit：SQL注入/硬编码密钥/eval/exec/shell注入
+    "T10",            # flake8-debugger：debugger 语句残留
+    # 可维护性
+    "D",              # pydocstyle：文档字符串规范（仅关键规则）
+    "UP",             # pyupgrade：过时语法升级
+    "B",              # flake8-bugbear：常见 bug 模式（裸 except/可变默认参数/dict迭代时修改）
+    "SIM",            # flake8-simplify：可简化的代码模式
+    "RUF",            # ruff 自有规则（如 RUF005 非可变默认参数）
+    "C4",             # flake8-comprehensions：列表推导优化
+    "ERA",            # eradicate：注释掉的代码块
+    "PIE",            # flake8-pie：不必要的代码
+    "TRY",            # try-except 规范
+    "FURB",           # refurb：现代化建议
+]
+ignore = [
+    "D100",           # 不强制每个模块有 docstring
+    "D101",           # 不强制每个类有 docstring
+    "D102",           # 不强制每个方法有 docstring
+    "D103",           # 不强制每个函数有 docstring
+    "D104",           # 不强制每个包有 docstring
+    "D107",           # __init__ 不强制 docstring
+    "D203",           # 与 D211 冲突
+    "D213",           # 与 D212 冲突
+    "S101",           # assert 语句在测试中允许
+    "S603",           # subprocess 在内部工具中允许（有 _is_local() 守卫）
+    "S607",           # subprocess 部分路径允许
+    "TRY003",         # 避免长异常消息的教条式要求
+    "E501",           # 行长度由 formatter 管理，lint 不重复检查
+]
+
+# 复杂度阈值：金水谣多线程架构允许适度复杂度
+[tool.ruff.lint.mccabe]
+max-complexity = 15   # 超过15的函数必须拆分或标注例外
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D", "S101", "B011", "TRY"]     # 测试放宽文档和安全要求
+"tools/**" = ["D", "S", "TRY"]                 # 工具脚本放宽
+"gui/**" = ["D", "N802", "N803"]               # GUI 方法名允许驼峰，属性名允许小写
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

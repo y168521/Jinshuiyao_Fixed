@@ -1,0 +1,109 @@
+{
+  "_meta": {
+    "version": "1.0",
+    "created": "2026-07-17",
+    "description": "金水谣系统功能清单 — 记录了所有必备功能。修改前请检查此清单，确保功能不被意外删除。"
+  },
+  "gui_files": {
+    "description": "所有GUI窗口文件",
+    "files": {
+      "gui/main_window.py": {
+        "purpose": "彩票预测系统主窗口 — 彩种选择、引擎开关、预测生成、今日预测、复盘、数据抓取/导入、热度统计、走势图、足彩入口",
+        "required": true,
+        "key_symbols": ["class App", "def gen_one", "def today", "def review", "def fetch_all", "def show_hot_stats", "def show_trend_chart", "def build_ui"],
+        "min_size_bytes": 25000
+      },
+      "domains/stock/stock_gui.py": {
+        "purpose": "股票分析系统GUI — 三大指数看板、K线图、技术指标、选股推荐",
+        "required": true,
+        "key_symbols": ["class StockAnalysisWindow", "def _build_ui"],
+        "min_size_bytes": 15000
+      },
+      "domains/fund/fund_gui.py": {
+        "purpose": "基金分析系统GUI — 净值走势、关键指标、基金推荐、数据检测",
+        "required": true,
+        "key_symbols": ["class FundAnalysisWindow", "def _build_ui"],
+        "min_size_bytes": 15000
+      },
+      "jinshuiyao/football_gui.py": {
+        "purpose": "足彩预测系统GUI — 比赛列表、AI分析、赔率分析、Kelly投注",
+        "required": true,
+        "key_symbols": ["class FootballApp", "def _build_ui"],
+        "min_size_bytes": 25000
+      },
+      "knowledge/mirofish_gui.py": {
+        "purpose": "知识库管理系统GUI — 知识卡片、分类浏览、搜索、导入",
+        "required": true,
+        "key_symbols": ["class MiroFishApp", "def _build_ui"],
+        "min_size_bytes": 20000
+      },
+      "domains/creator/creator_gui.py": {
+        "purpose": "创作者工具箱GUI — 6种创作工具统一入口",
+        "required": true,
+        "key_symbols": ["class CreatorToolboxWindow", "def _build_ui"],
+        "min_size_bytes": 15000
+      },
+      "audio_toolkit.py": {
+        "purpose": "音频工具箱GUI — 格式转换、音量标准化、裁剪拼接等",
+        "required": true,
+        "key_symbols": ["video_to_audio", "convert_audio", "read_metadata"],
+        "min_size_bytes": 20000
+      }
+    }
+  },
+  "subsystems": {
+    "description": "注册的6个子系统",
+    "domains/__init__.py": {
+      "required_symbols": ["lottery", "football", "stock", "music", "fund", "creator"],
+      "required": true
+    }
+  },
+  "core_scripts": {
+    "description": "核心启动和测试脚本",
+    "files": {
+      "guide_server.py": {
+        "purpose": "导航服务器（端口18888）— 控制台+API/路由",
+        "required": true,
+        "key_symbols": ["open_local_file", "class GuideHandler", "PORT = 18888"]
+      },
+      "启动导航.bat": {
+        "purpose": "一键启动入口 — 端口检查+服务器启动",
+        "required": true,
+        "key_symbols": ["guide_server.py", "chcp 65001"]
+      },
+      "main.py": {
+        "purpose": "主程序入口 — 预加载+调度器+导航+GUI",
+        "required": true
+      },
+      "run_tests.py": {
+        "purpose": "全量测试运行器（726个测试）",
+        "required": true
+      },
+      "scripts/preflight_check.py": {
+        "purpose": "代码修改前前置检查（9项）",
+        "required": true
+      },
+      "scripts/smoke_test.py": {
+        "purpose": "冒烟测试（10项实测验证）",
+        "required": true
+      }
+    }
+  },
+  "config": {
+    "description": "核心配置文件",
+    "files": {
+      "config.py": {
+        "purpose": "系统配置 — 彩种规则、引擎名称、预算限制等",
+        "required": true,
+        "key_symbols": ["LOTTERY_RULES", "LOT_ALL", "ENGINE_NAMES", "VERSION"]
+      }
+    }
+  },
+  "documentation": {
+    "description": "项目文档",
+    "files": {
+      "CHANGELOG.md": {"purpose": "手动变更记录", "required": false},
+      "PROBLEMS.md": {"purpose": "问题追踪+功能清单", "required": false}
+    }
+  }
+}

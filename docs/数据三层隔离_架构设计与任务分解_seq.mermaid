@@ -1,0 +1,80 @@
+%% ① 并发写共享文件：acquire → write → release（直击撞号+互删事故）
+
+sequenceDiagram
+    autonumber
+    actor A as 会话A(server/AI)
+    actor B as 会话B(诺亚团队)
+    participant LM as LeaseManager
+    participant SC as session_coordinator(全局CLAIM)
+    participant F as 共享文件(如 ai_decisions.md)
+
+    A->>LM: write_protected(file, "写决策卡", fn_A)
+    LM->>SC: acquire("写决策卡", wait=30)
+    SC-->>LM: 占锁成功(holder=A, intent=写决策卡)
+    LM->>F: fn_A() 写入
+
+    B->>LM: write_protected(file, "写决策卡", fn_B)
+    LM->>SC: acquire("写决策卡", wait=30)
+    Note over SC: 被A持有且新鲜 → B排队等待
+    SC-->>LM: (A释放后) 占锁成功(holder=B)
+    LM->>F: fn_B() 写入
+    LM->>SC: release()
+
+    Note over LM,SC: 任一异常 → [G]告警(写告警日志), release清理, 不抛异常阻断主流程
+
+---
+
+%% ② 周期快照触发（副本层）
+
+sequenceDiagram
+    autonumber
+    participant Sched as 定时器(core/scheduler)
+    participant BM as BackupManager
+    participant Reg as LayerRegistry
+    participant LM as LeaseManager
+    participant Live as 活层文件
+    participant Repl as 副本层(金水谣数据/backups/)
+
+    Sched->>BM: run_once()
+    BM->>Reg: get_backup_entries()
+    Reg-->>BM: [FileEntry...] (含 freq_tier)
+    loop 每个需备份条目
+        BM->>LM: acquire_for_write(file, "备份读快照")
+        LM-->>BM: 占锁(防读半截被并发写)
+        BM->>Live: 读 + sha256(mtime, size)
+        BM->>Repl: 写 <tier>/<rel_path>/<ts>.bak
+        BM->>BM: _prune(tier) 滚动保留(24h/7d/4w)
+        BM->>LM: release()
+    end
+    BM->>BM: build_manifest() 写 backups/manifest.json
+    BM->>BM: self_check() 联动 jinshuiyao_data_guard
+    Note over BM: 任一失败 → [G]告警, 不阻断主流程
+
+---
+
+%% ③ 恢复流程
+
+sequenceDiagram
+    autonumber
+    actor Op as 运维/主理人
+    participant RM as RestoreManager
+    participant Man as backups/manifest.json
+    participant Repl as 副本层快照
+    participant LM as LeaseManager
+    participant Live as 活层文件
+
+    Op->>RM: restore(rel_path, point="latest")
+    RM->>Man: 查该文件快照(hash, ts, tier)
+    RM->>Repl: 读最新/指定时点快照
+    RM->>RM: _verify(快照, expected_hash)
+    alt 校验通过
+        RM->>LM: acquire_for_write(file, "恢复")
+        LM-->>RM: 占锁
+        RM->>Live: 覆盖写(恢复)
+        RM->>LM: release()
+        RM->>RM: generate_report(ok=True)
+    else 校验失败/缺失
+        RM->>RM: [G]告警(快照损坏/缺失)
+        RM->>RM: generate_report(ok=False)
+    end
+    RM-->>Op: 输出恢复报告(文件/来源/校验/hash前后)

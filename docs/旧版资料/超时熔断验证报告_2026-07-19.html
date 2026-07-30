@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>外部调用硬超时熔断 · 验证报告</title>
+<style>
+  body{font-family:-apple-system,"Microsoft YaHei",sans-serif;background:#f6f7f9;color:#222;margin:0;padding:32px;}
+  .card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:24px;max-width:860px;margin:0 auto;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+  h1{font-size:20px;margin:0 0 4px;}
+  .sub{color:#6b7280;font-size:13px;margin-bottom:20px;}
+  table{width:100%;border-collapse:collapse;font-size:14px;margin:12px 0;}
+  th,td{border:1px solid #e5e7eb;padding:10px 12px;text-align:left;}
+  th{background:#f3f4f6;font-weight:600;}
+  .ok{color:#15803d;font-weight:600;}
+  .bad{color:#b91c1c;font-weight:600;}
+  .code{background:#0f172a;color:#e2e8f0;padding:12px 14px;border-radius:8px;font-family:Consolas,Menlo,monospace;font-size:12.5px;white-space:pre-wrap;line-height:1.6;}
+  .tag{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600;}
+  .pass{background:#dcfce7;color:#15803d;}
+  .box{background:#f8fafc;border-left:4px solid #2563eb;padding:12px 14px;border-radius:8px;font-size:13.5px;line-height:1.7;margin-top:14px;}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>外部调用硬超时熔断 · 验证报告</h1>
+  <div class="sub">验证时间：2026-07-19 14:32 · 对应优化项：T6 头号建议（外部调用硬超时）</div>
+
+  <p><b>结论：</b><span class="tag pass">已验证生效</span> 后端对 AI 对话、智能助手、视频提取、URL 提取四类外部调用已加<b>总超时熔断</b>。当外部服务响应过慢时，连接在设定时限内被干净中断并返回 <code>TIMEOUT</code>，不再出现"页面一直转圈、连接挂死"的情况。</p>
+
+  <table>
+    <tr><th>验证项</th><th>预期</th><th>实测结果</th><th>判定</th></tr>
+    <tr>
+      <td>语法校验 (py_compile)</td>
+      <td>无语法错误</td>
+      <td>PY_COMPILE_OK</td>
+      <td class="ok">通过</td>
+    </tr>
+    <tr>
+      <td>/health 健康检查</td>
+      <td>返回 200 与状态字段</td>
+      <td>200 · status=ok · error_rate=0.0 · ai_mode=configured · knowledge_cards=10</td>
+      <td class="ok">通过</td>
+    </tr>
+    <tr>
+      <td>/api/chat 卡死场景<br><span style="color:#6b7280;font-size:12px">人为让其卡 10 秒，超时设为 3 秒</span></td>
+      <td>约 3 秒内返回 504 + TIMEOUT，不挂死</td>
+      <td>HTTP 504 · 耗时 3.02 秒<br>{"ok":false,"error":"处理超时（外部服务响应过慢），请稍后重试","code":"TIMEOUT"}</td>
+      <td class="ok">通过</td>
+    </tr>
+    <tr>
+      <td>/api/ask 正常路径</td>
+      <td>正常返回、不卡死</td>
+      <td>HTTP 200 · 耗时 0.07 秒（快速返回，run_external 包装无副作用）</td>
+      <td class="ok">通过</td>
+    </tr>
+  </table>
+
+  <div class="box">
+    <b>实现要点（供回顾）：</b><br>
+    • 后端 <code>guide_server.py</code> 引入线程池 <code>ThreadPoolExecutor(max_workers=4)</code>，新增 <code>run_external(fn, timeout_key)</code> 包裹四类外部调用。<br>
+    • 各接口时限：chat/ask 60 秒，video/extract 150 秒；底层已有 15~60 秒超时，正常情况不会触发熔断，仅作"总保险"。<br>
+    • 超时后主线程 <code>future.result(timeout=)</code> 抛出异常，统一返回 504 与 <code>code:TIMEOUT</code>，HTTP 连接立即释放。<br>
+    • 验证方式：临时副本将 chat 时限改为 3 秒并注入 10 秒阻塞，实测 3.02 秒熔断返回；原文件未改动，测试副本已自动清理。
+  </div>
+
+  <p style="color:#6b7280;font-size:12.5px;margin-top:18px;">说明：/api/ask 在测试环境返回"目录不存在"属该接口依赖的本地代码目录未配置所致，与超时熔断逻辑无关；关键是其 0.07 秒即返回，证明未被卡死。</p>
+</div>
+</body>
+</html>

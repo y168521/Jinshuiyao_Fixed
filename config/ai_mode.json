@@ -1,0 +1,30 @@
+{
+  "mode": "online",
+  "description": "AI服务运行模式",
+  "modes": {
+    "online": {
+      "name": "在线模式",
+      "description": "调用DeepSeek API，需要网络和API Key",
+      "requires_network": true,
+      "requires_api_key": true
+    },
+    "offline": {
+      "name": "本地模式",
+      "description": "不调用API，纯本地算法运行，无需网络",
+      "requires_network": false,
+      "requires_api_key": false
+    }
+  },
+  "last_updated": "2026-07-28 09:15:29",
+  "auto_detect": {
+    "enabled": true,
+    "on_startup": true,
+    "on_error": true,
+    "network_timeout": 5,
+    "test_urls": [
+      "https://api.deepseek.com",
+      "https://www.baidu.com"
+    ]
+  },
+  "fallback_mode": "offline"
+}

@@ -1,0 +1,94 @@
+{
+  "variable_order": [
+    "--deep",
+    "--card-bg",
+    "--ink",
+    "--gold",
+    "--ice",
+    "--jade",
+    "--copper",
+    "--status-online",
+    "--status-offline",
+    "--status-warning",
+    "--status-error",
+    "--status-pending",
+    "--chart-1",
+    "--chart-2",
+    "--chart-3",
+    "--chart-4",
+    "--chart-5"
+  ],
+  "default_theme": "owner-default",
+  "fallback_order": ["customer", "system-light", "owner-default"],
+  "themes": {
+    "owner-default": {
+      "label": "金水谣·七色（个人默认）",
+      "kind": "owner",
+      "vars": {
+        "--deep": "#0B1A2F",
+        "--card-bg": "#162840",
+        "--ink": "#E8ECF1",
+        "--gold": "#C9A96E",
+        "--ice": "#5BC0DE",
+        "--jade": "#2D8B7E",
+        "--copper": "#C8755A",
+        "--status-online": "var(--jade)",
+        "--status-offline": "rgba(11, 26, 47, 0.4)",
+        "--status-warning": "var(--gold)",
+        "--status-error": "var(--copper)",
+        "--status-pending": "var(--ice)",
+        "--chart-1": "var(--ice)",
+        "--chart-2": "var(--jade)",
+        "--chart-3": "var(--gold)",
+        "--chart-4": "var(--copper)",
+        "--chart-5": "rgba(232, 236, 241, 0.7)"
+      }
+    },
+    "system-light": {
+      "label": "系统默认·浅色中性",
+      "kind": "system",
+      "vars": {
+        "--deep": "#ffffff",
+        "--card-bg": "#f7f7f8",
+        "--ink": "#353740",
+        "--gold": "#10a37f",
+        "--ice": "#1a7f64",
+        "--jade": "#10a37f",
+        "--copper": "#c0564f",
+        "--status-online": "var(--jade)",
+        "--status-offline": "rgba(53, 55, 64, 0.35)",
+        "--status-warning": "#b7791f",
+        "--status-error": "var(--copper)",
+        "--status-pending": "var(--ice)",
+        "--chart-1": "var(--ice)",
+        "--chart-2": "var(--jade)",
+        "--chart-3": "#6e6e80",
+        "--chart-4": "var(--copper)",
+        "--chart-5": "rgba(53, 55, 64, 0.6)"
+      }
+    },
+    "system-dark": {
+      "label": "系统默认·深色中性",
+      "kind": "system",
+      "vars": {
+        "--deep": "#1a1a1a",
+        "--card-bg": "#232323",
+        "--ink": "#e6e6e6",
+        "--gold": "#d97757",
+        "--ice": "#8ab4f8",
+        "--jade": "#4a9d7f",
+        "--copper": "#c97a6d",
+        "--status-online": "var(--jade)",
+        "--status-offline": "rgba(230, 230, 230, 0.3)",
+        "--status-warning": "#c79a4f",
+        "--status-error": "var(--copper)",
+        "--status-pending": "var(--ice)",
+        "--chart-1": "var(--ice)",
+        "--chart-2": "var(--jade)",
+        "--chart-3": "var(--gold)",
+        "--chart-4": "var(--copper)",
+        "--chart-5": "rgba(230, 230, 230, 0.65)"
+      }
+    }
+  }
+}

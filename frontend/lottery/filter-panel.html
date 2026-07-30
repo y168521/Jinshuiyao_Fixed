@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>金水谣 · 缩水过滤</title>
+  <style>
+    :root {
+      --bg: #0b0f19; --card: #131a2a; --text: #e4e8f1; --muted: #7a8499; --border: #1e2a40;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif; color: var(--text); background: var(--bg); line-height: 1.6; min-height: 100vh; }
+    .header { padding: 0.6rem 2rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+    .header h1 { font-size: 1.4rem; font-weight: 700; }
+    .container { max-width: 1400px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem; margin-bottom: 1.2rem; }
+    .card-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+    .flex-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.8rem; }
+    select, input[type=number] { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 0.4rem 0.7rem; font-size: 0.85rem; }
+    select:focus, input:focus { outline: none; border-color: var(--accent); }
+    .num-grid { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.5rem 0; }
+    .num-btn { width: 36px; height: 36px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text); font-size: 0.82rem; cursor: pointer; transition: all 0.15s; }
+    .num-btn:hover { border-color: var(--accent); }
+    .num-btn.selected { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+    .num-btn.blue { color: var(--ice); }
+    .num-btn.blue.selected { background: var(--ice); color: #000; }
+    .btn { padding: 0.45rem 1.2rem; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text); font-size: 0.88rem; cursor: pointer; transition: all 0.15s; }
+    .btn:hover { border-color: var(--accent); }
+    .btn-primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+    .btn-sm { padding: 0.3rem 0.7rem; font-size: 0.8rem; }
+    .rule-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0.8rem; margin: 0.5rem 0; }
+    .rule-card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.8rem; }
+    .rule-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; }
+    .rule-name { font-size: 0.88rem; font-weight: 500; }
+    .rule-desc { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.4rem; }
+    .rule-params { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .rule-params label { font-size: 0.75rem; color: var(--muted); display: flex; align-items: center; gap: 0.3rem; }
+    .rule-params input { width: 50px; padding: 0.2rem 0.3rem; font-size: 0.78rem; }
+    .toggle { position: relative; width: 36px; height: 20px; cursor: pointer; }
+    .toggle input { display: none; }
+    .toggle .slider { position: absolute; inset: 0; background: var(--border); border-radius: 10px; transition: 0.2s; }
+    .toggle .slider:before { content: ''; position: absolute; width: 16px; height: 16px; left: 2px; bottom: 2px; background: var(--muted); border-radius: 50%; transition: 0.2s; }
+    .toggle input:checked + .slider { background: var(--accent); }
+    .toggle input:checked + .slider:before { transform: translateX(16px); background: #000; }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.8rem; }
+    .stat-item { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.8rem; text-align: center; }
+    .stat-item .value { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+    .stat-item .label { font-size: 0.75rem; color: var(--muted); margin-top: 0.2rem; }
+    .stat-item.danger .value { color: var(--err); }
+    .num.inline { display: inline-block; width: 22px; height: 22px; line-height: 22px; border-radius: 50%; background: rgba(0,212,170,0.15); color: var(--accent); font-size: 0.75rem; text-align: center; margin: 1px; }
+    .filtered-list { max-height: 500px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem; }
+    .filtered-list .row { display: inline-block; margin: 2px; }
+    .hidden { display: none; }
+    input[type=range] { width: 100px; accent-color: var(--accent); }
+    .slider-val { font-size: 0.78rem; color: var(--gold); min-width: 30px; text-align: center; }
+    @media (max-width: 768px) {
+      .container { padding: 1rem; }
+      .rule-grid { grid-template-columns: 1fr; }
+      .num-btn { width: 30px; height: 30px; font-size: 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div><a href="/lottery" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回彩票分析中心</a></div>
+    <h1>金水谣 · 缩水过滤</h1>
+    <span style="color:var(--muted);font-size:0.85rem">智能评分 · 条件可调 · 实时预览</span>
+  </header>
+  <div class="container">
+    <div class="card">
+      <div class="card-title"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent)"></span>选号</div>
+      <div class="flex-row">
+        <label style="color:var(--muted)">彩种</label>
+        <select id="lotType" onchange="onLotTypeChange()">
+          <option value="双色球">双色球 (6/33+1/16)</option>
+          <option value="大乐透">大乐透 (5/35+2/12)</option>
+          <option value="福彩3D">福彩3D (组选)</option>
+          <option value="排列三">排列三 (组选)</option>
+        </select>
+        <span style="color:var(--muted);font-size:0.82rem" id="redCount">已选 0 个</span>
+        <button class="btn btn-sm" onclick="clearNums()">清空</button>
+        <button class="btn btn-sm" onclick="quickPick()">机选</button>
+      </div>
+      <div id="redGrid" class="num-grid"></div>
+      <div id="blueGridSection" class="hidden">
+        <div class="flex-row"><span style="color:var(--muted);font-size:0.82rem" id="blueCount">蓝球 0 个</span></div>
+        <div id="blueGrid" class="num-grid"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span style="width:8px;height:8px;border-radius:50%;background:var(--gold)"></span>过滤规则</div>
+      <div class="flex-row">
+        <label style="color:var(--muted)">容错</label>
+        <input type="range" id="tolerance" min="0" max="8" value="0" oninput="document.getElementById('tolVal').textContent=this.value">
+        <span class="slider-val" id="tolVal">0</span>
+        <label style="color:var(--muted);margin-left:1rem">阈值</label>
+        <input type="range" id="threshold" min="20" max="100" value="60" oninput="document.getElementById('thrVal').textContent=this.value">
+        <span class="slider-val" id="thrVal">60</span>
+      </div>
+      <div class="rule-grid" id="rulesContainer"></div>
+    </div>
+
+    <button class="btn btn-primary" onclick="runFilter()" style="margin-bottom:1rem">运行过滤</button>
+
+    <div id="resultSection" class="hidden">
+      <div class="card">
+        <div class="card-title"><span style="width:8px;height:8px;border-radius:50%;background:var(--gold)"></span>过滤结果</div>
+        <div class="stat-grid" id="resultStats"></div>
+        <div id="resultNote" style="color:var(--muted);font-size:0.82rem;margin-top:0.5rem"></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span style="width:8px;height:8px;border-radius:50%;background:var(--ice)"></span>过滤后注单 (前200注)</div>
+        <div id="filteredCombos" class="filtered-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var LOT_CONFIG = {
+      '双色球': { k: 6, redRange: [1,33], blueRange: [1,16], blueCount: 1 },
+      '大乐透': { k: 5, redRange: [1,35], blueRange: [1,12], blueCount: 2 },
+      '福彩3D': { k: 3, redRange: [0,9], digit: true },
+      '排列三': { k: 3, redRange: [0,9], digit: true },
+    };
+
+    var selectedReds = [];
+    var selectedBlues = [];
+
+    var RULES = [
+      { id: 'odd_even', name: '奇偶极端', desc: '全奇或全偶数组合', defaultParams: { extreme_only: true }, enabled: true },
+      { id: 'big_small', name: '大小极端', desc: '全大或全小数组合', defaultParams: { extreme_only: true }, enabled: true },
+      { id: 'sum', name: '和值偏离', desc: '和值超出正常范围', defaultParams: { min: 0, max: 200 }, enabled: true },
+      { id: 'span', name: '跨度偏离', desc: '跨度超出正常范围', defaultParams: { min: 0, max: 33 }, enabled: true },
+      { id: 'consecutive', name: '连号限制', desc: '连号数量过多 (≥4)', defaultParams: { max_consec: 3 }, enabled: true },
+      { id: 'tail', name: '同尾限制', desc: '同尾号过多 (≥4)', defaultParams: { max_tail: 3 }, enabled: true },
+      { id: 'zone', name: '断区惩罚', desc: '三区分布中空区', defaultParams: {}, enabled: true },
+      { id: 'cold_hot', name: '冷热配比', desc: '冷号过多或热号不足', defaultParams: { max_cold: 3, min_hot: 1 }, enabled: true },
+    ];
+
+    function onLotTypeChange() {
+      renderGrids();
+      document.getElementById('resultSection').classList.add('hidden');
+      selectedReds = [];
+      selectedBlues = [];
+      updateCounts();
+    }
+
+    function renderGrids() {
+      var type = document.getElementById('lotType').value;
+      var cfg = LOT_CONFIG[type];
+      var redGrid = document.getElementById('redGrid');
+      redGrid.innerHTML = '';
+      for (var i = cfg.redRange[0]; i <= cfg.redRange[1]; i++) {
+        var btn = document.createElement('button');
+        btn.className = 'num-btn';
+        btn.textContent = i;
+        btn.dataset.num = i;
+        btn.onclick = function() {
+          var n = parseInt(this.dataset.num);
+          var idx = selectedReds.indexOf(n);
+          if (idx >= 0) { selectedReds.splice(idx,1); this.classList.remove('selected'); }
+          else { selectedReds.push(n); this.classList.add('selected'); }
+          updateCounts();
+        };
+        redGrid.appendChild(btn);
+      }
+      if (cfg.blueRange) {
+        document.getElementById('blueGridSection').classList.remove('hidden');
+        var blueGrid = document.getElementById('blueGrid');
+        blueGrid.innerHTML = '';
+        for (var i = cfg.blueRange[0]; i <= cfg.blueRange[1]; i++) {
+          var btn = document.createElement('button');
+          btn.className = 'num-btn blue';
+          btn.textContent = i;
+          btn.dataset.num = i;
+          btn.onclick = function() {
+            var n = parseInt(this.dataset.num);
+            var idx = selectedBlues.indexOf(n);
+            if (idx >= 0) { selectedBlues.splice(idx,1); this.classList.remove('selected'); }
+            else { selectedBlues.push(n); this.classList.add('selected'); }
+            updateCounts();
+          };
+          blueGrid.appendChild(btn);
+        }
+      } else {
+        document.getElementById('blueGridSection').classList.add('hidden');
+      }
+      renderRules();
+    }
+
+    function renderRules() {
+      var container = document.getElementById('rulesContainer');
+      container.innerHTML = '';
+      RULES.forEach(function(r) {
+        var card = document.createElement('div');
+        card.className = 'rule-card';
+        card.id = 'rule-'+r.id;
+        var paramsHtml = '';
+        if (r.id === 'sum') {
+          paramsHtml = '<label>下限 <input type="number" value="'+r.defaultParams.min+'" id="p-sum-min"></label><label>上限 <input type="number" value="'+r.defaultParams.max+'" id="p-sum-max"></label>';
+        } else if (r.id === 'span') {
+          paramsHtml = '<label>下限 <input type="number" value="'+r.defaultParams.min+'" id="p-span-min"></label><label>上限 <input type="number" value="'+r.defaultParams.max+'" id="p-span-max"></label>';
+        } else if (r.id === 'consecutive') {
+          paramsHtml = '<label>最大连号 <input type="number" value="'+r.defaultParams.max_consec+'" id="p-consec-max" min="2" max="6"></label>';
+        } else if (r.id === 'tail') {
+          paramsHtml = '<label>最多同尾 <input type="number" value="'+r.defaultParams.max_tail+'" id="p-tail-max" min="2" max="6"></label>';
+        } else if (r.id === 'cold_hot') {
+          paramsHtml = '<label>最多冷号 <input type="number" value="'+r.defaultParams.max_cold+'" id="p-ch-maxcold" min="0" max="6"></label><label>最少热号 <input type="number" value="'+r.defaultParams.min_hot+'" id="p-ch-minhot" min="0" max="6"></label>';
+        }
+        card.innerHTML = '<div class="rule-header"><span class="rule-name">'+r.name+'</span><label class="toggle"><input type="checkbox" checked onchange="onRuleToggle(\''+r.id+'\')"><span class="slider"></span></label></div><div class="rule-desc">'+r.desc+'</div><div class="rule-params">'+paramsHtml+'</div>';
+        container.appendChild(card);
+      });
+    }
+
+    function onRuleToggle(id) {
+      // just visual, state read at filter time
+    }
+
+    function updateCounts() {
+      document.getElementById('redCount').textContent = '已选 ' + selectedReds.length + ' 个';
+      var bc = document.getElementById('blueCount');
+      if (bc) bc.textContent = '蓝球 ' + selectedBlues.length + ' 个';
+    }
+
+    function clearNums() {
+      selectedReds = [];
+      selectedBlues = [];
+      document.querySelectorAll('.num-btn').forEach(function(b) { b.classList.remove('selected'); });
+      updateCounts();
+      document.getElementById('resultSection').classList.add('hidden');
+    }
+
+    function quickPick() {
+      var type = document.getElementById('lotType').value;
+      var cfg = LOT_CONFIG[type];
+      clearNums();
+      var n = Math.min(cfg.k + 3, cfg.redRange[1] - cfg.redRange[0] + 1);
+      var nums = [];
+      while (nums.length < n) {
+        var r = cfg.redRange[0] + Math.floor(Math.random() * (cfg.redRange[1] - cfg.redRange[0] + 1));
+        if (nums.indexOf(r) < 0) nums.push(r);
+      }
+      nums.sort(function(a,b){return a-b;});
+      nums.forEach(function(x) {
+        selectedReds.push(x);
+        var btns = document.querySelectorAll('#redGrid .num-btn');
+        for (var i = 0; i < btns.length; i++) {
+          if (parseInt(btns[i].dataset.num) === x) btns[i].classList.add('selected');
+        }
+      });
+      if (cfg.blueRange) {
+        var bn = [];
+        while (bn.length < (cfg.blueCount||1)) {
+          var r = cfg.blueRange[0] + Math.floor(Math.random() * (cfg.blueRange[1] - cfg.blueRange[0] + 1));
+          if (bn.indexOf(r) < 0) bn.push(r);
+        }
+        bn.forEach(function(x) {
+          selectedBlues.push(x);
+          var btns = document.querySelectorAll('#blueGrid .num-btn');
+          for (var i = 0; i < btns.length; i++) {
+            if (parseInt(btns[i].dataset.num) === x) btns[i].classList.add('selected');
+          }
+        });
+      }
+      updateCounts();
+    }
+
+    function getRulesConfig() {
+      var config = {};
+      RULES.forEach(function(r) {
+        var enabledEl = document.querySelector('#rule-'+r.id+' input[type=checkbox]');
+        var enabled = enabledEl ? enabledEl.checked : true;
+        var params = {};
+        if (r.id === 'sum') {
+          params.min = parseInt(document.getElementById('p-sum-min').value) || 0;
+          params.max = parseInt(document.getElementById('p-sum-max').value) || 200;
+        } else if (r.id === 'span') {
+          params.min = parseInt(document.getElementById('p-span-min').value) || 0;
+          params.max = parseInt(document.getElementById('p-span-max').value) || 33;
+        } else if (r.id === 'consecutive') {
+          params.max_consec = parseInt(document.getElementById('p-consec-max').value) || 3;
+        } else if (r.id === 'tail') {
+          params.max_tail = parseInt(document.getElementById('p-tail-max').value) || 3;
+        } else if (r.id === 'cold_hot') {
+          params.max_cold = parseInt(document.getElementById('p-ch-maxcold').value) || 3;
+          params.min_hot = parseInt(document.getElementById('p-ch-minhot').value) || 1;
+        } else if (r.id === 'odd_even' || r.id === 'big_small') {
+          params.extreme_only = true;
+        }
+        config[r.id] = { enabled: enabled, params: params };
+      });
+      return config;
+    }
+
+    function runFilter() {
+      var type = document.getElementById('lotType').value;
+      var cfg = LOT_CONFIG[type];
+      if (selectedReds.length < cfg.k) {
+        alert('至少选择 ' + cfg.k + ' 个红球');
+        return;
+      }
+
+      var rulesConfig = getRulesConfig();
+      var tolerance = parseInt(document.getElementById('tolerance').value);
+      var threshold = parseInt(document.getElementById('threshold').value);
+
+      var body = {
+        lot_type: type,
+        red_nums: selectedReds,
+        rules: rulesConfig,
+        tolerance: tolerance,
+        threshold: threshold,
+        max_combos: 5000,
+      };
+      if (selectedBlues.length > 0) body.blue_nums = selectedBlues;
+
+      document.getElementById('resultSection').classList.remove('hidden');
+      document.getElementById('resultNote').textContent = '过滤中...';
+
+      fetch('/api/filter/smart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(result) {
+        if (result.error) {
+          document.getElementById('resultNote').textContent = '错误: ' + result.error;
+          return;
+        }
+        displayResult(result);
+      })
+      .catch(function(err) {
+        document.getElementById('resultNote').textContent = '请求失败: ' + err;
+      });
+    }
+
+    function displayResult(result) {
+      var stats = document.getElementById('resultStats');
+      stats.innerHTML = '';
+      var items = [
+        { value: result.before, label: '过滤前注数' },
+        { value: result.after, label: '过滤后注数', cls: 'primary' },
+        { value: result.filter_rate + '%', label: '过滤率' },
+      ];
+      items.forEach(function(item) {
+        var el = document.createElement('div');
+        el.className = 'stat-item' + (item.cls === 'danger' ? ' danger' : '');
+        el.innerHTML = '<span class="value">' + item.value + '</span><span class="label">' + item.label + '</span>';
+        stats.appendChild(el);
+      });
+
+      var noteParts = [];
+      if (result.detail_summary) {
+        var ds = result.detail_summary;
+        noteParts.push('评分区间: ' + (ds.total ? Math.round(ds.total.min)+'~'+Math.round(ds.total.max) : 'N/A'));
+      }
+      document.getElementById('resultNote').textContent = noteParts.join(' | ');
+
+      var list = document.getElementById('filteredCombos');
+      if (!result.passed || result.passed.length === 0) {
+        list.innerHTML = '<p style="color:var(--muted);padding:1rem">无兼容组合通过过滤</p>';
+        return;
+      }
+      var html = '';
+      result.passed.forEach(function(combo) {
+        html += '<span class="row">';
+        combo.forEach(function(n) { html += '<span class="num inline">' + n + '</span>'; });
+        if (result.blue_nums && result.blue_nums.length > 0) {
+          html += ' + ';
+          result.blue_nums.forEach(function(n) { html += '<span class="num inline" style="background:rgba(96,165,250,0.15);color:var(--ice)">' + n + '</span>'; });
+        }
+        html += '</span> ';
+      });
+      if (result.total_passed > result.passed.length) {
+        html += '<p style="color:var(--muted);margin-top:0.5rem">显示前200组，共' + result.total_passed + '组</p>';
+      }
+      list.innerHTML = html;
+    }
+
+    // Init
+    onLotTypeChange();
+  </script>
+</body>
+</html>

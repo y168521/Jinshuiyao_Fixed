@@ -1,0 +1,18 @@
+{
+  "python_candidates": [
+    {"path": "C:\\Users\\Administrator\\Nutstore\\1\\我的坚果云\\模型\\venv_314\\Scripts\\python.exe", "label": "项目 venv_314 Python (推荐,含requests)"},
+    {"path": "%LOCALAPPDATA%\\Jinshuiyao\\venv\\Scripts\\python.exe", "label": "本机自建虚拟环境 Python (推荐,换机免改)"},
+    {"path": "%LocalAppData%\\Programs\\Python\\Python314\\python.exe", "label": "Python 3.14 (AppData)"},
+    {"path": "%LocalAppData%\\Programs\\Python\\Python38\\python.exe", "label": "Python 3.8 (AppData)"},
+    {"path": "C:\\Users\\Administrator\\.workbuddy\\binaries\\python\\versions\\3.13.12\\python.exe", "label": "WorkBuddy 内置 Python 3.13"}
+  ],
+  "ffmpeg_candidates": [
+    {"path": "%AppData%\\TRAE SOLO CN\\ModularData\\ai-agent\\vm\\tools\\bin\\ffmpeg.cmd", "label": "TRAE FFmpeg"},
+    {"path": "%AppData%\\TRAE SOLO CN\\ModularData\\ai-agent\\vm\\tools\\bin\\ffmpeg.exe", "label": "TRAE FFmpeg exe"},
+    "ffmpeg"
+  ],
+  "system_python": "%LOCALAPPDATA%\\Jinshuiyao\\venv\\Scripts\\python.exe",
+  "system_pythonw": "%LOCALAPPDATA%\\Jinshuiyao\\venv\\Scripts\\pythonw.exe",
+  "system_python_fallback": "%LOCALAPPDATA%\\Programs\\Python\\Python314\\python.exe",
+  "system_pythonw_fallback": "%LOCALAPPDATA%\\Programs\\Python\\Python314\\pythonw.exe"
+}

@@ -1,0 +1,23 @@
+commit a29f28657181ca33b9b91c740173f0fcad0b9817
+Author: 金水瑶助手 <jinshuiyao@local>
+Date:   Tue Jul 28 10:30:26 2026 +0800
+
+    JS-20260728-17 数据三层隔离：分层契约+写租约+副本备份+恢复+风险册回填
+    
+    新增 scripts/layer_registry.py（LIVE/REPLICA/INSURANCE 三层契约中心 + 统一 [G] fail-safe 告警）；scripts/lease_helper.py（LeaseManager 委托复用 session_coordinator 全局 CLAIM，跨会话串行化）；scripts/data_backup.py（BackupManager 快照/滚动保留24h·7d·4w/旧.bak迁移/manifest/自检联动 jinshuiyao_data_guard）；scripts/data_restore.py（RestoreManager 恢复点/sha256 校验/恢复报告）。新增 docs/数据分层约定.md 与 3 个测试（全绿）。幂等改 .gitignore（append 金水谣数据/backups/）、AGENTS.md（追加数据三层隔离铁律）、金水谣数据/risk_register.json（R-002→已落地）并重跑 gen_risk_md 生成 风险登记册.md。纯标准库零新依赖，fail-safe 降级 [G] 告警。
+
+ Jinshuiyao_Fixed/.gitignore                        |   1 +
+ Jinshuiyao_Fixed/AGENTS.md                         |   9 +
+ ...210\206\345\261\202\347\272\246\345\256\232.md" | 114 +++++++++
+ Jinshuiyao_Fixed/scripts/data_backup.py            | 283 +++++++++++++++++++++
+ Jinshuiyao_Fixed/scripts/data_restore.py           | 187 ++++++++++++++
+ Jinshuiyao_Fixed/scripts/layer_registry.py         | 246 ++++++++++++++++++
+ Jinshuiyao_Fixed/scripts/lease_helper.py           | 121 +++++++++
+ Jinshuiyao_Fixed/tests/test_data_backup.py         | 205 +++++++++++++++
+ Jinshuiyao_Fixed/tests/test_data_restore.py        | 165 ++++++++++++
+ Jinshuiyao_Fixed/tests/test_lease_helper.py        | 180 +++++++++++++
+ .../insurance/.gitkeep"                            |   0
+ .../risk_register.json"                            |   2 +-
+ ...231\251\347\231\273\350\256\260\345\206\214.md" |   4 +-
+ 13 files changed, 1514 insertions(+), 3 deletions(-)
+GIT_EXIT=0

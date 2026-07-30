@@ -1,0 +1,85 @@
+name: AI Code Review
+on:
+  pull_request:
+    types: [opened, synchronize]
+  push:
+    branches: [main]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Install tools
+        run: |
+          pip install ruff semgrep pytest
+          pip install -r Jinshuiyao_Fixed/requirements.txt || true
+
+      - name: Ruff lint
+        run: |
+          ruff check Jinshuiyao_Fixed/ --config Jinshuiyao_Fixed/pyproject.toml --output-format=json > ruff_result.json 2>/dev/null || true
+        continue-on-error: true
+
+      - name: Semgrep scan
+        run: |
+          semgrep --config=auto Jinshuiyao_Fixed/ --json > semgrep_result.json 2>/dev/null || true
+        continue-on-error: true
+
+      - name: AST custom scan
+        run: |
+          python Jinshuiyao_Fixed/tools/ast_checker.py --quick --json > ast_result.json 2>/dev/null || true
+        continue-on-error: true
+
+      - name: Pytest
+        run: |
+          cd Jinshuiyao_Fixed && python -m pytest tests/ -q --tb=short || true
+
+      - name: Smoke test
+        run: |
+          cd Jinshuiyao_Fixed && python tools/smoke_test.py --quick
+
+      - name: AI semantic review
+        if: github.event_name == 'pull_request'
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_KEY }}
+        run: |
+          cd Jinshuiyao_Fixed && python tools/ai_review_agent.py --pr=${{ github.event.number }} --json > ai_review_result.json 2>/dev/null || true
+        continue-on-error: true
+
+      - name: Generate review report
+        run: |
+          cd Jinshuiyao_Fixed && python tools/review_report.py --merge-all --json > review_report.json 2>/dev/null || true
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let report = {};
+            try {
+              report = JSON.parse(fs.readFileSync('Jinshuiyao_Fixed/review_report.json', 'utf8'));
+            } catch(e) {
+              report = {summary: {health_score: 0, recommendation: '报告生成失败'}};
+            }
+            const summary = report.summary || {};
+            const emoji = summary.p0_count > 0 ? '🔴' : summary.p1_count > 0 ? '🟠' : '✅';
+            const body = `## ${emoji} 代码审查报告
+            健康评分: **${summary.health_score || 0}/100**
+            P0: ${summary.p0_count || 0} | P1: ${summary.p1_count || 0} | P2: ${summary.p2_count || 0} | P3: ${summary.p3_count || 0}
+            建议: ${summary.recommendation || '待确认'}`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });

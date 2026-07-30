@@ -1,0 +1,70 @@
+%% ===== 流程1：默认模式门禁检测 + fail-safe 告警（不硬阻断）=====
+sequenceDiagram
+    autonumber
+    actor User as 用户/CI
+    participant QG as quality_gate.main()
+    participant VD as check_vital_docs()
+    participant DG as check_jinshuiyao_data()
+    participant SC as SessionCoordinator
+
+    User->>QG: python scripts/quality_gate.py
+    QG->>SC: acquire("质量门禁验证", wait_secs=0)
+    SC-->>QG: 占锁成功(或他者占锁→跳过返回0)
+    QG->>VD: 守7份命门文档
+    VD-->>QG: vital_ok (bool)
+    QG->>DG: 扫 STRONG_DIRS/STRONG_FILES
+    alt 全部完好
+        DG-->>QG: ✅ True（绿）
+    else 强校验缺失（如 lot_data/ 被删）
+        DG-->>QG: ❌ False + 打印红色告警行
+        Note over QG: data_ok=False → WARN += 1（只计警告）
+    end
+    QG->>QG: print_summary(failures=0, warnings=N)
+    Note over QG: 显示 "⚠ 通过但有 N 个警告"，退出码 0（不硬阻断收工）
+    QG->>SC: release()
+
+%% ===== 流程2：verify 模式（人工主动核对 → 硬报错）=====
+sequenceDiagram
+    autonumber
+    actor User as 用户
+    participant QG as quality_gate.main(--verify)
+    participant DG as check_jinshuiyao_data()
+
+    User->>QG: python scripts/quality_gate.py --verify
+    QG->>DG: 扫强校验项
+    alt 完好
+        DG-->>QG: True → all_ok=True → 退出码 0
+    else 缺失
+        DG-->>QG: False → all_ok=False → 退出码 1（如实硬报错）
+    end
+
+%% ===== 流程3：自动断言测试（决策④：模拟删除→红；恢复→绿）=====
+sequenceDiagram
+    autonumber
+    actor Pytest as pytest
+    participant FS as 文件系统
+    participant DG as check_jinshuiyao_data()
+
+    Pytest->>FS: 把 lot_data/双色球.json rename 为 .tmp（备份）
+    Pytest->>DG: 调用
+    DG-->>Pytest: False → assert 红灯（测试失败/显式断言）
+    Pytest->>FS: 还原 .tmp → lot_data/双色球.json（finally 必还原）
+    Pytest->>DG: 再调用
+    DG-->>Pytest: True → assert 绿
+    Note over Pytest: 同法验证 整目录删除 / bak 删除不触发 / closeout [G] 报告
+
+%% ===== 流程4：closeout 每日巡检接入（warning 级，不翻转 all_ok）=====
+sequenceDiagram
+    autonumber
+    actor Cron as 每日23:30巡检
+    participant CO as closeout_gate.main()
+    participant DG as check_jinshuiyao_data()
+
+    Cron->>CO: python scripts/closeout_gate.py
+    CO->>DG: [G] 金水谣数据完整性
+    alt 完好
+        DG-->>CO: ✅ 打印 [G][OK]
+    else 缺失
+        DG-->>CO: ❌ 打印 [G] 告警（仅 warning，不翻转 all_ok）
+    end
+    CO-->>Cron: all_ok 不受 [G] 影响（不硬阻断收工）

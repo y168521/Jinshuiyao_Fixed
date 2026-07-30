@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>金水谣万物引擎 - 总控台</title>
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+  <style>
+    /* 页面特有样式（覆盖theme.css默认值） */
+
+    /* ===== 双栏布局 ===== */
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ===== 侧边栏 ===== */
+    .sidebar {
+      width: 220px;
+      min-width: 220px;
+      background: var(--deep);
+      border-right: 1px solid var(--gold-border);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      z-index: 100;
+      overflow-y: auto;
+    }
+    .sidebar-brand {
+      padding: 24px 20px 16px;
+      border-bottom: 1px solid var(--gold-border);
+    }
+    .sidebar-brand h2 {
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--gold);
+      margin-bottom: 2px;
+      letter-spacing: 2px;
+    }
+    .sidebar-brand small {
+      font-size: 11px;
+      color: var(--ink-dim);
+      letter-spacing: 0.5px;
+    }
+
+    /* 导航菜单 */
+    .sidebar-nav {
+      flex: 1;
+      padding: 12px 0;
+      overflow-y: auto;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      font-size: 13.5px;
+      color: var(--ink-mid);
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      font-family: var(--font);
+    }
+    .nav-item:hover {
+      color: var(--ink);
+      background: var(--gold-soft);
+    }
+    .nav-item:hover::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 4px;
+      bottom: 4px;
+      width: 3px;
+      background: var(--gold);
+      border-radius: 0 2px 2px 0;
+    }
+    .nav-item.active {
+      color: var(--gold);
+      background: var(--gold-soft);
+      font-weight: 600;
+    }
+    .nav-item.active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 4px;
+      bottom: 4px;
+      width: 3px;
+      background: var(--gold);
+      border-radius: 0 2px 2px 0;
+    }
+    .nav-icon {
+      font-size: 16px;
+      width: 20px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    /* 侧边栏底部 */
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--gold-border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sidebar-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid var(--gold-border);
+      background: var(--card-bg);
+      color: var(--ink-mid);
+      font-family: var(--font);
+    }
+    .sidebar-btn:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+    .sidebar-btn:active { transform: scale(0.97); }
+    .sidebar-btn.btn-run {
+      background: linear-gradient(135deg, var(--gold), #b8944f);
+      color: var(--deep);
+      border: none;
+    }
+    .sidebar-btn.btn-run:hover {
+      box-shadow: var(--shadow-gold);
+    }
+
+    /* ===== 主内容区 ===== */
+    .main-content {
+      flex: 1;
+      margin-left: 220px;
+      padding: 32px 36px 48px;
+      min-height: 100vh;
+      overflow-y: auto;
+      animation: fadeInUp 0.3s ease;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 页面标题区 */
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .page-header h1 {
+      font-size: 26px;
+      font-weight: 900;
+      color: var(--ink);
+    }
+    .page-header .subtitle {
+      font-size: 13px;
+      color: var(--ink-dim);
+      margin-top: 4px;
+    }
+    .header-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--ink-dim);
+    }
+    .header-status .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--ok);
+      box-shadow: 0 0 6px rgba(45,139,126,0.5);
+      animation: pulse 2s infinite;
+    }
+
+    /* ===== 统计卡片 ===== */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      text-align: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-gold);
+    }
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--gold);
+      line-height: 1.2;
+    }
+    .stat-number.green { color: var(--ok); }
+    .stat-number.amber { color: var(--gold); }
+    .stat-label {
+      font-size: 12px;
+      color: var(--ink-dim);
+      margin-top: 6px;
+    }
+
+    /* ===== 系统状态条 ===== */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      padding: 14px 20px;
+      background: var(--card-bg);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--radius-md);
+      margin-bottom: 28px;
+    }
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12.5px;
+      color: var(--ink-mid);
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--ink-dim);
+      flex-shrink: 0;
+    }
+    .status-dot.online {
+      background: var(--ok);
+      box-shadow: 0 0 6px rgba(45,139,126,0.5);
+      animation: pulse 2s infinite;
+    }
+    .status-dot.offline {
+      background: var(--ink-dim);
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* ===== 子系统卡片网格 ===== */
+    .systems-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .system-card {
+      background: var(--card-bg);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--radius-md);
+      padding: 22px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      cursor: default;
+    }
+    .system-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-gold), var(--shadow);
+      border-color: var(--gold);
+    }
+    .system-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+    }
+    .system-card[data-color="cyan"]::before { background: linear-gradient(90deg, var(--ice), transparent); }
+    .system-card[data-color="green"]::before { background: linear-gradient(90deg, var(--ok), transparent); }
+    .system-card[data-color="purple"]::before { background: linear-gradient(90deg, var(--ice), transparent); }
+    .system-card[data-color="amber"]::before { background: linear-gradient(90deg, var(--warn), transparent); }
+    .system-card[data-color="pink"]::before { background: linear-gradient(90deg, var(--copper), transparent); }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .card-icon {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      flex-shrink: 0;
+    }
+    .card-icon.cyan { background: var(--ice-soft); }
+    .card-icon.green { background: rgba(45,139,126,0.12); }
+    .card-icon.purple { background: rgba(91,192,222,0.12); }
+    .card-icon.amber { background: rgba(201,169,110,0.12); }
+    .card-icon.pink { background: rgba(200,117,90,0.12); }
+
+    .card-tag {
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+    .tag-active { background: rgba(45,139,126,0.12); color: var(--ok); }
+    .tag-dev { background: rgba(201,169,110,0.12); color: var(--warn); }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+    .card-desc {
+      color: var(--ink-mid);
+      font-size: 13px;
+      margin-bottom: 14px;
+      line-height: 1.6;
+    }
+
+    .card-features {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .feature-chip {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(0,0,0,0.25);
+      color: var(--ink-dim);
+      border: 1px solid rgba(232,236,241,0.08);
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .btn {
+      flex: 1;
+      padding: 9px 14px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--gold), #b8944f);
+      color: var(--deep);
+    }
+    .btn-primary:hover { box-shadow: var(--shadow-gold); }
+    .btn-primary:disabled {
+      background: rgba(232,236,241,0.08);
+      color: var(--ink-dim);
+      cursor: not-allowed;
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--ink-mid);
+      border: 1px solid var(--gold-border);
+    }
+    .btn-ghost:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+    .btn-amber {
+      background: linear-gradient(135deg, var(--warn), #C9A96E);
+      color: var(--deep);
+    }
+    .btn-amber:hover { box-shadow: 0 4px 16px rgba(201,169,110,0.25); }
+    .btn-green {
+      background: linear-gradient(135deg, var(--ok), #2D8B7E);
+      color: var(--deep);
+    }
+    .btn-green:hover { box-shadow: 0 4px 16px rgba(45,139,126,0.25); }
+    .btn-purple {
+      background: linear-gradient(135deg, var(--ice), #5BC0DE);
+      color: #fff;
+    }
+    .btn-purple:hover { box-shadow: 0 4px 16px rgba(91,192,222,0.25); }
+
+    /* ===== 底部 ===== */
+    .footer-bar {
+      text-align: center;
+      padding: 24px 0 0;
+      border-top: 1px solid var(--gold-border);
+    }
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .footer-links a {
+      color: var(--ink-dim);
+      text-decoration: none;
+      font-size: 12.5px;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: var(--gold); }
+    .footer-copy {
+      color: var(--ink-dim);
+      font-size: 11.5px;
+      opacity: 0.7;
+    }
+
+    /* ===== 基金日报通知横幅 ===== */
+    .fund-notif-banner {
+      display: none;
+      background: linear-gradient(135deg, rgba(91,192,222,0.12), rgba(91,192,222,0.08));
+      border: 1px solid rgba(91,192,222,0.3);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      position: relative;
+      animation: slideDown 0.4s ease;
+    }
+    .fund-notif-banner.show { display: block; }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fund-notif-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .fund-notif-text {
+      font-size: 13.5px;
+      color: var(--ink);
+    }
+    .fund-notif-text strong {
+      color: var(--ice);
+    }
+    .fund-notif-badges {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .notif-badge {
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-weight: 500;
+    }
+    .notif-badge.profit {
+      background: rgba(200,117,90,0.12);
+      color: var(--err);
+    }
+    .notif-badge.limit {
+      background: rgba(201,169,110,0.12);
+      color: var(--warn);
+    }
+    .notif-badge.normal {
+      background: rgba(45,139,126,0.12);
+      color: var(--ok);
+    }
+    .fund-notif-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .fund-notif-close {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      background: none;
+      border: none;
+      color: var(--ink-dim);
+      font-size: 1.2rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .fund-notif-close:hover { color: var(--ink); }
+
+    /* ===== 汉堡菜单按钮（移动端） ===== */
+    .hamburger {
+      display: none;
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      z-index: 200;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      background: var(--card-bg);
+      border: 1px solid var(--gold-border);
+      color: var(--gold);
+      font-size: 20px;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .hamburger:active { transform: scale(0.97); }
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 90;
+    }
+
+    /* ===== 响应式 ===== */
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      .sidebar-overlay.show {
+        display: block;
+      }
+      .hamburger {
+        display: flex;
+      }
+      .main-content {
+        margin-left: 0;
+        padding: 60px 16px 40px;
+      }
+      .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+      .systems-grid {
+        grid-template-columns: 1fr;
+      }
+      .status-bar {
+        gap: 12px;
+      }
+      .page-header h1 {
+        font-size: 20px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .main-content {
+        padding: 56px 12px 32px;
+      }
+      .stats-grid {
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+      }
+      .stat-card {
+        padding: 14px 8px;
+      }
+      .stat-number {
+        font-size: 1.4rem;
+      }
+      .stat-label {
+        font-size: 10px;
+      }
+      .status-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 12px 16px;
+      }
+      .system-card {
+        padding: 16px;
+      }
+      .card-actions {
+        flex-direction: column;
+      }
+      .footer-links {
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 汉堡菜单按钮（移动端） -->
+  <button class="hamburger" id="hamburgerBtn" onclick="toggleSidebar()">&#9776;</button>
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+  <div class="layout">
+    <!-- ===== 左侧边栏 ===== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <h2>金水谣</h2>
+        <small>万物引擎 v3.0</small>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a class="nav-item active" href="/control-center">
+          <span class="nav-icon">&#127968;</span> 总控台
+        </a>
+        <a class="nav-item" href="/ai-agent" target="_blank">
+          <span class="nav-icon">&#129302;</span> AI助手
+        </a>
+        <a class="nav-item" href="/docs" target="_blank">
+          <span class="nav-icon">&#128220;</span> 接口文档
+        </a>
+        <a class="nav-item" href="/test-report" target="_blank">
+          <span class="nav-icon">&#128203;</span> 测试报告
+        </a>
+        <a class="nav-item" href="/ai-test" target="_blank">
+          <span class="nav-icon">&#129302;</span> AI用例
+        </a>
+        <a class="nav-item" href="/health-check" target="_blank">
+          <span class="nav-icon">&#129657;</span> 系统体检
+        </a>
+        <a class="nav-item" href="/scheduler" target="_blank">
+          <span class="nav-icon">&#9200;</span> 定时任务
+        </a>
+        <a class="nav-item" href="/engine-dashboard" target="_blank">
+          <span class="nav-icon">&#128202;</span> 效果看板
+        </a>
+        <a class="nav-item" href="/review-dashboard" target="_blank">
+          <span class="nav-icon">&#128269;</span> 审查仪表盘
+        </a>
+        <button class="nav-item" onclick="openFundReport()">
+          <span class="nav-icon">&#128176;</span> 基金日报
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="sidebar-btn" id="aiModeBtn" onclick="toggleAiMode()">
+          <span id="aiModeIcon">&#127760;</span>
+          <span id="aiModeText">在线模式</span>
+        </button>
+        <button class="sidebar-btn" onclick="refreshAllStatus()">&#128260; 刷新状态</button>
+        <button class="sidebar-btn" onclick="triggerQuickReview()" style="border-color:var(--gold);color:var(--gold);">&#128269; 一键审查</button>
+        <button class="sidebar-btn btn-run" onclick="openFileSilent('launch.bat','run')">&#9654; 一键运行</button>
+      </div>
+    </aside>
+
+    <!-- ===== 右侧主内容区 ===== -->
+    <main class="main-content">
+      <!-- 基金日报通知横幅 -->
+      <div class="fund-notif-banner" id="fundNotifBanner">
+        <button class="fund-notif-close" onclick="dismissFundNotif()">&times;</button>
+        <div class="fund-notif-content">
+          <div class="fund-notif-text">
+            <strong>今日基金日报已生成</strong> <span id="notifDate"></span>
+            <span id="notifSummary"></span>
+          </div>
+          <div class="fund-notif-badges" id="notifBadges"></div>
+          <div class="fund-notif-actions">
+            <button class="btn btn-primary" style="padding:6px 14px;font-size:12px;flex:none;" onclick="openFundReport();dismissFundNotif();">
+              查看日报
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 页面标题 -->
+      <div class="page-header">
+        <div>
+          <h1>总控台</h1>
+          <div class="subtitle">一键启动所有子系统</div>
+        </div>
+        <div class="header-status">
+          <span class="status-dot online"></span>
+          <span>系统运行中</span>
+        </div>
+      </div>
+
+      <!-- 统计卡片 -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number" id="statTotal">8</div>
+          <div class="stat-label">子系统总数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number green" id="statReady">5</div>
+          <div class="stat-label">已就绪</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number amber">2</div>
+          <div class="stat-label">开发中</div>
+        </div>
+      </div>
+
+      <!-- 系统状态条 -->
+      <div class="status-bar" id="statusBar">
+        <div class="status-item">
+          <span class="status-dot online" id="dotServer"></span>
+          <span>导航服务器</span>
+        </div>
+        <div class="status-item">
+          <span class="status-dot" id="dotLottery"></span>
+          <span>彩票</span>
+        </div>
+        <div class="status-item">
+          <span class="status-dot" id="dotStock"></span>
+          <span>股票</span>
+        </div>
+        <div class="status-item">
+          <span class="status-dot" id="dotFootball"></span>
+          <span>足彩</span>
+        </div>
+        <div class="status-item">
+          <span class="status-dot" id="dotFund"></span>
+          <span>基金</span>
+        </div>
+        <div class="status-item">
+          <span class="status-dot" id="dotMusic"></span>
+          <span>音乐</span>
+        </div>
+        <div class="status-item">
+          <span class="status-dot" id="dotCreator"></span>
+          <span>创作者</span>
+        </div>
+        <div class="status-item">
+          <span class="status-dot" id="dotFundReport"></span>
+          <span id="txtFundReport">基金日报</span>
+        </div>
+      </div>
+
+      <!-- 子系统卡片 -->
+      <div class="systems-grid">
+
+        <!-- 彩票预测系统 -->
+        <div class="system-card" data-color="cyan">
+          <div class="card-header">
+            <div class="card-icon cyan">&#127920;</div>
+            <span class="card-tag tag-active">已就绪</span>
+          </div>
+          <div class="card-title">彩票预测系统</div>
+          <div class="card-desc">支持双色球、大乐透、福彩3D、排列三、七乐彩、七星彩、快乐8共7种彩种的智能预测与分析。</div>
+          <div class="card-features">
+            <span class="feature-chip">双色球</span>
+            <span class="feature-chip">大乐透</span>
+            <span class="feature-chip">福彩3D</span>
+            <span class="feature-chip">排列三</span>
+            <span class="feature-chip">七乐彩</span>
+            <span class="feature-chip">七星彩</span>
+            <span class="feature-chip">快乐8</span>
+            <span class="feature-chip">SmartBrain</span>
+            <span class="feature-chip">进化引擎</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-primary" onclick="openSubsystem('gui/main_window.py','run')">&#9654; 启动窗口（桌面程序）</button>
+          </div>
+        </div>
+          <div class="web-tools" style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">&#127760; 在线分析工具（浏览器打开）：</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+              <a href="/lottery" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">彩票分析中心</a>
+              <a href="/lottery/dashboard" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">彩票仪表盘</a>
+              <a href="/lottery/omission-heatmap" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">遗漏热力图</a>
+              <a href="/lottery/rotation-matrix" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">旋转矩阵</a>
+              <a href="/lottery/filter-panel" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">缩水过滤</a>
+              <a href="/lottery/prize-calculator" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">奖金计算器</a>
+              <a href="/lottery/head-tail-analysis" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">龙头凤尾</a>
+              <a href="/lottery/number-follow-up" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">号码跟随</a>
+              <a href="/lottery/historical-same-period" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">历史同期</a>
+              <a href="/lottery/ac-calculator" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">AC值计算</a>
+              <a href="/lottery/trend-classification" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">012路/质合/五行</a>
+              <a href="/lottery/omission-table" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">遗漏表格</a>
+              <a href="/lottery/audit-dashboard" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">操作留痕</a>
+              <a href="/lottery/sources-health" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">彩票源健康</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- 足彩分析系统 -->
+        <div class="system-card" data-color="green">
+          <div class="card-header">
+            <div class="card-icon green">&#9917;</div>
+            <span class="card-tag tag-active">已就绪</span>
+          </div>
+          <div class="card-title">足彩分析系统</div>
+          <div class="card-desc">世界杯、欧冠、五大联赛赛事数据分析，赔率对比、历史统计、智能推荐与盈亏追踪。</div>
+          <div class="card-features">
+            <span class="feature-chip">赛事数据</span>
+            <span class="feature-chip">赔率分析</span>
+            <span class="feature-chip">历史统计</span>
+            <span class="feature-chip">智能推荐</span>
+            <span class="feature-chip">盈亏追踪</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-green" onclick="openSubsystem('jinshuiyao/football_gui.py','run')">&#9654; 启动窗口（桌面程序）</button>
+          </div>
+        </div>
+          <div class="web-tools" style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">&#127760; 在线分析工具（浏览器打开）：</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+              <a href="/football" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">足彩分析中心</a>
+              <a href="/football/dashboard" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">AI赛前模拟</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- 基金分析系统 -->
+        <div class="system-card" data-color="amber">
+          <div class="card-header">
+            <div class="card-icon amber">&#128176;</div>
+            <span class="card-tag tag-active">已就绪</span>
+          </div>
+          <div class="card-title">基金分析系统</div>
+          <div class="card-desc">净值分析 · 风险评估 · 夏普比率 · 基金推荐</div>
+          <div class="card-features">
+            <span class="feature-chip">净值分析</span>
+            <span class="feature-chip">风险评估</span>
+            <span class="feature-chip">夏普比率</span>
+            <span class="feature-chip">基金推荐</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-amber" onclick="openSubsystem('domains/fund/fund_gui.py','run')">&#9654; 启动分析</button>
+            <button class="btn btn-ghost" onclick="openFundReport()">&#128176; 日报</button>
+            <button class="btn btn-ghost" onclick="viewSource('domains/fund/fund_gui.py')">&#128065; 源码</button>
+          </div>
+          <div class="web-tools" style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">&#127760; 在线分析工具（浏览器打开）：</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+              <a href="/fund" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">基金分析中心</a>
+              <a href="/fund/dashboard" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">基金仪表盘</a>
+              <a href="/fund/nav-trend" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">净值走势</a>
+              <a href="/fund/holdings" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">持仓分析</a>
+              <a href="/fund/screener" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">基金筛选</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- 股票分析系统 -->
+        <div class="system-card" data-color="purple">
+          <div class="card-header">
+            <div class="card-icon purple">&#128200;</div>
+            <span class="card-tag tag-active">已就绪</span>
+          </div>
+          <div class="card-title">股票分析系统</div>
+          <div class="card-desc">A股三大指数实时看板，K线图+成交量，MA/MACD/KDJ/RSI/布林带技术指标，选股推荐与买卖信号。</div>
+          <div class="card-features">
+            <span class="feature-chip">上证/深证/沪深300</span>
+            <span class="feature-chip">K线图</span>
+            <span class="feature-chip">MA/MACD/KDJ</span>
+            <span class="feature-chip">选股推荐</span>
+            <span class="feature-chip">数据真实性检测</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-purple" onclick="openSubsystem('domains/stock/stock_gui.py','run')">&#9654; 启动窗口（桌面程序）</button>
+          </div>
+        </div>
+          <div class="web-tools" style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">&#127760; 在线分析工具（浏览器打开）：</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+              <a href="/stock" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">股票分析中心</a>
+              <a href="/stock/dashboard" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">股票仪表盘</a>
+              <a href="/quant" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">量化扫描</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- 知识库系统 -->
+        <div class="system-card" data-color="amber">
+          <div class="card-header">
+            <div class="card-icon amber">&#128218;</div>
+            <span class="card-tag tag-active">已就绪</span>
+          </div>
+          <div class="card-title">知识库管理系统</div>
+          <div class="card-desc">跨领域知识卡片管理，支持彩票、足球、股票、音乐等领域分类，知识评分与自动归档。</div>
+          <div class="card-features">
+            <span class="feature-chip">知识卡片</span>
+            <span class="feature-chip">领域分类</span>
+            <span class="feature-chip">效果评分</span>
+            <span class="feature-chip">自动归档</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-amber" onclick="openSubsystem('knowledge/mirofish_gui.py','run')">&#9654; 启动窗口（桌面程序）</button>
+          </div>
+        </div>
+
+        <!-- AI音乐系统 -->
+        <div class="system-card" data-color="pink">
+          <div class="card-header">
+            <div class="card-icon pink">&#127925;</div>
+            <span class="card-tag tag-dev">开发中 · 待上线</span>
+          </div>
+          <div class="card-title">AI音乐系统</div>
+          <div class="card-desc">AI作曲 · 风格生成 · 音频处理（桌面程序，功能开发中）</div>
+          <div class="card-features">
+            <span class="feature-chip">AI作曲</span>
+            <span class="feature-chip">风格生成</span>
+            <span class="feature-chip">音频处理</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-primary" onclick="openSubsystem('audio_toolkit.py','run')">&#128293; 打开工具（桌面程序）</button>
+          </div>
+        </div>
+
+        <!-- 创作者工具箱 -->
+        <div class="system-card" data-color="pink">
+          <div class="card-header">
+            <div class="card-icon pink">&#9997;</div>
+            <span class="card-tag tag-active">已就绪</span>
+          </div>
+          <div class="card-title">创作者工具箱</div>
+          <div class="card-desc">AI文案生成 / 语音转文字 / 智能配音 / OCR识别 / 音频提取 / 去水印（桌面程序，点击启动）</div>
+          <div class="card-features">
+            <span class="feature-chip">AI文案</span>
+            <span class="feature-chip">语音转文字</span>
+            <span class="feature-chip">TTS配音</span>
+            <span class="feature-chip">OCR</span>
+            <span class="feature-chip">音频提取</span>
+            <span class="feature-chip">去水印</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-primary" onclick="openSubsystem('domains/creator/creator_gui.py','run')">&#128293; 打开工具（桌面程序）</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 底部 -->
+      <div class="footer-bar">
+        <div class="footer-links">
+          <a href="/open?file=jinshuiyao-guide/control-center.html" target="_blank">&#128218; 项目文件导航</a>
+          <a href="/open?file=run_tests.py&mode=run" target="_blank">&#9989; 运行测试</a>
+          <a href="/open?file=main.py&mode=run" target="_blank">&#9654; 主程序入口</a>
+          <a href="/open?file=金水谣数据/log/change_audit.logl" target="_blank">&#128196; 变更审计日志</a>
+        </div>
+        <div class="footer-copy">
+          金水谣万物引擎 &copy; 2026 &nbsp;|&nbsp; 总控台 v1.0 &nbsp;|&nbsp; 导航服务器端口 18888
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // ===== 侧边栏移动端切换 =====
+    function toggleSidebar() {
+      var sidebar = document.getElementById('sidebar');
+      var overlay = document.getElementById('sidebarOverlay');
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('show');
+    }
+
+    // ===== 子系统启动 =====
+    // 使用 fetch 静默调用后端 /open 接口，不再弹出新窗口
+    function openSubsystem(filePath, mode) {
+      fetch('/open?file=' + encodeURIComponent(filePath) + '&mode=' + mode)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.ok) {
+            showToast('已启动: ' + data.file, 'success');
+          } else {
+            console.error('启动失败:', data.error);
+            showToast('启动失败: ' + data.error, 'error');
+          }
+        })
+        .catch(function(err) {
+          console.error('请求失败:', err);
+          showToast('请求失败', 'error');
+        });
+    }
+
+    // 在页面右下角显示一个短暂的 toast 提示（不阻塞操作）
+    function showToast(message, type) {
+      var toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;transition:opacity 0.5s;';
+      toast.style.background = type === 'success' ? '#2D8B7E' : '#C8755A';
+      toast.style.color = '#fff';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(function() {
+        toast.style.opacity = '0';
+        setTimeout(function() { toast.remove(); }, 500);
+      }, 3000);
+    }
+
+    // ===== 查看源码 =====
+    // 使用 fetch 静默调用后端 /open 接口（mode=view 会用记事本打开文件）
+    function viewSource(filePath) {
+      fetch('/open?file=' + encodeURIComponent(filePath) + '&mode=view')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.ok) {
+            showToast('已在记事本中打开: ' + data.file, 'success');
+          } else {
+            showToast('打开失败: ' + data.error, 'error');
+          }
+        })
+        .catch(function(err) {
+          showToast('请求失败', 'error');
+        });
+    }
+
+    // ===== 静默打开文件 =====
+    function openFileSilent(filePath, mode) {
+      fetch('/open?file=' + encodeURIComponent(filePath) + '&mode=' + mode)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.ok) {
+            showToast('已打开: ' + data.file, 'success');
+          } else {
+            showToast('打开失败: ' + data.error, 'error');
+          }
+        })
+        .catch(function(err) {
+          showToast('请求失败', 'error');
+        });
+    }
+
+    // ===== 打开最新基金日报 =====
+    function openFundReport() {
+      var today = new Date();
+      var yyyy = today.getFullYear();
+      var mm = String(today.getMonth() + 1).padStart(2, '0');
+      var dd = String(today.getDate()).padStart(2, '0');
+      var dateStr = yyyy + '-' + mm + '-' + dd;
+      var reportPath = '金水谣数据/fund_reports/fund_report_' + dateStr + '.html';
+      fetch('/open?file=' + encodeURIComponent(reportPath) + '&mode=auto')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.ok) {
+            showToast('已打开基金日报: ' + dateStr, 'success');
+          } else {
+            showToast('日报未生成，请先运行监控脚本', 'error');
+          }
+        })
+        .catch(function(err) {
+          showToast('请求失败', 'error');
+        });
+    }
+
+    // ===== 检测未读基金日报通知 =====
+    function checkFundNotification() {
+      fetch('/api/fund-notification')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.has_notification && data.data && !data.data.is_read) {
+            var notif = data.data;
+            var banner = document.getElementById('fundNotifBanner');
+            var dateSpan = document.getElementById('notifDate');
+            var summarySpan = document.getElementById('notifSummary');
+            var badgesDiv = document.getElementById('notifBadges');
+
+            dateSpan.textContent = '(' + notif.date + ')';
+
+            // 构建摘要文字
+            var summary = '';
+            var s = notif.summary || {};
+            if (s.take_profit_count > 0) {
+              summary += ' | 有基金达到止盈目标！';
+            }
+            if (s.limit_count > 0) {
+              summary += ' | ' + s.limit_count + '只基金限购中';
+            }
+            if (s.top_gainer) {
+              summary += ' | 领涨: ' + s.top_gainer.name + ' (' + (s.top_gainer.change_pct > 0 ? '+' : '') + s.top_gainer.change_pct + '%)';
+            }
+            summarySpan.textContent = summary;
+
+            // 构建徽章
+            var badgesHtml = '';
+            if (s.take_profit_count > 0) {
+              badgesHtml += '<span class="notif-badge profit">止盈 ' + s.take_profit_count + '</span>';
+            }
+            if (s.limit_count > 0) {
+              badgesHtml += '<span class="notif-badge limit">限购 ' + s.limit_count + '</span>';
+            }
+            if (s.take_profit_count === 0 && s.limit_count === 0) {
+              badgesHtml += '<span class="notif-badge normal">正常</span>';
+            }
+            badgesDiv.innerHTML = badgesHtml;
+
+            banner.classList.add('show');
+          }
+        })
+        .catch(function(err) {
+          // P2-6: 失败时给降级提示而非静默吞
+          console.warn('[control-center] 基金通知加载失败:', err);
+          var banner = document.getElementById('fundNotifBanner');
+          if (banner) { banner.querySelector('.banner-body, .banner-text, p').textContent = '通知加载失败，可稍后重试'; }
+        });
+    }
+
+    // ===== 关闭通知横幅 =====
+    function dismissFundNotif() {
+      var banner = document.getElementById('fundNotifBanner');
+      banner.classList.remove('show');
+      // 标记为已读（使用GET，与后端路由一致）
+      fetch('/api/fund-notification/read')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          // 已标记为已读
+        })
+        .catch(function(err) {
+          // P2-6: 标记已读失败不影响主流程，仅记录
+          console.warn('[control-center] 标记已读失败:', err);
+        });
+    }
+
+    // ===== AI运行模式切换（在线/本地）=====
+    var currentAiMode = 'online';
+
+    function loadAiMode() {
+      fetch('/api/ai/mode')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          currentAiMode = data.mode || 'online';
+          updateAiModeUI();
+        })
+        .catch(function(e) {
+          // 静默失败
+        });
+    }
+
+    function updateAiModeUI() {
+      var iconEl = document.getElementById('aiModeIcon');
+      var textEl = document.getElementById('aiModeText');
+      if (currentAiMode === 'online') {
+        iconEl.textContent = '🌐';
+        textEl.textContent = '在线模式';
+      } else {
+        iconEl.textContent = '💻';
+        textEl.textContent = '本地模式';
+      }
+    }
+
+    function toggleAiMode() {
+      var newMode = currentAiMode === 'online' ? 'offline' : 'online';
+      var confirmMsg = newMode === 'offline' 
+        ? '确定切换为【本地模式】？\n\n本地模式不调用DeepSeek API，纯本地算法运行，无需网络。' 
+        : '确定切换为【在线模式】？\n\n在线模式会调用DeepSeek API，需要网络连接和API Key。';
+      
+      if (!confirm(confirmMsg)) return;
+
+      fetch('/api/ai/mode/set', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: newMode })
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.ok) {
+            currentAiMode = newMode;
+            updateAiModeUI();
+            showToast('已切换为' + (newMode === 'online' ? '在线模式' : '本地模式'));
+          } else {
+            alert('切换失败: ' + (data.error || '未知错误'));
+          }
+        })
+        .catch(function(e) {
+          alert('切换失败: ' + e.message);
+        });
+    }
+
+    // ===== 状态检测 =====
+    function refreshAllStatus() {
+      // 导航服务器始终在线（因为本页面就是通过它打开的）
+      document.getElementById('dotServer').className = 'status-dot online';
+
+      // 通过 /status API 检测各子系统文件是否存在
+      fetch('/status')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var mapping = {
+            'lottery': 'dotLottery',
+            'stock': 'dotStock',
+            'football': 'dotFootball',
+            'fund': 'dotFund',
+            'music': 'dotMusic',
+            'creator': 'dotCreator'
+          };
+          for (var key in mapping) {
+            var dot = document.getElementById(mapping[key]);
+            if (data[key] && data[key].exists) {
+              dot.className = 'status-dot online';
+            } else {
+              dot.className = 'status-dot offline';
+            }
+          }
+        })
+        .catch(function() {
+          // API不可用时设为未知
+          ['dotLottery', 'dotStock', 'dotFootball', 'dotFund', 'dotMusic', 'dotCreator'].forEach(function(id) {
+            document.getElementById(id).className = 'status-dot offline';
+          });
+        });
+    }
+
+    // ===== 一键审查 =====
+    function triggerQuickReview() {
+      if (!confirm('确定要启动快速审查吗？\n\n将运行: ruff + AST检查 + 冒烟测试\n预计耗时: 5-10秒')) return;
+      showToast('正在启动快速审查...', 'success');
+      fetch('/api/review/trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'quick' })
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (d.ok) {
+            var score = d.report && d.report.summary ? d.report.summary.health_score : '--';
+            var rec = d.report && d.report.summary ? d.report.summary.recommendation : '';
+            var msg = '快速审查完成!\n评分: ' + score + ' / 100\n建议: ' + rec;
+            if (score >= 80) {
+              showToast('审查通过: ' + score + '分', 'success');
+            } else {
+              showToast('审查需关注: ' + score + '分', 'error');
+            }
+            alert(msg);
+            if (Notification && Notification.permission === 'granted') {
+              new Notification('金水谣审查完成', { body: '评分: ' + score + ' / 100 · ' + rec });
+            }
+          } else {
+            showToast('审查失败: ' + d.error, 'error');
+          }
+        })
+        .catch(function(e) {
+          showToast('触发失败: ' + e.message, 'error');
+        });
+    }
+
+    if (Notification && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
+    // 页面加载时检测一次
+    refreshAllStatus();
+    checkFundNotification();
+    loadAiMode();
+
+    // 每分钟自动刷新
+    setInterval(refreshAllStatus, 60000);
+  </script>
+
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
+<script src="_shared/js/error-monitor.js"></script>
+</body>
+</html>

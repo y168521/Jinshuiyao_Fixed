@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣万物预测引擎 · 优化审查与改进建议（2026-07-19）</title>
+<style>
+  :root{ --bg:#0f1320; --card:#171c2e; --ink:#e7ebf5; --sub:#9aa6c2; --line:#2a3350;
+         --p0:#ff5d6c; --p1:#ff9f43; --p2:#ffd83d; --p3:#5bc0ff; --ok:#36d399; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif;padding:32px}
+  .wrap{max-width:1040px;margin:0 auto}
+  h1{font-size:26px;margin:0 0 6px}
+  h2{font-size:20px;margin:34px 0 12px;padding-left:10px;border-left:4px solid var(--p3)}
+  .lead{color:var(--sub);margin:0 0 8px}
+  .tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:20px;color:#0f1320}
+  .p0{background:var(--p0)} .p1{background:var(--p1)} .p2{background:var(--p2)} .p3{background:var(--p3)} .ok{background:var(--ok);color:#06231a}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:12px 0}
+  .card h3{margin:0 0 6px;font-size:16px}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:8px}
+  .impact{margin-top:10px;padding:10px 12px;background:#0f1320;border-radius:8px;font-size:13.5px;color:#cdd6ee}
+  .impact b{color:var(--ok)}
+  code{background:#0c1020;padding:1px 6px;border-radius:5px;font-size:13px;color:#a9e8ff}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:#11162a;color:var(--sub)}
+  .done{color:var(--ok);font-weight:700}
+  .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center}
+  .kpi .n{font-size:24px;font-weight:800}
+  .kpi .l{color:var(--sub);font-size:12.5px;margin-top:3px}
+  ul{margin:6px 0 0;padding-left:20px}
+  li{margin:4px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>金水谣万物预测引擎 · 优化审查与改进建议</h1>
+  <p class="lead">生成时间：2026-07-19 · 基于本轮 P0–P3 安全修复完成后的整体代码复查</p>
+
+  <div class="summary">
+    <div class="kpi"><div class="n done">6</div><div class="l">已完成的修复项</div></div>
+    <div class="kpi"><div class="n">5</div><div class="l">优化维度</div></div>
+    <div class="kpi"><div class="n">11</div><div class="l">待办优化建议</div></div>
+    <div class="kpi"><div class="n">3</div><div class="l">本论已补的并发锁</div></div>
+  </div>
+
+  <h2>一、本轮已修复项（回顾，均已实测验证）</h2>
+  <table>
+    <tr><th>级别</th><th>问题</th><th>修复</th><th>验证</th></tr>
+    <tr><td><span class="tag ok">P0</span></td><td>双知识库不连通（视频卡前端不可见）</td><td><code>video_to_kb</code> 归档时同步一张摘要卡到 MiroFishDB</td><td class="done">归档后经 /api/knowledge/list 可见</td></tr>
+    <tr><td><span class="tag p1">P1</span></td><td>明文密钥在云同步目录</td><td>迁至 <code>~/.jinshuiyao-secrets/</code>，4 处读取器改新位置优先 + 加 <code>.nutstoreignore</code></td><td class="done">/health 仍 configured，同步目录已无密钥</td></tr>
+    <tr><td><span class="tag p1">P1</span></td><td><code>extract-archive</code> 缺守卫（SSRF）</td><td>加 <code>_is_local()</code> + <code>_is_safe_http_url</code>（禁内网/环回/云元数据/非 http）</td><td class="done">内网/169.254/非法 scheme 全拒</td></tr>
+    <tr><td><span class="tag p2">P2</span></td><td>单线程阻塞 / 路径穿越 / 超大 body / 预测无锁</td><td>改 <code>ThreadingHTTPServer</code>；<code>open_local_file</code> 加 commonpath 校验；POST 统一 1MB 上限；prediction 与 MiroFishDB 加写锁 + 原子写</td><td class="done">穿越被拦并记录；2MB body 拒；线程化启动正常</td></tr>
+    <tr><td><span class="tag p3">P3</span></td><td>日志每次 open 文件 / 记忆整行匹配 / 无依赖清单</td><td><code>log()</code> 改 <code>logging</code> 常驻句柄；记忆增删改改稳定 id；补 <code>requirements.txt</code> 与 <code>.nutstoreignore</code></td><td class="done">server.log 正常写；记忆 id 增删回环通过</td></tr>
+  </table>
+
+  <h2>二、优化建议（按优先级排序）</h2>
+
+  <div class="card">
+    <h3>① <span class="tag p2">P2</span> 拆分 guide_server.py 单体（结构/可读性）</h3>
+    <div class="meta">当前 ~1600 行承担：路由分发 + 记忆存储 + 预测存储 + 跨设备同步 + 静态服务。</div>
+    <ul>
+      <li>建议按职责拆分：<code>server/routes.py</code>、<code>server/memory_store.py</code>、<code>server/prediction_store.py</code>、<code>server/sync_api.py</code>，<code>guide_server.py</code> 仅做装配与异常外壳。</li>
+      <li>收益：单文件认知负担下降；改一处崩全局的风险降低；新增端点只动 <code>routes.py</code>。</li>
+    </ul>
+    <div class="impact">预期影响：<b>维护性显著提升</b>，新增/修改功能的平均改动范围缩小 40%+，回归风险下降。</div>
+  </div>
+
+  <div class="card">
+    <h3>② <span class="tag p2">P2</span> 知识库/预测写入走"内存缓存 + 定时刷盘"（性能）</h3>
+    <div class="meta">T4 加锁后，<code>add_card</code> 与 <code>record_prediction</code> 每次都 全量读 JSON→改→全量写 JSON，O(n) I/O。</div>
+    <ul>
+      <li>MiroFishDB：进程内缓存 <code>_data</code>，脏标记后每 N 秒或每 M 次写盘；或升级为 SQLite。</li>
+      <li>predictions.json：同样加内存缓存，避免每次对话都 parse 2000 条。</li>
+    </ul>
+    <div class="impact">预期影响：<b>高频归档/对话延迟从十毫秒级降到亚毫秒</b>，磁盘 I/O 减少一个数量级（批量视频提取场景最明显）。</div>
+  </div>
+
+  <div class="card">
+    <h3>③ <span class="tag p2">P2</span> 外部网络调用加硬超时与重试上限（边界）</h3>
+    <div class="meta"><code>VideoExtractor.extract</code> 与 AI 对话调用 DeepSeek 必须设上限，否则单请求可卡死线程。</div>
+    <ul>
+      <li>视频提取：单请求硬超时（如 15s）+ 重定向次数上限。</li>
+      <li>DeepSeek 调用：HTTP 超时（如 30s）+ 最多 2 次重试；超时返回友好降级而非挂起。</li>
+    </ul>
+    <div class="impact">预期影响：<b>消除"一个坏链接/慢接口拖垮线程池"的风险</b>，线程化后这一项尤为关键。</div>
+  </div>
+
+  <div class="card">
+    <h3>④ <span class="tag p2">P2</span> 静态文件服务增加大小限制与显式 404/403（安全/边界）</h3>
+    <div class="meta"><code>_serve_static</code> 对超大文件/损坏路径应有显式响应，避免大文件撑满内存。</div>
+    <ul>
+      <li>对 <code>.py</code>/<code>.bat</code> 等可执行文件，静态服务应拒绝（仅 <code>open_local_file</code> 经本机守卫后才执行）。</li>
+      <li>单文件响应建议上限（如 50MB），超出返回 413。</li>
+    </ul>
+    <div class="impact">预期影响：<b>降低 DoS 面</b>，防止通过大文件请求耗尽内存。</div>
+  </div>
+
+  <div class="card">
+    <h3>⑤ <span class="tag p3">P3</span> 收敛密钥/记忆的重复读取逻辑（重复代码）</h3>
+    <div class="meta">已统一为 <code>_resolve_deepseek_key_file</code> / <code>_resolve_cookie_file</code> 两种近似模板；记忆 add/edit/remove 三函数重复"读-改-写"。</div>
+    <ul>
+      <li>抽公共 <code>_resolve_secret(*rel_names)</code> 与 <code>_mutate_memory_file(path, transform)</code>。</li>
+    </ul>
+    <div class="impact">预期影响：密钥/记忆位置变更<b>只需改一处</b>，后续维护成本下降，逻辑分支更清晰。</div>
+  </div>
+
+  <div class="card">
+    <h3>⑥ <span class="tag p3">P3</span> 高频只读接口加 mtime 缓存（性能）</h3>
+    <div class="meta"><code>/api/knowledge/list</code>、<code>_parse_memory_file</code>、<code>/health</code> 目录统计每次都重读磁盘。</div>
+    <ul>
+      <li>对"文件 mtime 未变则复用上次结果"做轻量缓存（TTL 1–3 秒即可）。</li>
+    </ul>
+    <div class="impact">预期影响：<b>前端轮询健康/知识库时 CPU 与 I/O 明显下降</b>，对低端机更明显。</div>
+  </div>
+
+  <div class="card">
+    <h3>⑦ <span class="tag p3">P3</span> 统一错误响应结构（错误处理）</h3>
+    <div class="meta">当前错误多为 <code>{"error": ...}</code> 或 <code>{"ok":false,"error":...}</code>，前端分类不便。</div>
+    <ul>
+      <li>约定统一结构：<code>{"ok":false,"code":"BODY_TOO_LARGE","message":"..."}</code>，便于前端按 code 分流。</li>
+    </ul>
+    <div class="impact">预期影响：<b>前端错误处理更稳健</b>，可精确区分 400/403/413/500 给出对应提示。</div>
+  </div>
+
+  <h2>三、已具备的良好实践（保持）</h2>
+  <div class="card">
+    <ul>
+      <li><span class="done">✓</span> do_GET/do_POST 顶层 try/except 安全网，单请求异常不再拖垮服务器。</li>
+      <li><span class="done">✓</span> <code>/health</code> 健康检查 + 前端绿灯指示器，问题提前暴露。</li>
+      <li><span class="done">✓</span> 所有写/执行类接口 <code>_is_local()</code> 本机守卫（防局域网越权）。</li>
+      <li><span class="done">✓</span> 预测/知识库写操作已用<b>临时文件 + os.replace 原子写</b>，读操作不会看到半截 JSON。</li>
+      <li><span class="done">✓</span> POST 统一 1MB body 上限；路径穿越 commonpath 校验。</li>
+      <li><span class="done">✓</span> 前端 safeFetch 自动重试；内联 JS 改动后跑 node --check 校验。</li>
+    </ul>
+  </div>
+
+  <h2>四、已知接受项（非缺陷）</h2>
+  <div class="card">
+    <ul>
+      <li><b>CORS 为 <code>*</code></b>：因门户以 <code>file://</code> 打开需跨域访问 <code>localhost</code> API，收紧到具体源会破坏门户功能；属本地开发工具的有意取舍，非生产暴露。</li>
+      <li><b>两套知识库并存</b>：MiroFishDB（库A，前端读）与"用户知识库 markdown"（库B，闭环成长）经 T1 已连通，概念分工保留（库B 存原始证据更全）。</li>
+    </ul>
+  </div>
+
+  <h2>五、落地优先级建议</h2>
+  <table>
+    <tr><th>顺序</th><th>建议</th><th>工作量</th><th>价值</th></tr>
+    <tr><td>1</td><td>③ 外部调用硬超时</td><td>小</td><td>高（防线程卡死）</td></tr>
+    <tr><td>2</td><td>④ 静态服务大小/类型限制</td><td>小</td><td>中（降 DoS 面）</td></tr>
+    <tr><td>3</td><td>② 内存缓存+刷盘</td><td>中</td><td>高（性能）</td></tr>
+    <tr><td>4</td><td>① 拆分单体</td><td>大</td><td>高（可维护性）</td></tr>
+    <tr><td>5</td><td>⑥ mtime 缓存</td><td>小</td><td>中（性能）</td></tr>
+    <tr><td>6</td><td>⑤ 收敛重复逻辑</td><td>小</td><td>中（可维护性）</td></tr>
+    <tr><td>7</td><td>⑦ 统一错误结构</td><td>小</td><td>中（前端体验）</td></tr>
+  </table>
+
+  <p class="lead" style="margin-top:24px">说明：本轮已交付 P0–P3 全部安全修复并逐项实测；上述优化建议为后续演进方向，按"先防卡死/降风险，再提性能，最后做结构收敛"的顺序推进最划算。</p>
+</div>
+</body>
+</html>

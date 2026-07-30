@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 量化分析仪表盘（四象限赛博朋克）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body class="scanlines">
+  <!-- 顶部标题栏 -->
+  <div class="topbar">
+    <div class="brand">金水谣 · QUANT SCANNER</div>
+    <div class="sub">四象限赛博朋克量化分析仪表盘</div>
+    <div class="spacer"></div>
+    <div class="ticker-box">
+      <select id="symSelect" class="sym-select">
+        <option value="sh000001">上证指数</option>
+        <option value="sh000300">沪深300</option>
+        <option value="sz399001">深证成指</option>
+      </select>
+      <span id="symName" class="sym-name">上证指数</span>
+      <span class="live-price" id="livePrice">—</span>
+      <span class="live-chg" id="liveChg">—</span>
+      <span class="mode-badge static" id="dataMode">○ 快照 真实</span>
+    </div>
+    <button class="ctrl" id="toggle">▶ 启动</button>
+    <button class="ctrl" id="openCfg">⚙ 配置</button>
+    <button class="ctrl danger" id="reset">⟲ 重置</button>
+  </div>
+
+  <!-- 四象限网格 -->
+  <div class="grid">
+    <!-- 左上：高频 TICK 分时图 -->
+    <section class="panel">
+      <header><span class="dot"></span> 高频 TICK 分时图 · PRICE / 涨跌幅</header>
+      <div class="body"><div id="chart"></div></div>
+    </section>
+
+    <!-- 右上：信号引擎 -->
+    <section class="panel">
+      <header><span class="dot"></span> 信号引擎 · SIGNAL ENGINE</header>
+      <div class="body">
+        <div class="signals" id="signals"></div>
+        <div class="bt-line" id="btLine">回测加载中…</div>
+      </div>
+    </section>
+
+    <!-- 左下：事件推演 -->
+    <section class="panel">
+      <header><span class="dot"></span> 事件推演 · EVENT DEDUCTION</header>
+      <div class="body event-wrap">
+        <div class="event-input">
+          <input id="eventInput" placeholder="输入热点事件，如：央行宣布降准0.5个百分点" />
+          <button class="ctrl" id="runEvent">推演</button>
+        </div>
+        <div class="event-table" id="eventTable"></div>
+        <div class="event-summary" id="eventSummary">等待推演…</div>
+      </div>
+    </section>
+
+    <!-- 右下：DEEP SCAN 终端 -->
+    <section class="panel">
+      <header><span class="dot"></span> DEEP SCAN 终端 · LOG STREAM</header>
+      <div class="body"><div class="terminal" id="terminal"></div></div>
+    </section>
+  </div>
+
+  <!-- 配置抽屉 -->
+  <aside class="drawer" id="drawer">
+    <h3>⚙ 外部大模型 API 配置</h3>
+    <label>API 端点（留空=演示模式）</label>
+    <input id="cfgEndpoint" placeholder="https://api.example.com/v1/chat/completions">
+    <label>API Key</label>
+    <input id="cfgKey" type="password" placeholder="sk-...">
+    <label>模型</label>
+    <input id="cfgModel" placeholder="gpt-4o-mini">
+    <label>超时 (ms)</label>
+    <input id="cfgTimeout" type="number" value="8000">
+    <label>重试次数</label>
+    <input id="cfgRetries" type="number" value="3">
+    <div class="hint">留空端点将使用内置 mock 结构化响应，便于离线演示。配置后所有调用走 AbortController 超时 + 指数退避重试 + JSON 容错降级。</div>
+
+    <h3 style="margin-top:18px">⚖ 信号权重（动态调整）</h3>
+    <div class="weights" id="weights"></div>
+    <div class="hint">SCORE = Σ wᵢ·指标(动量/波动/量能)，拖动即时生效。</div>
+  </aside>
+
+  <script src="../_shared/js/echarts.min.js"></script>
+  <script src="../jinshuiyao-guide/_shared/js/jinshuiyao-echarts-theme.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

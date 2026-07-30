@@ -1,0 +1,90 @@
+classDiagram
+    class Layer {
+        <<enumeration>>
+        LIVE
+        REPLICA
+        INSURANCE
+    }
+
+    class FileEntry {
+        +str rel_path
+        +Layer layer
+        +str freq_tier
+        +bool lease_required
+        +bool git_tracked
+    }
+
+    class LayerRegistry {
+        +list~str~ LIVE_WRITABLE_WHITELIST
+        +list~str~ LEASE_REQUIRED_FILES
+        +list~str~ INSURANCE_PROTECTED
+        -dict _entries
+        +classify(rel_path) Layer
+        +is_lease_required(rel_path) bool
+        +is_live_writable(rel_path) bool
+        +get_backup_entries() list~FileEntry~
+        +get_freq_tier(rel_path) str
+    }
+
+    class LeaseManager {
+        -module _sc
+        -LayerRegistry _reg
+        +acquire_for_write(rel_path, intent, wait_secs) bool
+        +release() bool
+        +assert_live_writable(rel_path) bool
+        +write_protected(rel_path, intent, writer_callable, wait_secs) bool
+    }
+
+    class BackupManager {
+        +Path replica_root
+        +dict retention
+        +Path manifest_path
+        +run_once() int
+        +snapshot(rel_path, tier) bool
+        -_prune(tier) void
+        +migrate_legacy_bak() int
+        +build_manifest() void
+        +self_check() bool
+    }
+
+    class RestoreManager {
+        +Path replica_root
+        +Path insurance_root
+        +Path manifest_path
+        +list_points(rel_path) list
+        +restore(rel_path, point) RecoveryReport
+        -_verify(snapshot_path, expected_hash) bool
+        +generate_report(...) RecoveryReport
+    }
+
+    class RecoveryReport {
+        +str file
+        +str source
+        +str target
+        +bool ok
+        +str hash_before
+        +str hash_after
+        +str message
+    }
+
+    class session_coordinator {
+        <<reuse module>>
+        +acquire(intent, holder, wait_secs) dict
+        +release(holder, force) bool
+        +heartbeat(holder) bool
+    }
+
+    class jinshuiyao_data_guard {
+        <<reuse module>>
+        +check_jinshuiyao_data(override) bool
+    }
+
+    LayerRegistry "1" *-- "many" FileEntry : 持有
+    LeaseManager ..> LayerRegistry : 读取租约清单/白名单
+    LeaseManager ..> session_coordinator : 复用底层锁(全局CLAIM)
+    BackupManager ..> LayerRegistry : 读取备份清单/频率档
+    BackupManager ..> LeaseManager : 备份前 acquire(防读半截)
+    RestoreManager ..> BackupManager : 共享 manifest
+    RestoreManager ..> LeaseManager : 恢复写前 acquire
+    RestoreManager ..> RecoveryReport : 生成
+    BackupManager ..> jinshuiyao_data_guard : self_check 联动

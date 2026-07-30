@@ -1,0 +1,66 @@
+classDiagram
+    %% ===== 双轨：risk_register.json 单一真源 =====
+    class RiskRegisterJSON {
+        +str _schema_version
+        +dict review_policy
+        +list risks
+        +str path = 金水谣数据/risk_register.json
+    }
+    class RiskEntry {
+        +str id            %% R-001
+        +str description
+        +str impact
+        +enum probability   %% 高/中/低
+        +enum impact_level  %% 高/中/低
+        +str mitigation
+        +enum mitigation_status  %% 已落地/待落地(项④)/待落地(项⑤/⑥)
+        +str owner         %% 模块名，非"待定"
+        +str early_signal
+        +date last_review %% YYYY-MM-DD
+    }
+    RiskRegisterJSON "1" *-- "0..*" RiskEntry : risks[]
+
+    %% ===== 渲染：md 由 json 生成 =====
+    class GenRiskMd {
+        +render(json)  %% 读 json → 写 风险登记册.md
+    }
+    GenRiskMd ..> RiskRegisterJSON : 读取(单一真源)
+
+    %% ===== 校验：verify_risk_register.py =====
+    class VerifyRiskRegister {
+        +verify(path) : (ok, errors, warns)
+        -check_legal()
+        -check_fields()      %% 9 字段齐全+枚举+owner非待定
+        -check_stale(days=90)  %% last_review 超期标红
+    }
+    VerifyRiskRegister ..> RiskRegisterJSON : 读取校验
+
+    %% ===== 挂载：知识体检 Lint =====
+    class LintKnowledge {
+        +lint(kb_dir) : LintReport
+        +lint_risk_register(rep)  %% 新增：并入 rep.errors/warns
+    }
+    LintKnowledge ..> VerifyRiskRegister : 调用 verify()
+    note for LintKnowledge "每月1号体检挂接点\n(不新建自动化)"
+
+    %% ===== 外部已落地模块（仅被 R 条目引用，不改动）=====
+    class FreeModelPool {
+        +get_free_provider_cfgs()
+        +call_ai_failover()
+        +get_fallback_cfg()
+        +health_check_all()
+    }
+    class SessionCoordinator {
+        +acquire(intent)
+        +release()
+    }
+    FreeModelPool .. RiskEntry : R-001 降级方案(已落地)
+    SessionCoordinator .. RiskEntry : R-003 降级方案(待落地项⑤/⑥)
+
+    %% ===== 铁律 =====
+    class AGENTS {
+        +⑦ 风险入册铁律
+    }
+    AGENTS ..> RiskRegisterJSON : 强制外部依赖先入册
+
+    note "双轨不冲突：json=唯一真源；md 仅由 GenRiskMd 生成，禁止手工双写"

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 股票分析中心</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+  :root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:24px; max-width:960px; margin:0 auto; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:20px; }
+  .back { margin-bottom:16px; }
+  .back a { color:var(--muted); font-size:13px; text-decoration:none; }
+  .back a:hover { color:var(--gold); }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media(max-width:700px){ .grid{ grid-template-columns:1fr; } body{ padding:16px; } }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; text-decoration:none; color:var(--txt); display:flex; flex-direction:column; transition:.15s; }
+  .card:hover { border-color:var(--gold); transform:translateY(-2px); }
+  .card-icon { font-size:28px; margin-bottom:6px; }
+  .card h2 { font-size:15px; margin:0 0 4px; }
+  .card p { font-size:12px; color:var(--muted); margin:0; line-height:1.5; }
+  .tag { display:inline-block; padding:1px 8px; border-radius:8px; font-size:11px; background:rgba(212,175,55,.12); color:var(--gold); margin-top:8px; align-self:flex-start; }
+  .section-title { font-size:13px; color:var(--muted); margin:20px 0 10px; border-bottom:1px solid var(--border); padding-bottom:6px; }
+</style>
+</head>
+<body>
+<div class="back"><a href="/control-center">&#8592; 返回控制中心</a></div>
+<h1>股票分析中心</h1>
+<div class="sub">行情监控、量化选股、策略回测 — 工具性质，不构成投资建议</div>
+
+<div class="section-title">&#128176; 核心功能</div>
+<div class="grid">
+  <a class="card" href="/stock/dashboard">
+    <div class="card-icon">&#128200;</div>
+    <h2>股票仪表盘</h2>
+    <p>行情概览、多因子选股、策略回测、技术指标 — 综合看板</p>
+    <span class="tag">行情·选股·回测</span>
+  </a>
+  <a class="card" href="/quant">
+    <div class="card-icon">&#128200;</div>
+    <h2>量化扫描</h2>
+    <p>四象限量化分析仪表盘：高频TICK分时、信号引擎、事件推演</p>
+    <span class="tag">量化·信号·事件</span>
+  </a>
+</div>
+</body>
+</html>

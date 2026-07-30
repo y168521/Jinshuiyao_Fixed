@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>金水谣 - 定时任务监控</title>
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+  <style>
+    :root {
+      /* 映射到 theme.css 设计令牌 */
+      --bg: var(--deep);
+      --bg2: var(--card-bg);
+      --bg3: #1c2128;
+      --muted: var(--ink-dim);
+      --dim: #484f58;
+      --rule: var(--gold-border);
+      --accent: var(--gold);
+      --accent-dim: var(--gold-soft);
+      --green-dim: rgba(63, 185, 80, 0.15);
+      --red-dim: rgba(248, 81, 73, 0.15);
+      --amber-dim: rgba(210, 153, 34, 0.15);
+      --blue: var(--ice);
+      --mono: var(--font-mono);
+      /* --ink, --green, --red, --amber, --purple, --font 由 theme.css 提供 */
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    body::before {
+      content: '';
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background:
+        radial-gradient(ellipse 800px 600px at 20% 15%, rgba(212,160,23,0.04), transparent),
+        radial-gradient(ellipse 600px 500px at 80% 75%, rgba(88,166,255,0.03), transparent);
+      pointer-events: none; z-index: 0;
+    }
+
+    .container {
+      position: relative; z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 3rem;
+    }
+
+    /* ===== 顶部 ===== */
+    .hero {
+      text-align: center;
+      padding: 2rem 0 1.5rem;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: var(--accent-dim);
+      border: 1px solid var(--gold-border);
+      border-radius: 20px;
+      padding: 0.2rem 1rem;
+      font-size: 0.75rem;
+      color: var(--accent);
+      margin-bottom: 0.8rem;
+      letter-spacing: 0.05em;
+      font-weight: 500;
+    }
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--accent), #f0c040, var(--blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.4rem;
+    }
+    .hero p {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    /* ===== 状态栏 ===== */
+    .status-bar {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1.5rem;
+      margin: 1rem 0 2rem;
+      flex-wrap: wrap;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .status-bar .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 0.4rem;
+    }
+    .dot-green { background: var(--green); box-shadow: 0 0 6px rgba(63,185,80,0.5); }
+    .dot-red { background: var(--red); box-shadow: 0 0 6px rgba(248,81,73,0.5); }
+    .dot-gray { background: var(--dim); }
+    #refresh-info { font-family: var(--mono); font-size: 0.75rem; color: var(--dim); }
+
+    /* ===== 区块标题 ===== */
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin: 2rem 0 1rem;
+      padding-left: 0.75rem;
+      border-left: 3px solid var(--accent);
+      color: var(--ink);
+    }
+
+    /* ===== 任务卡片网格 ===== */
+    .tasks-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1rem;
+    }
+    .task-card {
+      background: var(--bg2);
+      border: 1px solid var(--rule);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .task-card:hover {
+      border-color: var(--gold-glow);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+    }
+    .task-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+      opacity: 0.6;
+    }
+    .task-card.disabled::before {
+      background: linear-gradient(90deg, var(--dim), transparent);
+    }
+    .task-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+    .task-name {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .task-status-light {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .light-on {
+      background: var(--green);
+      box-shadow: 0 0 8px rgba(63,185,80,0.6);
+      animation: pulse 2s infinite;
+    }
+    .light-off {
+      background: var(--dim);
+    }
+    .light-error {
+      background: var(--red);
+      box-shadow: 0 0 8px rgba(248,81,73,0.6);
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .task-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.4rem 1rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .task-meta .label {
+      color: var(--dim);
+    }
+    .task-meta .value {
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+    }
+    .task-error {
+      margin-top: 0.6rem;
+      padding: 0.4rem 0.6rem;
+      background: var(--red-dim);
+      border-radius: 6px;
+      font-size: 0.75rem;
+      color: var(--red);
+      word-break: break-all;
+    }
+
+    /* ===== 执行历史时间线 ===== */
+    .timeline {
+      position: relative;
+      padding-left: 1.5rem;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 5px; top: 0; bottom: 0;
+      width: 2px;
+      background: var(--rule);
+    }
+    .timeline-item {
+      position: relative;
+      padding: 0.6rem 0 0.6rem 1rem;
+      border-bottom: 1px solid var(--rule);
+    }
+    .timeline-item:last-child { border-bottom: none; }
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -1.5rem; top: 1rem;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      border: 2px solid var(--bg);
+    }
+    .timeline-item.success::before { background: var(--green); }
+    .timeline-item.fail::before { background: var(--red); }
+    .timeline-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .tl-time {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--dim);
+      min-width: 130px;
+    }
+    .tl-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .tl-badge {
+      font-size: 0.7rem;
+      padding: 0.1rem 0.5rem;
+      border-radius: 8px;
+      font-weight: 500;
+    }
+    .badge-success { background: var(--green-dim); color: var(--green); }
+    .badge-fail { background: var(--red-dim); color: var(--red); }
+    .tl-duration {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .tl-error {
+      font-size: 0.75rem;
+      color: var(--red);
+      margin-top: 0.2rem;
+      word-break: break-all;
+    }
+
+    /* ===== 空状态 ===== */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--dim);
+      font-size: 0.9rem;
+    }
+
+    /* ===== 加载状态 ===== */
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+    }
+    .loading::after {
+      content: '';
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid var(--rule);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-left: 0.5rem;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== 底部 ===== */
+    .footer {
+      text-align: center;
+      padding: 2rem 0 0;
+      margin-top: 2rem;
+      border-top: 1px solid var(--rule);
+      color: var(--dim);
+      font-size: 0.78rem;
+    }
+    .footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* ===== 统计卡片行 ===== */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin: 1.5rem 0 2rem;
+    }
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      text-align: center;
+    }
+    .stat-card .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--gold);
+      font-family: var(--mono);
+    }
+    .stat-card .stat-label {
+      font-size: 12px;
+      color: var(--ink-dim);
+      margin-top: 4px;
+    }
+
+    /* ===== 骨架屏 ===== */
+    .skeleton {
+      background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: var(--radius-sm);
+      height: 60px;
+      margin-bottom: 12px;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ===== 页面加载淡入 ===== */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .container {
+      animation: fadeInUp 300ms ease-out both;
+    }
+
+    /* ===== 响应式 ===== */
+    @media (max-width: 768px) {
+      .container { padding: 1rem; }
+      .hero h1 { font-size: 1.6rem; }
+      .tasks-grid { grid-template-columns: 1fr; }
+      .task-meta { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 顶部 -->
+    <div class="hero">
+      <div class="hero-badge">定时任务监控</div>
+      <h1>定时任务监控</h1>
+      <p>金水谣系统 6 项定时任务的运行状态与执行历史</p>
+    </div>
+
+    <!-- 状态栏 -->
+    <div class="status-bar">
+      <span><span class="dot dot-green"></span>调度器运行中</span>
+      <span id="task-summary">任务加载中...</span>
+      <span id="refresh-info">每30秒自动刷新</span>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-active">—</div>
+        <div class="stat-label">活跃任务</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-today">—</div>
+        <div class="stat-label">今日执行</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-success-rate">—</div>
+        <div class="stat-label">成功率</div>
+      </div>
+    </div>
+
+    <!-- 任务卡片 -->
+    <div class="section-title">任务状态</div>
+    <div class="tasks-grid" id="tasks-grid">
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+    </div>
+
+    <!-- 执行历史 -->
+    <div class="section-title">执行历史（最近50条）</div>
+    <div class="timeline" id="timeline">
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+    </div>
+
+    <!-- 底部 -->
+    <div class="footer">
+      金水谣万物引擎 &middot; 定时任务监控 &middot;
+      <a href="/control-center">返回总控台</a>
+    </div>
+  </div>
+
+  <!-- 统一顶栏导航 -->
+  <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
+  <!-- 错误监控 -->
+  <script src="_shared/js/error-monitor.js"></script>
+
+  <script>
+  (function () {
+    "use strict";
+
+    var REFRESH_INTERVAL = 30000; // 30秒
+    var LOG_LIMIT = 50;
+
+    // 任务中文名映射
+    var TASK_NAMES = {
+      "data_refresh": "数据刷新",
+      "auto_review": "自动复盘",
+      "knowledge_extract": "知识提取",
+      "data_maintenance": "数据维护",
+      "health_backup": "健康备份",
+      "file_cleanup": "文件清理"
+    };
+
+    function taskLabel(name) {
+      return TASK_NAMES[name] || name;
+    }
+
+    function formatTime(isoStr) {
+      if (!isoStr) return "尚未执行";
+      try {
+        var d = new Date(isoStr);
+        var pad = function (n) { return n < 10 ? "0" + n : n; };
+        return (d.getMonth() + 1) + "-" + pad(d.getDate()) + " " +
+               pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+      } catch (e) {
+        return isoStr;
+      }
+    }
+
+    function formatDuration(ms) {
+      if (ms == null) return "-";
+      if (ms < 1000) return ms + "ms";
+      return (ms / 1000).toFixed(1) + "s";
+    }
+
+    function formatInterval(minutes) {
+      if (minutes >= 1440) return (minutes / 1440) + " 天";
+      if (minutes >= 60) return (minutes / 60) + " 小时";
+      return minutes + " 分钟";
+    }
+
+    // ===== 统计数据缓存与更新 =====
+    var _latestTasks = null;
+    var _latestLogs = null;
+
+    function updateStats() {
+      var elActive = document.getElementById("stat-active");
+      var elToday = document.getElementById("stat-today");
+      var elRate = document.getElementById("stat-success-rate");
+
+      // 活跃任务：已启用的任务数
+      if (_latestTasks && _latestTasks.length > 0) {
+        var activeCount = 0;
+        for (var i = 0; i < _latestTasks.length; i++) {
+          if (_latestTasks[i].enabled) activeCount++;
+        }
+        elActive.textContent = activeCount;
+      }
+
+      // 今日执行 & 成功率：从日志中统计
+      if (_latestLogs && _latestLogs.length > 0) {
+        var today = new Date();
+        var y = today.getFullYear();
+        var m = today.getMonth();
+        var d = today.getDate();
+        var todayTotal = 0;
+        var todaySuccess = 0;
+
+        for (var j = 0; j < _latestLogs.length; j++) {
+          var ts = new Date(_latestLogs[j].timestamp);
+          if (ts.getFullYear() === y && ts.getMonth() === m && ts.getDate() === d) {
+            todayTotal++;
+            if (_latestLogs[j].success) todaySuccess++;
+          }
+        }
+
+        elToday.textContent = todayTotal;
+        elRate.textContent = todayTotal > 0
+          ? Math.round((todaySuccess / todayTotal) * 100) + "%"
+          : "—";
+      }
+    }
+
+    // ===== 渲染任务卡片 =====
+    function renderTasks(tasks) {
+      var grid = document.getElementById("tasks-grid");
+      if (!tasks || tasks.length === 0) {
+        grid.innerHTML = '<div class="empty-state">暂无已注册的定时任务</div>';
+        return;
+      }
+
+      var html = "";
+      var enabledCount = 0;
+      var errorCount = 0;
+
+      for (var i = 0; i < tasks.length; i++) {
+        var t = tasks[i];
+        if (t.enabled) enabledCount++;
+        if (t.last_error) errorCount++;
+
+        var lightClass = "light-off";
+        if (t.enabled && t.last_error) lightClass = "light-error";
+        else if (t.enabled) lightClass = "light-on";
+
+        var cardClass = "task-card" + (t.enabled ? "" : " disabled");
+
+        html += '<div class="' + cardClass + '">';
+        html += '  <div class="task-card-header">';
+        html += '    <span class="task-name">' + taskLabel(t.name) + '</span>';
+        html += '    <span class="task-status-light ' + lightClass + '" title="' +
+                (t.enabled ? "已启用" : "已禁用") + '"></span>';
+        html += '  </div>';
+        html += '  <div class="task-meta">';
+        html += '    <span class="label">执行间隔</span><span class="value">' + formatInterval(t.interval_minutes) + '</span>';
+        html += '    <span class="label">执行次数</span><span class="value">' + (t.run_count || 0) + ' 次</span>';
+        html += '    <span class="label">上次执行</span><span class="value">' + formatTime(t.last_run) + '</span>';
+        html += '    <span class="label">下次执行</span><span class="value">' + formatTime(t.next_run) + '</span>';
+        html += '  </div>';
+        if (t.last_error) {
+          html += '  <div class="task-error">' + escapeHtml(t.last_error) + '</div>';
+        }
+        html += '</div>';
+      }
+
+      grid.innerHTML = html;
+
+      // 更新摘要
+      var summary = document.getElementById("task-summary");
+      summary.textContent = "共 " + tasks.length + " 项任务，" + enabledCount + " 项启用" +
+                            (errorCount > 0 ? "，" + errorCount + " 项有错误" : "");
+    }
+
+    // ===== 渲染执行历史 =====
+    function renderLogs(logs) {
+      var timeline = document.getElementById("timeline");
+      if (!logs || logs.length === 0) {
+        timeline.innerHTML = '<div class="empty-state">暂无执行记录，等待任务首次执行后将自动显示</div>';
+        return;
+      }
+
+      var html = "";
+      for (var i = 0; i < logs.length; i++) {
+        var entry = logs[i];
+        var cls = entry.success ? "success" : "fail";
+        var badge = entry.success
+          ? '<span class="tl-badge badge-success">成功</span>'
+          : '<span class="tl-badge badge-fail">失败</span>';
+
+        html += '<div class="timeline-item ' + cls + '">';
+        html += '  <div class="timeline-row">';
+        html += '    <span class="tl-time">' + formatTime(entry.timestamp) + '</span>';
+        html += '    <span class="tl-name">' + taskLabel(entry.name) + '</span>';
+        html += '    ' + badge;
+        html += '    <span class="tl-duration">' + formatDuration(entry.duration_ms) + '</span>';
+        html += '  </div>';
+        if (entry.error) {
+          html += '  <div class="tl-error">' + escapeHtml(entry.error) + '</div>';
+        }
+        html += '</div>';
+      }
+
+      timeline.innerHTML = html;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    // ===== 数据拉取 =====
+    function fetchStatus() {
+      fetch("/api/scheduler/status")
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          if (data.ok && data.tasks) {
+            _latestTasks = data.tasks;
+            renderTasks(data.tasks);
+            updateStats();
+          } else {
+            document.getElementById("tasks-grid").innerHTML =
+              '<div class="empty-state">获取任务状态失败: ' + escapeHtml(data.error || "未知错误") + '</div>';
+          }
+        })
+        .catch(function (err) {
+          document.getElementById("tasks-grid").innerHTML =
+            '<div class="empty-state">网络请求失败: ' + escapeHtml(err.message) + '</div>';
+        });
+    }
+
+    function fetchLogs() {
+      fetch("/api/scheduler/log?limit=" + LOG_LIMIT)
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          if (data.ok) {
+            _latestLogs = data.logs;
+            renderLogs(data.logs);
+            updateStats();
+          } else {
+            document.getElementById("timeline").innerHTML =
+              '<div class="empty-state">获取执行日志失败: ' + escapeHtml(data.error || "未知错误") + '</div>';
+          }
+        })
+        .catch(function (err) {
+          document.getElementById("timeline").innerHTML =
+            '<div class="empty-state">网络请求失败: ' + escapeHtml(err.message) + '</div>';
+        });
+    }
+
+    function refreshAll() {
+      fetchStatus();
+      fetchLogs();
+      var info = document.getElementById("refresh-info");
+      var now = new Date();
+      var pad = function (n) { return n < 10 ? "0" + n : n; };
+      info.textContent = "上次刷新 " + pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds());
+    }
+
+    // 初始加载 + 定时刷新
+    refreshAll();
+    setInterval(refreshAll, REFRESH_INTERVAL);
+  })();
+  </script>
+</body>
+</html>

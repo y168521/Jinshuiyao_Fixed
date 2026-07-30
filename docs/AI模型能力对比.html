@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>AI模型能力对比 · 金水谣</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: "Microsoft YaHei", sans-serif; background: #1a1a2e; color: #eee; padding: 30px; }
+h1 { text-align: center; font-size: 24px; margin-bottom: 8px; color: #fff; }
+.subtitle { text-align: center; color: #888; font-size: 14px; margin-bottom: 30px; }
+.tip-box { background: #16213e; border-left: 4px solid #4CAF50; padding: 15px 20px; margin-bottom: 30px; border-radius: 0 8px 8px 0; font-size: 15px; line-height: 1.8; }
+.tip-box strong { color: #4CAF50; }
+table { width: 100%; border-collapse: collapse; margin-bottom: 30px; background: #16213e; border-radius: 8px; overflow: hidden; }
+th { background: #0f3460; padding: 12px 15px; text-align: left; font-size: 14px; color: #7ec8e3; }
+td { padding: 12px 15px; border-bottom: 1px solid #1a1a3e; font-size: 14px; line-height: 1.6; }
+tr:hover td { background: #1a2a4e; }
+.model-name { font-weight: bold; font-size: 15px; }
+.stars { color: #ffd700; letter-spacing: 2px; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin: 2px; }
+.tag-good { background: #1b5e20; color: #a5d6a7; }
+.tag-bad { background: #4a1010; color: #ef9a9a; }
+.section-title { font-size: 18px; margin: 30px 0 15px; padding-left: 12px; border-left: 4px solid #7ec8e3; }
+.guide-card { background: #16213e; border-radius: 8px; padding: 20px; margin-bottom: 15px; }
+.guide-card h3 { color: #7ec8e3; margin-bottom: 10px; font-size: 16px; }
+.guide-card p { line-height: 1.8; font-size: 14px; color: #ccc; }
+.guide-card .action { color: #4CAF50; font-weight: bold; }
+.update-note { text-align: center; color: #666; font-size: 12px; margin-top: 30px; }
+</style>
+</head>
+<body>
+
+<h1>AI模型能力对比表</h1>
+<p class="subtitle">帮你选对工具干对活 · 每次用完AI后更新此表</p>
+
+<div class="tip-box">
+<strong>怎么用这个表：</strong><br>
+1. 每次让AI帮你做事之前，先看这个表，选最合适的AI<br>
+2. 每次AI做完事之后，告诉AI："把这次的表现更新到AI协作交接中心"<br>
+3. 不需要你自己编辑，让AI帮你更新就行
+</div>
+
+<h2 class="section-title">各模型擅长什么（实测总结）</h2>
+<table>
+<tr>
+  <th>AI模型</th>
+  <th>最擅长</th>
+  <th>不太行</th>
+  <th>综合评分</th>
+  <th>最近使用</th>
+</tr>
+<tr>
+  <td class="model-name">Qoder</td>
+  <td>
+    <span class="tag tag-good">直接改代码</span>
+    <span class="tag tag-good">修Bug</span>
+    <span class="tag tag-good">跑测试验证</span>
+    <span class="tag tag-good">批量修复</span>
+    <span class="tag tag-good">架构拆分</span>
+  </td>
+  <td>
+    <span class="tag tag-bad">搜最新网页</span>
+  </td>
+  <td><span class="stars">★★★★★</span><br>代码闭环能力最强</td>
+  <td>2026-07-20</td>
+</tr>
+<tr>
+  <td class="model-name">豆包</td>
+  <td>
+    <span class="tag tag-good">写方案规划</span>
+    <span class="tag tag-good">文案撰写</span>
+    <span class="tag tag-good">思路梳理</span>
+    <span class="tag tag-good">联网搜索</span>
+  </td>
+  <td>
+    <span class="tag tag-bad">不能改文件</span>
+    <span class="tag tag-bad">代码落地需手动</span>
+    <span class="tag tag-bad">方案偏通用</span>
+  </td>
+  <td><span class="stars">★★★★☆</span><br>规划能力强，落地需配合</td>
+  <td>2026-07-19</td>
+</tr>
+<tr>
+  <td class="model-name">TRAE</td>
+  <td>
+    <span class="tag tag-good">（待你测试后补充）</span>
+  </td>
+  <td>
+    <span class="tag tag-bad">（待补充）</span>
+  </td>
+  <td>待评估</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td class="model-name">WorkBuddy</td>
+  <td>
+    <span class="tag tag-good">（待你测试后补充）</span>
+  </td>
+  <td>
+    <span class="tag tag-bad">（待补充）</span>
+  </td>
+  <td>待评估</td>
+  <td>—</td>
+</tr>
+</table>
+
+<h2 class="section-title">简单选型指南（看这里就够）</h2>
+
+<div class="guide-card">
+  <h3>要改代码、修Bug、装依赖、跑测试</h3>
+  <p>→ 用 <span class="action">Qoder</span>（能直接操作文件、运行命令、验证结果，一条龙搞定）</p>
+</div>
+
+<div class="guide-card">
+  <h3>要写方案、做规划、理思路、写文案</h3>
+  <p>→ 用 <span class="action">豆包</span> 或 <span class="action">Qoder</span>（豆包更擅长长篇规划，Qoder能直接落地）</p>
+</div>
+
+<div class="guide-card">
+  <h3>要搜最新信息、查资料、看新闻</h3>
+  <p>→ 用 <span class="action">豆包</span>（联网搜索能力强，能拿到最新结果）</p>
+</div>
+
+<div class="guide-card">
+  <h3>要让多个AI接力干活（比如豆包出方案→Qoder执行）</h3>
+  <p>→ 先让出方案的AI把结果写入 <span class="action">AI协作交接中心.md</span>，<br>
+  再让执行的AI说"先看看AI协作交接中心"，就能无缝衔接</p>
+</div>
+
+<h2 class="section-title">历史优化记录（谁做了什么）</h2>
+<table>
+<tr>
+  <th>日期</th>
+  <th>执行者</th>
+  <th>做了什么</th>
+  <th>效果</th>
+</tr>
+<tr>
+  <td>2026-07-20</td>
+  <td>Qoder</td>
+  <td>Python 3.14适配 + 14项Bug修复 + 安全加固 + 4项性能优化</td>
+  <td>111测试全过，前端35项全通，响应15s→17ms</td>
+</tr>
+<tr>
+  <td>2026-07-20</td>
+  <td>Qoder</td>
+  <td>AI协作交接中心 + 对话持久化 + 知识自动提取扩展</td>
+  <td>多AI可接力工作，对话记录不丢失</td>
+</tr>
+<tr>
+  <td>2026-07-19</td>
+  <td>豆包</td>
+  <td>提供AI模型优化总方案（Headroom+Ponytail四层架构）</td>
+  <td>方案全面但偏通用，约30%可直接用于本项目</td>
+</tr>
+</table>
+
+<p class="update-note">
+  本表由AI协助维护 · 最后更新: 2026-07-20 · 你只需说"更新模型对比表"即可让AI帮你刷新
+</p>
+
+</body>
+</html>

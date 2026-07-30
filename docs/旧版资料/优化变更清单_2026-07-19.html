@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣系统优化变更清单 — 2026-07-19 第二轮</title>
+<style>
+  :root { --bg:#0d1117; --card:#161b22; --border:#30363d; --text:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --red:#f85149; --orange:#d29922; --green:#3fb950; --purple:#bc8cff; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:"Microsoft YaHei","Segoe UI",sans-serif; line-height:1.7; padding:2rem; max-width:1100px; margin:auto; }
+  h1 { font-size:1.6rem; color:var(--accent); border-bottom:2px solid var(--accent); padding-bottom:.5rem; margin-bottom:1rem; }
+  h2 { font-size:1.2rem; color:var(--purple); margin:2rem 0 1rem; padding-left:.5rem; border-left:4px solid var(--purple); }
+  table { width:100%; border-collapse:collapse; margin:1rem 0; font-size:.88rem; }
+  th { background:#21262d; color:var(--accent); padding:8px 12px; text-align:left; border:1px solid var(--border); }
+  td { padding:8px 12px; border:1px solid var(--border); vertical-align:top; }
+  tr:nth-child(even) td { background:#161b2288; }
+  code { background:#21262d; padding:2px 6px; border-radius:4px; font-family:monospace; font-size:.82rem; }
+  .badge { display:inline-block; padding:2px 10px; border-radius:12px; font-size:.72rem; font-weight:bold; margin-right:4px; }
+  .bugfix { background:#f8514933; color:var(--red); border:1px solid var(--red); }
+  .config { background:#d2992233; color:var(--orange); border:1px solid var(--orange); }
+  .newfile { background:#3fb95033; color:var(--green); border:1px solid var(--green); }
+  .cleanup { background:#58a6ff33; color:var(--accent); border:1px solid var(--accent); }
+  .section-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:1.2rem; margin:1rem 0; }
+  .stat-row { display:flex; gap:1rem; flex-wrap:wrap; margin:1rem 0; }
+  .stat { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:1rem 1.5rem; text-align:center; flex:1; min-width:120px; }
+  .stat-num { font-size:2rem; font-weight:bold; }
+  .stat-label { font-size:.78rem; color:var(--muted); }
+  p { font-size:.92rem; margin-bottom:.5rem; }
+  ul { padding-left:1.5rem; }
+  li { font-size:.9rem; margin-bottom:.3rem; }
+  .remaining { background:#d2992222; border:1px solid var(--orange); border-radius:8px; padding:1rem; margin:1rem 0; }
+  hr { border:none; border-top:1px solid var(--border); margin:2rem 0; }
+</style>
+</head>
+<body>
+
+<h1>金水谣万物引擎 · 优化变更清单</h1>
+<p style="color:var(--muted)">第二轮深度优化 · 2026-07-19 · 共 15 项变更</p>
+
+<div class="stat-row">
+  <div class="stat"><div class="stat-num" style="color:var(--red)">8</div><div class="stat-label">BUG 修复</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--orange)">3</div><div class="stat-label">配置/路径修正</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--green)">4</div><div class="stat-label">新增文件</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--accent)">2</div><div class="stat-label">结构整理</div></div>
+</div>
+
+<!-- ====== BUG 修复 ====== -->
+<h2>一、BUG 修复（8 项）</h2>
+
+<table>
+  <tr><th style="width:5%">#</th><th style="width:30%">文件</th><th style="width:10%">严重性</th><th>问题描述</th><th>修复方式</th></tr>
+
+  <tr>
+    <td><span class="badge bugfix">1</span></td>
+    <td><code>guide_server.py</code> L167-172</td>
+    <td style="color:var(--red)">CRITICAL</td>
+    <td><code>set_prediction_outcome()</code> 函数中 <code>return True</code> 缩进在 for 循环内部，导致仅检查第一条记录就返回，后续记录永远不会被匹配。标注预测结果功能完全失效。</td>
+    <td>将 <code>return True</code> 移到 if 块内部（找到匹配记录后返回 True），循环结束后返回 False。</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge bugfix">2</span></td>
+    <td><code>core/data_truth_guard.py</code> L502</td>
+    <td style="color:var(--orange)">MEDIUM</td>
+    <td>读取熔断器统计时使用了错误的字典键 <code>"failures"</code>，但 <code>CircuitBreaker.get_stats()</code> 返回的键名是 <code>"failure_count"</code>。导致数据真实性守卫永远报告 0 次失败。</td>
+    <td>将 <code>"failures"</code> 改为 <code>"failure_count"</code>。</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge bugfix">3</span></td>
+    <td><code>core/scheduler.py</code> L739</td>
+    <td style="color:var(--orange)">MEDIUM</td>
+    <td><code>sum(1 for _ in open(...))</code> 在生成器表达式中打开文件但从不显式关闭，在非 CPython 实现或内存压力下可能泄漏文件句柄。</td>
+    <td>改用 <code>with open(...) as f</code> 块，确保文件始终被正确关闭。</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge bugfix">4</span></td>
+    <td><code>engines/smart_brain.py</code> L68-73</td>
+    <td style="color:var(--orange)">MEDIUM</td>
+    <td><code>_load_history()</code> 假定 <code>predictions.json</code> 总是 list 格式，但该文件也可能是 dict 格式（按彩种分组的嵌套结构）。遇到 dict 格式时会在 dict 的 key（字符串）上调用 <code>.get()</code>，触发 <code>AttributeError</code>。</td>
+    <td>添加格式检测：同时兼容 list 和 dict 两种格式，并增加 <code>isinstance(p, dict)</code> 安全检查。</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge bugfix">5</span></td>
+    <td><code>core/ai_agent.py</code> L594-599</td>
+    <td style="color:var(--orange)">MEDIUM</td>
+    <td>股票"选股"功能调用 <code>domain.generate(top_n=10)</code> 时未传入分析结果参数，导致 <code>StockDomain.generate()</code> 始终返回空列表。选股推荐功能完全失效。</td>
+    <td>传入 <code>params=analysis</code> 参数，将 <code>domain.analyze()</code> 的结果传递给 <code>generate()</code>。</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge bugfix">6</span></td>
+    <td><code>utils/cache_manager.py</code> L376-378</td>
+    <td style="color:var(--orange)">MEDIUM</td>
+    <td><code>cache_clear()</code> 删除的键是函数前缀本身（如 <code>cache:mod:func</code>），但实际缓存条目包含参数（如 <code>cache:mod:func:arg1</code>），导致清除操作无效。</td>
+    <td>改为遍历 <code>memory._data</code> 中所有匹配前缀的键进行批量删除，同时清理文件缓存。</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge bugfix">7</span></td>
+    <td><code>audio_toolkit.py</code> L77-83</td>
+    <td style="color:var(--orange)">MEDIUM</td>
+    <td><code>_run_ffmpeg()</code> 接受 <code>timeout</code> 参数但函数体内从未使用，FFmpeg 进程可能无限运行。</td>
+    <td>添加守护线程 <code>_timeout_kill()</code>，超时后强制 kill 进程。</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge bugfix">8</span></td>
+    <td><code>domains/fund/fund_data_manager.py</code> 多处</td>
+    <td style="color:var(--orange)">MEDIUM</td>
+    <td>14 处文件写入使用直接 <code>open("w") + json.dump()</code>，非原子写入。进程中断会导致文件截断或损坏（尤其是加密的私有数据文件）。</td>
+    <td>全部替换为 <code>safe_write_json()</code>（原子写入：tempfile + os.replace）。</td>
+  </tr>
+</table>
+
+<!-- ====== 配置修正 ====== -->
+<h2>二、配置与路径修正（3 项）</h2>
+
+<table>
+  <tr><th style="width:5%">#</th><th style="width:30%">文件</th><th>问题</th><th>修复</th></tr>
+
+  <tr>
+    <td><span class="badge config">9</span></td>
+    <td><code>deepseek_coder.py</code> L40</td>
+    <td>DeepSeek 助手默认端口 18890 落在 guide_server 回退范围（18888-18893）内，存在端口冲突风险。</td>
+    <td>将 <code>DEFAULT_PORT</code> 从 18890 改为 18900。</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge config">10</span></td>
+    <td><code>launch.bat</code></td>
+    <td>注释声称 venv_314 是 "Python 3.14.6"（不存在此版本）；缺少 <code>D:\python38</code> 回退路径（系统实际运行环境）；第 14 行路径混用正反斜杠。</td>
+    <td>修正注释；添加 <code>D:\python38\python.exe</code> 作为高优先级回退；统一使用反斜杠。</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge config">11</span></td>
+    <td><code>run_tests.py</code> FILE_CATEGORY</td>
+    <td>映射仅 18 个条目，实际 tests/ 目录有 40 个测试文件。多个映射指向不存在的文件，新测试文件未纳入分类。</td>
+    <td>完整重写映射表为 38 个条目，覆盖所有实际存在的测试文件。</td>
+  </tr>
+</table>
+
+<!-- ====== 新增文件 ====== -->
+<h2>三、新增文件（4 项）</h2>
+
+<table>
+  <tr><th style="width:5%">#</th><th style="width:35%">文件</th><th>用途</th></tr>
+
+  <tr>
+    <td><span class="badge newfile">12</span></td>
+    <td><code>config/logging_config.py</code></td>
+    <td>统一日志配置模块。解决 guide_server / main / scripts 各自定义日志格式的不一致问题。提供 <code>setup_logging()</code> 函数，支持控制台 + 文件双输出、RotatingFileHandler（10MB/5份）、第三方库降噪。</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge newfile">13</span></td>
+    <td><code>docs/部署操作指南.md</code></td>
+    <td>面向当前 Jinshuiyao_Fixed 系统的完整部署文档。替代旧版"十二穹武 TS-QW V20.2"的过时步骤。包含环境要求、安装步骤、三种启动方式、端口说明、目录结构、常见问题。</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge newfile">14</span></td>
+    <td><code>docs/金水谣系统全面审查报告_2026-07-19.html</code><br>（上一轮生成）</td>
+    <td>第一轮全面审查报告，包含 3 个严重问题、5 个高优先级、7 个中优先级、6 个低优先级、8 个缺失项，以及旧版目录清理建议。</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge newfile">15</span></td>
+    <td><code>scripts/_archived_one_time/README.md</code></td>
+    <td>归档目录的索引文档，记录 16 个一次性脚本的用途和归档原因。</td>
+  </tr>
+</table>
+
+<!-- ====== 结构整理 ====== -->
+<h2>四、结构整理（2 项）</h2>
+
+<table>
+  <tr><th style="width:5%">#</th><th>操作</th><th>详情</th></tr>
+
+  <tr>
+    <td><span class="badge cleanup">16</span></td>
+    <td>归档 16 个一次性脚本到 <code>scripts/_archived_one_time/</code></td>
+    <td>
+      <code>fix_timestamps.py</code>、<code>fix_audit_format.py</code>、<code>fix_topnav_path.py</code>、<code>add_topnav.py</code>、
+      <code>add_changelog_references.py</code>、<code>analyze_changelog_coverage.py</code>、<code>analyze_changelog_references.py</code>、
+      <code>supplement_changelog.py</code>、<code>standardize_types.py</code>、<code>clean_backups.py</code>、
+      <code>import_acr_prompts.py</code>、<code>import_phase2_knowledge.py</code>、<code>import_phase3_knowledge.py</code>、
+      <code>seed_dashboard_review_prompt.py</code>、<code>seed_missing_domain_skills.py</code>
+    </td>
+  </tr>
+
+  <tr>
+    <td><span class="badge cleanup">17</span></td>
+    <td>上一轮已完成的补充文件</td>
+    <td>
+      <code>README.md</code>（项目入口文档）、
+      <code>pyproject.toml</code>（包定义）、
+      <code>.env.example</code>（环境变量模板）、
+      <code>requirements.txt</code>（补全至 12 个依赖）、
+      <code>.gitignore</code>（补全忽略规则）、
+      <code>.nutstoreignore</code>（补全云同步忽略规则）
+    </td>
+  </tr>
+</table>
+
+<!-- ====== 待处理 ====== -->
+<h2>五、仍需后续处理的事项</h2>
+
+<div class="remaining">
+<p>以下事项因涉及较大范围重构或需要用户决策，本次未处理，建议后续逐步推进：</p>
+<ul>
+  <li><strong>guide_server.py 拆分</strong>（C-03）：1758 行单文件拆分为 server/router.py + handlers/ 模块群。这是架构级别的改动，需要仔细规划接口。</li>
+  <li><strong>硬编码路径清理</strong>（H-01）：10+ 个文件中的绝对路径需要逐一替换为相对路径或配置项。建议创建 <code>config/paths.json</code> 集中管理。</li>
+  <li><strong>circuit_breaker.py TOCTOU 竞争</strong>：can_execute() 在两次锁获取之间存在状态变更窗口。建议改用 RLock。</li>
+  <li><strong>SSRF DNS 重绑定防护</strong>（guide_server.py _is_safe_http_url）：当前在验证和实际请求之间存在 DNS 变更窗口。需要将解析后的 IP 传递给 HTTP 客户端。</li>
+  <li><strong>GET 请求触发状态变更</strong>：/api/ai/mode/set 通过 GET 请求即可切换 AI 模式，应改为 POST。</li>
+  <li><strong>旧版目录清理</strong>：TianShu_Fixed.bak_rebrand/、_rebrand_backup_root/、旧版启动脚本/ 确认后可清理。</li>
+  <li><strong>字符串格式化统一</strong>：f-string 和 % 格式化混用，建议逐步统一到 f-string。</li>
+  <li><strong>日志方式统一</strong>：已创建 logging_config.py，但各模块尚未全部接入。</li>
+</ul>
+</div>
+
+<hr>
+<p style="text-align:center; color:var(--muted); margin-top:2rem;">
+  金水谣万物引擎 · 优化变更清单 · 2026-07-19 · 由 QoderWork 生成
+</p>
+
+</body>
+</html>

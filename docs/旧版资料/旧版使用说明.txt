@@ -1,0 +1,94 @@
+金水谣万物引擎 - 使用说明
+========================
+
+【怎样启动】
+  双击 "启动导航.bat" 即可
+  浏览器会自动打开总控台页面
+  点击页面上的按钮就能使用各种功能
+  关闭黑色窗口即可停止服务
+
+【总控台功能】
+  - AI助手：直接对话问彩票预测、股票行情、基金分析
+  - 彩票预测：双色球、大乐透、福彩3D、排列三、七乐彩、七星彩、快乐8
+  - 足彩分析：赛事数据、赔率分析、投注推荐
+  - 股票分析：K线图、技术指标、选股推荐
+  - 基金分析：8只基金每日监控、风险指标、止盈提醒
+  - 创作者工具箱：AI文案、视频提取、OCR识别、去水印、语音合成
+  - 知识库：知识卡片管理
+  - API文档：查看所有接口
+  - 测试报告：查看系统健康状态
+
+【目录结构（只有6个，很简单）】
+
+  启动导航.bat              ← 双击这个就能启动！
+  万物预测引擎-项目导航.html ← 项目导航页面
+  使用说明.txt              ← 本文件
+  Jinshuiyao_Fixed/            ← 所有程序代码
+  金水谣数据/                 ← 运行产生的数据
+  程序操作步骤/             ← 安装和操作说明
+
+【Jinshuiyao_Fixed 里面的结构】
+
+  main.py              ← 主程序入口
+  guide_server.py      ← 总控台服务器
+  run.bat              ← 直接启动GUI（不经过浏览器）
+  run_tests.py         ← 运行全部测试（599个）
+  config.py            ← 系统配置
+  preload.py           ← 启动时预加载数据
+  audio_toolkit.py     ← 音频处理工具
+
+  core/                ← 核心基础设施
+    ai_agent.py        ← AI对话大脑
+    ai_service.py      ← AI接口调用
+    scheduler.py       ← 定时任务调度
+    file_watcher.py    ← 文件自动监控备份
+    circuit_breaker.py ← 熔断保护器
+    data_truth_guard.py← 数据真实性检测
+    audit_log.py       ← 审计日志
+    registry.py        ← 子系统注册表
+
+  domains/             ← 6个子系统
+    lottery/           ← 彩票预测（7种彩种）
+    football/          ← 足彩分析
+    stock/             ← 股票分析
+    fund/              ← 基金分析
+    music/             ← 音乐处理
+    creator/           ← 创作者工具箱（6种工具）
+
+  engines/             ← 彩票预测引擎（21个）
+    prediction_service.py ← 预测主服务
+    smart_brain.py     ← 智能大脑（学习复盘）
+    killer.py          ← 杀号引擎
+    format_gen.py      ← 格式生成
+    validators.py      ← 号码验证
+    evolution.py       ← 进化引擎
+    watchdog.py        ← 看门狗监控
+
+  jinshuiyao-guide/       ← 网页页面
+    control-center.html ← 总控台
+    ai-agent.html      ← AI助手
+    api-docs.html      ← 接口文档
+    test-report.html   ← 测试报告
+    ai-test.html       ← AI测试用例
+
+  jinshuiyao/             ← 足彩模块
+  knowledge/           ← 知识库
+  tests/               ← 测试文件（599个全部通过）
+  scripts/             ← 脚本工具
+  utils/               ← 工具函数
+
+【金水谣数据 里面的结构】
+
+  lot_data/            ← 彩票历史数据（7个彩种）
+  predictions.json     ← 预测记录
+  brain_state.json     ← 智能大脑学习状态
+  fund_reports/        ← 基金日报（HTML格式）
+  fund_data/           ← 基金数据存档
+  backups/             ← 自动备份
+  log/                 ← 日志和审计记录
+
+【注意事项】
+  1. 启动需要 D:\python38 目录下有Python
+  2. 不要手动修改 金水谣数据/ 里面的文件
+  3. 关闭黑色窗口就停止了服务
+  4. 如果启动失败，请查看 程序操作步骤/ 文件夹

@@ -1,0 +1,9 @@
+=== py -3 ===
+pytest 9.1.1
+RC=0
+=== E:/下载/python ===
+pytest 9.1.1
+RC=0
+=== Python38 ===
+C:\Users\Administrator\AppData\Local\Programs\Python\Python38\python.exe: No module named pytest
+RC=1

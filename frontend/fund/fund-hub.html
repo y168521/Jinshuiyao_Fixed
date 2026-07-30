@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 基金分析中心</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+  :root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:24px; max-width:960px; margin:0 auto; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:20px; }
+  .back { margin-bottom:16px; }
+  .back a { color:var(--muted); font-size:13px; text-decoration:none; }
+  .back a:hover { color:var(--gold); }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media(max-width:700px){ .grid{ grid-template-columns:1fr; } body{ padding:16px; } }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; text-decoration:none; color:var(--txt); display:flex; flex-direction:column; transition:.15s; }
+  .card:hover { border-color:var(--gold); transform:translateY(-2px); }
+  .card-icon { font-size:28px; margin-bottom:6px; }
+  .card h2 { font-size:15px; margin:0 0 4px; }
+  .card p { font-size:12px; color:var(--muted); margin:0; line-height:1.5; }
+  .tag { display:inline-block; padding:1px 8px; border-radius:8px; font-size:11px; background:rgba(212,175,55,.12); color:var(--gold); margin-top:8px; align-self:flex-start; }
+  .section-title { font-size:13px; color:var(--muted); margin:20px 0 10px; border-bottom:1px solid var(--border); padding-bottom:6px; }
+</style>
+</head>
+<body>
+<div class="back"><a href="/control-center">&#8592; 返回控制中心</a></div>
+<h1>基金分析中心</h1>
+<div class="sub">基金对比、策略回测、业绩归因 — 工具性质，不构成投资建议</div>
+
+<div class="section-title">&#128176; 核心功能</div>
+<div class="grid">
+  <a class="card" href="/fund/dashboard">
+    <div class="card-icon">&#128200;</div>
+    <h2>基金仪表盘</h2>
+    <p>基金对比、策略回测、多策略对比、归因指标 — 综合看板</p>
+    <span class="tag">对比·回测·归因</span>
+  </a>
+  <a class="card" href="/fund/nav-trend">
+    <div class="card-icon">&#128202;</div>
+    <h2>净值走势</h2>
+    <p>基金净值趋势可视化，多基金叠加对比，时间区间可调</p>
+    <span class="tag">净值·趋势·对比</span>
+  </a>
+  <a class="card" href="/fund/holdings">
+    <div class="card-icon">&#128200;</div>
+    <h2>持仓分析</h2>
+    <p>基金持仓结构分析，行业分布、重仓股穿透、集中度评估</p>
+    <span class="tag">持仓·穿透·集中度</span>
+  </a>
+  <a class="card" href="/fund/screener">
+    <div class="card-icon">&#128270;</div>
+    <h2>基金筛选</h2>
+    <p>多维度筛选基金：收益率/回撤/夏普/评级/规模/基金经理</p>
+    <span class="tag">筛选·评分·排行</span>
+  </a>
+</div>
+</body>
+</html>

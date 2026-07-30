@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 历史同期查询</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+:root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim); --c-hot:var(--copper); --c-cold:var(--jade); --c-high:#c9a96e; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; }
+h1 { font-size:20px; margin:0 0 4px; }
+.sub { color:var(--muted); font-size:13px; margin-bottom:18px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
+.card h2 { font-size:15px; margin:0 0 12px; }
+.flex { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+select,input,button { background:var(--deep); color:var(--txt); border:1px solid var(--border); border-radius:6px; padding:5px 12px; font-size:12px; }
+button { cursor:pointer; }
+button.primary { background:var(--c-hot); color:var(--deep); border:none; font-weight:600; padding:5px 14px; }
+button.primary:hover { opacity:.85; }
+.muted { color:var(--muted); }
+.err { color:var(--err); font-size:13px; }
+.stat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:8px; margin:10px 0; }
+.stat-item { text-align:center; padding:8px 6px; background:var(--deep); border-radius:8px; border:1px solid var(--border); }
+.stat-item .num { font-size:16px; font-weight:700; }
+.stat-item .lbl { font-size:11px; color:var(--muted); margin-top:2px; }
+.stat-item .freq { font-size:11px; font-weight:600; margin-top:2px; }
+.draw-row { display:flex; align-items:center; gap:12px; padding:10px 12px; border-bottom:1px solid var(--border); font-size:13px; }
+.draw-row:last-child { border-bottom:none; }
+.draw-row .date { color:var(--muted); min-width:90px; font-size:12px; }
+.draw-row .balls { display:flex; gap:4px; }
+.ball { width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700; }
+.ball-red { background:rgba(200,117,90,.2);color:var(--c-hot);border:1px solid rgba(200,117,90,.3); }
+.ball-blue { background:rgba(91,192,222,.15);color:var(--ice);border:1px solid rgba(91,192,222,.25); }
+.ball-green { background:rgba(45,139,126,.15);color:var(--jade);border:1px solid rgba(45,139,126,.25); }
+.ball-gold { background:rgba(201,169,110,.15);color:var(--gold);border:1px solid rgba(201,169,110,.25); }
+#chartWrap { width:100%; height:300px; border-radius:8px; }
+.scroll-y { max-height:500px; overflow-y:auto; }
+@media(max-width:600px){ body{ padding:12px; } .ball{ width:24px;height:24px;font-size:11px; } }
+</style>
+</head>
+<body>
+<div style="margin-bottom:10px;"><a href="/lottery" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回彩票分析中心</a></div>
+<h1>历史同期查询</h1>
+<div class="sub">查看历史上同一日期的开奖结果 · 分析规律和重复模式</div>
+
+<div class="card">
+  <div class="flex">
+    <select id="lotType"><option value="ssq">双色球</option><option value="dlt">大乐透</option><option value="fc3d">福彩3D</option><option value="pl3">排列三</option></select>
+    <select id="mode"><option value="date">指定日期</option><option value="month">整月</option></select>
+    <input type="month" id="monthPicker" style="display:none">
+    <input type="date" id="datePicker">
+    <button class="primary" onclick="loadData()">查询</button>
+    <span id="status" class="muted"></span>
+  </div>
+</div>
+
+<div class="card" id="resultCard" style="display:none;">
+  <div class="flex" style="justify-content:space-between">
+    <h2>查询结果</h2>
+    <span id="resultCount" class="muted"></span>
+  </div>
+  <div class="scroll-y" id="drawList"></div>
+</div>
+
+<div class="card" id="statsCard" style="display:none;">
+  <h2>号码频率统计</h2>
+  <div class="stat-grid" id="freqGrid"></div>
+</div>
+
+<div class="card" id="chartCard" style="display:none;">
+  <h2>号码出现次数</h2>
+  <div id="chartWrap"></div>
+</div>
+
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+const BASE = window.location.origin;
+const LOT_CONFIG = {
+  ssq:{name:'双色球',red:6,blue:1,range:33,blueRange:16,ball:'red'},
+  dlt:{name:'大乐透',red:5,blue:2,range:35,blueRange:12,ball:'gold'},
+  fc3d:{name:'福彩3D',red:3,blue:0,range:10,ball:'green'},
+  pl3:{name:'排列三',red:3,blue:0,range:10,ball:'green'}
+};
+
+document.getElementById('mode').addEventListener('change', function(){
+  document.getElementById('datePicker').style.display = this.value==='date'?'':'none';
+  document.getElementById('monthPicker').style.display = this.value==='month'?'':'none';
+});
+
+function setDefaultDate(){
+  const now = new Date();
+  document.getElementById('datePicker').value = now.toISOString().slice(0,10);
+  document.getElementById('monthPicker').value = now.toISOString().slice(0,7);
+}
+setDefaultDate();
+
+function genMockData(lot, dateStr){
+  const cfg = LOT_CONFIG[lot];
+  const count = lot==='ssq'||lot==='dlt'?Math.floor(Math.random()*8)+1:Math.floor(Math.random()*15)+5;
+  const data = [];
+  for(let i=0;i<count;i++){
+    const year = parseInt(dateStr.slice(0,4))-i-1;
+    if(year<2003) break;
+    const monthDay = dateStr.slice(5);
+    const d = new Date(year, parseInt(monthDay.slice(0,2))-1, parseInt(monthDay.slice(3)));
+    if(d.getDay()===0||d.getDay()===6) continue;
+    const reds = [];
+    while(reds.length<cfg.red){
+      const n = Math.floor(Math.random()*cfg.range)+1;
+      if(!reds.includes(n)) reds.push(n);
+    }
+    reds.sort((a,b)=>a-b);
+    const blues = [];
+    if(cfg.blue>0){
+      const bRange = cfg.blueRange||16;
+      while(blues.length<cfg.blue){
+        const n = Math.floor(Math.random()*bRange)+1;
+        if(!blues.includes(n)) blues.push(n);
+      }
+      blues.sort((a,b)=>a-b);
+    }
+    data.push({date:`${year}-${monthDay}`,reds,blues,drawNum:`20${String(year).slice(-2)}${String(i+1).padStart(3,'0')}`});
+  }
+  return data;
+}
+
+let lcChart = null;
+function drawFreqChart(freq, range, label){
+  if(!lcChart){
+    lcChart = LightweightCharts.createChart(document.getElementById('chartWrap'), {
+      layout: { textColor: '#7a8499', background: { type: 'solid', color: '#131a2a' } },
+      grid: { vertLines: { color: 'rgba(232,236,241,0.06)' }, horzLines: { color: 'rgba(232,236,241,0.06)' } },
+      crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+      rightPriceScale: { borderColor: 'rgba(232,236,241,0.1)' },
+      timeScale: { borderColor: 'rgba(232,236,241,0.1)' }
+    });
+  }
+  while(lcChart._series&&lcChart._series.length) lcChart.removeSeries(lcChart._series[0]);
+  const now = new Date();
+  const data = [];
+  for(let i=1;i<=range;i++){
+    data.push({time:Math.floor(now/1000)-(range-i)*86400,value:freq[i]||0});
+  }
+  const s = lcChart.addHistogramSeries({color:'rgba(201,169,110,0.6)',priceFormat:{type:'volume'}});
+  s.setData(data);
+  lcChart.timeScale().fitContent();
+}
+
+async function loadData(){
+  const lot = document.getElementById('lotType').value;
+  const mode = document.getElementById('mode').value;
+  const dateStr = mode==='date'?document.getElementById('datePicker').value:document.getElementById('monthPicker').value+'-01';
+  const cfg = LOT_CONFIG[lot];
+  document.getElementById('status').innerHTML = '<span class="spinner"></span>查询中...';
+  document.getElementById('resultCard').style.display='none';
+  document.getElementById('statsCard').style.display='none';
+  document.getElementById('chartCard').style.display='none';
+  let draws;
+  try{
+    const r = await fetch(BASE+'/api/lottery/historical-same-period', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lottery:lot,date:dateStr,mode})});
+    const j = await r.json();
+    if(j.ok && j.data){ draws = j.data; }
+    else{ draws = genMockData(lot, dateStr); document.getElementById('status').textContent = '模拟数据（接口暂不可用）'; }
+  } catch(e){
+    draws = genMockData(lot, dateStr);
+    document.getElementById('status').textContent = '模拟数据（接口暂不可用）';
+  }
+  if(!draws||!draws.length){
+    document.getElementById('status').textContent = '未找到数据';
+    return;
+  }
+  document.getElementById('statsCard').style.display='block';
+  document.getElementById('chartCard').style.display='block';
+  document.getElementById('resultCard').style.display='block';
+  document.getElementById('resultCount').textContent = `共 ${draws.length} 期`;
+
+  const freq = {};
+  draws.forEach(d=>{
+    d.reds.forEach(n=>{ freq[n]=(freq[n]||0)+1; });
+    if(d.blues) d.blues.forEach(n=>{ const k='B'+n; freq[k]=(freq[k]||0)+1; });
+  });
+  const maxFreq = Math.max(...Object.values(freq),1);
+  let freqHtml = '';
+  for(let i=1;i<=cfg.range;i++){
+    const f = freq[i]||0;
+    const pct = (f/draws.length*100).toFixed(0);
+    freqHtml += `<div class="stat-item"><div class="num" style="color:${f>0?'var(--c-hot)':'var(--muted)'}">${String(i).padStart(2,'0')}</div><div class="lbl">出现</div><div class="freq" style="color:${f>0?'var(--c-high)':'var(--muted)'}">${f}次(${pct}%)</div></div>`;
+  }
+  if(cfg.blue>0){
+    const bRange = cfg.blueRange||16;
+    for(let i=1;i<=bRange;i++){
+      const f = freq['B'+i]||0;
+      const pct = (f/draws.length*100).toFixed(0);
+      freqHtml += `<div class="stat-item"><div class="num" style="color:${f>0?'var(--ice)':'var(--muted)'}">${String(i).padStart(2,'0')}🔵</div><div class="lbl">蓝球</div><div class="freq" style="color:${f>0?'var(--ice)':'var(--muted)'}">${f}次(${pct}%)</div></div>`;
+    }
+  }
+  document.getElementById('freqGrid').innerHTML = freqHtml;
+
+  let listHtml = '';
+  draws.sort((a,b)=>b.date.localeCompare(a.date));
+  draws.forEach(d=>{
+    const isRed = cfg.ball==='red';
+    listHtml += `<div class="draw-row"><span class="date">${d.date}</span><span class="muted" style="font-size:11px;min-width:70px">${d.drawNum||''}</span><div class="balls">`;
+    d.reds.forEach(n=>{ listHtml += `<div class="ball ${isRed?'ball-red':'ball-green'}">${String(n).padStart(2,'0')}</div>`; });
+    if(d.blues) d.blues.forEach(n=>{ listHtml += `<div class="ball ${isRed?'ball-blue':'ball-gold'}">${String(n).padStart(2,'0')}</div>`; });
+    listHtml += '</div></div>';
+  });
+  document.getElementById('drawList').innerHTML = listHtml;
+  drawFreqChart(freq, cfg.range, cfg.name);
+  if(!document.getElementById('status').textContent.includes('模拟')) document.getElementById('status').textContent = '查询完成';
+}
+
+loadData();
+window.addEventListener('resize', ()=>{ if(lcChart) lcChart.resize(lcChart.chartElement().clientWidth, 300); });
+</script>
+</body>
+</html>

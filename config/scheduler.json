@@ -1,0 +1,14 @@
+{
+  "_说明": "定时任务间隔配置（单位：分钟）。修改后重启系统生效。删除此文件则恢复默认值。",
+  "data_refresh": 60,
+  "auto_review": 120,
+  "knowledge_extract": 120,
+  "data_maintenance": 1440,
+  "health_backup": 1440,
+  "file_cleanup": 1440,
+  "memory_decay": 1440,
+  "cross_link": 1440,
+  "kg_rebuild": 1440,
+  "vector_index_rebuild": 1440,
+  "kb_lint": 1440
+}

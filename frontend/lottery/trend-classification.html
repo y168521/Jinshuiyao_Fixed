@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 012路/质合/五行走势</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+:root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim); }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; }
+h1 { font-size:20px; margin:0 0 4px; }
+.sub { color:var(--muted); font-size:13px; margin-bottom:18px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
+.card h2 { font-size:15px; margin:0 0 12px; }
+.flex { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+select,button { background:var(--deep); color:var(--txt); border:1px solid var(--border); border-radius:6px; padding:5px 12px; font-size:12px; }
+button { cursor:pointer; }
+button.primary { background:var(--copper); color:var(--deep); border:none; font-weight:600; padding:5px 14px; }
+button.primary:hover { opacity:.85; }
+.muted { color:var(--muted); }
+.tabs { display:flex; gap:4px; margin-bottom:12px; flex-wrap:wrap; }
+.tab { padding:5px 14px; border-radius:6px; background:var(--card); border:1px solid var(--border); cursor:pointer; font-size:12px; color:var(--muted); transition:.15s; }
+.tab.active { background:var(--copper); color:var(--deep); border-color:var(--copper); font-weight:600; }
+.tab:hover { border-color:var(--copper); }
+#chartWrap { width:100%; height:360px; border-radius:8px; }
+.stat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.stat-card { text-align:center; padding:14px; background:var(--deep); border-radius:8px; border:1px solid var(--border); }
+.stat-card .val { font-size:24px; font-weight:700; }
+.stat-card .lbl { font-size:12px; color:var(--muted); margin-top:4px; }
+.legend { display:flex; gap:16px; flex-wrap:wrap; margin:10px 0; font-size:12px; }
+.legend-item { display:flex; align-items:center; gap:6px; }
+.legend-dot { width:10px; height:10px; border-radius:3px; display:inline-block; }
+.scroll-x { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:12px; }
+th,td { text-align:center; padding:5px 4px; border:1px solid var(--border); }
+th { color:var(--muted); font-weight:600; font-size:11px; background:var(--deep); }
+@media(max-width:600px){ body{ padding:12px; } #chartWrap{ height:280px; } }
+</style>
+</head>
+<body>
+<div style="margin-bottom:10px;"><a href="/lottery" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回彩票分析中心</a></div>
+<h1>012路 · 质合 · 五行走势</h1>
+<div class="sub">号码分类走势分析 — 012路(除3余数) / 质数合数 / 五行属性</div>
+
+<div class="card">
+  <div class="flex">
+    <select id="lotType"><option value="ssq">双色球</option><option value="dlt">大乐透</option><option value="fc3d">福彩3D</option><option value="pl3">排列三</option></select>
+    <select id="period"><option value="30">近30期</option><option value="50" selected>近50期</option><option value="100">近100期</option></select>
+    <button class="primary" onclick="loadData()">分析</button>
+    <span id="status" class="muted"><span class="spinner"></span>加载中...</span>
+  </div>
+</div>
+
+<div class="tabs" id="tabs">
+  <div class="tab active" data-tab="route012">012路</div>
+  <div class="tab" data-tab="prime">质合</div>
+  <div class="tab" data-tab="wuxing">五行</div>
+</div>
+
+<div class="card" id="statsCard">
+  <div class="stat-grid" id="statGrid"></div>
+</div>
+
+<div class="card" id="chartCard">
+  <div class="legend" id="legend"></div>
+  <div id="chartWrap"></div>
+</div>
+
+<div class="card scroll-x" id="tableCard">
+  <table id="dataTable"><thead><tr><th>期数</th><th>号码</th><th id="thDetail">分布</th></tr></thead><tbody id="tableBody"></tbody></table>
+</div>
+
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+const BASE = window.location.origin;
+const LOT_CFG = { ssq:{name:'双色球',red:6}, dlt:{name:'大乐透',red:5}, fc3d:{name:'福彩3D',red:3}, pl3:{name:'排列三',red:3} };
+const WUXING = {0:'金',1:'木',2:'水',3:'火',4:'土'};
+const WUXING_COLORS = {金:'var(--gold)',木:'var(--jade)',水:'var(--ice)',火:'var(--copper)',土:'#c9a96e'};
+const PRIMES = [2,3,5,7,11,13,17,19,23,29,31];
+
+function isPrime(n){ return PRIMES.includes(n); }
+
+let lcChart = null;
+let currentTab = 'route012';
+
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click', function(){
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    this.classList.add('active');
+    currentTab = this.dataset.tab;
+    if(window._lastData) render(JSON.parse(JSON.stringify(window._lastData)));
+  });
+});
+
+function genMockData(lot, cnt){
+  const cfg = LOT_CFG[lot];
+  const range = lot==='ssq'||lot==='dlt'?33:10;
+  const data = [];
+  for(let i=0;i<cnt;i++){
+    const nums = [];
+    while(nums.length<cfg.red){ const n=Math.floor(Math.random()*range)+1; if(!nums.includes(n)) nums.push(n); }
+    nums.sort((a,b)=>a-b);
+    data.push({drawNum:`2026${String(i+1).padStart(3,'0')}`,numbers:nums});
+  }
+  return data;
+}
+
+function classify(num, type){
+  if(type==='route012'){ const r = num%3; return r===0?'0路':r===1?'1路':'2路'; }
+  if(type==='prime') return isPrime(num)?'质数':'合数';
+  return WUXING[num%5];
+}
+
+const COLORS012 = ['rgba(200,117,90,0.7)','rgba(91,192,222,0.7)','rgba(45,139,126,0.7)'];
+const COLORS_PRIME = ['rgba(200,117,90,0.7)','rgba(91,192,222,0.7)'];
+const COLORS_WUXING = ['rgba(200,117,90,0.7)','rgba(45,139,126,0.7)','rgba(91,192,222,0.7)','rgba(201,169,110,0.7)','rgba(201,169,110,0.3)'];
+
+function render(data){
+  window._lastData = data;
+  const cfg = LOT_CFG[document.getElementById('lotType').value];
+  const range = document.getElementById('lotType').value==='fc3d'||document.getElementById('lotType').value==='pl3'?10:33;
+  const counts012 = [0,0,0];
+  const countsPrime = [0,0];
+  const countsWuxing = [0,0,0,0,0];
+  data.forEach(d=>{
+    d.numbers.forEach(n=>{
+      counts012[n%3]++;
+      if(isPrime(n)) countsPrime[0]++; else countsPrime[1]++;
+      countsWuxing[n%5]++;
+    });
+  });
+  const total = data.reduce((s,d)=>s+d.numbers.length,0);
+  const fmtP = v=>(v/total*100).toFixed(1)+'%';
+
+  if(currentTab==='route012'){
+    document.getElementById('statGrid').innerHTML = `
+      <div class="stat-card"><div class="val" style="color:var(--copper)">${counts012[0]}</div><div class="lbl">0路 (${fmtP(counts012[0])})</div></div>
+      <div class="stat-card"><div class="val" style="color:var(--ice)">${counts012[1]}</div><div class="lbl">1路 (${fmtP(counts012[1])})</div></div>
+      <div class="stat-card"><div class="val" style="color:var(--jade)">${counts012[2]}</div><div class="lbl">2路 (${fmtP(counts012[2])})</div></div>`;
+    document.getElementById('legend').innerHTML = `
+      <span class="legend-item"><span class="legend-dot" style="background:${COLORS012[0]}"></span>0路（除3余0）</span>
+      <span class="legend-item"><span class="legend-dot" style="background:${COLORS012[1]}"></span>1路（除3余1）</span>
+      <span class="legend-item"><span class="legend-dot" style="background:${COLORS012[2]}"></span>2路（除3余2）</span>`;
+    document.getElementById('thDetail').textContent = '012路分布';
+  } else if(currentTab==='prime'){
+    document.getElementById('statGrid').innerHTML = `
+      <div class="stat-card"><div class="val" style="color:var(--copper)">${countsPrime[0]}</div><div class="lbl">质数 (${fmtP(countsPrime[0])})</div></div>
+      <div class="stat-card"><div class="val" style="color:var(--ice)">${countsPrime[1]}</div><div class="lbl">合数 (${fmtP(countsPrime[1])})</div></div>
+      <div class="stat-card"><div class="val" style="color:var(--muted)">—</div><div class="lbl">质合比 ${countsPrime[0]}:${countsPrime[1]}</div></div>`;
+    document.getElementById('legend').innerHTML = `
+      <span class="legend-item"><span class="legend-dot" style="background:${COLORS_PRIME[0]}"></span>质数 (2,3,5,7,11,13,17,19,23,29,31)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:${COLORS_PRIME[1]}"></span>合数</span>`;
+    document.getElementById('thDetail').textContent = '质合';
+  } else {
+    document.getElementById('statGrid').innerHTML = Object.keys(WUXING).map((k,i)=>{
+      const c = countsWuxing[i];
+      return `<div class="stat-card"><div class="val" style="color:${WUXING_COLORS[WUXING[k]]}">${c}</div><div class="lbl">${WUXING[k]} (${fmtP(c)})</div></div>`;
+    }).join('');
+    document.getElementById('legend').innerHTML = `${Object.entries(WUXING).map(([k,v])=>`<span class="legend-item"><span class="legend-dot" style="background:${WUXING_COLORS[v]}"></span>${v}</span>`).join('')}`;
+    document.getElementById('thDetail').textContent = '五行属性';
+  }
+
+  const classifyFn = n=>classify(n, currentTab);
+  const uniqueClasses = [...new Set(data.flatMap(d=>d.numbers.map(classifyFn)))];
+  const maxCount = Math.max(...uniqueClasses.map(cls=>data.reduce((s,d)=>s+d.numbers.filter(n=>classifyFn(n)===cls).length,0)),1);
+  const now = new Date();
+
+  if(!lcChart){
+    lcChart = LightweightCharts.createChart(document.getElementById('chartWrap'), {
+      layout: { textColor: '#7a8499', background: { type:'solid', color:'#131a2a' } },
+      grid: { vertLines:{color:'rgba(232,236,241,0.04)'}, horzLines:{color:'rgba(232,236,241,0.04)'} },
+      crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+      rightPriceScale: { borderColor:'rgba(232,236,241,0.1)', scaleMargins:{top:0.1,bottom:0.1} },
+      timeScale: { borderColor:'rgba(232,236,241,0.1)' }
+    });
+  }
+  while(lcChart._series&&lcChart._series.length) lcChart.removeSeries(lcChart._series[0]);
+  const colors = currentTab==='route012'?COLORS012:currentTab==='prime'?COLORS_PRIME:COLORS_WUXING;
+  uniqueClasses.forEach((cls,i)=>{
+    const seriesData = data.map((d,idx)=>{
+      const cnt = d.numbers.filter(n=>classifyFn(n)===cls).length;
+      return {time:Math.floor(now/1000)-(data.length-1-idx)*86400, value:cnt};
+    });
+    const s = lcChart.addLineSeries({color:colors[i%colors.length],lineWidth:2,title:cls,lastValueVisible:true,priceLineVisible:false});
+    s.setData(seriesData);
+  });
+  lcChart.timeScale().fitContent();
+
+  let tableHtml = '';
+  data.slice(0,50).forEach(d=>{
+    tableHtml+=`<tr><td>${d.drawNum}</td><td>${d.numbers.join(', ')}</td><td>${d.numbers.map(n=>classifyFn(n)).join(', ')}</td></tr>`;
+  });
+  document.getElementById('tableBody').innerHTML = tableHtml;
+}
+
+async function loadData(){
+  const lot = document.getElementById('lotType').value;
+  const cnt = parseInt(document.getElementById('period').value);
+  document.getElementById('status').innerHTML = '<span class="spinner"></span>加载中...';
+  try{
+    const r = await fetch(BASE+'/api/lottery/trend-classification', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lottery:lot,count:cnt})});
+    const j = await r.json();
+    if(j.ok && j.data){ render(j.data); document.getElementById('status').textContent = '已更新'; }
+    else{ render(genMockData(lot,cnt)); document.getElementById('status').textContent = '模拟数据（接口暂不可用）'; }
+  } catch(e){ render(genMockData(lot,cnt)); document.getElementById('status').textContent = '模拟数据（接口暂不可用）'; }
+}
+
+loadData();
+window.addEventListener('resize', ()=>{ if(lcChart) lcChart.resize(lcChart.chartElement().clientWidth, 360); });
+</script>
+</body>
+</html>

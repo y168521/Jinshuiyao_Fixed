@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 基金持仓分析</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+  :root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim); --c-up:var(--copper); --c-down:var(--jade); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:18px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
+  .card h2 { font-size:15px; margin:0 0 12px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media(max-width:800px){ .grid2{ grid-template-columns:1fr; } }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th,td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--border); }
+  th { color:var(--muted); font-weight:600; font-size:12px; }
+  .num { text-align:right; font-variant-numeric:tabular-nums; }
+  .flex { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+  select,button { background:var(--deep); color:var(--txt); border:1px solid var(--border); border-radius:6px; padding:5px 12px; font-size:12px; }
+  button.primary { background:var(--c-up); color:var(--deep); border:none; font-weight:600; cursor:pointer; }
+  .donut-wrap { display:flex; justify-content:center; }
+  canvas { max-width:100%; }
+  .muted { color:var(--muted); font-size:12px; }
+  .scroll-x { overflow-x:auto; }
+  @media(max-width:600px){ body{ padding:12px; } }
+</style>
+</head>
+<body>
+<div style="margin-bottom:10px;"><a href="/fund" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回基金分析中心</a></div>
+<h1>基金持仓分析</h1>
+<div class="sub">持仓结构、行业分布、重仓股穿透、集中度评估</div>
+
+<div class="flex">
+  <select id="fundSel">
+    <option value="华夏成长">华夏成长</option>
+    <option value="嘉实沪深300">嘉实沪深300</option>
+    <option value="易方达蓝筹">易方达蓝筹</option>
+    <option value="广发小盘">广发小盘</option>
+    <option value="富国天惠">富国天惠</option>
+    <option value="中欧医疗">中欧医疗</option>
+  </select>
+  <button class="primary" onclick="loadHoldings()">加载</button>
+  <span id="status" class="muted"></span>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <h2>行业分布</h2>
+    <div class="donut-wrap"><canvas id="donutCanvas" width="260" height="260"></canvas></div>
+  </div>
+  <div class="card">
+    <h2>集中度指标</h2>
+    <div id="concGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"></div>
+  </div>
+</div>
+
+<div class="card scroll-x">
+  <h2>前十大重仓股</h2>
+  <table><thead><tr><th>股票</th><th>占比</th><th>市值</th><th>年初至今</th><th>行业</th></tr></thead>
+  <tbody id="stockBody"><tr><td colspan="5" class="muted" style="text-align:center;">选择基金后加载</td></tr></tbody></table>
+</div>
+
+<script>
+const COLORS = ['#c8755a','#2d8b7e','#5bc0de','#c9a96e','#e8ecf1','#d29922','#4ade80','#f87171'];
+
+function fmtPct(n){ if(n==null)return'—';const v=Number(n);return(v>=0?'+':'')+v.toFixed(2)+'%'; }
+function fmtNum(n){ if(n==null)return'—';return Number(n).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+function drawDonut(sectors){
+  const c=document.getElementById('donutCanvas'); const ctx=c.getContext('2d');
+  const cx=130, cy=130, r=100, iw=50;
+  ctx.clearRect(0,0,260,260);
+  const total=sectors.reduce((s,v)=>s+v.value,0);
+  if(!total){ ctx.fillStyle='#7a8499'; ctx.font='14px sans-serif'; ctx.textAlign='center'; ctx.fillText('暂无数据',130,130); return; }
+  let start=-Math.PI/2;
+  sectors.forEach((s,i)=>{
+    const angle=s.value/total*Math.PI*2;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,start,start+angle);
+    ctx.closePath(); ctx.fillStyle=COLORS[i%COLORS.length]; ctx.fill();
+    // Label
+    const mid=start+angle/2; const lx=cx+(r+16)*Math.cos(mid); const ly=cy+(r+16)*Math.sin(mid);
+    if(s.value/total>0.05){
+      ctx.fillStyle='#e4e8f1'; ctx.font='11px sans-serif'; ctx.textAlign='center';
+      ctx.fillText(s.name,lx,ly+4);
+    }
+    start+=angle;
+  });
+  ctx.beginPath(); ctx.arc(cx,cy,iw,0,Math.PI*2); ctx.fillStyle='var(--card)'; ctx.fill();
+  ctx.fillStyle='#e4e8f1'; ctx.font='bold 16px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(total.toFixed(0)+'%',cx,cy);
+  ctx.textBaseline='alphabetic';
+}
+
+function loadHoldings(){
+  const name=document.getElementById('fundSel').value;
+  document.getElementById('status').textContent='加载中...';
+  // Mock data that simulates API response
+  const mockSectors = [
+    {name:'制造业',value:42},{name:'金融业',value:18},{name:'信息技术',value:15},
+    {name:'医药',value:12},{name:'消费',value:8},{name:'其他',value:5}
+  ];
+  const mockStocks = [
+    {stock:'贵州茅台',pct:8.5,value:'¥12.5亿',ytd:12.3,industry:'消费'},
+    {stock:'宁德时代',pct:6.2,value:'¥9.1亿',ytd:-3.8,industry:'制造业'},
+    {stock:'招商银行',pct:5.8,value:'¥8.5亿',ytd:5.2,industry:'金融'},
+    {stock:'腾讯控股',pct:5.1,value:'¥7.5亿',ytd:8.6,industry:'信息技术'},
+    {stock:'迈瑞医疗',pct:4.3,value:'¥6.3亿',ytd:-1.2,industry:'医药'},
+    {stock:'美的集团',pct:3.9,value:'¥5.7亿',ytd:4.5,industry:'制造业'},
+    {stock:'中国平安',pct:3.5,value:'¥5.1亿',ytd:1.8,industry:'金融'},
+    {stock:'恒瑞医药',pct:3.2,value:'¥4.7亿',ytd:-5.6,industry:'医药'},
+    {stock:'五粮液',pct:2.8,value:'¥4.1亿',ytd:7.2,industry:'消费'},
+    {stock:'立讯精密',pct:2.5,value:'¥3.7亿',ytd:15.1,industry:'信息技术'}
+  ];
+  drawDonut(mockSectors);
+  document.getElementById('stockBody').innerHTML = mockStocks.map(s=>
+    `<tr><td>${s.stock}</td><td class="num">${fmtPct(s.pct)}</td><td class="num">${s.value}</td><td class="num" style="color:${s.ytd>=0?'var(--c-up)':'var(--c-down)'}">${fmtPct(s.ytd)}</td><td>${s.industry}</td></tr>`
+  ).join('');
+  document.getElementById('concGrid').innerHTML = [
+    {label:'前3集中度',value:'20.5%'},{label:'前5集中度',value:'29.9%'},
+    {label:'前10集中度',value:'45.8%'},{label:'持仓数量',value:'62只'}
+  ].map(v=>`<div class="card" style="padding:12px;text-align:center"><div style="font-size:11px;color:var(--muted)">${v.label}</div><div style="font-size:20px;font-weight:700;margin-top:4px">${v.value}</div></div>`).join('');
+  document.getElementById('status').textContent=`${name} · 持仓已加载`;
+}
+
+loadHoldings();
+</script>
+</body>
+</html>

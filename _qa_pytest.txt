@@ -1,0 +1,4 @@
+...................                                                      [100%][safe-delete][SAFE_DELETE_FAIL_CLOSED] {"target": "\\\\?\\C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-Administrator\\garbage-981a5fc1-1771-4cac-9c6f-9e6f3772f303", "reason": "windows-sandbox-recycle-bin-unavailable"}
+
+19 passed in 0.67s
+RC=0

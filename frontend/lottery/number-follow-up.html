@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 号码跟随分析</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+:root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim); --c-hot:var(--copper); --c-cold:var(--jade); --c-high:#c9a96e; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; }
+h1 { font-size:20px; margin:0 0 4px; }
+.sub { color:var(--muted); font-size:13px; margin-bottom:18px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
+.card h2 { font-size:15px; margin:0 0 12px; }
+.flex { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+select,button { background:var(--deep); color:var(--txt); border:1px solid var(--border); border-radius:6px; padding:5px 12px; font-size:12px; }
+button { cursor:pointer; }
+button.primary { background:var(--c-hot); color:var(--deep); border:none; font-weight:600; padding:5px 14px; }
+button.primary:hover { opacity:.85; }
+#chartWrap { width:100%; height:480px; border-radius:8px; }
+.stat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; margin:10px 0; }
+.stat-item { text-align:center; padding:10px; background:var(--deep); border-radius:8px; border:1px solid var(--border); cursor:pointer; transition:.15s; }
+.stat-item:hover { border-color:var(--gold); }
+.stat-item .num { font-size:18px; font-weight:700; }
+.stat-item .lbl { font-size:11px; color:var(--muted); margin-top:2px; }
+.stat-item .freq { font-size:12px; font-weight:600; margin-top:4px; }
+.stat-item.active { border-color:var(--c-hot); background:rgba(200,117,90,.12); }
+.muted { color:var(--muted); }
+.err { color:var(--err); font-size:13px; }
+.legend { display:flex; gap:16px; flex-wrap:wrap; margin:10px 0; font-size:12px; }
+.legend-item { display:flex; align-items:center; gap:6px; }
+.legend-dot { width:10px; height:10px; border-radius:3px; display:inline-block; }
+table { width:100%; border-collapse:collapse; font-size:12px; }
+th,td { text-align:center; padding:5px 4px; border:1px solid var(--border); }
+th { color:var(--muted); font-weight:600; font-size:11px; background:var(--deep); }
+td.cell-hot { background:rgba(200,117,90,.2); font-weight:700; color:var(--c-hot); }
+td.cell-mid { background:rgba(201,169,110,.12); }
+td.cell-cold { color:var(--muted); }
+.scroll-x { overflow-x:auto; }
+@media(max-width:600px){ body{ padding:12px; } #chartWrap{ height:320px; } }
+</style>
+</head>
+<body>
+<div style="margin-bottom:10px;"><a href="/lottery" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回彩票分析中心</a></div>
+<h1>号码跟随分析</h1>
+<div class="sub">某号码出现后，下一期哪些号码最常跟随出现 · 点击号码查看跟随详情</div>
+
+<div class="card">
+  <div class="flex">
+    <select id="lotType"><option value="ssq">双色球（红球）</option><option value="dlt">大乐透（前区）</option><option value="fc3d">福彩3D</option><option value="pl3">排列三</option></select>
+    <select id="gap"><option value="1">下一期跟随</option><option value="2">间隔2期</option><option value="3">间隔3期</option></select>
+    <button class="primary" onclick="loadData()">分析</button>
+    <span id="status" class="muted"><span class="spinner"></span>计算中...</span>
+  </div>
+</div>
+
+<div class="card" id="legendCard" style="display:none;">
+  <div class="legend" id="legend"></div>
+  <div class="scroll-x"><table id="followTable"></table></div>
+</div>
+
+<div class="card" id="chartCard" style="display:none;">
+  <h2>跟随热度矩阵</h2>
+  <div id="chartWrap"></div>
+</div>
+
+<div class="card" id="detailCard" style="display:none;">
+  <h2 id="detailTitle">详情</h2>
+  <div class="stat-grid" id="detailGrid"></div>
+</div>
+
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+const BASE = window.location.origin;
+const LOT_RANGES = { ssq:33, dlt:35, fc3d:10, pl3:10 };
+
+function fmtPct(n){ if(n==null)return'—';return(n*100).toFixed(1)+'%'; }
+
+function genMockData(lot, gap){
+  const range = LOT_RANGES[lot];
+  const data = {};
+  for(let i=1;i<=range;i++){
+    data[i] = {};
+    for(let j=1;j<=range;j++){
+      if(i===j) continue;
+      data[i][j] = Math.random() * 0.2 + 0.02;
+    }
+  }
+  return data;
+}
+
+let followData = null;
+let lcChart = null, lcHeatSeries = null;
+
+function drawHeatmap(data, range){
+  if(!lcChart){
+    lcChart = LightweightCharts.createChart(document.getElementById('chartWrap'), {
+      layout: { textColor: '#7a8499', background: { type: 'solid', color: '#131a2a' } },
+      grid: { vertLines: { color: 'rgba(232,236,241,0.04)' }, horzLines: { color: 'rgba(232,236,241,0.04)' } },
+      rightPriceScale: { visible: false },
+      timeScale: { visible: false }
+    });
+  }
+  while(lcChart._series && lcChart._series.length) lcChart.removeSeries(lcChart._series[0]);
+  const entries = [];
+  let minF=Infinity, maxF=-Infinity;
+  for(let i=1;i<=range;i++){
+    for(let j=1;j<=range;j++){
+      if(i===j) continue;
+      const v = (data[i]&&data[i][j])||0;
+      entries.push({time:i,value:v,label:`${i}→${j}`});
+      if(v<minF) minF=v; if(v>maxF) maxF=v;
+    }
+  }
+  const colors = ['rgba(11,26,47,0.8)','rgba(45,139,126,0.3)','rgba(91,192,222,0.3)','rgba(201,169,110,0.3)','rgba(200,117,90,0.5)','rgba(200,80,60,0.8)'];
+  const lines = [];
+  const step = (maxF-minF)/colors.length||1;
+  for(let i=1;i<=range;i++){
+    if(!data[i]) continue;
+    const vals = [];
+    for(let j=1;j<=range;j++){
+      if(i===j){ vals.push({time:j,value:0}); continue; }
+      vals.push({time:j,value:(data[i][j]||0)});
+    }
+    const s = lcChart.addLineSeries({color:'transparent',lineWidth:0,title:`号码${i}`,lastValueVisible:false,priceLineVisible:false});
+    s.setData(vals);
+    lines.push(s);
+  }
+}
+
+function showTable(data, range){
+  let html = '<thead><tr><th>号码</th>';
+  const nums = Array.from({length:range},(_,i)=>i+1);
+  nums.forEach(j=>{ html+=`<th>${j}</th>`; });
+  html+='<th>热门跟随</th></tr></thead><tbody>';
+  nums.forEach(i=>{
+    html+=`<tr><th style="background:var(--card);font-weight:700">${i}</th>`;
+    const row = data[i]||{};
+    let maxF=0, maxJ='—';
+    nums.forEach(j=>{
+      if(i===j){ html+='<td>—</td>'; return; }
+      const v = row[j]||0;
+      let cls='cell-cold';
+      if(v>0.10) cls='cell-hot';
+      else if(v>0.05) cls='cell-mid';
+      html+=`<td class="${cls}" onclick="showDetail(${i},${j})">${fmtPct(v)}</td>`;
+      if(v>maxF){ maxF=v; maxJ=j; }
+    });
+    html+=`<td style="color:var(--c-hot);font-weight:700;font-size:11px">${maxJ}(${fmtPct(maxF)})</td>`;
+    html+='</tr>';
+  });
+  html+='</tbody>';
+  document.getElementById('followTable').innerHTML = html;
+}
+
+function showDetail(src, dst){
+  const data = followData;
+  const range = LOT_RANGES[document.getElementById('lotType').value];
+  document.getElementById('detailCard').style.display='block';
+  document.getElementById('detailTitle').textContent = `号码 ${src} 的跟随分布`;
+  let html='';
+  for(let j=1;j<=range;j++){
+    if(j===src) continue;
+    const v = (data[src]&&data[src][j])||0;
+    html+=`<div class="stat-item" onclick="showDetail(${src},${j})" style="${j===dst?'border-color:var(--c-hot);background:rgba(200,117,90,.12);':''}">
+      <div class="num" style="color:${v>0.10?'var(--c-hot)':v>0.05?'var(--c-high)':'var(--muted)'}">${j}</div>
+      <div class="lbl">跟随频率</div>
+      <div class="freq" style="color:${v>0.10?'var(--c-hot)':v>0.05?'var(--c-high)':'var(--muted)'}">${fmtPct(v)}</div>
+    </div>`;
+  }
+  document.getElementById('detailGrid').innerHTML = html;
+}
+
+async function loadData(){
+  const lot = document.getElementById('lotType').value;
+  const gap = parseInt(document.getElementById('gap').value);
+  const range = LOT_RANGES[lot];
+  document.getElementById('status').innerHTML = '<span class="spinner"></span>计算中...';
+  document.getElementById('legendCard').style.display='none';
+  document.getElementById('chartCard').style.display='none';
+  document.getElementById('detailCard').style.display='none';
+  try{
+    const r = await fetch(BASE+'/api/lottery/number-follow-up', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lottery:lot,gap})});
+    const j = await r.json();
+    if(j.ok && j.data){ followData = j.data; }
+    else{ followData = genMockData(lot, gap); document.getElementById('status').textContent = '模拟数据（接口暂不可用）'; }
+  } catch(e){
+    followData = genMockData(lot, gap);
+    document.getElementById('status').textContent = '模拟数据（接口暂不可用）';
+  }
+  const total = range;
+  const hotCount = Object.values(followData).reduce((s,row)=>s+Object.values(row).filter(v=>v>0.10).length,0);
+  document.getElementById('legend').innerHTML = `
+    <span class="legend-item"><span class="legend-dot" style="background:var(--c-hot)"></span>高频率 (&gt;10%) = ${hotCount} 对</span>
+    <span class="legend-item"><span class="legend-dot" style="background:var(--c-high)"></span>中频率 (5%~10%)</span>
+    <span class="legend-item"><span class="legend-dot" style="background:var(--muted)"></span>低频率 (&lt;5%)</span>
+    <span class="legend-item">号码范围：1~${range}（共${total}个号码）</span>`;
+  document.getElementById('legendCard').style.display='block';
+  showTable(followData, range);
+  document.getElementById('chartCard').style.display='block';
+  drawHeatmap(followData, range);
+  if(!document.getElementById('status').textContent.includes('模拟')) document.getElementById('status').textContent = '已更新';
+}
+
+loadData();
+window.addEventListener('resize', ()=>{ if(lcChart) lcChart.resize(lcChart.chartElement().clientWidth, 480); });
+</script>
+</body>
+</html>

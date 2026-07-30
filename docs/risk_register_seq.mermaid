@@ -1,0 +1,35 @@
+%% ===== 主流程1：每月1号知识体检 Lint 挂载风险登记册校验 =====
+sequenceDiagram
+    autonumber
+    actor Scheduler as 每月1号体检(既有自动化)
+    participant Lint as lint_knowledge.lint()
+    participant LR as lint_risk_register(rep)
+    participant VR as verify_risk_register.verify()
+    participant FS as 金水谣数据/risk_register.json
+
+    Scheduler->>Lint: python lint_knowledge.py
+    Lint->>Lint: 现有 KB 体检(占位符/空正文/互链)
+    Lint->>LR: lint() 末尾调用
+    LR->>FS: 读 json(上溯两级定位)
+    LR->>VR: verify(path)
+    alt 合法+字段齐全+未过期
+        VR-->>LR: ok=True, 无 errors
+        LR-->>Lint: 不追加
+    else 缺字段/枚举非法/owner=待定/过期>90天
+        VR-->>LR: errors=[...]
+        LR->>Lint: rep.errors += errors（并入既有收集器）
+    end
+    Lint-->>Scheduler: LintReport(ok / errors / warns)，errors 非空→退出码1
+
+%% ===== 主流程2：md 由 json 同源渲染生成 =====
+sequenceDiagram
+    autonumber
+    actor Human as 工程师/CI
+    participant Gen as scripts/gen_risk_md.py
+    participant JSON as risk_register.json(单一真源)
+    participant MD as 风险登记册.md(生成)
+
+    Human->>Gen: python gen_risk_md.py
+    Gen->>JSON: 读取 + (可选)先 verify 校验
+    Gen->>MD: 渲染概览表+每条9字段详情+「自动生成勿手工改」声明
+    Note over MD: 禁止手工双写；CI 可校验 md 生成时间≥json 修改时间

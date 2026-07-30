@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>金水谣万物预测引擎 · 系统性审查报告（2026-07-19）</title>
+<style>
+  :root{--bg:#0f1419;--card:#1a2230;--card2:#141b26;--line:#2a3441;--txt:#e6edf3;--muted:#9aa7b4;--red:#ff6b6b;--orange:#ffa94d;--yellow:#ffd43b;--green:#51cf66;--blue:#74c0fc;--p0:#ff5252;--p1:#ff922b;--p2:#ffd43b;--p3:#74c0fc;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.6;font-size:15px}
+  .wrap{max-width:1180px;margin:0 auto;padding:32px 24px 80px}
+  h1{font-size:27px;margin:0 0 6px;letter-spacing:.5px}
+  h2{font-size:21px;margin:38px 0 14px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+  h3{font-size:17px;margin:24px 0 10px;color:var(--blue)}
+  .sub{color:var(--muted);margin:0 0 18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:14px 0}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+  .stat{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:14px;text-align:center}
+  .stat b{display:block;font-size:26px;color:var(--blue)}
+  .stat span{font-size:12px;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:var(--card2);color:var(--blue)}
+  .tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:12px;font-weight:700;color:#0f1419}
+  .p0{background:var(--p0);color:#fff}.p1{background:var(--p1)}.p2{background:var(--p2)}.p3{background:var(--p3)}
+  .sev-critical{color:var(--red);font-weight:700}
+  .sev-high{color:var(--orange);font-weight:700}
+  .sev-mid{color:var(--yellow);font-weight:700}
+  .sev-low{color:var(--blue);font-weight:700}
+  code{background:#0b0f14;padding:1px 6px;border-radius:5px;font-size:12.5px;color:#9be7c4;font-family:"SFMono-Regular",Consolas,monospace}
+  .flow{background:var(--card2);border:1px dashed var(--line);border-radius:10px;padding:16px;font-size:13px;white-space:pre-wrap;color:var(--muted)}
+  ul{margin:8px 0;padding-left:22px}
+  li{margin:5px 0}
+  .good{color:var(--green)}
+  .bad{color:var(--red)}
+  .warn{color:var(--yellow)}
+  .note{font-size:12.5px;color:var(--muted);margin-top:6px}
+  .toc a{color:var(--blue);text-decoration:none;margin-right:18px;font-size:13.5px}
+  .toc{background:var(--card2);border-radius:10px;padding:12px 16px;margin:14px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>金水谣万物预测引擎 · 系统性审查报告</h1>
+  <p class="sub">审查日期：2026-07-19 ｜ 审查范围：模型根目录 + <code>Jinshuiyao_Fixed/</code> 全量模块 ｜ 方式：静态代码审查 + 接口实测</p>
+
+  <div class="toc">
+    <a href="#scope">① 审查范围与规模</a>
+    <a href="#map">② 模块清单与调用关系</a>
+    <a href="#break">③ 数据流断裂</a>
+    <a href="#sec">④ 安全隐患</a>
+    <a href="#edge">⑤ 边界与性能</a>
+    <a href="#list">⑥ 问题清单（分级）</a>
+    <a href="#plan">⑦ 改进方案</a>
+  </div>
+
+  <!-- ===== 1 范围 ===== -->
+  <h2 id="scope">① 审查范围与规模</h2>
+  <div class="grid">
+    <div class="stat"><b>~10万</b><span>Python 代码行（核心子系统）</span></div>
+    <div class="stat"><b>30+</b><span>一级子目录</span></div>
+    <div class="stat"><b>55</b><span>后端 HTTP 路由</span></div>
+    <div class="stat"><b>21</b><span>前端页面（含工作台 SPA）</span></div>
+    <div class="stat"><b>2</b><span>独立知识库存储（见③）</span></div>
+  </div>
+  <div class="card">
+    <p>项目由 <b>后端 HTTP 服务器</b>（<code>guide_server.py</code>，1593 行，单文件承载 55 个路由）、<b>核心引擎层</b>（<code>core/</code> 20 文件 1 万行）、<b>领域与预测引擎</b>（<code>engines/</code> <code>domains/</code> 共约 2 万行）、<b>知识库</b>（JSON 索引 + Markdown 双轨）、<b>前端</b>（<code>jinshuiyao-guide/</code> 工作台 SPA + 多张独立页面）构成。</p>
+    <p class="note">说明：<code>scripts/</code>(33 文件/1.5 万行)、<code>tests/</code>(44 文件/1.1 万行)、<code>utils/</code>(16 文件/6.7 千行) 体量较大，多为历史脚本与测试，本报告聚焦<b>实际被服务器/前端串联的活跃路径</b>，对未串联的遗留模块标记为「待确认活跃度」。</p>
+  </div>
+
+  <!-- ===== 2 调用关系 ===== -->
+  <h2 id="map">② 模块清单与调用关系</h2>
+  <h3>2.1 子系统清单（活跃度标注）</h3>
+  <table>
+    <tr><th>子系统</th><th>文件/行数</th><th>职责</th><th>是否被服务器串联</th></tr>
+    <tr><td><code>guide_server.py</code></td><td>1 / 1593</td><td>唯一 HTTP 入口，55 路由，静态服务，健康检查</td><td><b class="good">中枢</b></td></tr>
+    <tr><td><code>core/</code></td><td>20 / 10540</td><td>AI体、AI服务、视频提取、内容提炼、视频归档、审计、调度、漂移检测、共形预测</td><td><b class="good">是</b>（ai_agent/ai_service/video_*/circuit_breaker 等被直接 import）</td></tr>
+    <tr><td><code>knowledge/</code></td><td>8 / 3386</td><td>MiroFishDB（JSON 知识库）+ 用户知识库 markdown 工具</td><td><b class="good">是</b>（MiroFishDB 被 /api/knowledge/* 调用）</td></tr>
+    <tr><td><code>engines/</code></td><td>23 / 10073</td><td>彩票/股票/基金/赛事等预测引擎 + 遗传进化</td><td><b class="warn">间接</b>（被 ai_agent、scheduler、gui 引用，但 Web 对话未直接暴露）</td></tr>
+    <tr><td><code>domains/</code></td><td>29 / 9979</td><td>各垂直领域（股票/基金/足球/音乐…）领域逻辑</td><td><b class="warn">间接</b>（被 engines 与 gui 引用）</td></tr>
+    <tr><td><code>jinshuiyao/</code></td><td>28 / 6897</td><td>足球等 GUI 与领域封装</td><td><b class="warn">间接</b>（gui/main_window 引用，Web 未暴露）</td></tr>
+    <tr><td><code>sync/</code> <code>device_sync</code></td><td>1 / 231</td><td>跨设备坚果云同步状态</td><td><b class="good">是</b>（/sync-api/* 调用）</td></tr>
+    <tr><td><code>controllers/</code></td><td>3 / 87</td><td>控制器占位</td><td><b class="warn">弱</b></td></tr>
+    <tr><td><code>tests/</code> <code>scripts/</code></td><td>77 / 2.6万</td><td>测试与历史脚本</td><td><b class="warn">独立运行</b>（smoke_test 被 /api/run-tests 调用）</td></tr>
+  </table>
+
+  <h3>2.2 主调用链路（用户点击 → 后端 → 存储）</h3>
+  <div class="flow">浏览器门户/工作台
+  └─ GET  /                 → 返回 金水谣助手门户.html（根）
+  └─ GET  /workbench        → workbench.html（SPA，10 标签）
+        ├─ fetch /api/knowledge/list   → core MiroFishDB(读 JSON)        ←【库A：90 卡】
+        ├─ fetch /api/knowledge/stats  → MiroFishDB.stats()
+        ├─ fetch /api/memory (GET)     → 读 ~/.workbuddy/MEMORY.md + 项目 MEMORY.md
+        ├─ POST  /api/chat             → core.ai_agent.get_agent().chat() → DeepSeek API → 自动 record_prediction()
+        ├─ POST  /api/video/ingest     → core.video_to_kb.ingest_to_kb() →【库B：knowledge/用户知识库/ markdown + INDEX.json】(写 7 卡)
+        └─ POST  /sync-api/task        → device_sync.record_task()（写坚果云共享文件）
+
+  独立入口（门户直链）：
+  ├─ GET /api/knowledge/extract-archive → video_extractor + content_refiner → MiroFishDB(库A)  ←【与 video/ingest 双写不同库！】
+  ├─ GET /open?file=..   → open_local_file()（本机开/运行文件）
+  └─ POST /api/run-tests → subprocess 跑 scripts/smoke_test.py</div>
+  <p class="note">链路中 <b style="color:var(--red)">红色断点</b>：视频归档（库B）与知识库视图（库A）不互通，详见第③节。</p>
+
+  <!-- ===== 3 数据流断裂 ===== -->
+  <h2 id="break">③ 数据流断裂（核心问题）</h2>
+  <div class="card">
+    <h3 style="margin-top:0;color:var(--red)">🔴 [P0] 双知识库存储互不连通</h3>
+    <p>项目存在<b>两套并行、互不同步</b>的知识库：</p>
+    <table>
+      <tr><th>库</th><th>存储形态</th><th>当前卡片数</th><th>被谁写入</th><th>被谁读取</th></tr>
+      <tr><td><b>库A · MiroFishDB</b></td><td><code>knowledge/mirofish_db.json</code></td><td>90</td><td><code>/api/knowledge/add</code>、<code>/api/knowledge/extract-archive</code></td><td>工作台「知识库」视图（<code>/api/knowledge/list</code>）、全局搜索</td></tr>
+      <tr><td><b>库B · 用户知识库</b></td><td><code>knowledge/用户知识库/*.md</code> + <code>INDEX.json</code></td><td>7</td><td><code>/api/video/ingest</code>（视频归档）、<code>video_to_kb.py</code></td><td><b style="color:var(--red)">无前端视图读取</b></td></tr>
+    </table>
+    <p class="bad"><b>后果：</b>你之前通过「视频文案提取」归档的抖音视频卡片，写入了库B（markdown），但工作台的「知识库」标签页只读库A（MiroFishDB）。<b>这 7 张视频知识卡在前端完全不可见</b>，形成「提取成功却看不到」的逻辑断裂——正是你反复遇到的"功能像没生效"的根因之一。</p>
+    <p><b>改进：</b>二选一——(a) 视频归档同时写入 MiroFishDB（推荐，统一索引）；或 (b) 工作台知识库视图合并读取两套库。并删除冗余的 <code>/api/knowledge/extract-archive</code>（与 <code>/api/video/ingest</code> 功能重叠却写不同库）。</p>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0;color:var(--yellow)">🟡 [P2] 预测记录自动写入无管控</h3>
+    <p><code>/api/chat</code> 每次对话都自动调用 <code>record_prediction()</code> 写入 <code>predictions/predictions.json</code>，无去重、无上限。长期运行会持续膨胀单文件 JSON，且无并发锁（见⑤）。</p>
+  </div>
+
+  <!-- ===== 4 安全 ===== -->
+  <h2 id="sec">④ 安全隐患</h2>
+  <div class="card">
+    <h3 style="margin-top:0;color:var(--red)">🔴 [P1] 明文凭证落入云同步目录（高危泄露）</h3>
+    <ul>
+      <li><code>Jinshuiyao_Fixed/config/douyin_cookie.txt</code> —— 内含<b>真实抖音登录态</b>（<code>sessionid</code>、<code>sid_guard</code>、<code>passport_*</code> 等完整 cookie）。</li>
+      <li><code>Jinshuiyao_Fixed/deepseek_key.txt</code> —— DeepSeek <b>API Key 明文</b>。</li>
+    </ul>
+    <p class="bad">这两个文件都位于<b>坚果云同步根目录之内</b>，且项目<b>没有 <code>.gitignore</code> / <code>.nutstoreignore</code> 排除它们</b> → 会被同步到云端及其他设备。更矛盾的是 <code>video_extractor.py</code> 第 78 行注释写着「⚠️ 切勿提交到仓库/云同步」，但文件本身恰恰放在同步目录里。</p>
+    <p><b>改进：</b>① 将密钥移出同步目录（如 <code>C:/Users/Administrator/.jinshuiyao-secrets/</code>）；② 或在 <code>.nutstoreignore</code> 中排除 <code>config/douyin_cookie.txt</code>、<code>deepseek_key.txt</code>、<code>*.log</code>；③ 密钥文件权限设为仅当前用户可读。</p>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0;color:var(--red)">🔴 [P1] SSRF + 知识库污染（守卫遗漏）</h3>
+    <p><code>/api/knowledge/extract-archive</code> 缺少 <code>_is_local()</code> 守卫（对照 <code>/api/video/ingest</code> 第 1195 行有守卫）。它接受任意 URL 并由服务器代发 HTTP 请求、写入 MiroFishDB。</p>
+    <p class="bad">局域网任意用户可借此：① 让服务器访问内网/云元数据（<code>http://169.254.169.254/</code>）实施 SSRF；② 向知识库注入任意垃圾卡片污染数据。</p>
+    <p><b>改进：</b>补 <code>_is_local()</code> 守卫 + 对传入 URL 做 scheme/host 白名单校验（仅允许 http/https 且非内网地址）。</p>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0;color:var(--yellow)">🟡 [P2] open_local_file 路径穿越（纵深防御缺口）</h3>
+    <p><code>/open</code> 端点调用 <code>open_local_file(rel_path)</code>，内部仅做 <code>os.path.join(BASE_DIR, rel_path)</code>，<b>未校验解析结果仍位于 BASE_DIR 之内</b>。若传入 <code>..\..\windows\...</code> 可逃逸项目目录（仅能"打开/查看"非执行，且已 localhost 限制，但属纵深防御缺口）。</p>
+    <p><b>改进：</b>解析后用 <code>os.path.commonpath([BASE_DIR, full]) == BASE_DIR</code> 校验，拒绝越界路径。</p>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0;color:var(--green)">🟢 已做对的防护（应予保留）</h3>
+    <ul>
+      <li class="good">执行类接口（<code>/open</code>、<code>/api/run-tests</code>、<code>/api/video/ingest</code>、<code>/api/memory</code> 写、<code>/sync-api/*</code>）均有 <code>_is_local()</code> 守卫 ✓</li>
+      <li class="good">静态服务 <code>_serve_static</code> 拒绝含 <code>..</code> 的路径段（防目录穿越）✓</li>
+      <li class="good">do_GET/do_POST 外层 try/except，异常返回 500 JSON 不挂起 ✓</li>
+      <li class="good">视频提取 cookie 仅用户手动提供，不偷浏览器 ✓</li>
+      <li class="good"><code>/health</code> 健康检查已加（且 AI 检测已改为仅看密钥文件，避免超时）✓</li>
+    </ul>
+  </div>
+
+  <!-- ===== 5 边界与性能 ===== -->
+  <h2 id="edge">⑤ 边界情况与性能瓶颈</h2>
+  <div class="card">
+    <h3 style="margin-top:0;color:var(--yellow)">🟡 [P2] 单线程服务器 = 慢请求阻塞全局</h3>
+    <p>服务器使用默认 <code>http.server</code>（<b>单线程</b>）。任何慢请求都会阻塞后续所有请求：</p>
+    <ul>
+      <li><code>/api/chat</code> 调 DeepSeek（网络往返，可能数秒~数十秒）</li>
+      <li><code>/api/video/ingest</code> 联网抓取视频页（已实测数秒）</li>
+      <li><code>/api/run-tests</code> 最长 60 秒</li>
+    </ul>
+    <p><b>改进：</b>改用 <code>ThreadingHTTPServer</code>（一行改动），让请求并行处理；对外部调用加整体超时。</p>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0;color:var(--yellow)">🟡 [P2] JSON 存储无并发锁</h3>
+    <p><code>mirofish_db.json</code>、<code>predictions/predictions.json</code> 均为「读全文件→改内存→写全文件」，<b>无文件锁</b>。当前单线程无碍，但一旦线程化或多进程即可能损坏（已存在 <code>.bak.0/1/2</code> 旋转文件，暗示历史上出过问题）。且 <code>_load</code> 在 JSON 损坏时直接回退空库 → <b>静默丢数据</b>。</p>
+    <p><b>改进：</b>统一用 <code>tempfile + os.replace</code> 原子写（已有 <code>utils.safe_json</code>，确保所有写路径都走它）；损坏时优先从 <code>.bak</code> 恢复而非回退空库。</p>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0;color:var(--yellow)">🟡 [P2] 写接口缺请求体大小上限</h3>
+    <p>以下写接口<b>无 Content-Length 上限</b>，可投放大请求撑爆内存/JSON：<code>/api/knowledge/add</code>、<code>/api/knowledge/extract-archive</code>、<code>/api/memory</code>(POST)、<code>/api/route</code>。对照 <code>/api/chat</code>(10000)、<code>/api/ask</code>(10000)、<code>/api/video/ingest</code>(20000) 已有上限，标准不统一。</p>
+    <p><b>改进：</b>统一在读取 body 前加 <code>if cl &gt; 1_000_000: 400</code>。</p>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0;color:var(--blue)">🔵 [P3] 其他边界/性能细节</h3>
+    <ul>
+      <li><code>log()</code> 每次调用都 <code>open(LOG_FILE,'a')</code> 再写 → 高并发 I/O 放大，建议改用 <code>logging</code> 模块 + Handler。</li>
+      <li>硬编码 Python 候选路径含 <code>D:\python38</code> 与 TRAE 私有路径 → 跨机脆弱，建议仅用 <code>shutil.which</code>/本机探测。</li>
+      <li>记忆增删改用整行精确匹配（<code>ln.strip()==target</code>），条目含前后空格或重复文本会误匹配，建议改用稳定 id。</li>
+      <li>工作台知识库视图初始用硬编码 <code>sampleKnowledge</code>(8 条) 兜底，接口异常时展示示例而非"加载失败"提示。</li>
+      <li>无 <code>requirements.txt</code>/<code>pyproject.toml</code>，依赖（如 <code>requests</code>）未锁定，复现困难。</li>
+      <li>CORS <code>Access-Control-Allow-Origin: *</code> 全开，配合未守卫接口可被跨站页面调用，建议按接口收紧。</li>
+      <li>根目录存在 <code>jinshuiyao_bat_test.log</code> 及被坚果云锁定的临时文件，建议加 <code>.nutstoreignore</code> 排除日志/临时文件并定期清理。</li>
+    </ul>
+  </div>
+
+  <!-- ===== 6 问题清单 ===== -->
+  <h2 id="list">⑥ 问题清单（按严重程度分级）</h2>
+  <table>
+    <tr><th>编号</th><th>等级</th><th>类别</th><th>问题</th><th>位置</th></tr>
+    <tr><td>1</td><td><span class="tag p0">P0</span></td><td>数据流断裂</td><td>双知识库（MiroFishDB / 用户知识库 md）互不连通，视频归档卡片前端不可见</td><td>video_to_kb.py vs workbench 知识库视图</td></tr>
+    <tr><td>2</td><td><span class="tag p1">P1</span></td><td>安全</td><td>明文抖音 cookie + DeepSeek Key 位于云同步目录且无忽略规则</td><td>config/douyin_cookie.txt, deepseek_key.txt</td></tr>
+    <tr><td>3</td><td><span class="tag p1">P1</span></td><td>安全</td><td>/api/knowledge/extract-archive 缺 localhost 守卫 → SSRF + 知识库污染</td><td>guide_server.py:1154</td></tr>
+    <tr><td>4</td><td><span class="tag p2">P2</span></td><td>安全</td><td>open_local_file 路径穿越（未校验仍位于 BASE_DIR 内）</td><td>guide_server.py:299</td></tr>
+    <tr><td>5</td><td><span class="tag p2">P2</span></td><td>性能</td><td>单线程服务器，慢请求（chat/video/run-tests）阻塞全局</td><td>guide_server.py:main()</td></tr>
+    <tr><td>6</td><td><span class="tag p2">P2</span></td><td>可靠</td><td>JSON 存储无并发锁，损坏时静默回退空库丢数据</td><td>mirofish_db.py / predictions.json</td></tr>
+    <tr><td>7</td><td><span class="tag p2">P2</span></td><td>安全</td><td>多个写接口无请求体大小上限</td><td>guide_server.py add/extract-archive/memory/route</td></tr>
+    <tr><td>8</td><td><span class="tag p2">P2</span></td><td>数据流</td><td>/api/chat 每次对话自动写预测记录，无去重/上限</td><td>guide_server.py:936</td></tr>
+    <tr><td>9</td><td><span class="tag p3">P3</span></td><td>性能</td><td>log() 每次 open 文件，I/O 放大</td><td>guide_server.py:289</td></tr>
+    <tr><td>10</td><td><span class="tag p3">P3</span></td><td>可维护</td><td>硬编码 Python 路径（D:\python38 / TRAE）</td><td>guide_server.py:261</td></tr>
+    <tr><td>11</td><td><span class="tag p3">P3</span></td><td>健壮</td><td>记忆增删改用整行精确匹配，易误匹配</td><td>guide_server.py:216/232</td></tr>
+    <tr><td>12</td><td><span class="tag p3">P3</span></td><td>体验</td><td>知识库视图接口异常时展示硬编码示例而非提示</td><td>workbench.html:1040</td></tr>
+    <tr><td>13</td><td><span class="tag p3">P3</span></td><td>工程</td><td>无依赖清单 requirements.txt，复现困难</td><td>项目根</td></tr>
+    <tr><td>14</td><td><span class="tag p3">P3</span></td><td>安全</td><td>CORS * 全开，配合未守卫接口可被跨站调用</td><td>guide_server.py:_send_json</td></tr>
+    <tr><td>15</td><td><span class="tag p3">P3</span></td><td>整洁</td><td>日志/临时文件未忽略，根目录有遗留锁定文件</td><td>.nutstoreignore 缺失</td></tr>
+  </table>
+
+  <!-- ===== 7 改进方案 ===== -->
+  <h2 id="plan">⑦ 改进方案与落地路线</h2>
+  <div class="card">
+    <h3 style="margin-top:0">优先级 P0/P1（建议 1~2 天内完成）</h3>
+    <ol>
+      <li><b>统一知识库存储</b>：让 <code>/api/video/ingest</code> 在写入 markdown 库的同时，也写一条摘要卡到 MiroFishDB（或反之），并删除冗余的 <code>/api/knowledge/extract-archive</code>。前端「知识库」视图即可看到全部归档。</li>
+      <li><b>密钥移出同步目录</b>：新增 <code>.nutstoreignore</code> 排除 <code>config/douyin_cookie.txt</code>、<code>deepseek_key.txt</code>、<code>*.log</code>、<code>.uploads/</code>；并将两文件物理移动到同步目录外（如 <code>~/.jinshuiyao-secrets/</code>），修改 <code>video_extractor</code> 与 <code>ai_service</code> 的读取路径。</li>
+      <li><b>补 localhost 守卫 + URL 白名单</b>：<code>/api/knowledge/extract-archive</code> 加 <code>_is_local()</code>，并对传入 URL 校验 scheme=http/https 且 host 非内网。</li>
+    </ol>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">优先级 P2（建议 1 周内完成）</h3>
+    <ol>
+      <li><b>服务器线程化</b>：<code>main()</code> 改用 <code>ThreadingHTTPServer</code>，外部调用统一加超时。</li>
+      <li><b>原子写 + 损坏恢复</b>：所有 JSON 写路径统一走 <code>utils.safe_json</code>，加载失败时优先从 <code>.bak</code> 恢复。</li>
+      <li><b>统一请求体上限</b>：所有写接口加 <code>cl &gt; 1_000_000 → 400</code>。</li>
+      <li><b>路径穿越校验</b>：<code>open_local_file</code> 加 <code>commonpath</code> 校验。</li>
+      <li><b>预测记录限流</b>：<code>record_prediction</code> 仅记录结构性结论，加单文件条数上限（如 5000）。</li>
+    </ol>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">优先级 P3（持续打磨）</h3>
+    <ol>
+      <li>用 <code>logging</code> 模块替换 <code>log()</code> 的每次 open。</li>
+      <li>Python 路径探测改为纯 <code>shutil.which</code>/本机探测，删硬编码盘符。</li>
+      <li>记忆系统改用稳定 id 增删改，替代整行匹配。</li>
+      <li>补 <code>requirements.txt</code>，锁定 <code>requests</code> 等依赖。</li>
+      <li>收紧 CORS，按接口设置 <code>Access-Control-Allow-Origin</code>。</li>
+      <li>建立「模块调用地图」文档，标注各子系统活跃度，避免误改未串联代码。</li>
+    </ol>
+  </div>
+
+  <div class="card" style="border-color:var(--green)">
+    <h3 style="margin-top:0;color:var(--green)">✅ 验证后确认健康的部分</h3>
+    <p>除上述问题外，以下机制经实测运行正常，无需返工：门户按钮（历史 6 处断链已修复）、<code>/health</code> 健康检查、顶层异常保护、AI 记忆读写回环、视频提取并归档闭环（抖音链接实测成功）、前端内联 JS 已通过 <code>node --check</code> 语法校验。</p>
+  </div>
+
+  <p class="note">本报告基于 2026-07-19 代码快照静态审查 + 本地接口实测（19021 测试端口）。如需我直接落地上述 P0/P1 修复，可另开一轮「修复执行」任务，我会逐项改并跑 <code>py_compile</code> + <code>node --check</code> 双校验后实测。</p>
+</div>
+</body>
+</html>

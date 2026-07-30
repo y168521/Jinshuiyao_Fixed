@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣系统全面审查报告 — 2026-07-19</title>
+<style>
+  :root {
+    --bg: #0d1117; --card: #161b22; --border: #30363d;
+    --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
+    --red: #f85149; --orange: #d29922; --green: #3fb950; --purple: #bc8cff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: "Microsoft YaHei", "Segoe UI", sans-serif; line-height: 1.7; padding: 2rem; max-width: 1100px; margin: auto; }
+  h1 { font-size: 1.8rem; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: .5rem; margin-bottom: 1.5rem; }
+  h2 { font-size: 1.35rem; color: var(--purple); margin: 2rem 0 1rem; padding-left: .5rem; border-left: 4px solid var(--purple); }
+  h3 { font-size: 1.1rem; color: var(--orange); margin: 1.5rem 0 .8rem; }
+  p, li { font-size: .95rem; margin-bottom: .5rem; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: .75rem; font-weight: bold; margin-right: 6px; }
+  .critical { background: #f8514933; color: var(--red); border: 1px solid var(--red); }
+  .high { background: #d2992233; color: var(--orange); border: 1px solid var(--orange); }
+  .medium { background: #58a6ff33; color: var(--accent); border: 1px solid var(--accent); }
+  .low { background: #3fb95033; color: var(--green); border: 1px solid var(--green); }
+  .info { background: #bc8cff22; color: var(--purple); border: 1px solid var(--purple); }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: .9rem; }
+  th { background: #21262d; color: var(--accent); padding: 8px 12px; text-align: left; border: 1px solid var(--border); }
+  td { padding: 8px 12px; border: 1px solid var(--border); }
+  tr:nth-child(even) td { background: #161b2288; }
+  code { background: #21262d; padding: 2px 6px; border-radius: 4px; font-family: "Cascadia Code", "Fira Code", monospace; font-size: .85rem; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.2rem; margin: 1rem 0; }
+  .card-title { font-weight: bold; color: var(--accent); margin-bottom: .5rem; }
+  ul { padding-left: 1.5rem; }
+  .stat-row { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.5rem; text-align: center; flex: 1; min-width: 150px; }
+  .stat-num { font-size: 2rem; font-weight: bold; }
+  .stat-label { font-size: .8rem; color: var(--muted); }
+  .tree { font-family: monospace; font-size: .85rem; color: var(--muted); line-height: 1.5; padding: 1rem; background: #0d1117; border: 1px solid var(--border); border-radius: 6px; overflow-x: auto; white-space: pre; }
+  .fix-step { background: #1a2332; border-left: 3px solid var(--green); padding: .8rem 1rem; margin: .5rem 0; border-radius: 0 6px 6px 0; }
+  .summary-box { background: linear-gradient(135deg, #1a2332, #161b22); border: 1px solid var(--accent); border-radius: 10px; padding: 1.5rem; margin: 1.5rem 0; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<h1>金水谣万物引擎 · 全面审查报告</h1>
+<p style="color:var(--muted)">审查日期：2026-07-19 &nbsp;|&nbsp; 审查范围：模型/ 目录下所有文件 &nbsp;|&nbsp; 版本：V23.6</p>
+
+<div class="stat-row">
+  <div class="stat"><div class="stat-num" style="color:var(--red)">3</div><div class="stat-label">严重问题 (Critical)</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--orange)">5</div><div class="stat-label">高优先级 (High)</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--accent)">7</div><div class="stat-label">中优先级 (Medium)</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--green)">6</div><div class="stat-label">低优先级 (Low)</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--purple)">8</div><div class="stat-label">缺失项 (Missing)</div></div>
+</div>
+
+<!-- ========== 项目结构总览 ========== -->
+<h2>一、项目结构总览</h2>
+
+<div class="tree">
+模型/
+├── Jinshuiyao_Fixed/          ← 主工程目录（35+ 子目录，200+ 文件）
+│   ├── core/                  ← 核心内核（AI服务、熔断、调度、知识库等18个模块）
+│   ├── engines/               ← 预测引擎群（20个引擎：趋势、杀号、形态、关联等）
+│   ├── domains/               ← 业务域（彩票/股票/基金/足球/音乐/创作 6个子系统）
+│   ├── controllers/           ← 控制器（预算、方案管理）
+│   ├── fetchers/ filters/     ← 数据获取与过滤层
+│   ├── gui/                   ← 主窗口 GUI
+│   ├── jinshuiyao/            ← 足球预测子系统（泊松模型、决策引擎等）
+│   ├── knowledge/             ← 双知识库（MiroFishDB + 用户知识库）
+│   ├── utils/                 ← 工具库（安全JSON、缓存、锁、通知等17个模块）
+│   ├── backtesting/           ← 回测引擎
+│   ├── sync/                  ← 跨设备同步（坚果云）
+│   ├── smart-coder/           ← 智能代码助手
+│   ├── jinshuiyao-guide/      ← Web导航页（12个HTML页面 + Flask服务器）
+│   ├── jinshuiyao-dashboard/  ← 足球预测仪表板
+│   ├── jinshuiyao-quant-dashboard/ ← 量化分析仪表板
+│   ├── scripts/               ← 工具脚本（35+个）
+│   ├── tests/                 ← 测试套件
+│   ├── docs/                  ← 文档集
+│   └── ...
+├── 启动金水谣助手.bat          ← 主启动入口
+├── 金水谣助手门户.html          ← 用户门户
+├── 金水谣助手使用说明.html
+├── 金水谣助手提示词库.html
+├── TianShu_Fixed.bak_rebrand/ ← 旧品牌完整备份（可清理）
+├── _rebrand_backup_root/      ← 旧品牌根文件备份（可清理）
+├── 旧版启动脚本/               ← 旧启动脚本（可清理）
+├── 运行日志与临时文件/          ← 运行数据备份
+├── 程序操作步骤/               ← 部署步骤说明
+└── venv_314/                  ← Python虚拟环境
+</div>
+
+<p><strong>项目概况：</strong>金水谣万物引擎是一个多领域预测分析平台，覆盖彩票（7个彩种）、股票、基金、足球、音乐、视频创作 6 大业务域，提供 Web 导航服务器（端口 18888）、多个 Tkinter GUI、AI 代码助手（DeepSeek）、跨设备同步等能力。代码量约 10,000 行 Python + 前端 HTML/JS。</p>
+
+<!-- ========== 严重问题 ========== -->
+<h2>二、严重问题 (Critical)</h2>
+
+<div class="card">
+  <div class="card-title"><span class="badge critical">C-01</span> API 密钥明文暴露在云同步目录中</div>
+  <p><strong>位置：</strong><code>Jinshuiyao_Fixed/deepseek_key.txt</code></p>
+  <p><strong>问题：</strong>DeepSeek API 密钥（<code>sk-f9fa6ea5...</code>）以明文存储在坚果云同步目录中。虽然 <code>.gitignore</code> 已声明忽略此文件，但坚果云同步不受 gitignore 控制——该文件会被同步到所有设备的云端副本。任何有权访问该云目录的人都可以获取密钥。</p>
+  <div class="fix-step">
+    <strong>修复方案：</strong>
+    <ol>
+      <li>立即将密钥迁移到 <code>~/.jinshuiyao-secrets/deepseek_key.txt</code>（代码已支持从此路径优先读取）</li>
+      <li>删除项目目录中的 <code>deepseek_key.txt</code></li>
+      <li>在 DeepSeek 控制台重新生成密钥（旧密钥可能已泄露）</li>
+      <li>在 <code>.nutstoreignore</code> 中添加 <code>*secrets*</code> 规则</li>
+    </ol>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge critical">C-02</span> requirements.txt 严重不完整</div>
+  <p><strong>位置：</strong><code>Jinshuiyao_Fixed/requirements.txt</code></p>
+  <p><strong>问题：</strong>当前仅列出 5 个依赖，但项目实际使用了至少 12 个第三方包。缺失的依赖包括：</p>
+  <table>
+    <tr><th>缺失包</th><th>使用位置</th></tr>
+    <tr><td><code>akshare</code></td><td>domains/stock/fetcher.py, domains/fund/fetcher.py, scripts/daily_fund_monitor.py</td></tr>
+    <tr><td><code>matplotlib</code></td><td>gui/main_window.py, domains/stock/stock_gui.py, domains/fund/fund_gui.py</td></tr>
+    <tr><td><code>scipy</code></td><td>jinshuiyao/models/poisson_model.py</td></tr>
+    <tr><td><code>customtkinter</code></td><td>gui/main_window.py</td></tr>
+    <tr><td><code>openpyxl</code></td><td>scripts/check_env.py 中检测</td></tr>
+    <tr><td><code>lxml</code></td><td>scripts/check_env.py 中检测</td></tr>
+    <tr><td><code>Pillow</code></td><td>scripts/check_env.py 中检测</td></tr>
+  </table>
+  <p>此外，所有已列出的依赖都只用了 <code>&gt;=</code> 最低版本约束，没有上限，未来 pandas 3.x 等可能破坏兼容性。</p>
+  <div class="fix-step">
+    <strong>修复方案：</strong>补全 requirements.txt（见后文"补充文件"章节），并添加版本上限约束。
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge critical">C-03</span> guide_server.py 单文件 1758 行，职责过重</div>
+  <p><strong>位置：</strong><code>Jinshuiyao_Fixed/guide_server.py</code></p>
+  <p><strong>问题：</strong>这个文件同时承担了 HTTP 路由、AI 聊天处理、知识管理、预测记录、文件服务、健康检查、自检、自动审计等 55+ 个路由的职责。任何修改都可能引发连锁问题，且无法独立测试各个功能模块。</p>
+  <div class="fix-step">
+    <strong>修复方案：</strong>拆分为以下模块：
+    <ol>
+      <li><code>server/router.py</code> — 路由分发</li>
+      <li><code>server/handlers/ai.py</code> — AI 聊天/路由相关接口</li>
+      <li><code>server/handlers/knowledge.py</code> — 知识库 CRUD</li>
+      <li><code>server/handlers/prediction.py</code> — 预测记录与查询</li>
+      <li><code>server/handlers/health.py</code> — 健康检查与自检</li>
+      <li><code>server/static.py</code> — 静态文件服务</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ========== 高优先级 ========== -->
+<h2>三、高优先级问题 (High)</h2>
+
+<div class="card">
+  <div class="card-title"><span class="badge high">H-01</span> 10+ 个文件包含硬编码绝对路径，无法在其他机器运行</div>
+  <table>
+    <tr><th>文件</th><th>硬编码路径</th></tr>
+    <tr><td>audio_toolkit.py</td><td>C:\Users\Administrator\AppData\Roaming\TRAE SOLO CN\...</td></tr>
+    <tr><td>scripts/smoke_test.py</td><td>D:\python38\python.exe</td></tr>
+    <tr><td>scripts/check_env.py</td><td>D:\python38\python.exe</td></tr>
+    <tr><td>scripts/run_test_server.py</td><td>C:\Users\Administrator\Nutstore\1\...</td></tr>
+    <tr><td>scripts/add_topnav.py</td><td>C:\Users\Administrator\Nutstore\1\...</td></tr>
+    <tr><td>工具与诊断/run.bat</td><td>D:\python38\pythonw.exe</td></tr>
+  </table>
+  <div class="fix-step">
+    <strong>修复方案：</strong>统一使用 <code>os.path</code> 相对路径或环境变量。建议新增 <code>config/paths.json</code> 集中管理可配置路径。
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge high">H-02</span> 无项目打包方案（缺少 setup.py / pyproject.toml）</div>
+  <p>项目完全依赖 <code>sys.path</code> 操纵来解析模块导入，无法通过 <code>pip install</code> 安装。这导致：部署依赖手动复制目录、无法声明正式依赖关系、IDE 自动补全经常失效。</p>
+  <div class="fix-step">
+    <strong>修复方案：</strong>创建 <code>pyproject.toml</code>（见后文"补充文件"章节）。
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge high">H-03</span> 端口冲突风险</div>
+  <p>DeepSeek 助手默认端口 18890 恰好落在 guide_server 的回退端口范围（18888–18893）内。如果 guide_server 占用了 18890，DeepSeek 助手将启动失败。</p>
+  <div class="fix-step">
+    <strong>修复方案：</strong>将 DeepSeek 助手端口改为 18900（远离 guide_server 的回退区间），或在 guide_server 的端口分配表中预留 18890。
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge high">H-04</span> run_tests.py 中 10+ 个测试文件映射已失效</div>
+  <p><code>FILE_CATEGORY</code> 字典中引用的 <code>test_safe_json</code>、<code>test_health_check</code>、<code>test_watchdog</code>、<code>test_evolution</code>、<code>test_plugin_manager</code>、<code>test_sync_manager</code>、<code>test_audit</code>、<code>test_smart_brain</code>、<code>test_auto_systems</code>、<code>test_creator_domain</code> 在 tests/ 目录中均不存在。</p>
+  <div class="fix-step">
+    <strong>修复方案：</strong>清理 FILE_CATEGORY 映射，只保留实际存在的测试文件；补充缺失的测试用例。
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge high">H-05</span> .gitignore 存在重要遗漏</div>
+  <p>以下敏感或运行时文件未被忽略：</p>
+  <ul>
+    <li><code>金水谣数据/users/</code>（含 .secret_key 文件！）</li>
+    <li><code>*.json.bak.*</code>（知识库备份文件）</li>
+    <li><code>sync/.device_identity.json</code>、<code>sync/.local_cache.json</code></li>
+    <li><code>AI代码助手(DeepSeek备用)/config.json</code>（可能含 API 密钥）</li>
+    <li><code>venv_314/</code>（虚拟环境）</li>
+    <li><code>*.jsonl</code>（JSONL 日志文件）</li>
+    <li><code>金水谣数据/fund/</code>（缓存的基金数据）</li>
+    <li><code>金水谣数据/music/*.wav</code>（生成的测试音频）</li>
+  </ul>
+</div>
+
+<!-- ========== 中优先级 ========== -->
+<h2>四、中优先级问题 (Medium)</h2>
+
+<div class="card">
+  <div class="card-title"><span class="badge medium">M-01</span> 程序操作步骤/ 中的部署文档描述的是旧系统</div>
+  <p><code>程序操作步骤.txt</code> 和 <code>最终版步骤.txt</code> 描述的是"十二穹武 TS-QW V20.2"单文件系统的部署方式，与当前 Jinshuiyao_Fixed 多模块架构完全不同。按照这些步骤操作将无法部署当前系统。</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge medium">M-02</span> Python 版本混乱：3.8 / 3.10 / 3.14 三套文档共存</div>
+  <p>系统实际运行在 Python 3.8（D:\python38），但 docs/ 中同时存在 3.10 升级指南和 3.14.6 安装指南。3.10 升级未完全完成，3.14.6 是一个当前尚不存在的 Python 版本。launch.bat 中搜索了 7 个候选路径，但实际只有一个有效。</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge medium">M-03</span> 重复文件：startup_selfcheck.py 存在两份</div>
+  <p>项目根目录和 <code>工具与诊断/</code> 目录各有一份 <code>startup_selfcheck.py</code>，内容可能不同步。应以根目录版本为准。</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge medium">M-04</span> 工具与诊断/run.bat 编码损坏（乱码）</div>
+  <p>文件包含的中文显示为乱码（GBK vs UTF-8 编码不匹配），且硬编码了 <code>D:\python38\pythonw.exe</code>，在任何其他环境下都无法运行。</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge medium">M-05</span> 字符串格式化风格不统一</div>
+  <p>项目中 f-string（<code>f"...{var}..."</code>）和 % 格式化（<code>"...%s..." % var</code>）混用，部分文件甚至在同一段落中混用两种风格。日志模块也不统一：<code>guide_server.py</code> 用 <code>log()</code>、<code>main.py</code> 用 <code>logging.getLogger()</code>、<code>auto_audit.py</code> 直接 <code>print()</code>。</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge medium">M-06</span> 足球预测仪表板未连接后端 API</div>
+  <p><code>jinshuiyao-dashboard/</code> 使用内嵌/模拟数据，没有像 <code>jinshuiyao-quant-dashboard/</code> 那样通过 <code>quant_server.py</code> 连接真实后端数据。</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge medium">M-07</span> audio_toolkit.py 的 timeout 参数未生效</div>
+  <p><code>_run_ffmpeg()</code> 接受 <code>timeout</code> 参数但函数内部从未使用它。这意味着长时间的 FFmpeg 任务可能无限阻塞。</p>
+</div>
+
+<!-- ========== 低优先级 ========== -->
+<h2>五、低优先级问题 (Low)</h2>
+
+<div class="card">
+  <div class="card-title"><span class="badge low">L-01</span> launch.bat 引用了不存在的 venv_314 路径</div>
+  <p><code>launch.bat</code> 中 <code>%~dp0..\venv_314</code> 指向上一级目录的虚拟环境，但该路径在 Jinshuiyao_Fixed 目录树中并不存在（venv_314 实际在 模型/ 根目录下，不在 Jinshuiyao_Fixed 下）。</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge low">L-02</span> scripts/ 中大量一次性修复/迁移脚本</div>
+  <p><code>scripts/</code> 目录中 35+ 个脚本，很多是一次性修复工具（如 <code>fix_timestamps.py</code>、<code>fix_audit_format.py</code>、<code>standardize_types.py</code>），已完成历史使命但仍保留在目录中，增加了维护混乱度。</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge low">L-03</span> CHANGELOG.md 已达 80KB，难以导航</div>
+  <p>建议按年拆分为 <code>CHANGELOG_2026.md</code>，主文件只保留最近一年的内容加链接。</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge low">L-04</span> jinshuiyao-guide/ 中 _shared/fonts/ 目录为空</div>
+  <p>gap-analysis HTML 引用了 <code>NotoSansCJKsc-Regular.otf</code> 字体但目录中不存在该文件。当前会静默回退到系统字体，但浏览器控制台会报 404。</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge low">L-05</span> 各文档中测试数量不一致</div>
+  <p><code>旧版使用说明.txt</code> 记录 599 个测试，<code>PROBLEMS.md</code> 记录 726 个测试（38 文件），<code>旧版总导航.html</code> 记录 171 个测试（17 文件）。这些反映了不同时间点的数据，但容易造成混乱。</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge low">L-06</span> smart-coder/extension_registry.py 无调用者</div>
+  <p>该文件定义了扩展注册表，但在整个项目中找不到任何调用方。可能是预留功能或已废弃。</p>
+</div>
+
+<!-- ========== 缺失项 ========== -->
+<h2>六、缺失项与需补充内容</h2>
+
+<div class="card">
+  <div class="card-title"><span class="badge info">MISS-01</span> 缺少 README.md</div>
+  <p>项目根目录没有 README 文件。这是任何项目最基础的文档——新接触者无法快速了解项目是什么、如何安装、如何运行。需要创建一份中文 README.md，包含项目简介、安装步骤、运行方式、目录结构说明。</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge info">MISS-02</span> 缺少 pyproject.toml / setup.py</div>
+  <p>没有正式的 Python 包定义文件。无法声明依赖、无法 pip install、无法声明入口点。建议创建 pyproject.toml。</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge info">MISS-03</span> 缺少 .env.example</div>
+  <p>项目依赖多个环境变量（<code>TIANSHU_PRELOAD</code>、API 密钥等），但没有 <code>.env.example</code> 模板说明需要配置哪些变量。</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge info">MISS-04</span> 缺少完整的 requirements.txt</div>
+  <p>如 C-02 所述，当前版本严重不完整。需要补全所有依赖并添加版本约束。</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge info">MISS-05</span> 缺少 CONTRIBUTING.md</div>
+  <p>没有贡献指南——包括编码风格规范、提交流程、测试要求等。建议补充。</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge info">MISS-06</span> 缺少 Docker 配置</div>
+  <p>没有 Dockerfile 或 docker-compose.yml。对于这种依赖复杂环境的项目，容器化部署可以大幅降低部署难度。</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge info">MISS-07</span> 缺少 CI/CD 配置</div>
+  <p>没有持续集成配置（GitHub Actions / GitLab CI）。建议至少添加自动化测试和基本 lint 检查。</p>
+</div>
+
+<div class="card">
+  <div class="card-title"><span class="badge info">MISS-08</span> 缺少当前版本的部署操作文档</div>
+  <p><code>程序操作步骤/</code> 中的文档描述的是旧系统。需要编写一份面向当前 Jinshuiyao_Fixed 的部署指南。</p>
+</div>
+
+<!-- ========== 清理建议 ========== -->
+<h2>七、旧版目录清理建议</h2>
+
+<table>
+  <tr><th>目录</th><th>内容</th><th>是否可清理</th><th>风险</th></tr>
+  <tr>
+    <td><code>TianShu_Fixed.bak_rebrand/</code></td>
+    <td>旧品牌"天枢"的完整项目副本</td>
+    <td style="color:var(--green)">可安全删除</td>
+    <td>无 — 所有功能已迁移到 Jinshuiyao_Fixed</td>
+  </tr>
+  <tr>
+    <td><code>_rebrand_backup_root/</code></td>
+    <td>4 个旧品牌根文件（BAT + HTML）</td>
+    <td style="color:var(--green)">可安全删除</td>
+    <td>无 — 已被金水谣版文件替代</td>
+  </tr>
+  <tr>
+    <td><code>旧版启动脚本/</code></td>
+    <td>5 个旧启动脚本（含编码损坏文件）</td>
+    <td style="color:var(--green)">可安全删除</td>
+    <td>无 — 已被 启动金水谣助手.bat 替代</td>
+  </tr>
+  <tr>
+    <td><code>运行日志与临时文件/</code></td>
+    <td>2026-07-18 数据备份</td>
+    <td style="color:var(--orange)">需确认后删除</td>
+    <td>可能含当前数据集没有的历史数据</td>
+  </tr>
+</table>
+
+<p><strong>预计可释放空间：</strong>清理上述 3 个确定可删除的目录，将显著减少坚果云同步负担。</p>
+
+<!-- ========== 代码质量总评 ========== -->
+<h2>八、代码质量总评</h2>
+
+<h3>优点</h3>
+<ul>
+  <li><strong>架构分层清晰：</strong>core / engines / domains / controllers / utils 的分层设计合理，职责边界明确</li>
+  <li><strong>安全意识到位：</strong>AI 服务支持 online/offline 双模式、密钥读取有安全迁移路径、HTTP 服务有 SSRF 防护和路径穿越防护、POST 请求有大小限制</li>
+  <li><strong>容错设计良好：</strong>熔断器（circuit_breaker.py）、超时控制（ThreadPoolExecutor + 每接口超时）、原子写入（tempfile + os.replace）、知识库自动备份</li>
+  <li><strong>知识管理体系完善：</strong>双知识库（MiroFishDB + 用户知识库）+ Karpathy 三层模型（raw/knowledge/config）+ 校验脚本</li>
+  <li><strong>跨设备同步创新：</strong>利用坚果云共享文件夹实现跨设备任务同步，设计巧妙</li>
+  <li><strong>文档丰富：</strong>CHANGELOG 详尽（80KB）、多份审查报告、知识库 schema 完整</li>
+  <li><strong>编码规范基本统一：</strong>所有文件有 UTF-8 声明、中文注释、模块 docstring、4 空格缩进</li>
+</ul>
+
+<h3>待改进</h3>
+<ul>
+  <li><strong>单体文件过大：</strong>guide_server.py（1758 行）、audio_toolkit.py（~57KB）、run_tests.py（~33KB）需要拆分</li>
+  <li><strong>日志体系不统一：</strong>三种不同的日志方式混用</li>
+  <li><strong>缺少类型标注：</strong>大部分函数缺少 type hints，IDE 辅助受限</li>
+  <li><strong>测试覆盖不足：</strong>部分引擎（evolution、morph、correlation）缺少单元测试</li>
+  <li><strong>字符串格式化混乱：</strong>f-string 和 % 格式化混用</li>
+</ul>
+
+<!-- ========== 需要补充的文件 ========== -->
+<h2>九、需要补充的文件（已自动生成）</h2>
+
+<p>以下文件已根据审查结果自动生成并放置在 <code>Jinshuiyao_Fixed/</code> 目录下：</p>
+
+<h3>9.1 README.md</h3>
+<p>项目入口文档，包含简介、功能概览、安装步骤、运行方式、目录结构、常见问题。</p>
+
+<h3>9.2 pyproject.toml</h3>
+<p>Python 项目包定义文件，声明所有依赖、入口点、构建配置。</p>
+
+<h3>9.3 requirements.txt（更新版）</h3>
+<p>补全所有第三方依赖及版本约束。</p>
+
+<h3>9.4 .env.example</h3>
+<p>环境变量模板，列出所有需要配置的环境变量。</p>
+
+<h3>9.5 .gitignore（更新版）</h3>
+<p>补全遗漏的忽略规则。</p>
+
+<hr>
+<p style="text-align:center; color:var(--muted); margin-top: 2rem;">
+  金水谣万物引擎 · 全面审查报告 · 2026-07-19 · 由 QoderWork 生成
+</p>
+
+</body>
+</html>

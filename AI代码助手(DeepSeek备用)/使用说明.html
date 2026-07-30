@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeepSeek 备用代码助手 · 使用说明</title>
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+       background:#f4f6fb;color:#1f2733;line-height:1.7;}
+  .wrap{max-width:860px;margin:0 auto;padding:28px 18px 70px;}
+  h1{font-size:23px;margin:0 0 6px;}
+  .lead{color:#6b7785;font-size:14px;margin-bottom:22px;}
+  .card{background:#fff;border:1px solid #e6eaf0;border-radius:12px;padding:18px 20px;
+        margin-bottom:18px;box-shadow:0 1px 3px rgba(20,40,80,.04);}
+  .card h2{font-size:16px;margin:0 0 12px;display:flex;align-items:center;gap:10px;}
+  .num{width:26px;height:26px;flex:0 0 26px;border-radius:50%;background:#2f6bff;color:#fff;
+       display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}
+  .step{border-left:3px solid #e0e8f8;padding:4px 0 4px 16px;margin:10px 0;}
+  .step b{color:#2f4a7a;}
+  .mock{border:1px dashed #c8d2e2;background:#fbfcfe;border-radius:10px;padding:14px 16px;margin:12px 0;}
+  .mock .bar{display:flex;gap:8px;align-items:center;}
+  .mock .k{width:70%;height:30px;border:1px solid #d4dae3;border-radius:7px;background:#fff;display:inline-block;}
+  .mock .btn{height:30px;padding:0 14px;border-radius:7px;background:#2f6bff;color:#fff;
+             display:inline-flex;align-items:center;font-size:12px;font-weight:600;}
+  .mock .pill{font-size:11px;padding:3px 9px;border-radius:999px;background:#eaf1ff;color:#2f6bff;}
+  .mock .pill.bad{background:#fdeaea;color:#d23b3b;}
+  .mock textarea{width:100%;min-height:90px;border:1px solid #d4dae3;border-radius:8px;
+                 margin-top:8px;background:#fff;font-family:Consolas,monospace;font-size:12px;padding:8px;}
+  .tag{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;
+       background:#eaf7ef;color:#1a8a4a;margin-right:6px;}
+  .tag.warn{background:#fff4e0;color:#b8860b;}
+  .tag.err{background:#fdeaea;color:#d23b3b;}
+  .tip{background:#fff8e6;border:1px solid #f3e3b3;border-radius:8px;padding:10px 14px;
+       font-size:13px;color:#7a5b00;margin:10px 0;}
+  .code{background:#0f1622;color:#e6edf3;padding:10px 12px;border-radius:8px;font-size:12.5px;
+        font-family:Consolas,monospace;overflow:auto;white-space:pre-wrap;word-break:break-all;}
+  a{color:#2f6bff;text-decoration:none;}
+  .foot{font-size:12px;color:#8a94a3;margin-top:10px;}
+  ul{margin:8px 0;padding-left:20px;}
+  li{margin:4px 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🛟 DeepSeek 备用代码助手 · 图文使用说明</h1>
+  <div class="lead">当 TRAE、WorkBuddy 用不了时，也能靠 DeepSeek 改代码。双击即用，全程中文，专为不熟悉电脑的朋友设计。</div>
+
+  <div class="card">
+    <h2><span class="num">1</span>准备一个 DeepSeek API Key</h2>
+    <div class="step">
+      <b>这是什么：</b>相当于一把"钥匙"，让程序能请 DeepSeek 帮你改代码。第一次需要去官网免费拿一把。
+    </div>
+    <div class="step">
+      <b>怎么拿：</b>打开 <a href="https://platform.deepseek.com" target="_blank">platform.deepseek.com</a>，注册 / 登录 → 右上角「API Keys」→ 创建密钥 → 复制那串 <code>sk-...</code> 开头的文字。
+    </div>
+    <div class="mock">
+      <div class="bar"><span class="k"></span><span class="btn">保存密钥</span><span class="pill">已保存</span></div>
+      <div class="foot">提示：密钥只保存在你这台电脑上，只发给 DeepSeek，不会给别人。</div>
+    </div>
+    <div class="tip">⚠️ 密钥不要发给陌生人；本工具只在你自己的电脑上用。</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">2</span>双击启动（一步打开）</h2>
+    <div class="step">进入文件夹 <b>Jinshuiyao_Fixed → AI代码助手(DeepSeek备用)</b></div>
+    <div class="step">双击 <b>启动DeepSeek助手.bat</b>，会弹出黑窗口并自动打开浏览器。</div>
+    <div class="mock">
+      <div class="bar"><span class="btn" style="background:#2f6bff">🚀 启动DeepSeek助手.bat</span>
+        <span style="font-size:12px;color:#6b7785">→ 自动打开浏览器页面</span></div>
+    </div>
+    <div class="step">浏览器打开的地址通常是 <code>http://127.0.0.1:18890/</code>（若被占用会自动换端口，以黑窗口里显示的为准）。</div>
+    <div class="tip">黑窗口不要关，关了助手就停了。用完按 <b>Ctrl+C</b> 或关窗口即可。</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">3</span>第一次用：填写并保存密钥</h2>
+    <div class="step">在网页「第 1 步」的输入框里粘贴你的 <code>sk-...</code> 密钥，点 <b>保存密钥</b>。</div>
+    <div class="step">右侧状态变成绿色「已保存」就成功了。之后每次打开都不用再填。</div>
+    <div class="mock">
+      <div class="bar"><span class="k"></span><span class="btn">保存密钥</span><span class="pill">已保存</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">4</span>粘贴代码 + 写要求，点提交</h2>
+    <div class="step"><b>修改要求：</b>用大白话写你想干什么。例如：<i>"给这段代码加中文注释，并优化运行速度"</i>。</div>
+    <div class="step"><b>代码：</b>把代码粘进框里；或点「选择文件」直接加载本地代码文件。</div>
+    <div class="step"><b>模型：</b>默认用 <code>deepseek-chat</code>（快）；难题可换 <code>deepseek-reasoner</code>（慢但更会想）。</div>
+    <div class="step">点 <b>🚀 提交修改</b>，稍等几秒，结果出现在下方。</div>
+    <div class="mock">
+      <div class="bar"><span class="k" style="width:55%"></span><span class="btn">🚀 提交修改</span></div>
+      <textarea readonly>把这个函数改成能处理空输入的版本，并加中文注释…</textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">5</span>复制 / 下载结果</h2>
+    <div class="step">结果框里是改好的完整代码。</div>
+    <div class="step">点 <b>复制结果</b> 直接贴到你的文件里；或点 <b>下载为 .txt</b> 存成文件。</div>
+    <div class="mock">
+      <div class="bar"><span class="btn" style="background:#eef2fb;color:#2f4a7a">复制结果</span>
+        <span class="btn" style="background:#eef2fb;color:#2f4a7a">下载为 .txt</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">6</span>网络不好也不怕：待重试队列</h2>
+    <div class="step">如果提交时断网 / 超时，任务会<b>自动存进队列</b>，不会丢。</div>
+    <div class="step">网络恢复后，点「重试待处理任务」就能把积压的活一次性补跑。</div>
+    <div class="step">正常提交成功后，助手也会<b>顺手补跑</b>之前排队的任务。</div>
+    <div class="mock">
+      <div class="bar"><span class="btn" style="background:#eef2fb;color:#2f4a7a">🔄 重试待处理任务</span>
+        <span style="font-size:12px;color:#b8860b">重试 2 个，成功 2 个，剩余 0 个</span></div>
+    </div>
+    <div class="foot">背后机制：每个请求最多重试 5 次，失败间隔自动变长（1秒→2秒→4秒…），并在两个接口地址间切换，最大限度扛住网络抖动。</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">7</span>进阶：命令行方式（可不用）</h2>
+    <div class="step">熟悉命令行的朋友，可以在该文件夹里打开终端，直接跑：</div>
+    <div class="code">python deepseek_coder.py --file 你的文件.py --instruction "优化性能" --out 结果.txt</div>
+    <div class="step">加 <code>--backup</code> 会自动把原文件备份成 <code>你的文件.py.bak</code>。</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">★</span>常见问题</h2>
+    <ul>
+      <li><span class="tag err">黑窗口一闪</span>通常是没装 Python。请安装 <a href="https://www.python.org/downloads/" target="_blank">Python 3.8+</a>，安装时勾选 "Add to PATH"。</li>
+      <li><span class="tag err">提示密钥无效</span>检查 <code>sk-...</code> 是否复制完整、有无多余空格；到 DeepSeek 后台确认密钥未被删除。</li>
+      <li><span class="tag warn">一直转圈 / 超时</span>网络不稳。任务已进队列，等网络好点再点「重试待处理任务」。</li>
+      <li><span class="tag warn">浏览器没自动打开</span>手动在地址栏输入黑窗口里显示的地址（如 <code>http://127.0.0.1:18890/</code>）。</li>
+      <li><span class="tag">想换电脑用</span>把整个 <b>AI代码助手(DeepSeek备用)</b> 文件夹拷走即可，无需安装。</li>
+    </ul>
+  </div>
+
+  <div class="foot">本工具纯本地运行（127.0.0.1），无需联网安装任何包；仅在调用 DeepSeek 时才访问网络。与主项目的 TRAE / WorkBuddy 流程互不干扰。</div>
+</div>
+
+<a href="/" style="position:fixed;left:16px;bottom:16px;z-index:9999;background:#5BC0DE;color:#fff;text-decoration:none;padding:11px 18px;border-radius:12px;font-family:'Microsoft YaHei','PingFang SC',sans-serif;font-size:14px;font-weight:600;box-shadow:0 4px 14px rgba(91,192,222,.4)" target="_self">← 返回门户</a>
+
+</body>
+</html>

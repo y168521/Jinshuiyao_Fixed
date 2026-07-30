@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣万物预测引擎 · 对比全网优秀模型差距分析与补充方案</title>
+<style>
+  :root{
+    --bg:#f7f9fc; --card:#ffffff; --ink:#1f2933; --sub:#52606d;
+    --line:#e4e9f0; --brand:#2563eb; --brand2:#0e7490;
+    --ok:#0f9d58; --warn:#e8920c; --bad:#d64545; --chip:#eef2ff;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,"Microsoft YaHei","PingFang SC",sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.7;font-size:15px;}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 64px;}
+  header{border-bottom:3px solid var(--brand);padding-bottom:18px;margin-bottom:8px;}
+  h1{font-size:26px;margin:0 0 6px;color:var(--brand);}
+  h2{font-size:20px;margin:36px 0 12px;color:var(--brand2);
+     border-left:4px solid var(--brand2);padding-left:10px;}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--ink);}
+  p{margin:8px 0;color:var(--sub);}
+  .meta{color:#8a94a6;font-size:13px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(16,24,40,.04);}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:760px){.grid{grid-template-columns:1fr;}}
+  table{border-collapse:collapse;width:100%;margin:12px 0;font-size:13.5px;
+    background:var(--card);border-radius:10px;overflow:hidden;}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top;}
+  th{background:#eef3fb;color:var(--ink);font-weight:600;}
+  td code{background:var(--chip);padding:1px 6px;border-radius:5px;font-size:12.5px;color:#334155;}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;}
+  .p-high{background:#fde8e8;color:var(--bad);}
+  .p-mid{background:#fef3e2;color:var(--warn);}
+  .p-low{background:#e6f6ed;color:var(--ok);}
+  .p-done{background:#e0ecff;color:var(--brand);}
+  .note{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:14px 16px;margin:14px 0;}
+  .note b{color:#b45309;}
+  .kv{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0;}
+  .kv .k{color:#8a94a6;min-width:120px;}
+  .donebox{background:#eef6ff;border:1px solid #cfe2ff;border-radius:10px;padding:14px 16px;margin:12px 0;}
+  ul{margin:8px 0;padding-left:20px;color:var(--sub);}
+  li{margin:5px 0;}
+  .tag{font-family:ui-monospace,Menlo,Consolas,monospace;background:#f1f5f9;padding:1px 6px;border-radius:4px;color:#334155;}
+  .foot{margin-top:40px;color:#8a94a6;font-size:12.5px;border-top:1px solid var(--line);padding-top:14px;}
+  a{color:var(--brand);text-decoration:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>金水谣万物预测引擎 · 对比全网优秀模型差距分析与补充方案</h1>
+  <div class="meta">分析日期：2026-07-18 ｜ 分析对象：<code>Jinshuiyao_Fixed</code>（约 67,000 行 Python，6 大预测域）｜ 参照基准：2026 年生产级时序/预测系统 SOTA</div>
+</header>
+
+<div class="card">
+  <b>结论速览：</b>金水谣的在「工程治理」（多域编排、自愈启动、审计、监控、知识库、726 测试）上已相当成熟；
+  但在「建模方法论」上与 2026 年全网优秀模型存在代差——它仍以<strong>手工启发式 + 遗传规则进化</strong>为主，
+  缺少<strong>预训练时序基础模型、校准后的不确定性量化、概念漂移检测、集成/堆叠、特征仓库、AutoML、MLOps</strong>等能力。
+  本轮已补齐两块最关键的缺口（<span class="pill p-done">已补</span> 共形不确定性 + 概念漂移检测），并给出优先级路线图。
+</div>
+
+<!-- ============================ 1 ============================ -->
+<h2>一、金水谣模型现状速览（我们实际有什么）</h2>
+<p>通过逐文件审查 <code>engines/</code>、<code>domains/</code>、<code>jinshuiyao/</code> 与 <code>core/</code>，金水谣的「预测模型」构成如下：</p>
+<table>
+  <tr><th>能力</th><th>实现位置</th><th>性质</th></tr>
+  <tr><td>彩票预测流水线</td><td><code>engines/killer_fixed.py</code> · <code>prediction_service.py</code> · <code>format_gen.py</code></td><td>杀号/热号/赫斯特/遗漏/关联/形态 → 选号（<b>启发式规则</b>）</td></tr>
+  <tr><td>「自学习」进化</td><td><code>engines/evolution.py</code></td><td>从日志中挖掘规则、经验沉淀（<b>遗传式规则升级</b>，非模型训练）</td></tr>
+  <tr><td>股票分析</td><td><code>domains/stock/</code> · <code>TechnicalEngine</code> · <code>TrendEngine</code></td><td>技术指标 + 趋势（<b>统计/规则</b>）</td></tr>
+  <tr><td>足球赔率</td><td><code>jinshuiyao/</code>（独立 6.9k 行包）</td><td>赔率 + 泊松模型 <code>poisson_model.py</code></td></tr>
+  <tr><td>智能大脑置信</td><td><code>engines/smart_brain.py</code></td><td><code>confidence_history</code> 经验值（<b>无校准保证</b>）</td></tr>
+  <tr><td>预测验证</td><td><code>utils/prediction_verifier.py</code></td><td>命中率回测（<b>无校准曲线/Brier/CRPS</b>）</td></tr>
+  <tr><td>数据真实性</td><td><code>core/data_truth_guard.py</code></td><td>来源新鲜度/缓存（<b>非分布漂移</b>）</td></tr>
+  <tr><td>AI 通信层</td><td><code>core/ai_service.py</code></td><td>DeepSeek/Ollama 聊天封装（<b>未进入预测回路</b>）</td></tr>
+</table>
+<p class="meta">检索确认：代码库中<strong>不存在</strong> conformal / drift / ensemble / stacking / feature_store / model_registry / optuna / shap 等关键字（仅有 image-drift 等无关匹配）。模型层 <code>models/</code> 仅 149 行，数据模型未集中。</p>
+
+<!-- ============================ 2 ============================ -->
+<h2>二、2026 全网优秀模型 / 系统能力图谱</h2>
+<div class="grid">
+  <div class="card">
+    <h3>① 时序基础模型（TSFM）</h3>
+    <ul>
+      <li><b>Chronos-2</b>（Amazon, ~120M）：T5 编解码，零样本强泛化，概率预测</li>
+      <li><b>TimesFM 2.5</b>（Google, 200M）：patch 解码器，长程强</li>
+      <li><b>Moirai 2.0</b>（Salesforce, ~11M）：Any-Variate 注意力，原生多变量+协变量，校准分位</li>
+      <li><b>Time-MoE</b>（50M, MoE）、<b>Granite TTM</b>（~1M, 边缘）、<b>MOMENT</b>（多任务）、<b>Lag-Llama</b></li>
+    </ul>
+    <p class="meta">来源：tsfm.ai 2026 工具包评测、arXiv 农业预测实证（2601.06371）</p>
+  </div>
+  <div class="card">
+    <h3>② 不确定性量化（核心缺口）</h3>
+    <ul>
+      <li><b>共形预测（Conformal Prediction）</b>：分布无关、有限样本覆盖保证的预测区间</li>
+      <li>变体：Split / Normalized（异方差）/ Adaptive-Online（Gibbs &amp; Candès 2021，分布漂移下长期覆盖）</li>
+      <li>指标：经验覆盖率、MPIW、Winkler 分数、校准曲线</li>
+    </ul>
+    <p class="meta">来源：arXiv 2601.18509；Bohrium / Angelopoulos 教程</p>
+  </div>
+  <div class="card">
+    <h3>③ MLOps 与监控</h3>
+    <ul>
+      <li>模型注册表（Model Registry）、实验追踪、版本化产物</li>
+      <li>概念漂移检测：PSI、KS 检验、CUSUM 控制图</li>
+      <li>特征仓库（Feature Store）、特征自动生成/选择</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>④ LLM 智能体预测</h3>
+    <ul>
+      <li><b>Time-LLM</b>：冻结 LLM + 重编程对齐，文本/数值/上下文联合建模</li>
+      <li>Agent 循环：预测→解释→复盘，共形集大则转人工兜底</li>
+      <li>AutoML / HPO（Optuna、神经架构搜索）</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================ 3 ============================ -->
+<h2>三、差距对比矩阵</h2>
+<table>
+  <tr><th style="width:18%">能力维度</th><th style="width:34%">金水谣现状</th><th style="width:30%">全网 SOTA</th><th style="width:18%">缺口等级</th></tr>
+  <tr><td>建模范式</td><td>手工启发式 + 遗传规则进化</td><td>预训练时序基础模型（零样本）+ 深度学习</td><td><span class="pill p-high">高</span></td></tr>
+  <tr><td>不确定性量化</td><td>经验 confidence（无校准）</td><td>共形预测区间（覆盖保证）</td><td><span class="pill p-done">已补★</span></td></tr>
+  <tr><td>概念漂移检测</td><td>仅数据新鲜度 <code>data_truth_guard</code></td><td>PSI / KS / CUSUM 分布漂移监控</td><td><span class="pill p-done">已补★</span></td></tr>
+  <tr><td>集成 / 堆叠</td><td>引擎流水线（无加权组合）</td><td>Stacking / 模型池 / 非负最小二乘加权</td><td><span class="pill p-mid">中</span></td></tr>
+  <tr><td>自动特征工程</td><td>硬编码特征</td><td>特征仓库 + 自动生成/选择</td><td><span class="pill p-mid">中</span></td></tr>
+  <tr><td>AutoML / HPO</td><td>无</td><td>Optuna / 神经架构搜索</td><td><span class="pill p-mid">中</span></td></tr>
+  <tr><td>回测严谨性</td><td>基础回测（引擎+指标）</td><td>Walk-forward + Purged &amp; Embargoed CV</td><td><span class="pill p-mid">中</span></td></tr>
+  <tr><td>MLOps</td><td>无模型注册/实验追踪</td><td>模型注册表 + 实验追踪 + 版本</td><td><span class="pill p-mid">中</span></td></tr>
+  <tr><td>可解释性</td><td>无</td><td>SHAP / 注意力归因</td><td><span class="pill p-mid">中</span></td></tr>
+  <tr><td>在线 / 持续学习</td><td>规则进化（日志挖掘）</td><td>在线学习 + 漂移自适应</td><td><span class="pill p-mid">中</span></td></tr>
+  <tr><td>LLM 智能体预测</td><td><code>ai_service</code> 仅聊天封装</td><td>LLM 重编程 + 智能体预测循环</td><td><span class="pill p-mid">中</span></td></tr>
+  <tr><td>校准与诚实基线</td><td>命中率（无校准曲线）</td><td>校准曲线 + Brier/CRPS + edge 检测</td><td><span class="pill p-high">高</span></td></tr>
+</table>
+<p class="meta">★ 本轮新增模块已通过单元测试（uncertainty 8/8、drift 7/7）。其余为待办。</p>
+
+<!-- ============================ 4 ============================ -->
+<div class="note">
+  <b>⚠ 必须诚实声明的底线：彩票的随机性。</b><br>
+  双色球、福彩3D 等官方彩票开奖是<strong>独立同分布近似的随机过程</strong>。在公平机制下，<strong>没有任何模型能系统性战胜随机抽奖</strong>——
+  无论用启发式、深度学习还是时序基础模型，长期命中率都收敛到随机基线。因此：
+  <ul>
+    <li>金水谣真正的价值在<strong>工程层</strong>（多域编排、自愈、治理、审计、监控、知识库），而非「战胜赔率」。</li>
+    <li>「模型优化」应聚焦：<b>(a) 诚实的不确定性</b>（让用户知道区间有多宽）、<b>(b) 漂移/校准监控</b>、<b>(c) 对确有统计信号的域</b>（股票趋势、赛事赔率套利）做集成、<b>(d) MLOps 可复现</b>、<b>(e) LLM 智能体解释</b>。</li>
+    <li>共形模块对彩票的意义：用分布无关的方法<strong>量化「无稳定优势」的诚实基线</strong>，避免误导性的高置信。</li>
+  </ul>
+</div>
+
+<!-- ============================ 5 ============================ -->
+<h2>四、本轮已补充的两块能力</h2>
+
+<div class="donebox">
+  <h3>1. <code>utils/uncertainty.py</code> — 共形预测不确定性量化 <span class="pill p-done">已补</span></h3>
+  <p>模型无关，纯标准库（无 numpy/scipy 依赖），可在系统 Python 与 venv 双环境运行。包含：</p>
+  <ul>
+    <li><code>SplitConformal</code>：同方差，分位调整法（有限样本覆盖保证）</li>
+    <li><code>NormalizedConformal</code>：异方差，交叉拟合尺度模型（避免泄漏）</li>
+    <li><code>AdaptiveConformal</code>：在线/漂移场景，Gibbs &amp; Candès 自适应维持长期覆盖</li>
+    <li><code>ConformalClassifier</code>：分类预测集合（集合过大→触发保守/人工兜底）</li>
+    <li>指标：<code>empirical_coverage</code> / <code>mpiw</code> / <code>mean_winkler</code></li>
+  </ul>
+  <div class="kv"><span class="k">自测结果</span><span>Split 覆盖 0.83 ｜ Normalized 覆盖 1.00 ｜ Adaptive 长期误覆盖 0.138（目标 0.10）｜ 8/8 单测通过</span></div>
+</div>
+
+<div class="donebox">
+  <h3>2. <code>core/drift_detector.py</code> — 概念漂移检测器 <span class="pill p-done">已补</span></h3>
+  <p>补齐「数据真实性」之外的「分布漂移」监控。纯标准库。包含：</p>
+  <ul>
+    <li><code>population_stability_index(ref, cur)</code>：PSI（&lt;0.10 无漂移 / 0.10–0.25 中度 / &gt;0.25 重度）</li>
+    <li><code>ks_test(ref, cur)</code>：两样本 KS 检验（含渐近 p 值）</li>
+    <li><code>CUSUMDetector</code>：在线残流均值漂移控制图</li>
+    <li><code>evaluate_drift(ref, cur)</code>：汇总报告 + severity 评级</li>
+  </ul>
+  <div class="kv"><span class="k">自测结果</span><span>同分布 PSI=0.07(p=0.71, low) ｜ 偏移 PSI=6.38(p≈0, high) ｜ CUSUM 持续 +6σ 偏移 39 次告警 ｜ 7/7 单测通过</span></div>
+</div>
+<p class="meta">注：与既有 <code>cache_manager / api_compat / pipeline</code> 等模块一致，二者已通过测试、暂未接入生产路径（预留/验证态），下一步接入见路线图。</p>
+
+<!-- ============================ 5 ============================ -->
+<h2>五、优先级路线图</h2>
+
+<div class="card">
+  <h3>P0 · 已交付（本轮）</h3>
+  <ul>
+    <li><span class="pill p-done">已补</span> 共形不确定性模块 <code>utils/uncertainty.py</code></li>
+    <li><span class="pill p-done">已补</span> 概念漂移检测 <code>core/drift_detector.py</code></li>
+  </ul>
+</div>
+
+<div class="card">
+  <h3>P1 · 建议下一步（接入生产 + 补集成/MLOps）</h3>
+  <ul>
+    <li><b>接入生产路径</b>：将 <code>uncertainty</code> 接入股票域 <code>TechnicalEngine/TrendEngine</code> 产出预测区间；将 <code>drift_detector</code> 接入 <code>prediction_verifier</code> 与每日监控，漂移时推送告警（复用 <code>notifier.py</code>）。</li>
+    <li><b>集成/堆叠框架</b> <code>utils/ensemble.py</code>：对多引擎输出做 out-of-sample 非负最小二乘加权，提升确有信号域的稳健性。</li>
+    <li><b>模型注册表 + 实验追踪</b> <code>core/model_registry.py</code>：JSON 版，记录每次预测的模型版本/参数/区间/覆盖，保证可复现与审计。</li>
+    <li><b>校准与诚实基线</b>：为 verifier 增加校准曲线、Brier/CRPS、edge 检测，明确「无稳定优势」基线。</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h3>P2 · 中远期（按需、注意依赖与成本）</h3>
+  <ul>
+    <li><b>时序基础模型适配层（可选插件）</b>：以独立可选插件接入 Chronos/TimesFM（需 GPU/较重依赖），用于股票/赛事等有时序结构的域；彩票不推荐。</li>
+    <li><b>自动特征工程 / 特征仓库</b>：解耦硬编码特征。</li>
+    <li><b>AutoML / HPO</b>（Optuna，可选依赖）：超参与架构搜索。</li>
+    <li><b>LLM 智能体预测解释循环</b>：基于现有 <code>ai_service</code>，把预测+区间+漂移送入智能体生成可读解释与复盘建议。</li>
+    <li><b>回测升级</b>：walk-forward + purged &amp; embargoed CV（López de Prado），消除前视偏差。</li>
+  </ul>
+</div>
+
+<div class="note">
+  <b>建议原则：</b>不盲目堆砌「深度学习」——对彩票无意义；把投入放在<strong>诚实不确定性、漂移监控、可复现 MLOps、确有信号域的集成</strong>上，才是金水谣相对全网优秀模型最有价值的差异化补齐。
+</div>
+
+<div class="foot">
+  本报告基于 2026-07-18 对 <code>Jinshuiyao_Fixed</code> 的逐文件审查，以及公开资料（tsfm.ai 2026 工具包、arXiv:2601.06371、arXiv:2601.18509、Angelopoulos 共形预测教程）整理。
+  新增模块均通过单元测试与 <code>_self_test()</code> 自测。
+</div>
+
+</div>
+</body>
+</html>

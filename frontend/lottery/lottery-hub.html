@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 彩票分析中心</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+  :root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:24px; max-width:960px; margin:0 auto; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:20px; }
+  .back { margin-bottom:16px; }
+  .back a { color:var(--muted); font-size:13px; text-decoration:none; }
+  .back a:hover { color:var(--gold); }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media(max-width:700px){ .grid{ grid-template-columns:1fr; } body{ padding:16px; } }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; text-decoration:none; color:var(--txt); display:flex; flex-direction:column; transition:.15s; }
+  .card:hover { border-color:var(--gold); transform:translateY(-2px); }
+  .card-icon { font-size:28px; margin-bottom:6px; }
+  .card h2 { font-size:15px; margin:0 0 4px; }
+  .card p { font-size:12px; color:var(--muted); margin:0; line-height:1.5; }
+  .tag { display:inline-block; padding:1px 8px; border-radius:8px; font-size:11px; background:rgba(212,175,55,.12); color:var(--gold); margin-top:8px; align-self:flex-start; }
+  .section-title { font-size:13px; color:var(--muted); margin:20px 0 10px; border-bottom:1px solid var(--border); padding-bottom:6px; }
+</style>
+</head>
+<body>
+<div class="back"><a href="/control-center">&#8592; 返回控制中心</a></div>
+<h1>彩票分析中心</h1>
+<div class="sub">全部彩票工具汇集于此 — 工具性质，不预测中奖</div>
+
+<div class="section-title">&#128202; 核心工具</div>
+<div class="grid">
+  <a class="card" href="/lottery/dashboard">
+    <div class="card-icon">&#128200;</div>
+    <h2>仪表盘</h2>
+    <p>数据源健康监控、数学模型运算、多维参考特征 — 综合看板</p>
+    <span class="tag">数据源·模型·参考</span>
+  </a>
+  <a class="card" href="/lottery/sources-health">
+    <div class="card-icon">&#128170;</div>
+    <h2>数据源健康</h2>
+    <p>查看各数据源熔断状态和彩种数据新鲜度</p>
+    <span class="tag">健康·熔断·新鲜度</span>
+  </a>
+  <a class="card" href="/lottery/omission-heatmap">
+    <div class="card-icon">&#127777;</div>
+    <h2>遗漏热力图</h2>
+    <p>各彩种号码遗漏值可视化，冷热号一目了然</p>
+    <span class="tag">遗漏·冷热号·可视化</span>
+  </a>
+  <a class="card" href="/lottery/rotation-matrix">
+    <div class="card-icon">&#9881;</div>
+    <h2>旋转矩阵</h2>
+    <p>用最少的注数覆盖最多的号码组合</p>
+    <span class="tag">组合·缩水·覆盖</span>
+  </a>
+  <a class="card" href="/lottery/filter-panel">
+    <div class="card-icon">&#128270;</div>
+    <h2>缩水过滤</h2>
+    <p>按奇偶、大小、和值等条件过滤号码组合</p>
+    <span class="tag">筛选·条件·过滤</span>
+  </a>
+  <a class="card" href="/lottery/prize-calculator">
+    <div class="card-icon">&#128176;</div>
+    <h2>奖金计算器</h2>
+    <p>计算各玩法中奖奖金和回报率</p>
+    <span class="tag">奖金·中奖·计算</span>
+  </a>
+  <a class="card" href="/lottery/head-tail-analysis">
+    <div class="card-icon">&#128202;</div>
+    <h2>龙头凤尾分析</h2>
+    <p>分析双色球/大乐透首位和末位号码走势</p>
+    <span class="tag">首位·末位·走势</span>
+  </a>
+  <a class="card" href="/lottery/number-follow-up">
+    <div class="card-icon">&#128200;</div>
+    <h2>号码跟随分析</h2>
+    <p>某号码出现后，下一期哪些号码最常跟随出现</p>
+    <span class="tag">跟随·关联·频率</span>
+  </a>
+  <a class="card" href="/lottery/historical-same-period">
+    <div class="card-icon">&#128197;</div>
+    <h2>历史同期查询</h2>
+    <p>查看历史上同一日期的开奖结果</p>
+    <span class="tag">同期·历史·重复</span>
+  </a>
+  <a class="card" href="/lottery/ac-calculator">
+    <div class="card-icon">&#128290;</div>
+    <h2>AC值计算器</h2>
+    <p>计算号码离散度，评估选号分布合理性</p>
+    <span class="tag">AC值·离散度·分布</span>
+  </a>
+  <a class="card" href="/lottery/trend-classification">
+    <div class="card-icon">&#128202;</div>
+    <h2>012路/质合/五行</h2>
+    <p>号码分类走势分析，含012路、质合、五行属性</p>
+    <span class="tag">012路·质合·五行</span>
+  </a>
+  <a class="card" href="/lottery/omission-table">
+    <div class="card-icon">&#128203;</div>
+    <h2>遗漏表格</h2>
+    <p>交互式遗漏统计表，支持排序和筛选</p>
+    <span class="tag">遗漏·统计·排序</span>
+  </a>
+  <a class="card" href="/lottery/audit-dashboard">
+    <div class="card-icon">&#128221;</div>
+    <h2>操作留痕</h2>
+    <p>谁做了什么一目了然，自动审计日志</p>
+    <span class="tag">审计·日志·合规</span>
+  </a>
+</div>
+</body>
+</html>

@@ -1,0 +1,30 @@
+===== 演示/真实分类 (classify_demo_real) =====
+  jinshuiyao/data/matches_real.csv         -> real (期望 real) OK
+  foo_demo.json                            -> demo (期望 demo) OK
+  foo_supplemented.json                    -> demo (期望 demo) OK
+  plain.json                               -> unknown (期望 unknown) OK
+===== 活层可写性 is_live_writable (非授权→False+[G]告警) =====
+  保险层:金水谣数据/insurance/x.json                 -> False (期望 False) OK
+  副本层:金水谣数据/backups/hourly/x/y.bak           -> False (期望 False) OK
+  未授权:unauthorized/foo.txt                   -> False (期望 False) OK
+  白名单:金水谣数据/brain_state.json                 -> True (期望 True) OK
+  [G]告警已写入隔离日志: 行数=3, 含[G]=True
+===== 备份快照 + 滚动保留 (hourly=24 / daily=7) =====
+  30次快照后 _prune('hourly') 保留数=24 (期望24) OK
+  10次快照后 _prune('daily') 保留数=7 (期望7) OK
+  manifest 快照条数=31, 首条sha256长度=64, size类型=int
+===== 恢复 + sha256 校验一致 =====
+  篡改前 live='ORIGINAL_V1' | 篡改后=TAMPERED_LIVE_BAD | 恢复后 live='ORIGINAL_V1'
+  restore ok=True msg='恢复成功'
+  orig_sha=70b650c491743655... restored_sha=70b650c491743655... 一致=True
+  内容还原正确=True, ok=True=True
+===== 损坏备份 → ok=False + [G]告警（不抛异常）=====
+  损坏恢复 ok=False msg='快照完整性校验失败（sha256 不匹配或文件损坏）' (期望 False, 含'校验失败')
+  [G]告警日志总行数=4 (恢复/损坏均触发告警，未抛异常)
+===== 写租约互斥（两 holder 串行化）=====
+  A先占锁=True(期望True), B同时占同文件=False(期望False)
+  A释放后 B占锁=True(期望True)
+  释放后 claim=None=True
+===== fail-safe 终验 write_alert 不抛异常 =====
+  write_alert x2 无异常 OK
+===== 探针全部段落执行完毕 =====

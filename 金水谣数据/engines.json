@@ -1,0 +1,15 @@
+{
+  "_comment": "引擎开关配置（true=启用, false=禁用）。由GUI或API修改后自动保存。",
+  "killer": true,
+  "evolve": true,
+  "format_gen": true,
+  "smart_brain": true,
+  "morph": true,
+  "correlation": true,
+  "hurst": true,
+  "cold_tunnel": true,
+  "position_analyzer": true,
+  "miss_analyzer": true,
+  "risk_controller": true,
+  "trend_generator": true
+}

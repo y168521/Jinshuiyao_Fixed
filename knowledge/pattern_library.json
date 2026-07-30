@@ -1,0 +1,727 @@
+{
+  "patterns": [
+    {
+      "id": "PAT-001",
+      "category": "concurrency",
+      "severity": "P0",
+      "title": "共享容器读-改-写无锁",
+      "description": "多线程环境下对全局 dict/set/list 做读-改-写操作未加锁保护，导致数据丢失或状态损坏",
+      "symptoms": [
+        "数据条目丢失",
+        "字典键值不一致",
+        "间歇性 KeyError/ValueError"
+      ],
+      "code_pattern": "global_dict[key] = value  # 无锁",
+      "fix_pattern": "with _LOCK: global_dict[key] = value",
+      "references": [
+        "JS-20260722-20（经验箱→知识库同步锁）",
+        "JS-20260723-29（全局熔断器锁）"
+      ],
+      "source": "ai_decisions.md#并发读写锁",
+      "evidence": {
+        "source_count": 10,
+        "source_js": [
+          "JS-20260724-11",
+          "JS-20260724-12",
+          "JS-20260724-13",
+          "JS-20260724-14",
+          "JS-20260724-15",
+          "JS-20260724-16",
+          "JS-20260725-07",
+          "JS-20260727-15",
+          "JS-20260727-16",
+          "JS-20260727-17"
+        ],
+        "extracted_from": "ai_decisions.md"
+      },
+      "related_files": [
+        "`core/auto_knowledge.py`",
+        "`knowledge/kb_engine.py`"
+      ]
+    },
+    {
+      "id": "PAT-002",
+      "category": "concurrency",
+      "severity": "P0",
+      "title": "状态恢复缺失（try 内改状态无 finally）",
+      "description": "try 块内修改全局/实例状态（如 switch_provider），但无 finally 恢复，异常后状态损坏",
+      "symptoms": [
+        "异常后系统行为异常",
+        "provider 卡在中间状态",
+        "重复调用报错"
+      ],
+      "code_pattern": "try: self.provider = new_p  # 无 finally 恢复",
+      "fix_pattern": "old = self.provider; try: self.provider = new_p; ...; finally: self.provider = old",
+      "references": [
+        "MEMORY.md §3 并发/线程安全铁律"
+      ],
+      "source": "经验收集箱",
+      "evidence": {
+        "source_count": 10,
+        "source_js": [
+          "JS-20260724-11",
+          "JS-20260724-12",
+          "JS-20260724-13",
+          "JS-20260724-14",
+          "JS-20260724-15",
+          "JS-20260724-16",
+          "JS-20260725-07",
+          "JS-20260727-15",
+          "JS-20260727-16",
+          "JS-20260727-17"
+        ],
+        "extracted_from": "ai_decisions.md"
+      },
+      "related_files": [
+        "`core/auto_knowledge.py`"
+      ]
+    },
+    {
+      "id": "PAT-003",
+      "category": "data_integrity",
+      "severity": "P0",
+      "title": "set/dict 切片越界",
+      "description": "对 set 或 dict 使用切片或索引操作，导致 TypeError 或 KeyError",
+      "symptoms": [
+        "TypeError: 'set' object is not subscriptable",
+        "运行时崩溃"
+      ],
+      "code_pattern": "hot_nums[:keep]  # 如果 hot_nums 是 set",
+      "fix_pattern": "sorted(hot_nums)[:keep]  # 先转 list",
+      "references": [
+        "JS-20260723-35（prediction_service 曾因 set[:keep] 崩溃）"
+      ],
+      "source": "ai_decisions.md#set切片越界",
+      "evidence": {
+        "source_count": 2,
+        "source_js": [
+          "JS-20260723-29",
+          "JS-20260723-30",
+          "JS-20260723-31"
+        ],
+        "extracted_from": "ai_decisions.md"
+      },
+      "related_files": [
+        "`engines/prediction_service.py`",
+        "`engines/lottery/domain.py`"
+      ]
+    },
+    {
+      "id": "PAT-004",
+      "category": "data_integrity",
+      "severity": "P0",
+      "title": "伪造数据填充",
+      "description": "数据源全失败时用随机数/伪造数据填充，误导用户以为数据真实",
+      "symptoms": [
+        "开奖号码与官方不一致",
+        "命中率虚高（>95%）"
+      ],
+      "code_pattern": "if not real_data: return random_nums  # 伪造",
+      "fix_pattern": "if not real_data: return ERROR, []  # 明确告知失败",
+      "references": [
+        "JS-20260723-28 S2 删除假数据分支"
+      ],
+      "source": "ai_decisions.md#伪造数据",
+      "evidence": {
+        "source_count": 2,
+        "source_js": [
+          "JS-20260723-29",
+          "JS-20260723-30",
+          "JS-20260723-31"
+        ],
+        "extracted_from": "ai_decisions.md"
+      },
+      "related_files": [
+        "`engines/lottery/fetch_ssq.py`",
+        "`engines/lottery/fetch_3d.py`",
+        "`engines/lottery/fetch_dlt.py`"
+      ]
+    },
+    {
+      "id": "PAT-005",
+      "category": "security",
+      "severity": "P0",
+      "title": "裸 except 吞异常",
+      "description": "except: pass 吞掉所有异常，无法定位问题，可能隐藏安全漏洞",
+      "symptoms": [
+        "问题无法复现",
+        "日志无线索",
+        "间歇性故障"
+      ],
+      "code_pattern": "except: pass  # 裸 except",
+      "fix_pattern": "except SpecificError as e: logger.error(f'...{e}')",
+      "references": [
+        "AST-002 规则"
+      ],
+      "source": "编码规范",
+      "evidence": {
+        "source_count": 2,
+        "source_js": [
+          "JS-20260723-29",
+          "JS-20260723-34",
+          "JS-20260723-37",
+          "JS-20260723-38",
+          "JS-20260724-01",
+          "JS-20260724-02",
+          "JS-20260724-03"
+        ],
+        "extracted_from": "ai_decisions.md"
+      }
+    },
+    {
+      "id": "PAT-006",
+      "category": "security",
+      "severity": "P0",
+      "title": "硬编码密钥或用户路径",
+      "description": "密钥/路径硬编码在源码中，换机器或泄露风险",
+      "symptoms": [
+        "换电脑后报错",
+        "密钥暴露在代码中"
+      ],
+      "code_pattern": "api_key = 'sk-xxxx'  # 硬编码",
+      "fix_pattern": "api_key = get_api_key()  # 从 ~/.tianshuiyao-secrets/ 读取",
+      "references": [
+        "MEMORY.md §5 安全基线"
+      ],
+      "source": "编码规范",
+      "evidence": {
+        "source_count": 2,
+        "source_js": [
+          "JS-20260723-29",
+          "JS-20260723-34",
+          "JS-20260723-37",
+          "JS-20260723-38",
+          "JS-20260724-01",
+          "JS-20260724-02",
+          "JS-20260724-03"
+        ],
+        "extracted_from": "ai_decisions.md"
+      },
+      "related_files": [
+        "`core/ai_service.py`",
+        "`launch_jinshuiyao.py`"
+      ]
+    },
+    {
+      "id": "PAT-007",
+      "category": "security",
+      "severity": "P1",
+      "title": "SSRF 打云元数据",
+      "description": "HTTP 请求未校验目标 URL，可能被利用打云元数据端点",
+      "symptoms": [
+        "安全扫描报 SSRF 警告"
+      ],
+      "code_pattern": "requests.get(user_url)  # 未校验",
+      "fix_pattern": "if not _is_safe_http_url(user_url): return None",
+      "references": [
+        "MEMORY.md §5 _is_safe_http_url"
+      ],
+      "source": "编码规范",
+      "evidence": {
+        "source_count": 2,
+        "source_js": [
+          "JS-20260723-29",
+          "JS-20260723-34",
+          "JS-20260723-37",
+          "JS-20260723-38",
+          "JS-20260724-01",
+          "JS-20260724-02",
+          "JS-20260724-03"
+        ],
+        "extracted_from": "ai_decisions.md"
+      },
+      "related_files": [
+        "`core/video_extractor.py`",
+        "`server/handlers/ai.py`"
+      ]
+    },
+    {
+      "id": "PAT-008",
+      "category": "maintainability",
+      "severity": "P1",
+      "title": "天枢残留引用",
+      "description": "代码中引用 TianShu/Tianshuiyao/guide_server 等旧命名，新 AI 无法理解",
+      "symptoms": [
+        "import 找不到模块",
+        "变量名不一致"
+      ],
+      "code_pattern": "from TianShu_Fixed import ...",
+      "fix_pattern": "from Jinshuiyao_Fixed import ...",
+      "references": [
+        "AST-001 规则",
+        "MEMORY.md §1 项目定位"
+      ],
+      "source": "经验收集箱",
+      "evidence": {
+        "source_count": 2,
+        "source_js": [
+          "JS-20260724-05",
+          "JS-20260724-06",
+          "JS-20260724-10",
+          "JS-20260724-11",
+          "JS-20260724-12"
+        ],
+        "extracted_from": "ai_decisions.md"
+      }
+    },
+    {
+      "id": "PAT-009",
+      "category": "maintainability",
+      "severity": "P1",
+      "title": "重复代码块（同逻辑多处复制）",
+      "description": "7 彩种三套重复抓取循环（~130行），加新源须改三处",
+      "symptoms": [
+        "改一处漏两处",
+        "彩种行为不一致"
+      ],
+      "code_pattern": "def _fetch_ssq_from_sources(...): # 70行循环; def _fetch_3d_from_sources(...): # 70行循环",
+      "fix_pattern": "def _fetch_from_sources(name, sources, strategy): # 70行统一管道",
+      "references": [
+        "JS-20260723-31 S5 统一管道"
+      ],
+      "source": "ai_decisions.md#重复抓取代码",
+      "evidence": {
+        "source_count": 2,
+        "source_js": [
+          "JS-20260724-05",
+          "JS-20260724-06",
+          "JS-20260724-10",
+          "JS-20260724-11",
+          "JS-20260724-12"
+        ],
+        "extracted_from": "ai_decisions.md"
+      },
+      "related_files": [
+        "`engines/lottery/fetch_ssq.py`",
+        "`engines/lottery/fetch_3d.py`",
+        "`engines/lottery/fetch_dlt.py`"
+      ]
+    },
+    {
+      "id": "PAT-010",
+      "category": "maintainability",
+      "severity": "P1",
+      "title": "可变默认参数",
+      "description": "函数使用 list/dict/set 作为默认参数值，每次调用共享同一对象",
+      "symptoms": [
+        "函数第二次调用行为异常",
+        "默认值被上次调用修改"
+      ],
+      "code_pattern": "def f(items=[]): ...",
+      "fix_pattern": "def f(items=None): if items is None: items = []",
+      "references": [
+        "AST-004 规则"
+      ],
+      "source": "Python 最佳实践",
+      "evidence": {
+        "source_count": 2,
+        "source_js": [
+          "JS-20260724-05",
+          "JS-20260724-06",
+          "JS-20260724-10",
+          "JS-20260724-11",
+          "JS-20260724-12"
+        ],
+        "extracted_from": "ai_decisions.md"
+      }
+    },
+    {
+      "id": "PAT-011",
+      "category": "performance",
+      "severity": "P2",
+      "title": "print() 残留",
+      "triggers": [
+        "print("
+      ],
+      "description": "生产代码中残留 print() 调用，影响性能和日志管理",
+      "symptoms": [
+        "控制台输出乱",
+        "GBK 编码报错"
+      ],
+      "code_pattern": "print(f'结果: {result}')",
+      "fix_pattern": "logger.info(f'结果: {result}') 或 _safe_icon()",
+      "references": [
+        "AGENTS.md _safe_icon 铁律"
+      ],
+      "source": "编码规范",
+      "evidence": {
+        "source_count": 6,
+        "source_js": [
+          "JS-20260723-37",
+          "JS-20260723-42",
+          "JS-20260723-43",
+          "JS-20260724-11",
+          "JS-20260724-14",
+          "JS-20260724-15",
+          "JS-20260727-01",
+          "JS-20260727-05",
+          "JS-20260727-06",
+          "JS-20260727-07"
+        ],
+        "extracted_from": "ai_decisions.md"
+      }
+    },
+    {
+      "id": "PAT-012",
+      "category": "performance",
+      "severity": "P2",
+      "title": "import * 星号导入",
+      "triggers": [
+        "import *"
+      ],
+      "description": "from module import * 污染命名空间，难以追踪来源",
+      "symptoms": [
+        "NameError 源头不明",
+        "IDE 无法跳转定义"
+      ],
+      "code_pattern": "from utils import *",
+      "fix_pattern": "from utils import specific_func, specific_class",
+      "references": [
+        "AST-011 规则"
+      ],
+      "source": "Python 最佳实践",
+      "evidence": {
+        "source_count": 6,
+        "source_js": [
+          "JS-20260723-37",
+          "JS-20260723-42",
+          "JS-20260723-43",
+          "JS-20260724-11",
+          "JS-20260724-14",
+          "JS-20260724-15",
+          "JS-20260727-01",
+          "JS-20260727-05",
+          "JS-20260727-06",
+          "JS-20260727-07"
+        ],
+        "extracted_from": "ai_decisions.md"
+      }
+    },
+    {
+      "id": "PAT-013",
+      "category": "data_integrity",
+      "severity": "P1",
+      "title": "GraphRAG三元组库 sources 与 triples 失配",
+      "description": "graph_triples.json 顶层 sources 不从 triples 派生，导致 triples=N 而 sources=0",
+      "symptoms": [
+        "知识图谱统计数字不一致",
+        "三元组检索命中 0"
+      ],
+      "code_pattern": "_save_triple_store(data)  # sources 手写",
+      "fix_pattern": "_save_triple_store → 先 _recompute_sources(data) 再写入",
+      "references": [
+        "MEMORY.md §4 GraphRAG 三元组库"
+      ],
+      "source": "ai_decisions.md#三元组失配",
+      "evidence": {
+        "source_count": 2,
+        "source_js": [
+          "JS-20260723-29",
+          "JS-20260723-30",
+          "JS-20260723-31"
+        ],
+        "extracted_from": "ai_decisions.md"
+      },
+      "related_files": [
+        "`knowledge/knowledge_graph.py`",
+        "`core/auto_knowledge.py`"
+      ]
+    },
+    {
+      "id": "PAT-014",
+      "category": "concurrency",
+      "severity": "P0",
+      "title": "误用解释器导致双进程孤儿",
+      "description": "手动重启用 py-3（托管 3.13）而非 py-3.14，ensure_runtime 按解释器匹配 venv → 联网 pip install 卡死 + 孤儿进程",
+      "symptoms": [
+        "两个 server 进程同时占 18888",
+        "pip install 超时卡死"
+      ],
+      "code_pattern": "py -3 launch_jinshuiyao.py  # 错误",
+      "fix_pattern": "py -3.14 launch_jinshuiyao.py  # 或双击启动金水谣助手.bat",
+      "references": [
+        "MEMORY.md §2 启动/重启铁律"
+      ],
+      "source": "ai_decisions.md#误用解释器",
+      "evidence": {
+        "source_count": 10,
+        "source_js": [
+          "JS-20260724-11",
+          "JS-20260724-12",
+          "JS-20260724-13",
+          "JS-20260724-14",
+          "JS-20260724-15",
+          "JS-20260724-16",
+          "JS-20260725-07",
+          "JS-20260727-15",
+          "JS-20260727-16",
+          "JS-20260727-17"
+        ],
+        "extracted_from": "ai_decisions.md"
+      },
+      "related_files": [
+        "`launch_jinshuiyao.py`",
+        "`launch.bat`",
+        "`config/paths.json`"
+      ]
+    },
+    {
+      "id": "PAT-015",
+      "category": "maintainability",
+      "severity": "P1",
+      "title": "回测命中率失真（min_hit=1 虚高）",
+      "description": "旧回测 min_hit=1（3码任中1码即算命中）让随机猜达 95~100%，制造虚高命中率",
+      "symptoms": [
+        "命中率 > 95% 明显不合理",
+        "用户感觉'比之前差很多'"
+      ],
+      "code_pattern": "min_hit=1  # 3D/排列三",
+      "fix_pattern": "_evaluate_hit 直选精确+组选多重集双档; 多球种 min_hit 默认 3/快乐8=5",
+      "references": [
+        "JS-20260723-35/37 闭环"
+      ],
+      "source": "ai_decisions.md#回测失真",
+      "evidence": {
+        "source_count": 2,
+        "source_js": [
+          "JS-20260724-05",
+          "JS-20260724-06",
+          "JS-20260724-10",
+          "JS-20260724-11",
+          "JS-20260724-12"
+        ],
+        "extracted_from": "ai_decisions.md"
+      },
+      "related_files": [
+        "`engines/backtest/evaluate.py`",
+        "`engines/math_selector/__init__.py`"
+      ]
+    },
+    {
+      "id": "PAT-016",
+      "category": "concurrency",
+      "severity": "P0",
+      "title": "共享状态静默覆盖（read-modify-write race）",
+      "description": "多进程/多AI同时读-改-写同一共享对象，后写者静默覆盖先写者结果，无报错无日志。是分布式系统的经典竞态，但在AI多会话中常被误判为模型幻觉。",
+      "symptoms": [
+        "数据条目丢失但无报错",
+        "各AI日志均显示成功但最终状态错误",
+        "下游推理基于错误状态产生看似合理但错误的结论"
+      ],
+      "code_pattern": "state[key] = new_value  # 盲写，无人检查版本",
+      "fix_pattern": "采用乐观锁：每次写附带版本号，UPDATE ... WHERE version=N；写失败即重试（重读+重算+重写）",
+      "references": [
+        "ML Mastery: Handling Race Conditions in Multi-Agent Orchestration (2026)",
+        "tianpan.co: Race Conditions in Concurrent Agent Systems: The Bugs That Look Like Hallucinations (2026)",
+        "tianpan.co: When Two Agents Share a Tool (2026)",
+        "JS-20260722-20（经验箱→知识库同步锁）",
+        "PAT-001（共享容器读-改-写无锁）"
+      ],
+      "source": "web_research_2026-07-29",
+      "evidence": {
+        "source_count": 10,
+        "source_js": [
+          "JS-20260724-11",
+          "JS-20260724-12",
+          "JS-20260724-13",
+          "JS-20260724-14",
+          "JS-20260724-15",
+          "JS-20260724-16",
+          "JS-20260725-07",
+          "JS-20260727-15",
+          "JS-20260727-16",
+          "JS-20260727-17"
+        ],
+        "extracted_from": "ai_decisions.md"
+      },
+      "related_files": [
+        "`core/auto_knowledge.py`",
+        "`knowledge/kb_engine.py`",
+        "`scripts/session_coordinator.py`"
+      ]
+    },
+    {
+      "id": "PAT-017",
+      "category": "reliability",
+      "severity": "P0",
+      "title": "非幂等重试（retry 导致重复执行）",
+      "description": "API调用或工具操作在超时/失败后重试，但操作本身非幂等，导致重复扣费/重复写入/重复通知。这是AI自动化中最常被忽略的可靠性反模式。",
+      "symptoms": [
+        "同一条消息发送多次",
+        "日志显示执行次数 > 预期",
+        "幂等缺失导致下游重复处理"
+      ],
+      "code_pattern": "call_api(...)  # 超时后重试，无 idempotency_key",
+      "fix_pattern": "每个写操作附带幂等键（idempotency_key），服务端检测重复并短路。幂等键应源自操作语义（如任务UUID），而非时间戳。",
+      "references": [
+        "ML Mastery: Handling Race Conditions — Idempotent Operations",
+        "tianpan.co: When Two Agents Share a Tool — Idempotency Keys",
+        "JS-20260724-11（API 重试导致重复）"
+      ],
+      "source": "web_research_2026-07-29",
+      "evidence": {
+        "source_count": 2,
+        "source_url": [
+          "https://machinelearningmastery.com/handling-race-conditions-in-multi-agent-orchestration/",
+          "https://tianpan.co/blog/2026-05-17-two-agents-share-tool-concurrency-bugs"
+        ],
+        "extracted_from": "web_research"
+      },
+      "related_files": [
+        "`core/ai_service.py`",
+        "`server/handlers/ai.py`",
+        "`fetchers/fetcher.py`"
+      ]
+    },
+    {
+      "id": "PAT-018",
+      "category": "documentation",
+      "severity": "P1",
+      "title": "文档与代码静默漂移（doc-code drift）",
+      "description": "代码修改后，关联的文档/规范/设计决策未同步更新，导致新AI基于过期文档做出错误判断。此模式的根因是文档验证未纳入CI门禁。",
+      "symptoms": [
+        "AI引用已过时的API签名",
+        "文档描述与实际行为不符",
+        "新接手的AI按旧文档重构代码导致回归"
+      ],
+      "code_pattern": "git commit -m 'refactor X'  # 未更新 docs/X.md",
+      "fix_pattern": "纳入CI文档验证（如 cross_doc_audit.py 脚本引用检查+文档一致性检查）；参考 docassert/d-check 等工具",
+      "references": [
+        "docassert (PMO as Code): 结构化文档单元测试 + CI门禁",
+        "d-check: 文档引用网络一致性检查",
+        "DocuGardener: AI检测代码PR→自动修复文档漂移",
+        "Pituitary: 跨文档重叠/矛盾检测",
+        "本系统 `tools/cross_doc_audit.py`"
+      ],
+      "source": "web_research_2026-07-29",
+      "evidence": {
+        "source_count": 4,
+        "source_url": [
+          "https://github.com/soviar-systems/vadocs",
+          "https://github.com/c4g-john/pmo-as-code-spec",
+          "https://github.com/docugardener/docugardener",
+          "https://github.com/vladimirvalcourt/pituitary"
+        ],
+        "extracted_from": "web_research"
+      },
+      "related_files": [
+        "`tools/cross_doc_audit.py`",
+        "`tools/gate.py`",
+        "`模型/金水谣_契.md`",
+        "`模型/金水谣_录.md`"
+      ]
+    },
+    {
+      "id": "PAT-019",
+      "category": "financial",
+      "severity": "P1",
+      "title": "基金回测成本建模缺失",
+      "description": "基金回测忽略申购/赎回费会高估收益10-30%，定投模拟必须计入每笔申购费",
+      "symptoms": [
+        "回测收益率 vs 实盘差距>10%",
+        "定投模拟累计投入≠实际成本",
+        "高换手策略回测收益虚高"
+      ],
+      "code_pattern": "total_return = (final - initial) / initial  # 无费率",
+      "fix_pattern": "基金：commission_rate=0.0015(赎回); 定投：shares = amount / (nav * (1 + fee_rate))",
+      "references": [
+        "backtesting/engine.py:simulate_dca (fee_rate 参数已内置)",
+        "seed_quant_knowledge.py#回测成本建模缺失"
+      ],
+      "source": "seed_quant_knowledge.py + fund_backtest 设计评审",
+      "evidence": {
+        "source_count": 3,
+        "source_js": ["JS-20260729-05"],
+        "extracted_from": "fund_backtest.py"
+      },
+      "related_files": [
+        "`backtesting/engine.py`",
+        "`domains/fund/fund_backtest.py`",
+        "`domains/fund/domain.py`"
+      ]
+    },
+    {
+      "id": "PAT-020",
+      "category": "financial",
+      "severity": "P2",
+      "title": "多因子选股权重参数硬编码",
+      "description": "选股因子权重在代码中硬编码，修改权重需要改代码，不利于策略迭代和回测调优",
+      "symptoms": [
+        "无法快速调整因子偏好",
+        "权重修改需要重启服务"
+      ],
+      "code_pattern": "self.weights = { 'momentum': 0.25, 'quality': 0.20, ... }",
+      "fix_pattern": "权重配置化：config/factor_weights.json，支持按策略模板加载",
+      "references": [
+        "domains/stock/stock_screener.py:FACTOR_WEIGHTS",
+        "seed_quant_knowledge.py#多因子选股框架"
+      ],
+      "source": "stock_screener.py 设计 + 量化经验",
+      "evidence": {
+        "source_count": 2,
+        "extracted_from": "stock_screener.py"
+      },
+      "related_files": [
+        "`domains/stock/stock_screener.py`",
+        "`domains/stock/domain.py`"
+      ]
+    },
+    {
+      "id": "PAT-021",
+      "category": "financial",
+      "severity": "P1",
+      "title": "基金对比视图缺少风险指标",
+      "description": "基金并排对比表缺少 Alpha/Beta/信息比率等专业指标，仅展示基础收益风险数据",
+      "symptoms": [
+        "基金经理无法做超额收益归因",
+        "对比结果难以支撑专业选基决策"
+      ],
+      "code_pattern": "comparison 字段不含 alpha/beta/info_ratio",
+      "fix_pattern": "integrate FundMetrics 到 compare_funds 输出，追加 alpha/beta/tracking_error/info_ratio",
+      "references": [
+        "domains/fund/fund_metrics.py",
+        "domains/fund/domain.py:compare_funds"
+      ],
+      "source": "FundMetrics 设计 + fund_dashboard 评审",
+      "evidence": {
+        "source_count": 1,
+        "extracted_from": "fund_metrics.py"
+      },
+      "related_files": [
+        "`domains/fund/fund_metrics.py`",
+        "`domains/fund/domain.py`"
+      ]
+    },
+    {
+      "id": "PAT-022",
+      "category": "financial",
+      "severity": "P2",
+      "title": "股票选股结果缺少命中率追踪",
+      "description": "选股推荐后无自动化复盘机制，无法评估选股建议的准确性和改进方向",
+      "symptoms": [
+        "选股推荐缺乏历史效果数据",
+        "无法做因子有效性检验"
+      ],
+      "code_pattern": "screen() 输出后不复盘",
+      "fix_pattern": "screen() 结果记录到 prediction log；review() 按周期对比实际涨跌计算命中率",
+      "references": [
+        "domains/stock/domain.py:screen()",
+        "domains/stock/domain.py:review()"
+      ],
+      "source": "stock_screener.py 设计评审",
+      "evidence": {
+        "source_count": 1,
+        "extracted_from": "stock_screener.py"
+      },
+      "related_files": [
+        "`domains/stock/domain.py`",
+        "`domains/stock/stock_screener.py`"
+      ]
+    }
+  ],
+  "metadata": {
+    "updated_at": "2026-07-29T23:00:00",
+    "evidence_extracted_at": "2026-07-29T04:51:39",
+    "evidence_source_cards": 57
+  }
+}

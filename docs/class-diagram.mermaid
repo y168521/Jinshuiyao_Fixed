@@ -1,0 +1,60 @@
+classDiagram
+    %% ===== 新增：金水谣数据目录级守护（路径B，独立模块）=====
+    class JinshuiyaoDataGuard {
+        +str JINSHUIYAO_DATA_DIR
+        +list STRONG_DIRS
+        +list STRONG_FILES
+        +list EXCLUDE_PATTERNS
+        +set VITAL_SKIP
+        +bool check_jinshuiyao_data(override=False)  %% 返回是否完好
+        -bool _check_strong_dirs()
+        -bool _check_strong_files()
+        -bool _is_excluded(path)
+    }
+
+    %% ===== 既有：质量门禁（仅接入，不改既有逻辑）=====
+    class QualityGate {
+        +set EXCLUDE_DIRS
+        +list PROTECTED_VITAL_DOCS
+        +bool verify_baseline()
+        +bool check_vital_docs()        %% 守7份命门，含风险登记册/ai_decisions.md
+        +bool run_tests()
+        +int main()
+    }
+    QualityGate ..> JinshuiyaoDataGuard : 调用~check_jinshuiyao_data()
+
+    %% ===== 既有：收工门禁（每日巡检接入）=====
+    class CloseoutGate {
+        +bool check_git()
+        +bool check_coverage(today)
+        +bool check_today_card(today)
+        +bool check_startup_sync(today)
+        +bool check_commit_registration(today)
+        +bool check_color_compliance()
+        +bool check_jinshuiyao_data_gate()  %% 新增[G]，warning级
+        +int main()
+    }
+    CloseoutGate ..> JinshuiyaoDataGuard : 复用~check_jinshuiyao_data()
+
+    %% ===== 既有：会话租约锁（P1-2 复用）=====
+    class SessionCoordinator {
+        +acquire(intent, wait_secs=0)
+        +release(holder)
+        +heartbeat(holder)
+        +status()
+    }
+    note for SessionCoordinator "QUALITY_GATE.main() 已占锁(315-321/366行)\n写金水谣数据时复用同锁(P1-2)"
+
+    %% ===== 既有：管线模式（OVERRIDE 语义复用）=====
+    class PipelineMode {
+        +str _PIPELINE_MODE
+        +get_pipeline_mode()  %% NORMAL/DEGRADED/OFFLINE/OVERRIDE
+    }
+    note for PipelineMode "OVERRIDE = 门禁只警告不阻断\n(进程内变量，子进程恒为NORMAL)"
+
+    JinshuiyaoDataGuard ..> PipelineMode : 读取OVERRIDE语义(降级黄灯)
+    QualityGate ..> SessionCoordinator : 占锁防竞态
+    SessionCoordinator ..> JinshuiyaoDataGuard : 写金水谣数据前加锁(P1-2)
+
+    %% ===== 关系说明 =====
+    note "check_vital_docs 与 check_jinshuiyao_data 并存不冲突：\n前者守7份命门文档(权威)，后者守目录级更广集合，\n并显式跳过已归命门的 风险登记册.md / log/ai_decisions.md"

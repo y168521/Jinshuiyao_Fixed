@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>金水谣 · 彩票数据健康仪表盘</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: "Microsoft YaHei", sans-serif; margin: 0; background: #f5f7fa; color: #222; }
+  header { background: #1a237e; color: #fff; padding: 18px 28px; }
+  header h1 { margin: 0; font-size: 20px; }
+  header p { margin: 4px 0 0; opacity: .8; font-size: 13px; }
+  .wrap { padding: 20px 28px; }
+  .banner { margin: 0 0 18px; padding: 12px 16px; border-radius: 10px; background: #fff4e5; border: 1px solid #ffb74d; color: #663c00; font-size: 13px; line-height: 1.6; }
+  .banner b { color: #b71c1c; }
+  .kpis { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
+  .kpi { flex: 1; min-width: 130px; background: #fff; border-radius: 10px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .kpi .v { font-size: 26px; font-weight: 700; }
+  .kpi .l { font-size: 12px; color: #666; margin-top: 4px; }
+  .kpi.ok .v { color: #2e7d32; } .kpi.stale .v { color: #c62828; } .kpi.hit .v { color: #1565c0; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .card { background: #fff; border-radius: 10px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .card h3 { margin: 0 0 12px; font-size: 15px; }
+  .ctrl { margin: 18px 0 10px; }
+  select { padding: 6px 10px; font-size: 14px; border-radius: 6px; border: 1px solid #ccc; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+  th, td { border: 1px solid #e0e0e0; padding: 7px 9px; text-align: center; }
+  th { background: #eceff1; }
+  .badge { padding: 2px 8px; border-radius: 10px; font-size: 12px; color: #fff; }
+  .b-OK { background: #2e7d32; } .b-STALE { background: #c62828; } .b-WARN { background: #f9a825; }
+  .void { color: #999; text-decoration: line-through; }
+</style>
+</head>
+<body>
+<header>
+  <h1>金水谣 · 彩票数据健康仪表盘</h1>
+  <p>数据截至 <span id="gen"></span> ｜ 数据源：金水谣数据/lot_data + backtest_results（真实抓取·诚实 walk-forward 回测）</p>
+</header>
+<div class="wrap">
+  <div class="banner">
+    ⚠️ <b>命中率口径已校正（JS-20260724-01/03：7彩种全量诚实回测）</b>：当前展示的是<b>诚实严格前向回测</b>——对每期仅用其之前的历史预测，命中须<b>直选精确</b>或<b>组选全中三码</b>（3D/排列三），<b>不再使用</b>旧版「任中1码即算命中(min_hit=1)」的虚高值（旧福彩3D 100% / 排列三 95% 已作废，仅供对照见底部）。公平三位数彩票直选理论概率仅 1/1000、组选 1/120，低命中是数学必然，非策略失效。JS-20260724-03：七星彩/双色球/大乐透已修复数据日期并纳入回测，7彩种全覆盖。复式覆盖度=命中号码/开奖号码总数，衡量候选集合对开奖号码的覆盖程度。
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <div class="grid">
+    <div class="card"><h3>各彩种直选/组选命中率（诚实）</h3><canvas id="hitRate"></canvas></div>
+    <div class="card"><h3>各彩种数据条数 & 新鲜度状态</h3><canvas id="health"></canvas></div>
+  </div>
+  <div class="ctrl">
+    <label>选择彩种查看明细：</label>
+    <select id="lotSelect"></select>
+  </div>
+  <div class="card" id="detail"></div>
+  <div class="card">
+    <h3>完整体检明细</h3>
+    <table id="full"></table>
+  </div>
+  <div class="card" style="margin-top:18px;background:#fafafa;">
+    <h3>已作废的旧版虚高命中率（min_hit=1，仅对照）</h3>
+    <table id="voidTbl"></table>
+  </div>
+</div>
+<script>
+const DATA = {"generated": "2026-07-24", "lot_data_health": {"双色球": {"count": 837, "min_period": 2021001, "max_period": 2026084, "missing_date_count": 0, "date_coverage": "837/837", "first_date": "2021-01-03", "last_date": "2026-07-23", "freshness_days": 0, "number_count_set": [7], "status": "OK"}, "大乐透": {"count": 834, "min_period": 2021001, "max_period": 2026082, "missing_date_count": 0, "date_coverage": "834/834", "first_date": "2021-01-02", "last_date": "2026-07-22", "freshness_days": 1, "number_count_set": [7], "status": "OK"}, "福彩3D": {"count": 240, "min_period": 2025306, "max_period": 2026194, "missing_date_count": 0, "date_coverage": "240/240", "first_date": "2025-11-16", "last_date": "2026-07-23", "freshness_days": 0, "number_count_set": [3], "status": "OK"}, "排列三": {"count": 240, "min_period": 2025306, "max_period": 2026194, "missing_date_count": 0, "date_coverage": "240/240", "first_date": "2025-11-16", "last_date": "2026-07-23", "freshness_days": 0, "number_count_set": [3], "status": "OK"}, "七乐彩": {"count": 836, "min_period": 2021001, "max_period": 2026083, "missing_date_count": 0, "date_coverage": "836/836", "first_date": "2021-01-01", "last_date": "2026-07-22", "freshness_days": 1, "number_count_set": [7], "status": "OK"}, "七星彩": {"count": 217, "min_period": 2025018, "max_period": 2026083, "missing_date_count": 0, "date_coverage": "217/217", "first_date": "2025-02-21", "last_date": "2026-07-21", "freshness_days": 2, "number_count_set": [7], "status": "OK"}, "快乐8": {"count": 221, "min_period": 2025325, "max_period": 2026194, "missing_date_count": 0, "date_coverage": "221/221", "first_date": "2025-12-05", "last_date": "2026-07-23", "freshness_days": 0, "number_count_set": [20], "status": "OK"}}, "backtest_caliber": {"method": "walk-forward 严格前向回测：对每期仅用其之前的历史数据预测，杜绝未来信息泄漏；命中判定复用 backtesting.engine._evaluate_hit（直选精确/组选多重集/多球种按红球数分奖级）。", "honest_baseline_source": "backtest_honest_20260724_051729.json", "note": "JS-20260724-03 更新：七星彩/双色球/大乐透首次纳入（P0-3 已修复 time 字段，数据实际新鲜，旧 STALE 为过期快照误判）。平均命中率统计全部7彩种。", "avg_excludes_stale": false}, "backtest_latest": {"双色球": {"total_tests": 180, "hits": 13, "hit_rate": 0.0722, "tiers": {"3红+1蓝": 1, "3红": 11, "4红": 1}, "min_hit": 3, "window": 60, "caliber": "按红球命中数分奖级：3红=小奖门槛,4红=中奖,5红/6红=大奖。min_hit=3。", "source_file": "backtest_honest_20260724_051729.json", "honest": true}, "大乐透": {"total_tests": 180, "hits": 3, "hit_rate": 0.0167, "tiers": {"3红": 3}, "min_hit": 3, "window": 60, "caliber": "按红球命中数分奖级：3红=小奖门槛。min_hit=3。", "source_file": "backtest_honest_20260724_051729.json", "honest": true}, "福彩3D": {"total_tests": 180, "hits": 1, "hit_rate": 0.0056, "tiers": {"组选": 1}, "min_hit": 3, "window": 60, "caliber": "直选=三位全中且位序一致；组选=三个开奖号多重集匹配。min_hit=3。", "source_file": "backtest_honest_20260724_051729.json", "honest": true}, "排列三": {"total_tests": 180, "hits": 2, "hit_rate": 0.0111, "tiers": {"组选": 1, "直选": 1}, "min_hit": 3, "window": 60, "caliber": "直选=三位全中且位序一致；组选=三个开奖号多重集匹配。含1次直选精确命中。", "source_file": "backtest_honest_20260724_051729.json", "honest": true}, "七乐彩": {"total_tests": 180, "hits": 29, "hit_rate": 0.1611, "tiers": {"3红": 23, "4红": 5, "5红": 1}, "min_hit": 3, "window": 60, "caliber": "按红球命中数分奖级：3红=小奖门槛,4红/5红=中高奖。min_hit=3。", "source_file": "backtest_honest_20260724_051729.json", "honest": true}, "七星彩": {"total_tests": 180, "hits": 0, "hit_rate": 0, "tiers": {}, "min_hit": 3, "window": 60, "caliber": "直选=七位全中且位序一致；组选=七个开奖号多重集匹配。七星彩数学上极难命中。", "source_file": "backtest_honest_20260724_051729.json", "honest": true}, "快乐8": {"total_tests": 180, "hits": 15, "hit_rate": 0.0833, "tiers": {"5红": 11, "6红": 3, "7红": 1}, "min_hit": 5, "window": 60, "caliber": "按选中号交集数判奖级：5红=小奖门槛。min_hit=5。", "source_file": "backtest_honest_20260724_051729.json", "honest": true}}, "backtest_legacy_void": {"reason": "min_hit=1 口径失真：任意 1 个号码命中即算'命中'，随机猜也能 95~100%，曾导致界面'命中率很高'的错觉。已于 JS-20260724-01 作废，改以诚实 walk-forward 基线替代。", "voided_at": "2026-07-24", "values": {"福彩3D": {"hit_rate": 1, "min_hit": 1, "source_file": "backtest_v2_20260713_220742.json"}, "排列三": {"hit_rate": 0.95, "min_hit": 1, "source_file": "backtest_v2_20260713_220742.json"}}}, "avg_coverage": 0.207};
+const lh = DATA.lot_data_health, bt = DATA.backtest_latest;
+const names = Object.keys(lh);
+document.getElementById("gen").textContent = DATA.generated;
+
+function renderKpis(){
+  const totalRec = names.reduce((s,n)=>s+lh[n].count,0);
+  const ok = names.filter(n=>lh[n].status==="OK").length;
+  const stale = names.filter(n=>lh[n].status!=="OK").length;
+  // 平均命中率仅统计 hit_rate 非空的彩种（STALE 置 null 不计入）
+  const validBt = Object.values(bt).filter(v => v && v.hit_rate != null);
+  const avgHit = validBt.length ? (validBt.reduce((s,v)=>s+v.hit_rate,0)/validBt.length*100).toFixed(1) : "—";
+  const kpis = [
+    {v:names.length, l:"彩种数", c:""},
+    {v:totalRec, l:"总记录数", c:""},
+    {v:ok, l:"新鲜 OK", c:"ok"},
+    {v:stale, l:"陈旧/待修 STALE", c:"stale"},
+    {v:avgHit+"%", l:"平均命中率(7彩种诚实)", c:"hit"},
+    {v:(DATA.avg_coverage*100).toFixed(1)+"%", l:"平均复式覆盖度", c:"hit"},
+  ];
+  document.getElementById("kpis").innerHTML = kpis.map(k=>
+    `<div class="kpi ${k.c}"><div class="v">${k.v}</div><div class="l">${k.l}</div></div>`).join("");
+}
+renderKpis();
+
+const hitColors = names.map(n=>{const v=bt[n]; const r=(v&&v.hit_rate!=null)?v.hit_rate*100:0; return r>=0.6?"#2e7d32":(r>=0.3?"#f9a825":"#c62828");});
+new Chart(document.getElementById("hitRate"), {
+  type:"bar",
+  data:{labels:names, datasets:[{label:"命中率(%)", data:names.map(n=>{const v=bt[n]; return (v&&v.hit_rate!=null)?+(v.hit_rate*100).toFixed(1):null;}), backgroundColor:hitColors}]},
+  options:{indexAxis:"y", plugins:{legend:{display:false}, tooltip:{callbacks:{label:(c)=> c.raw==null?"回测无效(数据过期)":c.raw+"%"}}}, scales:{x:{beginAtZero:true, max:100}}}
+});
+let healthChart = null;
+function renderHealthChart(){
+  const stColors = names.map(n=>({OK:"#2e7d32",WARN:"#f9a825",STALE:"#c62828"}[lh[n].status]||"#888"));
+  if (healthChart) healthChart.destroy();
+  healthChart = new Chart(document.getElementById("health"), {
+    type:"bar",
+    data:{labels:names, datasets:[{label:"记录条数", data:names.map(n=>lh[n].count), backgroundColor:stColors}]},
+    options:{plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
+  });
+}
+renderHealthChart();
+
+const sel = document.getElementById("lotSelect");
+sel.innerHTML = names.map(n=>`<option value="${n}">${n}</option>`).join("");
+function tierStr(b){
+  if(!b || !b.tiers) return "—";
+  return Object.entries(b.tiers).map(([k,v])=>`${k}×${v}`).join(" ");
+}
+function showDetail(n){
+  const h=lh[n], b=bt[n];
+  const valid = b && b.hit_rate != null;
+  const rows = [
+    ["记录条数", h.count],
+    ["期号范围", `${h.min_period} ~ ${h.max_period}`],
+    ["日期覆盖", `${h.date_coverage}（缺失 ${h.missing_date_count}）`],
+    ["首期日期", h.first_date||"—"],
+    ["末期日期", h.last_date||"—"],
+    ["新鲜度", h.freshness_days==null?"无法判定(缺日期)":h.freshness_days+" 天前"],
+    ["状态", `<span class="badge b-${h.status}">${h.status}</span>`],
+    ["直选命中率(诚实)", valid?((b.hit_rate*100).toFixed(1)+"%  ("+b.hits+"/"+b.total_tests+")"):"回测无效(数据过期)"],
+    ["奖级分布", valid?tierStr(b):"—"],
+    ["命中口径", valid?(b.caliber||"—"):"—"],
+    ["最长连挂", valid?b.max_consecutive_zero:"—"],
+  ];
+  document.getElementById("detail").innerHTML =
+    `<h3>【${n}】明细</h3><table><tr>${rows.map(r=>`<th>${r[0]}</th>`).join("")}</tr><tr>${rows.map(r=>`<td>${r[1]}</td>`).join("")}</tr></table>`;
+}
+sel.onchange = e=>showDetail(e.target.value);
+showDetail(names[0]);
+
+function renderFullTable(){
+  const full = document.getElementById("full");
+  const cols = ["彩种","条数","期号范围","日期覆盖","末期","新鲜度(天)","状态","直选命中率(诚实)","奖级"];
+  let html = "<tr>"+cols.map(c=>`<th>${c}</th>`).join("")+"</tr>";
+  names.forEach(n=>{
+    const h=lh[n], b=bt[n];
+    const valid = b && b.hit_rate != null;
+    html += `<tr><td>${n}</td><td>${h.count}</td><td>${h.min_period}~${h.max_period}</td>`
+      + `<td>${h.date_coverage}</td><td>${h.last_date||"—"}</td>`
+      + `<td>${h.freshness_days==null?"—":h.freshness_days}</td>`
+      + `<td><span class="badge b-${h.status}">${h.status}</span></td>`
+      + `<td>${valid?((b.hit_rate*100).toFixed(1)+"%"):"回测无效"}</td>`
+      + `<td>${valid?tierStr(b):"—"}</td></tr>`;
+  });
+  full.innerHTML = html;
+}
+renderFullTable();
+
+// ── P1-2/P1-3 修复（JS-20260724-10）：拉后端实时健康接口，覆盖静态快照的新鲜度/状态 ──
+// 单一实时口径：/api/lottery/sources-health 按数据文件 mtime 实时算 stale；
+// 接口不可达时保留快照并明确警示"快照可能过期"，不再让静态页永远显示健康。
+(function liveRefresh(){
+  const gen = document.getElementById("gen");
+  fetch("http://localhost:18888/api/lottery/sources-health", {signal: AbortSignal.timeout(5000)})
+    .then(r => { if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+    .then(j => {
+      if (!j.ok || !Array.isArray(j.lotteries)) throw new Error(j.error||"接口返回异常");
+      j.lotteries.forEach(it => {
+        const h = lh[it.name];
+        if (!h) return;
+        h.freshness_days = it.data_age_min == null ? null : +(it.data_age_min/1440).toFixed(1);
+        h.status = it.stale ? "STALE" : "OK";
+      });
+      renderKpis(); renderHealthChart(); renderFullTable();
+      showDetail(document.getElementById("lotSelect").value || names[0]);
+      gen.innerHTML = new Date(j.generated_at*1000).toLocaleString("zh-CN")
+        + ' <span class="badge b-OK">实时</span>（新鲜度/状态来自后端，命中率为快照 ' + DATA.generated + '）';
+    })
+    .catch(e => {
+      gen.innerHTML = DATA.generated
+        + ' <span class="badge b-WARN">静态快照</span>（实时接口不可达：' + e.message + '，以下新鲜度/状态可能已过期）';
+    });
+})();
+
+// 已作废旧版对照表
+const vt = document.getElementById("voidTbl");
+const vv = DATA.backtest_legacy_void.values;
+let vh = "<tr><th>彩种</th><th>旧命中率(min_hit=1)</th><th>来源</th><th>状态</th></tr>";
+Object.entries(vv).forEach(([lot,v])=>{
+  vh += `<tr><td>${lot}</td><td class="void">${(v.hit_rate*100).toFixed(0)}%</td><td>${v.source_file}</td><td><span class="badge b-STALE">已作废</span></td></tr>`;
+});
+vh += `<tr><td colspan="4" style="text-align:left;color:#888;">作废原因：${DATA.backtest_legacy_void.reason}</td></tr>`;
+vt.innerHTML = vh;
+</script>
+</body>
+</html>
