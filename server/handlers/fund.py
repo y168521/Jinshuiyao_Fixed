@@ -269,3 +269,92 @@ def handle_status(handler, parsed):
     except Exception as e:
         log(f"[fund-status] 异常: {e}")
         handler._send_json({"ok": False, "error": str(e)}, 500)
+
+
+def _get_portfolio_manager():
+    try:
+        from domains.fund.fund_data_manager import FundDataManager
+        return FundDataManager()
+    except Exception as e:
+        log(f"[fund] FundDataManager 初始化失败: {e}")
+        return None
+
+
+def handle_portfolio_list(handler, parsed):
+    """GET /api/fund/portfolio — 获取个人持仓列表"""
+    mgr = _get_portfolio_manager()
+    if mgr is None:
+        handler._send_json({"ok": False, "error": "持仓管理器不可用"}, 503)
+        return
+    try:
+        holdings = mgr.get_holdings()
+        summary = mgr.get_portfolio_summary()
+        handler._send_json({"ok": True, "holdings": holdings, "summary": summary}, 200)
+    except Exception as e:
+        log(f"[fund-portfolio] 异常: {e}")
+        handler._send_json({"ok": False, "error": str(e)}, 500)
+
+
+def handle_portfolio_add(handler, parsed):
+    """POST /api/fund/portfolio/add — 添加持仓"""
+    params = _parse_params(handler, parsed)
+    mgr = _get_portfolio_manager()
+    if mgr is None:
+        handler._send_json({"ok": False, "error": "持仓管理器不可用"}, 503)
+        return
+    code = params.get("code", "").strip()
+    if not code:
+        handler._send_json({"ok": False, "error": "基金代码不能为空"}, 400)
+        return
+    try:
+        holding = {
+            "code": code,
+            "name": params.get("name", code),
+            "shares": _to_float(params.get("shares"), 0),
+            "cost": _to_float(params.get("cost"), 0),
+            "type": params.get("type", "混合型"),
+        }
+        ok = mgr.add_holding(holding)
+        handler._send_json({"ok": ok, "message": "添加成功" if ok else "添加失败"}, 200)
+    except Exception as e:
+        log(f"[fund-portfolio-add] 异常: {e}")
+        handler._send_json({"ok": False, "error": str(e)}, 500)
+
+
+def handle_portfolio_update(handler, parsed):
+    """POST /api/fund/portfolio/update — 更新持仓"""
+    params = _parse_params(handler, parsed)
+    mgr = _get_portfolio_manager()
+    if mgr is None:
+        handler._send_json({"ok": False, "error": "持仓管理器不可用"}, 503)
+        return
+    code = params.get("code", "").strip()
+    if not code:
+        handler._send_json({"ok": False, "error": "基金代码不能为空"}, 400)
+        return
+    try:
+        kwargs = {k: params[k] for k in ("name", "shares", "cost", "type") if k in params}
+        ok = mgr.update_holding(code, **kwargs)
+        handler._send_json({"ok": ok, "message": "更新成功" if ok else "更新失败"}, 200)
+    except Exception as e:
+        log(f"[fund-portfolio-update] 异常: {e}")
+        handler._send_json({"ok": False, "error": str(e)}, 500)
+
+
+def handle_portfolio_remove(handler, parsed):
+    """POST /api/fund/portfolio/remove — 删除持仓"""
+    params = _parse_params(handler, parsed)
+    mgr = _get_portfolio_manager()
+    if mgr is None:
+        handler._send_json({"ok": False, "error": "持仓管理器不可用"}, 503)
+        return
+    code = params.get("code", "").strip()
+    if not code:
+        handler._send_json({"ok": False, "error": "基金代码不能为空"}, 400)
+        return
+    try:
+        ok = mgr.remove_holding(code)
+        handler._send_json({"ok": ok, "message": "删除成功" if ok else "删除失败"}, 200)
+    except Exception as e:
+        log(f"[fund-portfolio-remove] 异常: {e}")
+        handler._send_json({"ok": False, "error": str(e)}, 500)

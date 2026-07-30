@@ -337,6 +337,18 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
         if parsed.path == '/api/fund/status':
             h_fund.handle_status(self, parsed)
             return
+        if parsed.path == '/api/fund/portfolio':
+            h_fund.handle_portfolio_list(self, parsed)
+            return
+        if parsed.path == '/api/fund/portfolio/add':
+            h_fund.handle_portfolio_add(self, parsed)
+            return
+        if parsed.path == '/api/fund/portfolio/update':
+            h_fund.handle_portfolio_update(self, parsed)
+            return
+        if parsed.path == '/api/fund/portfolio/remove':
+            h_fund.handle_portfolio_remove(self, parsed)
+            return
 
         # /api/backtest — 统一股基回测（type=fund|stock，默认 fund）
         if parsed.path == '/api/backtest':
@@ -521,6 +533,18 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
             return
         if parsed.path == '/api/fund/status':
             h_fund.handle_status(self, parsed)
+            return
+        if parsed.path == '/api/fund/portfolio':
+            h_fund.handle_portfolio_list(self, parsed)
+            return
+        if parsed.path == '/api/fund/portfolio/add':
+            h_fund.handle_portfolio_add(self, parsed)
+            return
+        if parsed.path == '/api/fund/portfolio/update':
+            h_fund.handle_portfolio_update(self, parsed)
+            return
+        if parsed.path == '/api/fund/portfolio/remove':
+            h_fund.handle_portfolio_remove(self, parsed)
             return
 
         # /api/filter/smart — 智能缩水过滤

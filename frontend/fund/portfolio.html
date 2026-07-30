@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 基金持仓</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+:root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim); --c-up:var(--copper); --c-down:var(--jade); }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; max-width:960px; margin:0 auto; }
+h1 { font-size:20px; margin:0 0 4px; }
+.sub { color:var(--muted); font-size:13px; margin-bottom:18px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
+.card h2 { font-size:15px; margin:0 0 12px; }
+.flex { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+select,input,button { background:var(--deep); color:var(--txt); border:1px solid var(--border); border-radius:6px; padding:5px 12px; font-size:12px; }
+input[type=number] { width:120px; }
+button { cursor:pointer; }
+button.primary { background:var(--c-up); color:var(--deep); border:none; font-weight:600; padding:5px 14px; }
+button.primary:hover { opacity:.85; }
+button.danger { background:var(--copper); color:#fff; border:none; font-weight:600; padding:5px 14px; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th { text-align:left; color:var(--muted); font-weight:400; padding:8px 6px; border-bottom:1px solid var(--border); font-size:11px; }
+td { padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.04); }
+tr:hover td { background:rgba(255,255,255,.02); }
+.summary-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; margin-bottom:14px; }
+.summary-card { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:12px; text-align:center; }
+.summary-label { font-size:11px; color:var(--muted); }
+.summary-value { font-size:20px; font-weight:700; margin-top:4px; }
+.summary-value.up { color:var(--c-up); }
+.summary-value.down { color:var(--c-down); }
+.modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.6); z-index:100; align-items:center; justify-content:center; }
+.modal-overlay.show { display:flex; }
+.modal { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; width:90%; max-width:400px; }
+.modal h3 { margin:0 0 12px; font-size:15px; }
+.form-row { margin-bottom:10px; }
+.form-row label { display:block; font-size:12px; color:var(--muted); margin-bottom:4px; }
+.form-row input, .form-row select { width:100%; }
+.btn-row { display:flex; gap:8px; justify-content:flex-end; margin-top:14px; }
+.up { color:var(--c-up); }
+.down { color:var(--c-down); }
+.muted { color:var(--muted); }
+.empty { text-align:center; padding:30px; color:var(--muted); font-size:13px; }
+@media(max-width:600px){ body{ padding:12px; } table{ font-size:12px; } th,td{ padding:6px 4px; } }
+</style>
+</head>
+<body>
+<div style="margin-bottom:10px;"><a href="/fund" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回基金分析中心</a></div>
+<h1>基金持仓管理</h1>
+<div class="sub">记录个人基金持仓 — 查看盈亏、管理定投计划、追踪交易记录</div>
+
+<div class="card">
+  <div class="flex" style="justify-content:space-between;">
+    <h2 style="margin:0;">持仓概览</h2>
+    <button class="primary" onclick="showAddModal()">+ 添加持仓</button>
+  </div>
+  <div id="summaryArea" class="summary-grid"></div>
+  <div id="status" class="muted" style="margin-top:10px;">加载中...</div>
+</div>
+
+<div class="card">
+  <h2>持仓列表</h2>
+  <div id="holdingsTableWrap"><div class="empty">暂无数据</div></div>
+</div>
+
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <h3 id="modalTitle">添加持仓</h3>
+    <div class="form-row"><label>基金名称</label><input id="fName" placeholder="如 嘉实沪深300"></div>
+    <div class="form-row"><label>基金代码</label><input id="fCode" placeholder="如 160706"></div>
+    <div class="form-row"><label>持有份额</label><input id="fShares" type="number" step="0.01" placeholder="0.00"></div>
+    <div class="form-row"><label>成本均价</label><input id="fCost" type="number" step="0.001" placeholder="0.000"></div>
+    <div class="form-row"><label>基金类型</label><select id="fType"><option value="股票型">股票型</option><option value="混合型" selected>混合型</option><option value="债券型">债券型</option><option value="指数型">指数型</option><option value="货币型">货币型</option></select></div>
+    <div class="btn-row">
+      <button onclick="closeModal()">取消</button>
+      <button class="primary" id="modalConfirm" onclick="confirmAdd()">添加</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE = window.location.origin;
+let editingCode = null;
+
+function fmtMoney(n) { if (n == null) return '—'; return '¥' + Number(n).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function fmtPct(n) { if (n == null) return '—'; const v = Number(n); return (v >= 0 ? '+' : '') + v.toFixed(2) + '%'; }
+
+async function loadPortfolio() {
+  const st = document.getElementById('status');
+  st.textContent = '加载中...';
+  try {
+    const r = await fetch(BASE + '/api/fund/portfolio');
+    const j = await r.json();
+    if (j.ok) {
+      renderSummary(j.summary || {});
+      renderHoldings(j.holdings || []);
+      st.textContent = (j.holdings || []).length + ' 只基金';
+    } else {
+      st.textContent = '加载失败';
+    }
+  } catch (e) {
+    st.textContent = '请求失败';
+  }
+}
+
+function renderSummary(s) {
+  const area = document.getElementById('summaryArea');
+  area.innerHTML = [
+    { label: '持有基金', value: (s.fund_count || 0) + ' 只' },
+    { label: '总投资', value: fmtMoney(s.total_cost) },
+    { label: '当前市值', value: fmtMoney(s.total_value), cls: s.total_value >= s.total_cost ? 'up' : 'down' },
+    { label: '总盈亏', value: fmtMoney((s.total_value || 0) - (s.total_cost || 0)), cls: (s.total_value || 0) >= (s.total_cost || 0) ? 'up' : 'down' },
+    { label: '总收益率', value: fmtPct(s.total_return), cls: s.total_return >= 0 ? 'up' : 'down' },
+  ].map(i => `<div class="summary-card"><div class="summary-label">${i.label}</div><div class="summary-value ${i.cls || ''}">${i.value}</div></div>`).join('');
+}
+
+function renderHoldings(holdings) {
+  const wrap = document.getElementById('holdingsTableWrap');
+  if (!holdings || holdings.length === 0) {
+    wrap.innerHTML = '<div class="empty">暂无持仓数据，点击右上角"添加持仓"开始记录</div>';
+    return;
+  }
+  wrap.innerHTML = `<table>
+    <thead><tr><th>基金名称</th><th>代码</th><th>类型</th><th>持有份额</th><th>成本均价</th><th>总投资</th><th>操作</th></tr></thead>
+    <tbody>${holdings.map(h => `<tr>
+      <td><strong>${h.name || h.code}</strong></td>
+      <td class="muted">${h.code || '—'}</td>
+      <td class="muted">${h.type || '—'}</td>
+      <td>${h.shares != null ? Number(h.shares).toFixed(2) : '—'}</td>
+      <td>${h.cost != null ? '¥' + Number(h.cost).toFixed(3) : '—'}</td>
+      <td>${h.shares != null && h.cost != null ? fmtMoney(h.shares * h.cost) : '—'}</td>
+      <td><button class="danger" style="padding:3px 10px;font-size:11px;" onclick="removeHolding('${h.code}')">删除</button></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function showAddModal() {
+  editingCode = null;
+  document.getElementById('modalTitle').textContent = '添加持仓';
+  document.getElementById('modalConfirm').textContent = '添加';
+  document.getElementById('fName').value = '';
+  document.getElementById('fCode').value = '';
+  document.getElementById('fShares').value = '';
+  document.getElementById('fCost').value = '';
+  document.getElementById('addModal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('addModal').classList.remove('show');
+}
+
+async function confirmAdd() {
+  const name = document.getElementById('fName').value.trim();
+  const code = document.getElementById('fCode').value.trim();
+  const shares = parseFloat(document.getElementById('fShares').value) || 0;
+  const cost = parseFloat(document.getElementById('fCost').value) || 0;
+  const type = document.getElementById('fType').value;
+  if (!name || !code) { alert('名称和代码不能为空'); return; }
+  try {
+    const r = await fetch(BASE + '/api/fund/portfolio/add', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, code, shares, cost, type })
+    });
+    const j = await r.json();
+    if (j.ok) {
+      closeModal();
+      loadPortfolio();
+    } else {
+      alert('添加失败: ' + (j.error || ''));
+    }
+  } catch (e) { alert('请求失败'); }
+}
+
+async function removeHolding(code) {
+  if (!confirm('确定删除该持仓？')) return;
+  try {
+    const r = await fetch(BASE + '/api/fund/portfolio/remove', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
+    });
+    const j = await r.json();
+    if (j.ok) loadPortfolio();
+    else alert('删除失败');
+  } catch (e) { alert('请求失败'); }
+}
+
+loadPortfolio();
+</script>
+</body>
+</html>
