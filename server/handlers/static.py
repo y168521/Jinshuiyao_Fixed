@@ -96,6 +96,7 @@ _SUBSYSTEM_ROUTES = {
     '/fund/holdings':     os.path.join(BASE_DIR, 'frontend', 'fund', 'holdings.html'),
     '/fund/screener':     os.path.join(BASE_DIR, 'frontend', 'fund', 'screener.html'),
     '/fund/detail':       os.path.join(BASE_DIR, 'frontend', 'fund', 'fund-detail.html'),
+    '/fund/dca':          os.path.join(BASE_DIR, 'frontend', 'fund', 'dca-simulator.html'),
     '/stock':             os.path.join(BASE_DIR, 'frontend', 'stock', 'stock-hub.html'),
     '/stock/dashboard':   os.path.join(BASE_DIR, 'frontend', 'stock', 'stock-dashboard.html'),
     '/football':          os.path.join(BASE_DIR, 'frontend', 'football', 'football-hub.html'),

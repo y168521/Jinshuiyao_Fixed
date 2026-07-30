@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 定投模拟器</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+:root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim); --c-up:var(--copper); --c-down:var(--jade); }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; max-width:960px; margin:0 auto; }
+h1 { font-size:20px; margin:0 0 4px; }
+.sub { color:var(--muted); font-size:13px; margin-bottom:18px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
+.card h2 { font-size:15px; margin:0 0 12px; }
+.flex { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+#chartWrap { width:100%; height:360px; border-radius:8px; }
+select,input,button { background:var(--deep); color:var(--txt); border:1px solid var(--border); border-radius:6px; padding:5px 12px; font-size:12px; }
+input[type=number] { width:100px; }
+button { cursor:pointer; }
+button.primary { background:var(--c-up); color:var(--deep); border:none; font-weight:600; padding:5px 14px; }
+button.primary:hover { opacity:.85; }
+.results-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px; margin-top:12px; }
+.result-card { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:12px; text-align:center; }
+.result-label { font-size:11px; color:var(--muted); }
+.result-value { font-size:22px; font-weight:700; margin-top:4px; }
+.result-value.up { color:var(--c-up); }
+.result-value.down { color:var(--c-down); }
+.param-row { display:flex; gap:16px; flex-wrap:wrap; align-items:center; }
+.param-row label { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; }
+.legend { display:flex; gap:16px; flex-wrap:wrap; margin:10px 0; font-size:12px; }
+.legend-item { display:flex; align-items:center; gap:6px; }
+.legend-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+.err { color:var(--copper); font-size:13px; }
+.muted { color:var(--muted); }
+@media(max-width:600px){ body{ padding:12px; } #chartWrap{ height:260px; } .param-row{ flex-direction:column; align-items:stretch; } }
+</style>
+</head>
+<body>
+<div style="margin-bottom:10px;"><a href="/fund" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回基金分析中心</a></div>
+<h1>定投模拟器</h1>
+<div class="sub">模拟基金定投效果 — 买入成本、收益曲线、微笑曲线可视化</div>
+
+<div class="card">
+  <div class="param-row">
+    <label>基金 <select id="fundSelect">
+      <option value="华夏成长">华夏成长</option>
+      <option value="嘉实沪深300" selected>嘉实沪深300</option>
+      <option value="易方达蓝筹">易方达蓝筹</option>
+      <option value="广发小盘">广发小盘</option>
+      <option value="富国天惠">富国天惠</option>
+      <option value="中欧医疗">中欧医疗</option>
+    </select></label>
+    <label>每期金额 <input type="number" id="amount" value="1000" min="100" step="100"></label>
+    <label>频率(天) <input type="number" id="every" value="30" min="5" max="90" step="5"></label>
+    <label>费率(%) <input type="number" id="feeRate" value="0.15" min="0" step="0.05" style="width:80px;"></label>
+    <button class="primary" onclick="runSimulation()">模拟</button>
+  </div>
+  <div id="status" class="muted" style="margin-top:10px;">设置参数后点击模拟</div>
+</div>
+
+<div class="card" id="resultCard" style="display:none;">
+  <h2>定投结果</h2>
+  <div class="results-grid" id="resultsGrid"></div>
+  <div class="legend" id="legend"></div>
+  <div id="chartWrap"></div>
+</div>
+
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+const BASE = window.location.origin;
+let chart = null;
+
+function fmtMoney(n) { if (n == null) return '—'; return '¥' + Number(n).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function fmtPct(n) { if (n == null) return '—'; const v = Number(n); return (v >= 0 ? '+' : '') + v.toFixed(2) + '%'; }
+
+function initChart() {
+  if (chart) chart.remove();
+  chart = LightweightCharts.createChart(document.getElementById('chartWrap'), {
+    layout: { textColor: '#7a8499', background: { type: 'solid', color: '#131a2a' } },
+    grid: { vertLines: { color: 'rgba(232,236,241,0.06)' }, horzLines: { color: 'rgba(232,236,241,0.06)' } },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+    rightPriceScale: { borderColor: 'rgba(232,236,241,0.1)' },
+    timeScale: { borderColor: 'rgba(232,236,241,0.1)', timeVisible: true },
+  });
+}
+
+async function runSimulation() {
+  const name = document.getElementById('fundSelect').value;
+  const amount = parseFloat(document.getElementById('amount').value) || 1000;
+  const every = parseInt(document.getElementById('every').value) || 30;
+  const feeRate = (parseFloat(document.getElementById('feeRate').value) || 0.15) / 100;
+  const st = document.getElementById('status');
+
+  st.textContent = '计算中...';
+  try {
+    const r = await fetch(BASE + '/api/fund/backtest', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        strategy: '定投', codes: name,
+        amount_per_period: amount, every: every, fee_rate: feeRate,
+        initial_capital: amount * 12
+      })
+    });
+    const j = await r.json();
+    if (j.ok) {
+      document.getElementById('resultCard').style.display = 'block';
+      const grid = document.getElementById('resultsGrid');
+      grid.innerHTML = Object.entries(j).filter(([k]) => k !== 'ok' && k !== 'nav_history' && k !== 'cost_history').map(([k, v]) =>
+        `<div class="result-card"><div class="result-label">${k}</div><div class="result-value${typeof v === 'number' && v < 0 ? ' down' : ' up'}">${typeof v === 'number' ? (k.includes('率') || k.includes('收益') ? fmtPct(v) : fmtMoney(v)) : v}</div></div>`
+      ).join('');
+
+      const navHist = j.nav_history || [];
+      const costHist = j.cost_history || [];
+
+      if (navHist.length > 0) {
+        initChart();
+        const now = new Date();
+        const navCandles = navHist.map((v, i) => {
+          const d = new Date(now); d.setDate(d.getDate() - (navHist.length - 1) + i);
+          return { time: d.toISOString().slice(0, 10), value: v };
+        });
+        const navLine = chart.addLineSeries({ color: '#c8755a', lineWidth: 2, title: '净值', lastValueVisible: true, priceLineVisible: false });
+        navLine.setData(navCandles);
+
+        document.getElementById('legend').innerHTML = '<span class="legend-item"><span class="legend-dot" style="background:#c8755a"></span>净值走势</span>';
+
+        if (costHist.length > 0) {
+          const costCandles = costHist.map((v, i) => {
+            const d = new Date(now); d.setDate(d.getDate() - (costHist.length - 1) + i);
+            return { time: d.toISOString().slice(0, 10), value: v };
+          });
+          const costLine = chart.addLineSeries({ color: '#c9a96e', lineWidth: 2, title: '平均成本', lastValueVisible: true, priceLineVisible: false, lineStyle: 2 });
+          costLine.setData(costCandles);
+          document.getElementById('legend').innerHTML += '<span class="legend-item"><span class="legend-dot" style="background:#c9a96e"></span>平均成本(虚线)</span>';
+        }
+        chart.timeScale().fitContent();
+      }
+      st.textContent = '模拟完成';
+    } else {
+      loadMock(name, amount, every);
+    }
+  } catch (e) { loadMock(name, amount, every); }
+}
+
+function loadMock(name, amount, every) {
+  document.getElementById('resultCard').style.display = 'block';
+  const months = 36;
+  const baseNav = 1.0;
+  const navVals = Array.from({ length: months }, (_, i) => baseNav + Math.sin(i * 0.3) * 0.15 + Math.random() * 0.05);
+  const investCount = Math.floor(months * 30 / every);
+  let totalShares = 0, totalCost = 0;
+  const costHist = [];
+  for (let i = 0; i < months; i++) {
+    if (i % Math.round(every / 30) === 0) {
+      const shares = amount / navVals[i];
+      totalShares += shares;
+      totalCost += amount;
+    }
+    costHist.push(totalShares > 0 ? totalCost / totalShares : navVals[i]);
+  }
+  const finalValue = totalShares * navVals[months - 1];
+  const returnRate = (finalValue - totalCost) / totalCost * 100;
+
+  document.getElementById('resultsGrid').innerHTML = `
+    <div class="result-card"><div class="result-label">总投资</div><div class="result-value up">${fmtMoney(totalCost)}</div></div>
+    <div class="result-card"><div class="result-label">最终市值</div><div class="result-value up">${fmtMoney(finalValue)}</div></div>
+    <div class="result-card"><div class="result-label">累计收益</div><div class="result-value ${returnRate >= 0 ? 'up' : 'down'}">${fmtMoney(finalValue - totalCost)}</div></div>
+    <div class="result-card"><div class="result-label">收益率</div><div class="result-value ${returnRate >= 0 ? 'up' : 'down'}">${fmtPct(returnRate)}</div></div>
+    <div class="result-card"><div class="result-label">总份额</div><div class="result-value up">${totalShares.toFixed(2)}</div></div>
+    <div class="result-card"><div class="result-label">平均成本</div><div class="result-value">${fmtMoney(totalCost / totalShares)}</div></div>
+  `;
+
+  initChart();
+  const now = new Date();
+  const navCandles = navVals.map((v, i) => {
+    const d = new Date(now); d.setDate(d.getDate() - (months - 1) + i * 30);
+    return { time: d.toISOString().slice(0, 10), value: v };
+  });
+  const navLine = chart.addLineSeries({ color: '#c8755a', lineWidth: 2, title: '净值', lastValueVisible: true, priceLineVisible: false });
+  navLine.setData(navCandles);
+
+  const costCandles = costHist.map((v, i) => {
+    const d = new Date(now); d.setDate(d.getDate() - (months - 1) + i * 30);
+    return { time: d.toISOString().slice(0, 10), value: v };
+  });
+  const costLine = chart.addLineSeries({ color: '#c9a96e', lineWidth: 2, title: '平均成本', lastValueVisible: true, priceLineVisible: false, lineStyle: 2 });
+  costLine.setData(costCandles);
+  chart.timeScale().fitContent();
+
+  document.getElementById('legend').innerHTML = '<span class="legend-item"><span class="legend-dot" style="background:#c8755a"></span>净值走势</span><span class="legend-item"><span class="legend-dot" style="background:#c9a96e"></span>平均成本(虚线)</span>';
+  document.getElementById('status').textContent = '模拟数据';
+}
+
+runSimulation();
+window.addEventListener('resize', () => { if (chart) chart.resize(chart.chartElement().clientWidth, 360); });
+</script>
+</body>
+</html>
