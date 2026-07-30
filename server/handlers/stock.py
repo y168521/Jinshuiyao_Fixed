@@ -156,3 +156,34 @@ def handle_factors(handler, parsed):
     except Exception as e:
         log(f"[stock-factors] 异常: {e}")
         handler._send_json({"ok": False, "error": str(e)}, 500)
+
+
+def handle_detail(handler, parsed):
+    """GET/POST /api/stock/detail — 单只股票详情（行情+技术指标+评分）"""
+    params = _parse_params(handler, parsed)
+    domain = get_stock_domain()
+    if domain is None:
+        handler._send_json({"ok": False, "error": "股票子系统不可用"}, 503)
+        return
+
+    code = params.get("code", "").strip()
+    if not code:
+        handler._send_json({"ok": False, "error": "股票代码不能为空"}, 400)
+        return
+
+    try:
+        data = domain.fetch([code])
+        if not data or not data.get(code):
+            handler._send_json({"ok": False, "error": f"未获取到 {code} 的数据"}, 404)
+            return
+
+        analysis = domain.analyze(data, [code])
+        result = {
+            "code": code,
+            "data": data.get(code, {}),
+            "analysis": analysis.get(code, {}) if analysis else {},
+        }
+        handler._send_json({"ok": True, **result}, 200)
+    except Exception as e:
+        log(f"[stock-detail] 异常: {e}")
+        handler._send_json({"ok": False, "error": str(e)}, 500)

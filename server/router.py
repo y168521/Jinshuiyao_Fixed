@@ -320,6 +320,9 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
         if parsed.path == '/api/stock/factors':
             h_stock.handle_factors(self, parsed)
             return
+        if parsed.path == '/api/stock/detail':
+            h_stock.handle_detail(self, parsed)
+            return
 
         # /api/fund/* — 基金子系统专用路由（拆分自 backtest.py）
         if parsed.path == '/api/fund/backtest':
@@ -516,6 +519,9 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
             return
         if parsed.path == '/api/stock/factors':
             h_stock.handle_factors(self, parsed)
+            return
+        if parsed.path == '/api/stock/detail':
+            h_stock.handle_detail(self, parsed)
             return
 
         # /api/fund/* — 基金子系统专用路由（POST）

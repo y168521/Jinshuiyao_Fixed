@@ -100,6 +100,7 @@ _SUBSYSTEM_ROUTES = {
     '/fund/portfolio':    os.path.join(BASE_DIR, 'frontend', 'fund', 'portfolio.html'),
     '/stock':             os.path.join(BASE_DIR, 'frontend', 'stock', 'stock-hub.html'),
     '/stock/dashboard':   os.path.join(BASE_DIR, 'frontend', 'stock', 'stock-dashboard.html'),
+    '/stock/detail':      os.path.join(BASE_DIR, 'frontend', 'stock', 'stock-detail.html'),
     '/football':          os.path.join(BASE_DIR, 'frontend', 'football', 'football-hub.html'),
     '/football/dashboard': os.path.join(BASE_DIR, 'frontend', 'football', 'dashboard.html'),
 }
