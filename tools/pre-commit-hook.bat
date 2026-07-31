@@ -42,8 +42,18 @@ if errorlevel 1 (
 )
 echo [pre-commit] OK 收工门禁通过
 
-REM 4. 操作留痕（记录本次提交）
-echo [pre-commit] 4/4 操作留痕...
+REM 4. 系统一致性检测（防复发：路由/资源/同步/链接）
+echo [pre-commit] 4/5 系统一致性检测...
+%PY% "%ROOT%\Jinshuiyao_Fixed\tools\check_consistency.py"
+if errorlevel 1 (
+    echo [pre-commit] FAIL 系统一致性检测未通过！
+    echo [pre-commit] 运行 python tools/check_consistency.py 查看详情
+    exit /b 1
+)
+echo [pre-commit] OK 系统一致性通过
+
+REM 5. 操作留痕（记录本次提交）
+echo [pre-commit] 5/5 操作留痕...
 git diff --cached --name-only > "%TEMP%\jinshuiyao_staged.txt"
 %PY% -c "import sys; sys.path.insert(0, r'%ROOT%\Jinshuiyao_Fixed'); f=open(r'%TEMP%\jinshuiyao_staged.txt'); files=[l.strip() for l in f if l.strip()]; f.close(); from tools.audit_trail import log_event; log_event('commit', 'pre-commit 自动记录', files=files)"
 echo [pre-commit] OK 留痕记录

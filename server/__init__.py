@@ -65,6 +65,21 @@ def _background_startup_tasks():
     except Exception as e:
         log(f'启动自检异常(不阻塞): {e}')
 
+    # === 系统一致性检测（防复发：路由/静态资源/git同步/门户链接/共享资源）===
+    try:
+        sys.path.insert(0, os.path.join(BASE_DIR, 'tools'))
+        from check_consistency import run_all as _run_consistency
+        _ok, _report = _run_consistency()
+        _status = '通过' if _ok else f'失败 ({sum(1 for l in _report if "[ERR]" in l)} 项)'
+        log(f'>>> [后台] 系统一致性检测: {_status}')
+        if not _ok:
+            for _l in _report:
+                if '[ERR]' in _l:
+                    log(f'  !!! 一致性: {_l}')
+            log('!!! 一致性问题已记录，建议运行 python tools/check_consistency.py 查看详情')
+    except Exception as e:
+        log(f'系统一致性检测异常(不阻塞): {e}')
+
     # === 自动模型审查 ===
     try:
         import sys as _sys
