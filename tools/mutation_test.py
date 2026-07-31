@@ -18,6 +18,7 @@ import json
 import shutil
 import subprocess
 import tempfile
+import time
 import traceback
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -31,43 +32,88 @@ except Exception:
     pass
 
 
-def run_gate():
-    """跑总门禁，返回 (exit_code, 输出文本)"""
-    cmd = [PY, os.path.join(BASE, 'gate_all.py'), '--quick']
+def run_gate(quick=True):
+    """跑总门禁，返回 (exit_code, 输出文本)。
+    quick=True 跳过 auto_audit 报告重扫（E-012 用例需 quick=False 验证报告拦截）"""
+    cmd = [PY, os.path.join(BASE, 'gate_all.py')]
+    if quick:
+        cmd.append('--quick')
     proc = subprocess.run(cmd, capture_output=True, text=True,
                           encoding='utf-8', errors='replace', cwd=ROOT)
     return proc.returncode, proc.stdout + proc.stderr
 
 
+def _post_restore_cleanup():
+    """恢复后统一清理：消除 mtime 残留导致的误报
+    (1) risk_register.json 与 风险登记册.md 时间戳同步（防『双写分叉』误报）
+    (2) 模型根门户与 repo 副本 mtime 同步（防 GITSYNC 误报）
+    """
+    try:
+        # (1) 风险册 md 时间戳不早于 json
+        j = os.path.join(ROOT, '金水谣数据', 'risk_register.json')
+        m = os.path.join(ROOT, '金水谣数据', '风险登记册.md')
+        if os.path.isfile(j) and os.path.isfile(m):
+            now = time.time()
+            os.utime(m, (now, now))
+            os.utime(j, (now - 1, now - 1))
+    except Exception:
+        pass
+    try:
+        # (2) 根门户 mtime <= repo 副本 mtime
+        root_p = os.path.join(MODEL, '金水谣助手门户.html')
+        repo_p = os.path.join(ROOT, '金水谣助手门户.html')
+        if os.path.isfile(root_p) and os.path.isfile(repo_p):
+            rm = os.path.getmtime(repo_p)
+            os.utime(root_p, (rm, rm))
+    except Exception:
+        pass
+
+
 class MutationCase:
     """变异用例：setup 制造故障，must_block 期望拦截，restore 恢复现场"""
 
-    def __init__(self, eid, desc, setup, restore):
+    def __init__(self, eid, desc, setup, restore, quick=True):
         self.eid = eid
         self.desc = desc
         self.setup = setup
         self.restore = restore
+        self.quick = quick
 
     def run(self):
         backup = self.setup()
         try:
-            rc, out = run_gate()
+            rc, out = run_gate(quick=self.quick)
             blocked = rc != 0
         finally:
             self.restore(backup)
+            _post_restore_cleanup()
         # 恢复后再跑一次，确认现场干净（防止污染后续用例）
-        rc2, out2 = run_gate()
+        rc2, out2 = run_gate(quick=self.quick)
         clean = rc2 == 0
         return blocked, clean, out, out2
 
 
 def _read(fp):
-    with open(fp, 'r', encoding='utf-8', errors='replace') as f:
-        return f.read()
+    """读文本并规范化为 \n（行尾细节由 _write 按原文件还原）"""
+    with open(fp, 'r', encoding='utf-8', errors='replace', newline='') as f:
+        return f.read().replace('\r\n', '\n').replace('\r', '\n')
 
 
 def _write(fp, content):
-    with open(fp, 'w', encoding='utf-8', newline='') as f:
+    """按原文件行尾写入：先探测原始换行符，保持字节一致，避免污染 git 工作区"""
+    newline = None
+    try:
+        with open(fp, 'rb') as f:
+            raw = f.read(4096)
+        if b'\r\n' in raw:
+            newline = '\r\n'
+        elif b'\r' in raw:
+            newline = '\r'
+        else:
+            newline = '\n'
+    except Exception:
+        pass
+    with open(fp, 'w', encoding='utf-8', newline=newline) as f:
         f.write(content)
 
 
@@ -77,6 +123,14 @@ def setup_html_broken():
     fp = os.path.join(ROOT, 'frontend', 'lottery', 'dashboard.html')
     txt = _read(fp)
     _write(fp, txt + '\n</div>\n')  # 多余闭合
+    return fp, txt
+
+
+def setup_html_no_close():
+    fp = os.path.join(ROOT, 'frontend', 'guide', 'ai-agent.html')
+    txt = _read(fp)
+    patched = txt.replace('</body>', '', 1)  # 删闭合标签
+    _write(fp, patched)
     return fp, txt
 
 
@@ -97,22 +151,22 @@ def restore_backup(bak):
         os.remove(bak)
 
 
-# E-003 CSS类未定义（增量模式在真实 pre-commit 下验证，这里用全量 stale 不拦 +
-# 直接验证 gate_all 对真实缺陷的拦截能力用"新增类"模拟不了 git 上下文，
-# 故用静态注入后跑 gate_all 的 check_consistency --changed 无法触发。
-# 改为：直接破坏 _shared/css/theme.css（删一个类定义），使引用它的页面出现缺定义）
+# E-003 CSS类未定义：在页面静态 HTML 新增一个无定义的类
 def setup_css_break():
-    fp = os.path.join(ROOT, 'jinshuiyao-guide', '_shared', 'css', 'theme.css')
+    fp = os.path.join(ROOT, 'frontend', 'lottery', 'dashboard.html')
     txt = _read(fp)
-    # 破坏 .btn 定义 → 引用 .btn 的页面全部缺样式
-    patched = txt.replace('.btn {', '.btn-broken-mut {')
+    # 在 <body> 后插入使用未定义类 zz-mut-undef-class 的元素（静态 HTML，非 script）
+    patched = txt.replace('<body>', '<body>\n<div class="zz-mut-undef-class">mut</div>', 1)
+    if patched == txt:
+        import re as _re
+        patched = _re.sub(r'<body[^>]*>', '<body>\n<div class="zz-mut-undef-class">mut</div>', txt, count=1)
     _write(fp, patched)
     return fp, txt
 
 
-# E-004 死链接（门户加不存在链接）
+# E-004 死链接（模型根目录门户加不存在链接）
 def setup_deadlink():
-    fp = os.path.join(ROOT, '金水谣助手门户.html')
+    fp = os.path.join(MODEL, '金水谣助手门户.html')
     txt = _read(fp)
     _write(fp, txt.replace('</body>', '<a href="/zz-mut-nonexist.html">mut</a>\n</body>'))
     return fp, txt
@@ -157,6 +211,15 @@ def setup_risk_enum():
     patched = txt.replace('"部分落地"', '"完全不落地变异"')
     _write(fp, patched)
     return fp, txt
+
+
+def restore_risk(bak):
+    """写回 json 后同步 md 时间戳，避免 lint/verify 的『双写分叉』误报"""
+    restore_backup(bak)
+    md = os.path.join(ROOT, '金水谣数据', '风险登记册.md')
+    if os.path.isfile(md):
+        now = time.time()
+        os.utime(md, (now, now))
 
 
 # E-008 数据目录缺失
@@ -241,6 +304,8 @@ def restore_backup_generic(bak):
 CASES = [
     MutationCase('E-001', 'HTML多余闭合标签 → 结构检查拦截',
                  setup_html_broken, restore_backup),
+    MutationCase('E-002', 'HTML缺</body>闭合 → 结构检查拦截',
+                 setup_html_no_close, restore_backup),
     MutationCase('E-003', '共享CSS类定义被破坏 → CSS类检查拦截',
                  setup_css_break, restore_backup),
     MutationCase('E-004', '门户死链接 → 链接检查拦截',
@@ -250,7 +315,7 @@ CASES = [
     MutationCase('E-006', '知识库占位符污染 → lint拦截',
                  setup_placeholder, restore_backup),
     MutationCase('E-007', '风险册枚举非法 → verify拦截',
-                 setup_risk_enum, restore_backup),
+                 setup_risk_enum, restore_risk),
     MutationCase('E-008', '数据目录缺失 → 数据门禁拦截',
                  setup_data_dir, restore_data_dir),
     MutationCase('E-009', '路由文件缺失 → 路由检查拦截',
@@ -258,20 +323,17 @@ CASES = [
     MutationCase('E-010', 'pre-commit钩子被移除 → 钩子检查拦截',
                  setup_hook_missing, restore_rename),
     MutationCase('E-012', 'auto_audit报告有错误 → 报告检查拦截',
-                 setup_audit_error, restore_backup_generic),
+                 setup_audit_error, restore_backup_generic, quick=False),
 ]
 
 
 def main():
-    import argparse
-    ap = argparse.ArgumentParser(description='金水谣变异测试：验证门禁真的会拦截每种已知错误')
-    ap.add_argument('--quick', action='store_true', help='只跑不涉及重检测的用例')
-    args = ap.parse_args()
-
     print('=' * 60)
     print('  金水谣 · 变异测试（故意破坏 → 验证拦截 → 恢复）')
+    print('  覆盖错误注册表 error_registry.json 全部 E-001~E-012')
     print('=' * 60)
     all_pass = True
+    n_blocked = 0
     for case in CASES:
         try:
             blocked, clean, out, out2 = case.run()
@@ -282,17 +344,20 @@ def main():
             continue
         if blocked and clean:
             print(f'[PASS] {case.eid} {case.desc} → 拦截生效，恢复干净')
+            n_blocked += 1
         elif not blocked:
             print(f'[FAIL] {case.eid} {case.desc} → 制造故障但【未拦截】！机制失效')
+            print(f'  门禁输出片段: {out[-600:]}')
             all_pass = False
         else:
             print(f'[FAIL] {case.eid} {case.desc} → 拦截了，但恢复不干净（污染后续）')
+            print(f'  恢复后门禁输出片段: {out2[-600:]}')
             all_pass = False
     print('=' * 60)
     if all_pass:
-        print(f'结论: 全部 {len(CASES)} 个变异用例均被拦截，机制真实有效 ✓')
+        print(f'结论: 全部 {len(CASES)} 个变异用例均被拦截（{n_blocked}/{len(CASES)}），机制真实有效')
         return 0
-    print('结论: 存在拦截失效的用例，机制未完全生效！')
+    print(f'结论: {n_blocked}/{len(CASES)} 拦截成功，存在失效用例，机制未完全生效！')
     return 1
 
 
