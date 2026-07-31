@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 道衍推导框架：一通百通的工程生成体系</title>
+<style>
+  :root{ --bg:#f7f5f0; --ink:#23201b; --acc:#8a5a2b; --acc2:#3b6b54; --line:#d9d2c5; --soft:#efe9de; --warn:#C9A96E; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Serif SC","Songti SC",serif;line-height:1.75;font-size:16px}
+  .wrap{max-width:980px;margin:0 auto;padding:40px 28px 80px}
+  h1{font-size:30px;border-bottom:3px double var(--acc);padding-bottom:14px;margin-bottom:6px}
+  h2{font-size:23px;color:var(--acc);margin-top:46px;border-left:6px solid var(--acc2);padding-left:12px}
+  h3{font-size:19px;color:var(--acc2);margin-top:30px}
+  .sub{color:#6b6457;font-size:15px;margin-bottom:30px}
+  .lead{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:18px 22px;font-size:17px}
+  table{border-collapse:collapse;width:100%;margin:18px 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:9px 11px;vertical-align:top;text-align:left}
+  th{background:var(--soft);color:var(--acc)}
+  code{background:#e8e2d5;padding:1px 6px;border-radius:5px;font-family:Consolas,monospace;font-size:13.5px}
+  .tree{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 0;margin:22px 0}
+  .node{border-left:5px solid var(--acc);background:var(--soft);margin:14px 18px;padding:14px 18px;border-radius:8px}
+  .node.two{border-color:var(--acc2)}
+  .node.three{border-color:#7a5ea8}
+  .node.leaf{border-color:#999;background:#fff;font-size:14.5px}
+  .tag{display:inline-block;font-size:12px;background:var(--acc);color:#fff;border-radius:20px;padding:2px 11px;margin-right:6px}
+  .tag.y{background:var(--acc2)} .tag.r{background:var(--warn)} .tag.p{background:#7a5ea8}
+  .quote{font-style:italic;color:#5b5447;border-left:3px solid var(--line);padding-left:14px;margin:10px 0}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0}
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .card b{color:var(--acc)}
+  .ok{color:var(--acc2);font-weight:700}
+  .bad{color:var(--warn);font-weight:700}
+  .foot{margin-top:50px;border-top:1px solid var(--line);padding-top:16px;color:#6b6457;font-size:13px}
+  .pill{display:inline-block;background:#e8e2d5;border-radius:6px;padding:1px 8px;font-size:13px;margin:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>金水谣 · 道衍推导框架</h1>
+<p class="sub">一通百通的工程生成体系 —— 一个根，推导出万法，不再事后补丁<br>JS-20260727-15 · 2026-07-27</p>
+
+<div class="lead">
+<b>一句话结论：</b>我们反复"事后诸葛亮、一干就废"，根子不是漏了某个洞，而是<b>没有生成式约束</b>——每条规则都是被事故逼出来的孤立补丁，彼此没有血缘。老子说<b>"道生一，一生二，二生三，三生万物"</b>：只要立住一个根（道），所有工程实践都能从它<b>推</b>出来，形成一棵会<b>繁衍</b>的树。本框架把金水谣的所有铁律重写成这棵树的叶子，今后遇新情况不再"补洞"，而是"补枝"——补一根枝，护住它下面所有叶子。
+</div>
+
+<h2>一、复盘：为什么总是事后诸葛亮</h2>
+<p>把这一周暴露的事故摆在一起，会发现它们是<b>同一个病</b>的不同症状：</p>
+<table>
+<tr><th>症状</th><th>表面处理</th><th>共同根因</th></tr>
+<tr><td>gitignore 前缀缺失 → 状态文件泄漏进门禁</td><td>补一行 gitignore</td><td rowspan="4">都把"做对"押在某个<b>人/会话的自律</b>上；一旦那个会话不在、或理解偏差，约束就消失。约束是<b>外挂的补丁</b>，不是<b>结构的本能</b>。</td></tr>
+<tr><td>域未 setup 直接 generate → 静默 0 预测</td><td>加惰性初始化</td></tr>
+<tr><td>循环删除进程清空整个金水谣数据/ → 独有文档永久丢</td><td>建 safe_cleanup 框架</td></tr>
+<tr><td>quality_gate 把金水谣数据排除在保护外 → 门禁看不见事故</td><td>（待办）</td></tr>
+</table>
+<p class="quote">《大学》："知止而后有定，定而后能静，静而后能安，安而后能虑，虑而后能得。" —— 我们缺的正是"止"：系统没有内置的边界，全靠人去"止"，人一松，就"妄作凶"（《道德经》十六章："不知常，妄作凶"）。</p>
+
+<h2>二、老祖宗智慧的准确出处（已联网核对）</h2>
+<table>
+<tr><th>经典 · 原文</th><th>本章</th><th>现代工程映射</th></tr>
+<tr><td>道生一，一生二，二生三，三生万物。万物负阴而抱阳，冲气以为和。</td><td>《道德经》42</td><td>生成式架构：一个根原则 → 阴阳两仪 → 三才 → 所有实践。约束内建即"和"。</td></tr>
+<tr><td>为之于未有，治之于未乱。</td><td>《道德经》64</td><td>前瞻布局 / Shift-Left：故障未生先治，不等问题爆发。</td></tr>
+<tr><td>知止不殆，可以长久。 / 始制有名，名亦既有，夫亦将知止。</td><td>《道德经》44 / 32</td><td>系统自带边界（FORBIDDEN 闸门 / 不碰系统目录）。</td></tr>
+<tr><td>曲则全，枉则直…… 抱一为天下式。</td><td>《道德经》22</td><td>保全优于销毁（safe_cleanup 的 salvage 兜底）。</td></tr>
+<tr><td>反者道之动；弱者道之用。</td><td>《道德经》40</td><td>用反向/对抗验证真稳（混沌工程 / 红队 / 故障注入）。</td></tr>
+<tr><td>易有太极，是生两仪，两仪生四象，四象生八卦，八卦定吉凶，吉凶生大业。</td><td>《易经·系辞》</td><td>衍生观：同一结构在每一层自相似地展开（模块/会话/系统同构）。</td></tr>
+<tr><td>一阴一阳之谓道。</td><td>《易经·系辞》</td><td>生·守两极：任何动作必须有它的守护极。</td></tr>
+<tr><td>易一名而含三义：简易、变易、不易。</td><td>《易经》郑玄</td><td>不易=架构不变量；变易=运行时熵；简易=最小描述（奥卡姆）。</td></tr>
+<tr><td>穷则变，变则通，通则久。</td><td>《易经·系辞下》</td><td>卡住/坏了就变异→连通→稳定；局部最优要敢于重构。</td></tr>
+<tr><td>安而不忘危，存而不忘亡，治而不忘乱。</td><td>《易经·系辞下》</td><td>门禁不该有盲区：保护要覆盖所有目录，含最该护的。</td></tr>
+<tr><td>知止而后有定……虑而后能得。物有本末，事有终始，知所先后，则近道矣。</td><td>《大学》</td><td>天（方向/止）→ 地（静/执行）→ 人（虑/得）的控制环；本末先后即三才层级。</td></tr>
+<tr><td>小人闲居为不善…… 故君子必慎其独也。</td><td>《大学》</td><td>无人监督（无人工 review）时仍正确 = 机器强制门禁，而非依赖"慎独"。</td></tr>
+<tr><td>其所厚者薄，而其所薄者厚，未之有也。</td><td>《大学》</td><td>本末倒置必败：把"快交付"当本、把"约束"当末，迟早翻车。</td></tr>
+<tr><td>慎独之至，惟精惟一…… 良知自有以详审精察之。</td><td>王阳明《大学问》</td><td>内置良知=内置校验器：每条经验带反事实对照+置信度自检。</td></tr>
+</table>
+
+<h2>三、道衍推导树（核心）</h2>
+<div class="tree">
+
+  <div class="node">
+    <span class="tag">道 · 不易</span> <b>系统自净，不假于人</b>
+    <div>根原则：把所有"做对"的押注，从"某个人/会话的自律"搬到"结构的本能"里。结构错了，人再努力也白搭；结构对了，谁来都一样稳。</div>
+    <div class="quote">《大学》"知止" + 《道德经》"为之于未有" + 《易经》"不易"三者合为一道：纪律长在架构上，不长在人的记性上。</div>
+  </div>
+
+  <div class="node">
+    <span class="tag">一 · 太极</span> <b>约束内建（constraints-as-architecture）</b>
+    <div>从道生出唯一的动作：把每条约束做成系统的一部分，而不是干完再查的清单。门禁、自动化、salvage 都是"一"的落地形态。</div>
+    <div class="quote">《道德经》"朴散则为器"——道散为具体器物，即原则落成具体机制。</div>
+  </div>
+
+  <div class="node two">
+    <span class="tag y">二 · 两仪（阴阳）</span> <b>每个行为都有「生·守」两极</b>
+    <div><b>阳（生/建/放/连）</b>：生成知识、发功能、连系统、扩张。&nbsp;&nbsp;<b>阴（守/防/收/隔）</b>：门禁、核验、隔离、salvage、禁用。</div>
+    <div>无阴之阳 = 本次循环删除事故（纯清理无守护）；无阳之阴 = 瘫痪。每一片叶子必须同时回答"它的阴守门在哪"。</div>
+    <div class="quote">《系辞》"一阴一阳之谓道"；《道德经》42"万物负阴而抱阳，冲气以为和"。</div>
+  </div>
+
+  <div class="node three">
+    <span class="tag p">三 · 三才（天地人）</span> <b>控制环三层</b>
+    <div><b>天（前瞻/规划/目标态 = 不易）</b>：先写目标态再动手（PRFAQ 逆向规划）。为之于未有。<br>
+    <b>地（执行/约束/隔离 = 变易）</b>：门禁、租约、隔离、salvage、盲区分治。<br>
+    <b>人（复盘/迭代/学习 = 简易+观测）</b>：无责复盘、日志、知识卡、反事实自检。</div>
+    <div class="quote">《大学》"知止→定→静→安→虑→得"即 天定方向→地静执行→人虑而得；《系辞》"安而不忘危，存而不忘乱"是地层的守护意识。</div>
+  </div>
+
+  <div class="node leaf">
+    <span class="tag">万物 · 叶子</span> <b>每条工程实践 = 选一极（阴阳）＋落一层（天地人）＋守一止（知止）</b><br>
+    下面所有现有铁律，都能还原成这棵树的叶子；新实践也按同一公式推出来。
+  </div>
+
+</div>
+
+<h2>四、万物叶子表：现有铁律怎么从树推出来</h2>
+<table>
+<tr><th>现有实践</th><th>阴阳</th><th>三才</th><th>知止（边界）</th><th>推导依据</th></tr>
+<tr><td>收工 DoD 门禁 [A][B][C][D][E]</td><td>阴（守）</td><td>人（复盘）</td><td>每日必跑，缺口点名</td><td>为之于未有 + 慎独（无人 review 仍强制）</td></tr>
+<tr><td>safe_cleanup 七类+三级闸门+salvage</td><td>阴（守）</td><td>地（隔离）</td><td>仓库外/系统目录 FORBIDDEN</td><td>知止 + 曲则全（保全优于销毁）</td></tr>
+<tr><td>七层知识闭环（干活→…→下一轮）</td><td>阳（生/繁衍）</td><td>人（学习）</td><td>单一真源，不断链</td><td>流水不腐 + 简易（复利不漏斗）</td></tr>
+<tr><td>诚实回测随机基线 gain 列</td><td>阴阳平衡（信/疑）</td><td>天（基线）</td><td>禁用"正样本无分母命中率"</td><td>不易=真理基线；反者道之动（反向证伪）</td></tr>
+<tr><td>可观测 / sources-health 面板</td><td>阳（连）</td><td>天（前瞻可见）</td><td>全彩种 fresh 告警</td><td>安而不忘危（可见才知危）</td></tr>
+<tr><td>Game Day 故障注入（建议）</td><td>阴（守）</td><td>地（验证）</td><td>只在演练时注入</td><td>为之于未有 + 反者道之动</td></tr>
+<tr><td>会话租约 Lease（建议）</td><td>阴（隔）</td><td>地（隔离）</td><td>禁止双会话互写同区</td><td>一阴一阳（并发须有互斥守门）</td></tr>
+<tr><td>风险登记册（建议）</td><td>阴（守）</td><td>天（前瞻）</td><td>显式登记免费模型政策/坚果云同步</td><td>为之于未有</td></tr>
+<tr><td>知识卡反事实字段（建议）</td><td>阴阳平衡</td><td>人（自检）</td><td>无对照基线不称"有效"</td><td>王阳明"良知详审精察"</td></tr>
+</table>
+
+<h2>五、数理化贯通：同一结构，多种语言</h2>
+<p>你点出的"跨界贯通"——其实中文古典、控制论、热力学、概率论说的是<b>同一个数学结构</b>。看透这层，思维就跳脱了：</p>
+<div class="grid">
+  <div class="card"><b>阴阳 ⇄ 负/正反馈</b><br>阴（守门）= 负反馈，把系统拉回稳态；阳（生）= 正反馈，扩张。无阴则发散崩盘。</div>
+  <div class="card"><b>易三义 ⇄ 物理三量</b><br>不易=守恒律/不变量；变易=熵增/无序；简易=最小描述长度（奥卡姆剃刀）。</div>
+  <div class="card"><b>道生一… ⇄ 分形自相似</b><br>同一模式在模块、会话、系统三层同构地展开——所以一个根能管所有层。</div>
+  <div class="card"><b>为之于未有 ⇄ 前馈控制</b><br>不等反馈（出了事才修），提前注入约束（feed-forward），环更短更稳。</div>
+  <div class="card"><b>知止 ⇄ 李雅普诺夫稳定</b><br>系统有界：定义"绝不可越"的边界，越界即被否定，保证不发散。</div>
+  <div class="card"><b>流水不腐 ⇄ 开放系统负熵</b><br>薛定谔"生命以负熵为食"：知识须循环流动（闭环），封闭则腐（漏斗）。</div>
+  <div class="card"><b>慎独 ⇄ 无监督不变式</b><br>无外部 supervisor 仍满足约束=分布式共识下每节点自警，不靠中央审查。</div>
+  <div class="card"><b>反者道之动 ⇄ 对抗验证</b><br>用反向输入（混沌/红队）逼出真实稳健，比等事故便宜。</div>
+</div>
+
+<h2>六、一通百通操作法：三问推导</h2>
+<p>今后遇到<b>任何新任务</b>（删文件、写代码、接 API、训模型、定制度），不查清单，先问三句，做法自己就长出来：</p>
+<div class="lead">
+<p><b>① 问阴阳：</b>这是阳（生）还是阴（守）？若是阳，<b>它的阴守门在哪</b>（门禁/隔离/salvage/禁用）？若是阴，它挡的是不是必要的阳？</p>
+<p><b>② 问三才：</b>天规划了吗（先写目标态）？地隔离了吗（执行有边界）？人复盘了吗（留痕+反事实自检）？</p>
+<p><b>③ 问知止：</b>边界在哪？什么<b>绝不可碰</b>（FORBIDDEN）？越界了怎么被否定？</p>
+<p class="ok">答完三问，实践自现。这叫"一通百通"——不是记一万条规则，是握一个生成器。</p>
+</div>
+
+<h3>演示：用三问推导"删文件"该怎么做</h3>
+<p>问阴阳→删是阳（清理），必配阴（保全+禁用）。问三才→天：先列要删啥；地：salvage+FORBIDDEN 闸门；人：删后登记复盘。<b>→ 直接推出 safe_cleanup.py，不必等事故。</b>这正是本次事故"补枝"而非"补洞"的证明。</p>
+
+<h2>七、用此树重做前瞻重规划（不再补洞，补枝）</h2>
+<p>原计划的"演进式重构"现在有了根。首个动作<b>直接由树推导</b>，不是拍脑袋：</p>
+<table>
+<tr><th>现象</th><th>树的诊断</th><th>推导出的修复（补枝）</th></tr>
+<tr><td>quality_gate 把 <code>金水谣数据</code> 排除在保护外</td><td class="bad">阴门禁违了"知止"——把最该护的目录排除（《系辞》"治而不忘乱"的反面）</td><td class="ok">天：保护须覆盖全部；地：移除 EXCLUDE_DIRS 中金水谣数据，统一门禁；人：登记此盲区曾致事故</td></tr>
+</table>
+<p>注意：这不是"再添一条规则"，而是<b>补强"阴+知止"这根枝</b>——补完后，任何未来对敏感目录的操作都会被同一根枝罩住，不止防这一次。</p>
+
+<h2>八、落地建议</h2>
+<ol>
+<li><b>编码进启动提示词</b>：新增【道衍脊梁·生成式铁律】，让任何新 AI 接手先握生成器，而非背补丁清单。</li>
+<li><b>closeout_gate 验"推导归属"</b>：今后新增任何铁律，必须在留痕里写明它从树的哪枝推出来（阴/阳 + 天/地/人 + 知止），否则门禁黄牌。</li>
+<li><b>复盘文化</b>：每次事故先问"它违反了树的哪枝"，修枝不修叶。</li>
+<li><b>阶段推进</b>：阶段0 立道衍（本框架）；阶段1 先落最低风险高收益枝（quality_gate 去盲区 + 风险登记册）；阶段2 会话租约 / Game Day / 反事实字段。</li>
+</ol>
+
+<div class="foot">
+生成：金水谣 · 道衍推导框架（JS-20260727-15）<br>
+关联：启动提示词.txt【道衍脊梁】、工作留痕总索引.md、ai_decisions.md、全盘审查与前瞻重规划报告_2026-07-27.html<br>
+核心经典：道德经42/44/64、易经系辞、大学、王阳明大学问（出处均已联网核对）
+</div>
+
+</div>
+</body>
+</html>

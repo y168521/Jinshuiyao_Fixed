@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣助手 · 提示词库</title>
+<style>
+  :root{
+    --bg:#f5f7fb; --card:#fff; --ink:#1f2a44; --muted:#5b6b88; --rule:#e6ebf3;
+    --brand:#5BC0DE; --brand2:#1ab79a; --soft:#eef3ff; --soft2:#e8fbf5;
+    --shadow:0 6px 22px rgba(31,42,68,.08);
+    --font:"Microsoft YaHei","PingFang SC","Noto Sans SC",system-ui,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--font);background:var(--bg);color:var(--ink);line-height:1.75}
+  .wrap{max-width:980px;margin:0 auto;padding:28px 20px 60px}
+  .top{background:linear-gradient(135deg,#5BC0DE,#1ab79a);color:#fff;border-radius:20px;padding:30px 32px;box-shadow:var(--shadow)}
+  .top h1{font-size:26px;margin-bottom:8px}
+  .top p{opacity:.95;font-size:15px}
+  .back{display:inline-block;margin:16px 0;color:var(--brand);text-decoration:none;font-weight:600}
+  .tip{background:#fff;border:1px dashed var(--rule);border-radius:12px;padding:14px 18px;font-size:14px;color:var(--muted);margin-bottom:22px}
+  .tip b{color:var(--ink)}
+  .cat{margin-top:26px}
+  .cat h2{font-size:19px;margin-bottom:12px;border-left:4px solid var(--brand);padding-left:10px}
+  .p{background:var(--card);border:1px solid var(--rule);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow);margin-bottom:14px}
+  .p .meta{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+  .p .name{font-weight:700;font-size:16px}
+  .p .tag{background:var(--soft);color:var(--brand);border-radius:999px;padding:3px 10px;font-size:12px}
+  .p .goal{color:var(--muted);font-size:13px;margin-bottom:10px}
+  .tmpl{background:var(--soft2);border:1px solid #cdeee4;border-radius:12px;padding:14px 16px;font-size:14.5px;white-space:pre-wrap;word-break:break-word;position:relative}
+  .tmpl .ph{color:#0a8a6a;font-weight:600}
+  .copy{position:absolute;top:8px;right:8px;background:#fff;border:1px solid #cdeee4;color:#0a8a6a;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer}
+  .copy:hover{background:var(--soft2)}
+  .footer{text-align:center;color:var(--muted);font-size:13px;margin-top:30px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <h1>金水谣助手 · 提示词库</h1>
+    <p>不懂代码也能用。把下面的模板复制到对话框，把<span style="background:rgba(255,255,255,.25);padding:1px 6px;border-radius:5px">【括号里的内容】</span>换成你自己的需求就行。</p>
+  </div>
+  <a class="back" href="金水谣助手门户.html">← 返回主入口</a>
+
+  <div class="tip">
+    💡 <b>用好提示词的 5 个要点</b>（来自全网最佳实践）：① 给角色 ② 说背景 ③ 要格式 ④ 限长度 ⑤ 复杂任务分步问。
+    模板已按这五点写好，你只管填空。
+  </div>
+
+  <!-- 彩票 -->
+  <section class="cat">
+    <h2>彩票走势类</h2>
+
+    <div class="p">
+      <div class="meta"><span class="name">看冷热号</span><span class="tag">双色球/大乐透</span></div>
+      <div class="goal">目标：用大白话了解近期哪些号码偏热/偏冷，附上参考区间。</div>
+      <div class="tmpl"><button class="copy" onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)">复制</button><span>请用通俗中文帮我看一下【双色球】最近【30】期的冷热号情况。要求：① 分「热号/温号/冷号」三档列出；② 每档给出具体号码；③ 最后用一句话说明这只能作为参考、不能保证中奖。</span></div>
+    </div>
+
+    <div class="p">
+      <div class="meta"><span class="name">整理一注参考号码</span><span class="tag">参考组合</span></div>
+      <div class="goal">目标：得到一组结合多角度的参考号码，并说明依据。</div>
+      <div class="tmpl"><button class="copy" onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)">复制</button><span>请帮我针对【大乐透】整理一注参考号码（前区+后区）。要求：① 结合冷热、遗漏、奇偶比等角度；② 每个角度用一句话解释为什么选这些号；③ 明确说明这是规律参考、中奖是随机的，不保证结果。</span></div>
+    </div>
+  </section>
+
+  <!-- 股票/基金 -->
+  <section class="cat">
+    <h2>股票 · 基金类</h2>
+
+    <div class="p">
+      <div class="meta"><span class="name">看个股简评</span><span class="tag">股票</span></div>
+      <div class="goal">目标：得到一只股票的通俗简评与风险提示。</div>
+      <div class="tmpl"><button class="copy" onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)">复制</button><span>请用大白话帮我看看【贵州茅台】最近的行情。要求：① 说清最近趋势是涨是跌、大概幅度；② 列出 2-3 个关键技术位（用通俗解释什么是支撑/压力）；③ 给一句风险提示，说明股市有风险、这只是参考不是投资建议。</span></div>
+    </div>
+
+    <div class="p">
+      <div class="meta"><span class="name">基金体检</span><span class="tag">基金</span></div>
+      <div class="goal">目标：了解一只基金的健康度与是否该止盈。</div>
+      <div class="tmpl"><button class="copy" onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)">复制</button><span>请帮我体检一下【某基金名称/代码】。要求：① 近期收益表现；② 最大回撤（用通俗话解释这是什么）；③ 当前是否接近止盈点；④ 给一个「继续持有/考虑止盈」的倾向建议，并说明这只是参考。</span></div>
+    </div>
+  </section>
+
+  <!-- 知识管理 -->
+  <section class="cat">
+    <h2>知识管理类（闭环成长）</h2>
+
+    <div class="p">
+      <div class="meta"><span class="name">把内容存进知识库</span><span class="tag">归档</span></div>
+      <div class="goal">目标：把对话里有价值的内容整理成知识卡片存档。</div>
+      <div class="tmpl"><button class="copy" onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)">复制</button><span>请把刚才我们讨论的【共形预测】整理成一张知识卡片，存进用户知识库。要求：① 标题；② 一句话通俗解释；③ 3 个要点；④ 贴上「方法/不确定性」标签；⑤ 注明来源是本次对话。</span></div>
+    </div>
+
+    <div class="p">
+      <div class="meta"><span class="name">回忆某条知识</span><span class="tag">检索</span></div>
+      <div class="goal">目标：从知识库里找回之前记下的方法。</div>
+      <div class="tmpl"><button class="copy" onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)">复制</button><span>请帮我在知识库里找一下：之前我们记过的关于【漂移检测】的内容。要求：① 给出原卡片要点；② 用大白话再讲一遍；③ 如果没找到，如实告诉我。</span></div>
+    </div>
+  </section>
+
+  <!-- 解释/通用 -->
+  <section class="cat">
+    <h2>解释与通用类</h2>
+
+    <div class="p">
+      <div class="meta"><span class="name">用大白话解释名词</span><span class="tag">学习</span></div>
+      <div class="goal">目标：把专业名词讲成外行也能懂的话。</div>
+      <div class="tmpl"><button class="copy" onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)">复制</button><span>请用费曼技巧向我解释【共形预测】是什么，就像我完全不懂这个领域。要求：① 先一句话概括；② 用一个生活里的比喻说明；③ 给 3 个帮我记住的要点；④ 不要出现没解释的英文术语。</span></div>
+    </div>
+
+    <div class="p">
+      <div class="meta"><span class="name">分步做复杂任务</span><span class="tag">通用</span></div>
+      <div class="goal">目标：把复杂需求拆成可确认的小步，避免一次性出错。</div>
+      <div class="tmpl"><button class="copy" onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)">复制</button><span>我想【把今天的预测结果整理成一份中文周报】。请先不要直接做，先：① 列出你打算分几步完成；② 每步会产出什么；③ 等我确认后再开始做。全程用中文，避免代码。</span></div>
+    </div>
+
+    <div class="p">
+      <div class="meta"><span class="name">生成图表说明</span><span class="tag">可视化</span></div>
+      <div class="goal">目标：让助手用图说明数据，并讲解怎么看。</div>
+      <div class="tmpl"><button class="copy" onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)">复制</button><span>请帮我把【最近10期双色球红球出现次数】画成一张柱状图。要求：① 用中文标注坐标轴和标题；② 标出最高和最低的号码；③ 用大白话告诉我这张图说明了什么、不能说明什么。</span></div>
+    </div>
+  </section>
+
+  <!-- 开发者 / AI 协作 -->
+  <section class="cat">
+    <h2>开发者 · AI 协作类</h2>
+
+    <div class="p">
+      <div class="meta"><span class="name">代码审查铁律（5步 Pipeline）</span><span class="tag">审查/必走</span></div>
+      <div class="goal">目标：确保任何 AI 改完代码后必须走完审查 Pipeline，红灯=没做完，跳步=作弊。解决核心痛点：换 AI 接手不按流程走。</div>
+      <div class="tmpl"><button class="copy" onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)">复制</button><span>我改完了代码。请按以下 5 步审查 Pipeline 依次执行，全过才能说"完成"，红灯必须修完重跑：
+
+Step 1: ruff check（格式+命名+安全 lint）
+命令: ruff check Jinshuiyao_Fixed/ --config Jinshuiyao_Fixed/pyproject.toml
+
+Step 2: AST 自定义扫描（项目特有问题：天枢残留/裸except/状态恢复缺失/可变默认参数/线程安全隐患）
+命令: py -3.14 Jinshuiyao_Fixed/tools/ast_checker.py --quick
+
+Step 3: smoke_test --quick（端到端冒烟测试 7项核心功能）
+命令: py -3.14 Jinshuiyao_Fixed/tools/smoke_test.py --quick
+
+Step 4: wrapup_check（收工自检 29 项：留痕完整性+源码验证+配置一致性+改动-留痕匹配）
+命令: py -3.14 Jinshuiyao_Fixed/tools/wrapup_check.py
+
+Step 5: 新发现的问题模式 → 写入 knowledge/pattern_library.json（格式见 AI协作规范§六-N§3）
+
+审查结果必须在回答末尾贴出作为证据。跳过任何一步=作弊=没做审查。
+口诀：改完代码五步走：ruff → AST → smoke → wrapup → 模式库。红灯=没做完，跳步=作弊。</span></div>
+    </div>
+
+    <div class="p">
+      <div class="meta"><span class="name">对抗 AI 惰性/闭塞 · 五道防线</span><span class="tag">协作/红线</span></div>
+      <div class="goal">目标：防止 AI 在长文档/多任务下"惰性略过、走过场"，并打破内部信息闭塞。与证据制度互补：证据管"做没做"，本铁律管"读没读全+想没想透+信息闭不闭塞"。</div>
+      <div class="tmpl"><button class="copy" onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)">复制</button><span>本次任务请严格遵守「对抗 AI 惰性/闭塞 · 五道防线」：
+① 检索前置——动手前先读全关键上下文（交接中心+总索引+经验箱+相关源码），禁止凭印象直接下结论；
+② 引用门禁——任何结论须引用证据（文件:行号/命令输出/数据）；涉及外部事实/技术结论/模型有效性的断言须附联网核验来源，否则标【待联网核验】；
+③ 原子化——大任务拆小单元逐个处理，一次最多领2-3个，做完验完再领下一批；
+④ 濯石淘洗——硅基流动免费模型(GLM-4-9B-0414)已落地于项目代码内部(ai_review_agent用其替代DeepSeek省审查费，零成本)；WorkBuddy自动化接不进硅基流动，维护脏活LLM已回退auto待确认免费款；
+⑤ 主动抽考——收工/接力时随机抽考当日文档细节，答不出强制重读；
+⑥ 不闭塞——结论可能受外部变化影响时先联网核验再下结论，禁止闭门造车。
+详细规则见 金水谣_纲.md「§九 对抗 AI 惰性/闭塞·五道防线铁律」与 AI协作规范§六-O。</span></div>
+    </div>
+
+    <div class="p">
+      <div class="meta"><span class="name">代码优化三维框架</span><span class="tag">优化/重构</span></div>
+      <div class="goal">目标：给 AI 一个明确的优化方向后，逼它按统一四维框架分析再动手，避免"直接改"漏维度、结论发散。四维＝方案探索 / 策略整合 / 参考调研 / 正反推导（正向思维+逆向思维交叉验证）。适用于任何代码优化 / 重构任务。</div>
+      <div class="tmpl"><button class="copy" onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)">复制</button><span>【请先在这里写明明确的优化方向，例如：优化 auto_knowledge.py 的三元组抽取性能】
+
+在进行代码优化时，当给定明确的优化方向后，请从以下四个维度进行全面分析：
+一、方案探索——提出多种可行的优化方案，逐一对比各方案在性能、可维护性、复杂度等方面的优劣；
+二、策略整合——综合各方案的优点，取长补短，形成最优的整合策略并说明决策依据；
+三、参考调研——查找类似问题的业界最佳实践和社区解决方案作为佐证；
+四、正反推导——在方案落地前用两种对立思维交叉验证，避免盲区：
+  · 正向思维：从目标与设计原则出发，正向推导「系统应该具备哪些能力」，核对现有方案是否覆盖全部目标路径，避免遗漏关键能力；
+  · 逆向思维：从失败模式与最坏情况出发，反推「哪些漏洞必须堵死」，核对现有方案是否能抵御已知故障，避免存在未设防的崩溃点；
+  · 交叉比对：正向推导的「必备能力」与逆向推导的「必堵漏洞」取交集＝必做项；两者差异＝需进一步验证的假设。
+在此基础上，制定详细的、可分步执行的优化推进计划，明确每一步的具体目标、操作内容和预期效果。最后，给出优化完成后的后期维护与演进规划，包括持续监控、迭代方向和风险预案。整个分析过程需逻辑清晰、条理分明，确保结论具有可落地性。</span></div>
+    </div>
+
+    <!-- 正反推导运用指南 -->
+    <div class="p">
+      <div class="meta"><span class="name">正反推导运用指南（四维框架第四维怎么用）</span><span class="tag">方法论</span></div>
+      <div class="goal">目标：把「正反推导」从一句口号变成可照做的步骤。用于任何优化 / 重构 / 架构决策 / 风险研判，在方案选定后做交叉验证，避免盲区。</div>
+      <div class="tmpl"><button class="copy" onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)">复制</button><span>【请在这里写明要推导的对象，例如：彩票抓取 S6 可观测性是否必须】
+
+正反推导四步法：
+第1步 列目标/原则（正向起点）：把对象的「应满足的设计目标」写成清单，例如高可用、数据准确、低运维、可观测。
+第2步 正向推导（目标→能力）：对每条目标，问「系统现在具备哪些能力来满足它？」列出能力清单，标注已覆盖✅/缺口⏳。易犯的错：高估已覆盖。
+第3步 逆向推导（故障→漏洞）：穷举真实故障模式（如 CWL404、乐彩连败、DNS败、全源挂、状态丢失、重复回归、源悄悄挂、历史污染），对每条问「当前方案能否抵御？」标注已堵✅/漏⏳。易犯的错：故障模式列不全就留盲区。
+第4步 交叉比对：正向「必备能力」∩ 逆向「必堵漏洞」＝必做项（交集优先做）；两者差异＝待验证假设（不阻塞主线，单列跟踪）。
+常见坑：①正向乐观、逆向悲观都偏；②交叉时只做交集会漏掉「仅一方独有」的高价值项（如逆向独有的历史债须专项）；③优先级用逆向「不做的后果」反推，避免把痛点根因排后面。
+范例：S6 可观测性——正向看像锦上添花(可观测❌)，逆向看是故障定位刚需(源悄悄挂无人知→用户报500/404)，交叉判定＝必做且与 S5 并行。</span></div>
+    </div>
+
+    <!-- 前端全端点审计 -->
+    <div class="p">
+      <div class="meta"><span class="name">前端全端点审计与"没反应"类 bug 定位</span><span class="tag">审计/前端</span></div>
+      <div class="goal">目标：当用户报前端某功能"点了没反应/没效果"，或要求排查前端所有功能是否有同类隐藏 bug 时，系统化定位根因（缺失方法→500 / 重入锁→死锁挂起），避免凭感觉乱改。适用：金水谣 Web 总台/前端功能失效排查。沉淀自 JS-20260725-07。</div>
+      <div class="tmpl"><button class="copy" onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)">复制</button><span>【请在这里写明要排查的前端功能，例如：一键审查点了没反应】
+
+请对金水谣 Web 前端做全端点审计并定位"没反应"类 bug，按以下步骤：
+一、确认 server 在跑：用 py -3.14 启动，端口 18888，GET /health 须 200；改码后必须重启加载新码。
+二、写审计脚本（Python urllib）批量打活 server 全部 GET/POST 端点（约 42 个），抓 HTTP 码 + 响应片段前若干字节，输出成表。
+三、异常分类定位：
+  · 500 + AttributeError 'GuideHandler' object has no attribute 'X' → handler 调了 GuideHandler 未实现的方法。修复：在 server/router.py 的 GuideHandler 补该方法（如 _read_body() 配对 _send_json() 统一读 POST body）。
+  · 请求挂起（curl 连接建立但无响应、server 日志无新错，区别于 500）→ 典型死锁。根因常是 threading.Lock() 不可重入：同线程持锁内再抢同锁。修复：改 threading.RLock()（跨线程仍串行）。案例：knowledge/vector_index.py 的 _BUILD_LOCK，get_vector_index() 持锁内调 build_index_from_kb() 再抢同锁。
+  · 404 → 先确认前端真实 method（GET/POST），排查是否测试脚本 method 误用，勿直接判 bug（control-center.html 注释"与后端路由一致"）。
+四、改完必须 py -3.14 重启 server 实测端点恢复（如 vector/search 应 ~0.5s 返回语义结果，review/trigger 应返回完整报告）。
+五、清理审计副作用：冒烟可能往 金水谣数据/log/ai_decisions.md 误写假决策卡，须用 Python 精确删对应行，验证尾部干净。
+铁律提醒：① 本机 Edit 与 Bash 在 bypass 沙箱下不共享 FS，临时脚本用完 rm -f；② git 对 CJK 路径的 -C 参数会误报 No such file，改用 cd <路径> && git ...；③ 收工必 git commit（仅提交源码/文档+留痕，运行时生成文件不提交）。</span></div>
+    </div>
+
+    <!-- 彩票/预测类主张证伪 三数检验法 -->
+    <div class="p">
+      <div class="meta"><span class="name">彩票/预测类"有效"主张的证伪·三数检验法</span><span class="tag">方法论/审查</span></div>
+      <div class="goal">目标：当用户或外部模型报告宣称某彩票/预测策略"已验证有效/命中率高/累计盈利"时，用统一的三数检验法+双证据链把主张钉死或坐实，杜绝被幸存者偏差、正样本无分母、事后归因、版本号军备竞赛忽悠。沉淀自 JS-20260727-01~05。</div>
+      <div class="tmpl"><button class="copy" onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)">复制</button><span>【请在这里贴要审查的主张/报告，例如：某模型自称冷号补位命中87.5%】
+
+请对该彩票/预测主张做证伪审查，不许照单全收，按以下步骤：
+一、三数检验法（三面夹击，过不了任一关即证伪）：
+  ① 去极值净值：从总盈亏里去掉最大单注中奖，看是否仍为正——盈利常来自一注运气，去掉即净亏。
+  ② 样本外命中率 vs 随机基准：walk-forward 只用 history[:i] 生成、检验第 i 期真实开奖；对每个预测生成"同规格随机注单"走同一判定逻辑（不用合成分布），求 gain=引擎命中率−随机命中率。gain≈0 即无预测力。
+  ③ 理论期望对照：总投入×(−50%) 是负期望值定论，长期必向其收敛；"没跑够长"的盈利是时间不够而非有效。
+二、统计陷阱识别：小样本(n<30)必算威尔逊置信区间(n=8 时区间可达47%–99.7%，点估计无意义)；正样本(只报中奖)无分母=幸存者偏差；"组三后必开组六"类=先验概率废话(组六本占72%)，须减去先验看条件增量；min_hit=1(任中1码即命中)口径会把随机蹭奖伪装成有效。
+三、双证据链：内部实测(金水谣诚实回测 gain 列)+外部权威交叉验证(学术论文/官方辟谣/神经网络实验)，避免信息闭塞自证。
+四、结论定向：彩票是 i.i.d. 独立随机事件，历史对未来零信息量，无预测力是定论。唯一合法"战胜彩票"路径是结构性+EV(曼德尔买全组合/roll-down)非预测。可吸收的只有风控(预算封顶/熔断/砍大盘彩)+诚实(随机基准/非中奖概率声明)，选号规则全丢。
+铁律提醒：结论必须内部+外部双证据；对用户保持理性娱乐提示、不保证结果。</span></div>
+    </div>
+
+    <!-- 元流程防漏·收工DoD + Skill治理 -->
+    <div class="p">
+      <div class="meta"><span class="name">元流程防漏·收工DoD门禁 + Skill治理</span><span class="tag">方法论/流程</span></div>
+      <div class="goal">目标：解决"标准流程为什么总能漏一步"，以及"Skill 越攒越多却不一定有用"。把收工完成度从靠记忆升级为机器核对，把技能从盲目新增改为升级合成。沉淀自 JS-20260727-06。</div>
+      <div class="tmpl"><button class="copy" onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)">复制</button><span>请按"机器强制DoD + 单一真源 + Skill治理"梳理并打通流程：
+
+一、流程为什么会漏（根因三连，逐条对症）：
+  ① 清单本身不完整 → 把"完成定义(DoD)"补全并写成可执行脚本，别靠人脑清单。
+  ② 靠记忆纪律执行 → 长会话/接力/上下文压缩后纪律必衰减，改为机器每天自动核对。
+  ③ 环节间无交叉核对 → 每个交接点(如"登记≠入库")加门禁自动报警。
+二、收工DoD门禁(closeout_gate.py，只读)四项：[A]git待提交/gitignore隐患 [B]今日总索引每个JS编号是否都进ai_decisions.md知识库 [C]今日决策卡8字段完整 [D]三层闭环旁证。缺口点名→补齐再收工。
+三、知识连锁(单一真源+自动传播)：一件事只在一处写，写一次自动流到下游(决策卡→自动转知识卡片+三元组→可检索→Skill/自动化→启动提示词→下一轮)。每个箭头要有门禁/自动化兜底。
+四、Skill治理四问(默认优先升级合并，绝不为凑数新建)：①现有能覆盖→升级 ②职责重叠→合并(删旧需授权) ③独立清晰会反复用且触发无歧义→才新建 ④一次性/敏感/已覆盖→只写memory。
+五、合规采集+破闭塞：只取公开权威源、尊重robots/ToS、不抓私域隐私、必注出处；结论=内部实测+外部权威双证据链。
+铁律提醒：机器守纪律、人做判断；Skill数量服从职责清晰，多≠有用。</span></div>
+    </div>
+  </section>
+
+  <div class="footer">金水谣万物预测引擎 · 零基础中文交互环境 &nbsp;|&nbsp; 提示词库</div>
+</div>
+
+<a href="/" style="position:fixed;left:16px;bottom:16px;z-index:9999;background:#5BC0DE;color:#fff;text-decoration:none;padding:11px 18px;border-radius:12px;font-family:'Microsoft YaHei','PingFang SC',sans-serif;font-size:14px;font-weight:600;box-shadow:0 4px 14px rgba(91,192,222,.4)" target="_self">← 返回门户</a>
+
+</body>
+</html>

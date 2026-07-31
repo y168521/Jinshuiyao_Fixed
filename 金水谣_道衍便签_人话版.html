@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣·道衍便签（人话版）</title>
+<style>
+  :root{ --bg:#f5f6f8; --card:#fff; --ink:#1f2430; --sub:#5b6472; --line:#e3e7ee;
+         --blue:#2563eb; --green:#16a34a; --amber:#d97706; --red:#dc2626; --violet:#7c3aed; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;padding:28px}
+  .wrap{max-width:920px;margin:0 auto}
+  h1{font-size:24px;margin:0 0 4px} .lead{color:var(--sub);margin:0 0 22px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  h2{font-size:17px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+  .tag{font-size:12px;padding:2px 9px;border-radius:999px;color:#fff;font-weight:600}
+  .t-blue{background:var(--blue)} .t-green{background:var(--green)} .t-amber{background:var(--amber)} .t-red{background:var(--red)} .t-violet{background:var(--violet)}
+  .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:10px 0}
+  .step{background:#f0f4ff;border:1px solid #dbe4ff;border-radius:10px;padding:12px}
+  .step b{color:var(--blue)} .step .q{font-size:22px}
+  table{width:100%;border-collapse:collapse;margin:8px 0;font-size:14px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#fafbfc;color:var(--sub);font-weight:600}
+  td.s{color:var(--green);font-weight:600} td.w{color:var(--amber);font-weight:600} td.r{color:var(--red);font-weight:600}
+  code{background:#f1f3f7;padding:1px 6px;border-radius:5px;font-size:13px}
+  .note{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 14px;color:#7c5e10;font-size:14px}
+  .foot{color:var(--sub);font-size:13px;margin-top:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>金水谣·道衍便签（人话版）</h1>
+  <p class="lead">之前那份《道衍推导框架》写得太"玄"了——古文+数理化术语混排，对人读是噪音。这份是给"真要干活的人"用的便签：<b>别背原理，背这三句问话就行</b>。</p>
+
+  <div class="card">
+    <h2><span class="tag t-blue">核心</span>做任何改动前，先问自己三句</h2>
+    <div class="three">
+      <div class="step"><div class="q">①</div><b>阴阳</b><br>这动作是"建"还是"防"？<br>建了啥，它的"防"门在哪？</div>
+      <div class="step"><div class="q">②</div><b>天地人</b><br>规划想了吗？隔离做了吗？事后复盘了吗？</div>
+      <div class="step"><div class="q">③</div><b>知止</b><br>边界在哪？什么绝不可碰？</div>
+    </div>
+    <p class="note">为什么是这三句：所有反复出的 bug，都是"只建不防"（纯阳无阴）、"干完才查"（没规划没复盘）、"没划边界"（把命门目录排除在保护外）这三类病。<b>问完三句，做法自己就长出来了，不用记几百条规则。</b></p>
+  </div>
+
+  <div class="card">
+    <h2><span class="tag t-green">场景便签</span>遇到这些事，照做</h2>
+    <table>
+      <tr><th>场景</th><th>照做（从三句推出来的）</th><th>对应已落地工具</th></tr>
+      <tr><td>删文件 / 清理</td><td>先分类（独有？活跃？垃圾？）→ 删前备份到仓库外 → 高风险须你点头</td><td><code>safe_cleanup.py</code>（七类+闸门+salvage）</td></tr>
+      <tr><td>写新功能</td><td>先想"怎么证明它真工作了" → 写完跑一条真命令验证，别交完拉倒</td><td>DoD 门禁 <code>closeout_gate.py</code></td></tr>
+      <tr><td>多 AI 接力 / 并发改</td><td>谁在动同一目录？先沟通 → 改前 verify 命门文档 → 不整目录 rm</td><td>quality_gate 命门死守（本次补）</td></tr>
+      <tr><td>加一条铁律</td><td>问"它从哪个根推出来？能写成一条自动检查吗？"——不能自动查的，迟早被忘</td><td>启动提示词 + Skill</td></tr>
+      <tr><td>记一条经验</td><td>写"如果不做会怎样"（反事实）+ 置信度，否则就是幸存者偏差</td><td>ai_decisions 决策卡（待加反事实字段）</td></tr>
+      <tr><td>接外部知识/模型</td><td>公开源+注出处；结论要有"内部实测+外部权威"双证据，只靠自己说=自嗨</td><td>合规采集铁律</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2><span class="tag t-violet">一通百通</span>为什么一根能管万物</h2>
+    <p>模块、会话、整个系统，它们是<b>同一个形状</b>的（分形）：小到一次删除、大到项目架构，都会犯"只建不防/干完才查/没边界"这三种病。所以<b>守住一根（阴阳+天地人+知止），三层都罩住</b>，不用给每层单独发明规则。</p>
+    <p>这就是"道生一，一生二，二生三，三生万物"在这个项目里的意思：不是哲学，是<b>一个检查清单能套所有事</b>。</p>
+  </div>
+
+  <div class="card">
+    <h2><span class="tag t-amber">老实话</span>哪些还没闭环（不要假装都好了）</h2>
+    <table>
+      <tr><th>事项</th><th>状态</th><th>说明</th></tr>
+      <tr><td>quality_gate 盲区</td><td class="s">已补</td><td>本次新增命门文档死守，实测误删能拦（EXIT=1）</td></tr>
+      <tr><td>会话互删根因</td><td class="r">未根治</td><td>多 AI 无"会话租约/锁"，循环删除风险仍在，靠门禁事后发现</td></tr>
+      <tr><td>风险登记册</td><td class="w">未建</td><td>免费模型政策/坚果云同步/并发互删等显性风险未集中登记</td></tr>
+      <tr><td>决策卡反事实字段</td><td class="w">未加</td><td>经验卡缺"若不做会怎样+置信度"，易变幸存者偏差</td></tr>
+      <tr><td>Game Day 演练</td><td class="w">未做</td><td>没主动注入故障验证，真出事才学乖</td></tr>
+      <tr><td>并发改写日志/卡</td><td class="r">仍发生</td><td>另一会话会覆盖 ai_decisions/日志，[B]门禁可能被冲</td></tr>
+    </table>
+  </div>
+
+  <p class="foot">便签版用途：干活时贴在手边照做。玄学版（道衍推导框架）留给"未来 AI 接手 + 我自己推导新规则"用，不是给你读的——之前把它当交付物给你看，是我没分清读者，已纠正。</p>
+</div>
+</body>
+</html>

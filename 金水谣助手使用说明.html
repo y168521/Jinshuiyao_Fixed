@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣助手 · 新手使用说明</title>
+<style>
+  :root{
+    --bg:#f5f7fb; --card:#fff; --ink:#1f2a44; --muted:#5b6b88; --rule:#e6ebf3;
+    --brand:#5BC0DE; --brand2:#1ab79a; --soft:#eef3ff; --shadow:0 6px 22px rgba(31,42,68,.08);
+    --font:"Microsoft YaHei","PingFang SC","Noto Sans SC",system-ui,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--font);background:var(--bg);color:var(--ink);line-height:1.8}
+  .wrap{max-width:900px;margin:0 auto;padding:30px 20px 60px}
+  .top{background:linear-gradient(135deg,#5BC0DE,#1ab79a);color:#fff;border-radius:20px;padding:32px;box-shadow:var(--shadow)}
+  .top h1{font-size:27px;margin-bottom:8px}
+  .top p{opacity:.95;font-size:15px}
+  .back{display:inline-block;margin:18px 0;color:var(--brand);text-decoration:none;font-weight:600}
+  .card{background:var(--card);border:1px solid var(--rule);border-radius:18px;padding:24px 26px;box-shadow:var(--shadow);margin-top:22px}
+  .card h2{font-size:20px;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+  .card h2 .n{width:30px;height:30px;border-radius:9px;background:var(--soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:16px}
+  .card p{color:var(--muted);font-size:15px;margin:8px 0}
+  .card ul{margin:10px 0 4px 4px;list-style:none}
+  .card li{padding:8px 0 8px 26px;position:relative;color:var(--ink);font-size:15px}
+  .card li::before{content:"›";position:absolute;left:6px;color:var(--brand);font-weight:700;font-size:18px}
+  .bubble{background:var(--soft);border-radius:12px;padding:14px 16px;margin:12px 0;font-size:15px}
+  .bubble .who{font-weight:700;color:var(--brand);margin-right:6px}
+  .bubble.you .who{color:var(--brand2)}
+  .tag{display:inline-block;background:#e8fbf5;color:var(--brand2);border-radius:999px;padding:3px 12px;font-size:13px;margin:2px 4px 2px 0}
+  .warn{background:#fff5e6;border:1px solid #ffe0a3;color:#9a6a00;border-radius:12px;padding:14px 16px;font-size:14px;margin-top:14px}
+  .footer{text-align:center;color:var(--muted);font-size:13px;margin-top:34px}
+  code{background:#eef1f6;padding:2px 7px;border-radius:6px;font-size:13px;color:#334}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <h1>金水谣助手 · 新手使用说明</h1>
+    <p>写给完全不懂代码、不懂英文的你。读完这一页，就能轻松上手。</p>
+  </div>
+  <a class="back" href="金水谣助手门户.html">← 返回主入口</a>
+
+  <!-- 1 它是什么 -->
+  <div class="card">
+    <h2><span class="n">1</span>金水谣助手是什么</h2>
+    <p>简单说，它是一个<u>听得懂中文、会自己干活</u>的智能帮手。你不用学编程，也不用认识英文单词，只要像平时聊天一样，用中文告诉它你想做什么，它就去办。</p>
+    <p>它有三个本领（我们在门户首页也叫「三角色」）：</p>
+    <ul>
+      <li><b>工具使用</b>：帮你运行分析、预测、整理等具体操作。</li>
+      <li><b>知识库</b>：把有用的内容自动存起来，下次直接问它就能想起。</li>
+      <li><b>数据库</b>：把历史数据和记录妥善保管，随时可查。</li>
+    </ul>
+  </div>
+
+  <!-- 2 怎么对话 -->
+  <div class="card">
+    <h2><span class="n">2</span>怎么和它说话</h2>
+    <p>就在一个能打字的对话框里，用你平时说话的方式写一两句中文就行。下面是两个真实例子：</p>
+    <div class="bubble you"><span class="who">你：</span>帮我看看最近双色球的冷热号情况，用大白话讲一下。</div>
+    <div class="bubble"><span class="who">助手：</span>好的，我查一下近期数据……（随后给出结果，并解释每个数字是什么意思）</div>
+    <div class="bubble you"><span class="who">你：</span>把刚才这个方法记到知识库里，下次我也好找。</div>
+    <div class="bubble"><span class="who">助手：</span>已帮你归档到知识库，并贴上「双色球 / 冷热号」标签。</div>
+    <p>你越说得具体，它做得越准。比如加上「最近一个月」「用简单的话说」「存到知识库」这类要求。</p>
+  </div>
+
+  <!-- 3 它能帮你做 -->
+  <div class="card">
+    <h2><span class="n">3</span>常见能帮你的事</h2>
+    <p>下面的「标签」是它常做的事，你照着说就行：</p>
+    <div>
+      <span class="tag">查彩票走势</span><span class="tag">看股票行情</span><span class="tag">基金观察提醒</span>
+      <span class="tag">赛事参考</span><span class="tag">整理预测结果</span><span class="tag">生成图表</span>
+      <span class="tag">存知识到库</span><span class="tag">查历史记录</span><span class="tag">解释专业名词</span>
+      <span class="tag">优化文件结构</span><span class="tag">一键启动网页版</span>
+    </div>
+    <p style="margin-top:12px">记不住没关系，直接说你的目的，助手会自己判断怎么做。</p>
+  </div>
+
+  <!-- 4 网页版 -->
+  <div class="card">
+    <h2><span class="n">4</span>想要更丰富的网页界面？</h2>
+    <p>如果你想要带按钮、图表的网页界面，可以打开网页版：</p>
+    <ul>
+      <li>在文件里找到 <b>启动金水谣助手.bat</b>，双击它。</li>
+      <li>它会自动找到本机的运行环境，并帮你打开浏览器。</li>
+      <li>浏览器出现「总控台」页面后，点上面的按钮就能用各项功能。</li>
+      <li>用完关掉那个黑色窗口，服务就停了。</li>
+    </ul>
+    <div class="warn">⚠️ 小提醒：网页版需要本机已装有 Python 运行环境（程序操作步骤 文件夹里有安装包）。如果双击后没反应，告诉助手「启动网页版失败了」，它会一步步帮你排查。</div>
+  </div>
+
+  <!-- 5 闭环成长 -->
+  <div class="card">
+    <h2><span class="n">5</span>它会越用越聪明（闭环成长）</h2>
+    <p>金水谣助手有一个「学习闭环」：</p>
+    <ul>
+      <li><b>用</b>：你每次提需求，它都认真完成。</li>
+      <li><b>记</b>：过程中有用的知识、方法、结论，自动收进知识库。</li>
+      <li><b>长</b>：下次再遇到类似问题，它就能更快更准地帮你。</li>
+      <li><b>讲</b>：它还会把学到的东西用大白话讲给你，帮你也慢慢懂。</li>
+    </ul>
+    <p>所以放心大胆地多用、多问，就是在帮它（也帮你自己）成长。</p>
+  </div>
+
+  <!-- 6 诚实声明 -->
+  <div class="card">
+    <h2><span class="n">6</span>几点诚实说明</h2>
+    <ul>
+      <li>对<b>彩票</b>这类近似随机的事，助手只能整理规律、提供参考，<b>无法保证中奖</b>。</li>
+      <li>涉及重要文件的改动，助手会先跟你确认，不会擅自行动。</li>
+      <li>界面、说明、提示都是中文；个别技术名词会附中文解释，方便你理解。</li>
+    </ul>
+  </div>
+
+  <div class="footer">金水谣万物预测引擎 · 零基础中文交互环境 &nbsp;|&nbsp; 新手使用说明</div>
+</div>
+
+<a href="/" style="position:fixed;left:16px;bottom:16px;z-index:9999;background:#5BC0DE;color:#fff;text-decoration:none;padding:11px 18px;border-radius:12px;font-family:'Microsoft YaHei','PingFang SC',sans-serif;font-size:14px;font-weight:600;box-shadow:0 4px 14px rgba(91,192,222,.4)" target="_self">← 返回门户</a>
+
+</body>
+</html>

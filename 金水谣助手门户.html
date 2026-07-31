@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣助手门户 · 主功能入口</title>
+<style>
+  /* ════════════════════════════════════════
+     金水谣 · 深海熔金配色体系（七色为用）
+     四色为骨：深海墨蓝 / 深蓝灰 / 暖银白 / 香槟金
+     三辅助色：冰水蓝 / 墨绿金 / 赤铜
+     ════════════════════════════════════════ */
+  :root{
+    /* ── 核心四色 ── */
+    --deep:#0B1A2F;          /* 深海墨蓝 · 主背景 */
+    --card-bg:#162840;       /* 深蓝灰 · 卡片/区块 */
+    --ink:#E8ECF1;            /* 暖银白 · 主文字 */
+    --gold:#C9A96E;          /* 香槟金 · 强调/按钮/边框 */
+    /* ── 功能三辅色 ── */
+    --ice:#5BC0DE;            /* 冰水蓝 · 数据/链接/交互 */
+    --jade:#2D8B7E;           /* 墨绿金 · 盈利/正向 */
+    --copper:#C8755A;         /* 赤铜 · 警示/亏损 */
+    /* ── 层次衍生 ── */
+    --ink-dim:rgba(232,236,241,.55);       /* 暖银白·暗(导航级) */
+    --ink-mid:rgba(232,236,241,.7);        /* 暖银白·中(说明级) */
+    --gold-soft:rgba(201,169,110,.12);     /* 香槟金·淡(填充) */
+    --gold-border:rgba(201,169,110,.18);   /* 香槟金·边框 */
+    --gold-glow:rgba(201,169,110,.22);     /* 香槟金·辉光 */
+    --ice-soft:rgba(91,192,222,.12);       /* 冰水蓝·淡 */
+    /* ── 阴影与圆角 ── */
+    --shadow:0 8px 32px rgba(0,0,0,.25);
+    --shadow-gold:0 4px 24px rgba(201,169,110,.15);
+    --radius-lg:20px;
+    --radius-md:14px;
+    --radius-sm:10px;
+    --font:"Microsoft YaHei","PingFang SC","Noto Sans SC",system-ui,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:var(--font);
+    background:var(--deep);
+    color:var(--ink);
+    line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  /* 顶部光晕层 */
+  body::before{
+    content:'';position:fixed;top:-200px;left:50%;transform:translateX(-50%);
+    width:900px;height:500px;
+    background:radial-gradient(circle,rgba(201,169,110,.15),transparent 70%);
+    pointer-events:none;z-index:0;
+  }
+  .wrap{max-width:1040px;margin:0 auto;padding:28px 20px 60px;position:relative;z-index:1}
+
+  /* ═══ 顶部欢迎区（Hero） ═══ */
+  .hero{
+    background:linear-gradient(135deg,#0d2137 0%,#0B1A2F 50%,#102a45 100%);
+    border:1px solid var(--gold-border);
+    border-radius:var(--radius-lg);
+    padding:44px 36px;
+    color:var(--ink);
+    box-shadow:var(--shadow-gold),var(--shadow);
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::before{
+    content:'';position:absolute;right:-60px;top:-80px;width:300px;height:300px;
+    background:radial-gradient(circle,rgba(201,169,110,.10),transparent 70%);
+    border-radius:50%;pointer-events:none;
+  }
+  .hero::after{
+    content:'';position:absolute;left:-30px;bottom:-50px;width:200px;height:200px;
+    background:radial-gradient(circle,rgba(91,192,222,.06),transparent 70%);
+    border-radius:50%;pointer-events:none;
+  }
+  .hero h1{
+    font-size:30px;letter-spacing:2px;margin-bottom:14px;color:var(--gold);
+    position:relative;text-shadow:0 0 40px rgba(201,169,110,.2);
+  }
+  .hero p{font-size:15.5px;color:var(--ink-mid);max-width:680px;line-height:1.8}
+  .hero .tag{
+    display:inline-block;margin-top:20px;
+    background:var(--gold-soft);border:1px solid var(--gold-border);
+    padding:9px 18px;border-radius:999px;font-size:13.5px;
+    color:var(--gold);font-weight:500;letter-spacing:.5px;
+  }
+
+  /* ═══ 区块标题 ═══ */
+  .sec{margin-top:44px}
+  .sec h2{
+    font-size:21px;display:flex;align-items:center;gap:10px;margin-bottom:6px;color:var(--ink)
+  }
+  .sec h2 .dot{
+    width:10px;height:10px;border-radius:3px;background:var(--gold);
+    box-shadow:0 0 10px rgba(201,169,110,.4);
+  }
+  .sec .sub{color:var(--ink-dim);font-size:14px;margin-bottom:18px;padding-left:20px}
+
+  /* ═══ 三角色卡片 ═══ */
+  .roles{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .role{
+    background:var(--card-bg);
+    border:1px solid var(--gold-border);
+    border-radius:var(--radius-lg);
+    padding:26px 24px;
+    box-shadow:var(--shadow);
+    transition:.25s ease;
+    position:relative;overflow:hidden;
+  }
+  .role::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:3px;
+    background:linear-gradient(90deg,transparent,var(--gold),transparent);
+    opacity:0;transition:opacity .25s;
+  }
+  .role:hover{transform:translateY(-5px);border-color:rgba(201,169,110,.35)}
+  .role:hover::before{opacity:1}
+  .role .ico{
+    width:54px;height:54px;border-radius:14px;display:flex;align-items:center;
+    justify-content:center;font-size:28px;margin-bottom:16px;
+    background:var(--gold-soft);border:1px solid var(--gold-border);
+  }
+  .role h3{font-size:18px;margin-bottom:8px;color:var(--gold)}
+  .role p{color:var(--ink-mid);font-size:14px;line-height:1.75}
+  .role .ex{
+    margin-top:14px;font-size:13px;color:var(--ink-mid);
+    background:rgba(201,169,110,.06);border:1px dashed var(--gold-border);
+    border-radius:var(--radius-sm);padding:11px 14px;
+    font-family:"Roboto Mono","Consolas",monospace;
+  }
+
+  /* ═══ 使用步骤 ═══ */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;counter-reset:step}
+  .step{
+    background:var(--card-bg);
+    border:1px solid var(--gold-border);
+    border-radius:var(--radius-lg);
+    padding:24px;
+    box-shadow:var(--shadow);
+    position:relative;transition:.25s ease;
+  }
+  .step:hover{border-color:rgba(201,169,110,.35)}
+  .step .num{
+    counter-increment:step;width:36px;height:36px;border-radius:50%;
+    background:linear-gradient(135deg,var(--gold),#b8945e);
+    color:var(--deep);display:flex;align-items:center;
+    justify-content:center;font-weight:800;margin-bottom:14px;
+    font-size:16px;box-shadow:0 0 16px rgba(201,169,110,.3);
+  }
+  .step .num::before{content:counter(step)}
+  .step h3{font-size:17px;margin-bottom:6px;color:var(--ink)}
+  .step p{color:var(--ink-mid);font-size:14px}
+
+  /* ═══ 常见问题 ═══ */
+  .faq{
+    background:var(--card-bg);border:1px solid var(--gold-border);
+    border-radius:var(--radius-lg);padding:10px 24px;box-shadow:var(--shadow);
+  }
+  .q{border-bottom:1px solid rgba(201,169,110,.08);padding:16px 0}
+  .q:last-child{border-bottom:none}
+  .q b{color:var(--gold);font-size:15px}
+  .q p{color:var(--ink-mid);font-size:14px;margin-top:5px;line-height:1.75}
+
+  /* ═══ 文件地图 ═══ */
+  .map{
+    background:var(--card-bg);border:1px solid var(--gold-border);
+    border-radius:var(--radius-lg);padding:8px 24px;box-shadow:var(--shadow);
+  }
+  .map .row{
+    display:flex;gap:14px;padding:14px 0;
+    border-bottom:1px dashed rgba(201,169,110,.10);
+  }
+  .map .row:last-child{border-bottom:none}
+  .map .name{font-weight:700;min-width:230px;color:var(--gold);font-size:14px}
+  .map .desc{color:var(--ink-mid);font-size:14px}
+
+  /* ═══ 按钮 ═══ */
+  .actions{margin-top:34px}
+  .section-label{font-size:15px;color:var(--ink-mid);margin:22px 0 12px;display:flex;align-items:center;gap:8px;font-weight:600}
+  .section-label .line{flex:1;height:1px;background:rgba(201,169,110,.12)}
+  .btn-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:0}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    background:linear-gradient(135deg,var(--gold),#b8945e);
+    color:var(--deep);text-decoration:none;
+    padding:14px 26px;border-radius:var(--radius-md);
+    font-size:15px;font-weight:700;letter-spacing:.3px;
+    box-shadow:var(--shadow-gold);transition:.25s ease;
+    border:1px solid rgba(201,169,110,.3);
+  }
+  .btn:hover{
+    transform:translateY(-2px);
+    box-shadow:0 8px 28px rgba(201,169,110,.3);
+    filter:brightness(1.05);
+  }
+  .btn.ghost{
+    background:transparent;color:var(--gold);
+    border:1px solid var(--gold-border);
+    box-shadow:none;font-weight:500;
+  }
+  .btn.ghost:hover{
+    background:var(--gold-soft);
+    border-color:rgba(201,169,110,.35);
+    transform:none;box-shadow:none;
+  }
+  .card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:6px}
+  .card-grid .card{
+    background:var(--card-bg);border:1px solid var(--gold-border);border-radius:var(--radius-lg);
+    padding:20px;text-decoration:none;color:var(--ink);transition:.25s ease;display:flex;flex-direction:column;
+  }
+  .card-grid .card:hover{border-color:rgba(201,169,110,.4);transform:translateY(-3px);box-shadow:var(--shadow-gold)}
+  .card-grid .card .ico{font-size:26px;margin-bottom:8px}
+  .card-grid .card .name{font-size:16px;font-weight:700;color:var(--gold)}
+  .card-grid .card .desc{font-size:13px;color:var(--ink-mid);margin-top:4px}
+  @media(max-width:600px){.card-grid{grid-template-columns:1fr}}
+  .note{
+    margin-top:20px;font-size:13px;color:var(--ink-mid);
+    background:var(--card-bg);border:1px dashed var(--gold-border);
+    border-radius:var(--radius-md);padding:16px 20px;line-height:1.8;
+  }
+  .note b{color:var(--copper)}
+  .footer{
+    margin-top:44px;text-align:center;color:var(--ink-dim);font-size:13px;
+    letter-spacing:1px;padding-top:20px;
+    border-top:1px solid rgba(201,169,110,.08);
+  }
+
+  @media(max-width:760px){
+    .roles,.steps{grid-template-columns:1fr}
+    .map .row{flex-direction:column;gap:4px}.map .name{min-width:0}
+    .hero h1{font-size:24px}.hero{padding:30px 22px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 顶部欢迎 -->
+  <section class="hero">
+    <h1>金水谣助手 · 主功能入口</h1>
+    <p>你不需要写代码，也不需要懂英文。只要在对话窗口里用中文说出你想做的事，金水谣助手就会帮你完成，并一步一步给你讲清楚。</p>
+    <span class="tag">一句话提需求 · 助手自动办 · 全程中文 · 边用边学</span>
+    <div style="margin-top:18px;padding:12px 16px;background:rgba(91,192,222,.08);border:1px solid rgba(91,192,222,.2);border-radius:var(--radius-md);font-size:14px;color:var(--ice);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span>💡 首次使用？先确保服务器已启动：</span>
+      <code style="background:rgba(0,0,0,.3);padding:4px 10px;border-radius:6px;font-size:13px">Jinshuiyao_Fixed\启动金水谣助手.bat</code>
+      <span style="font-size:13px;color:var(--ink-dim)">（双击即可，浏览器自动打开）</span>
+    </div>
+  </section>
+
+  <!-- 三角色 -->
+  <section class="sec">
+    <h2><span class="dot"></span>助手有三种本领（三角色）</h2>
+    <div class="sub">金水谣助手同时具备三种能力，你只要说需求，它会自己判断用哪一种。</div>
+    <div class="roles">
+      <div class="role r1">
+        <div class="ico">🛠️</div>
+        <h3>工具使用</h3>
+        <p>帮你运行各种分析与预测，比如彩票走势、股票行情、基金观察、赛事参考等。你下指令，它来操作。</p>
+        <div class="ex">示例：「帮我看看最近双色球的冷热号情况」</div>
+      </div>
+      <div class="role r2">
+        <div class="ico">📚</div>
+        <h3>知识库</h3>
+        <p>助手会把有用的知识和经验自动整理、归档，越用越聪明。你随时可以问它「之前那个方法是怎么做的」。</p>
+        <div class="ex">示例：「把刚才讲的共形预测，记到知识库里」</div>
+      </div>
+      <div class="role r3">
+        <div class="ico">🗄️</div>
+        <h3>数据库</h3>
+        <p>所有历史数据、预测记录、学习状态都安全存放，方便随时查阅和回顾，不会丢失。</p>
+        <div class="ex">示例：「打开数据库，看看上个月的预测记录」</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 怎么用 -->
+  <section class="sec">
+    <h2><span class="dot"></span>三步就能用起来</h2>
+    <div class="sub">不需要任何技术基础，照着做就行。</div>
+    <div class="steps">
+      <div class="step"><div class="num"></div><h3>打开对话窗口</h3><p>使用本软件自带的聊天界面（就是你正在和助手说话的地方）。</p></div>
+      <div class="step"><div class="num"></div><h3>用中文说需求</h3><p>像聊天一样说出你想做的事，例如「帮我整理一下今天的预测结果」。</p></div>
+      <div class="step"><div class="num"></div><h3>看助手完成并讲解</h3><p>助手会一步步做完，并把每一步的目的和效果用大白话讲给你听。</p></div>
+    </div>
+  </section>
+
+  <!-- 常见问题 -->
+  <section class="sec">
+    <h2><span class="dot"></span>新手常问</h2>
+    <div class="faq">
+      <div class="q"><b>我不会写代码，能用吗？</b><p>完全可以。整套环境就是为非技术用户设计的，你只用中文对话，不需要碰任何代码。</p></div>
+      <div class="q"><b>看到英文看不懂怎么办？</b><p>界面和说明全部是中文。偶尔出现技术名词时，助手都会附上中文解释。</p></div>
+      <div class="q"><b>会不会把文件弄坏？</b><p>涉及重要文件的改动，助手会先告诉你并征得同意，不会偷偷动你的东西。</p></div>
+      <div class="q"><b>怎么让助手越来越懂我？</b><p>多用、多说就行。助手会把有价值的内容自动收进知识库，形成「越用越聪明」的闭环。</p></div>
+      <div class="q"><b>想用更丰富的网页功能怎么办？</b><p>进入「Jinshuiyao_Fixed」文件夹，双击里面的「启动金水谣助手.bat」即可打开网页版总控台（地址 http://localhost:18888 ），里面有更多按钮和图表。根目录的「启动金水谣助手.bat」也能用，它会自动跳转到模型文件夹里的那个。</p></div>
+    </div>
+  </section>
+
+  <!-- 文件地图 -->
+  <section class="sec">
+    <h2><span class="dot"></span>文件放在哪（按功能分类）</h2>
+    <div class="sub">所有文件已按用途归好类，你不用一个个翻，记住下面几个就够了。</div>
+    <div class="map">
+      <div class="row"><div class="name">金水谣助手门户.html</div><div class="desc">你正在看的页面，统一主入口。双击即可打开。</div></div>
+      <div class="row"><div class="name">金水谣助手使用说明.html</div><div class="desc">新手图文教程：怎么对话、三角色详解、示例与问答。</div></div>
+      <div class="row"><div class="name">Jinshuiyao_Fixed\启动金水谣助手.bat</div><div class="desc">【主要打开方式】一键启动网页版（自动找本机程序并打开浏览器）。根目录的启动金水谣助手.bat 也会跳转到它。</div></div>
+      <div class="row"><div class="name">Jinshuiyao_Fixed（金水谣引擎）</div><div class="desc">预测与分析的核心程序，助手在后台调用它。</div></div>
+      <div class="row"><div class="name">金水谣数据（数据库）</div><div class="desc">历史数据、预测记录、学习状态都安全存这里。</div></div>
+      <div class="row"><div class="name">程序操作步骤</div><div class="desc">安装与操作指引、本机程序安装包。</div></div>
+      <div class="row"><div class="name">知识库</div><div class="desc">位于 Jinshuiyao_Fixed/knowledge，助手自动积累的知识卡片。</div></div>
+      <div class="row"><div class="name">Jinshuiyao_Fixed\AI代码助手(DeepSeek备用)</div><div class="desc">TRAE/WorkBuddy 用不了时的备胎：双击里面的「启动DeepSeek助手.bat」即可用 DeepSeek 改代码，自带网页界面、自动重试与断网排队。详见文件夹内「使用说明.html」。</div></div>
+      <div class="row"><div class="name">Jinshuiyao_Fixed\smart-coder（智能代码助手）</div><div class="desc">面向新手的代码理解工具：粘贴项目路径自动画出目录树、标出入口/核心/配置，直接大白话提问就能定位相关代码并给「问题定位/原因/建议」三段式解答。网页版入口在总控台点「🤖 智能代码助手」。</div></div>
+    </div>
+  </section>
+
+  <!-- 行动按钮 -->
+  <div class="actions">
+    <div class="section-label"><span>🎯 推荐新手从这里开始</span><span class="line"></span></div>
+    <div class="card-grid">
+      <a class="card" href="/lottery" target="_blank" rel="noopener">
+        <div class="ico">🎲</div><div class="name">彩票分析中心</div>
+        <div class="desc">走势分析 · 遗漏热图 · 旋转矩阵 · 缩水过滤 · 奖金计算 · 龙头凤尾 · 操作留痕</div>
+      </a>
+      <a class="card" href="/fund" target="_blank" rel="noopener">
+        <div class="ico">💰</div><div class="name">基金分析中心</div>
+        <div class="desc">净值走势对比 · 持仓分析 · 基金筛选 · 仪表盘</div>
+      </a>
+      <a class="card" href="/stock" target="_blank" rel="noopener">
+        <div class="ico">📈</div><div class="name">股票分析中心</div>
+        <div class="desc">行情概览 · 多因子选股 · 策略回测 · 量价走势图</div>
+      </a>
+      <a class="card" href="/football" target="_blank" rel="noopener">
+        <div class="ico">⚽</div><div class="name">足彩分析中心</div>
+        <div class="desc">赔率分析 · 赛果预测 · 仪表盘</div>
+      </a>
+    </div>
+
+    <div class="section-label"><span>📋 系统入口</span><span class="line"></span></div>
+    <div class="btn-row">
+      <a class="btn" href="/workbench" target="_blank" rel="noopener">🚀 金水谣工作台</a>
+      <a class="btn ghost" href="/control-center" target="_blank" rel="noopener">🎛️ 网页总控台</a>
+      <a class="btn ghost" href="/ai-agent" target="_blank" rel="noopener">💬 AI助手</a>
+      <a class="btn ghost" href="/sync" target="_blank" rel="noopener">📋 跨设备看板</a>
+    </div>
+
+    <div class="section-label"><span>📖 帮助与参考</span><span class="line"></span></div>
+    <div class="btn-row">
+      <a class="btn ghost" href="/金水谣助手使用说明.html" target="_blank" rel="noopener">📖 新手说明</a>
+      <a class="btn ghost" href="/金水谣助手提示词库.html" target="_blank" rel="noopener">🧩 提示词库</a>
+      <a class="btn ghost" href="/smart-coder" target="_blank" rel="noopener">🤖 智能代码助手</a>
+      <a class="btn ghost" href="/workbench#aiTest" target="_blank" rel="noopener">🧪 用例生成</a>
+      <a class="btn ghost" href="/workbench#dashboard" target="_blank" rel="noopener">🧭 任务调度</a>
+      <a class="btn ghost" href="/workbench#docs" target="_blank" rel="noopener">🏗️ 系统架构</a>
+      <a class="btn ghost" href="/workbench#docs" target="_blank" rel="noopener">🗺️ 总体规划</a>
+      <a class="btn ghost" href="/archive/旧报告/金水谣助手多维分析与验证报告.html" target="_blank" rel="noopener">📊 改进报告</a>
+      <a class="btn ghost" href="Jinshuiyao_Fixed/AI代码助手(DeepSeek备用)/使用说明.html" target="_blank" rel="noopener">🛟 DeepSeek备用</a>
+    </div>
+  </div>
+
+  <div class="note">
+    💡 小提示：点击上面任意功能，都会<b>在新窗口打开</b>，不影响你继续和助手聊天；用完点窗口里的「← 返回门户」就能回到这一页。
+    本环境对「彩票」等近似随机的事项，遵循诚实原则——助手提供的是参考与规律整理，<b>不能保证中奖</b>。
+  </div>
+
+  <div class="footer">金水谣万物预测引擎 · 零基础中文交互环境 &nbsp;|&nbsp; 主功能入口</div>
+</div>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
+</body>
+</html>

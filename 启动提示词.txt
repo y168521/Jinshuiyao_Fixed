@@ -1,0 +1,33 @@
+金水谣项目 · 启动提示词（薄入口版）
+========================================
+
+> 近期重要变更：项目结构已整理（9目录→frontend/）、AI 智能体升级（多管线+向量记忆+工具注册）、Git+GitHub 已配（y168521/Jinshuiyao_Fixed）、自动同步脚本已设（同步代码.bat）
+
+我在做金水谣项目。开工前先 `git pull`（或双击 同步代码.bat）确保最新代码，再按顺序读：
+1. 模型/AI协作交接中心.md（进度+待办+环境）
+2. 模型/金水谣_纲.md（天层·不变纲领：五铁律+道衍三问+Pipeline+安全+数据隔离）
+3. 模型/金水谣_契.md（地层·执行契约：编码规范+模块边界+七色体系+部署）
+4. 模型/金水谣_录.md（人层·过程记录：接手SOP+审查清单+防乱机制+质量保障）
+
+**读完以上文件后，自动检查交接中心的【下一步】和【待办】列表，从第一个未完成项开始执行。完成后问主人接下来做什么。**
+
+收工前必须：更新交接中心 + 追加经验收集箱 + 跑 `py -3.14 tools/gate.py --check` 全绿 + 登记工作留痕总索引.md + `git push`（或双击 同步代码.bat）确保双机同步
+
+> 代码审查 Pipeline（与五铁律并列，改完代码必须走）：
+> 1. ruff check Jinshuiyao_Fixed/ --config Jinshuiyao_Fixed/pyproject.toml
+> 2. py -3.14 tools/gate.py --ast --quick
+> 3. py -3.14 tools/gate.py --smoke --quick
+> 4. py -3.14 tools/gate.py --check
+> 5. py -3.14 tools/gate.py --audit（跨文档一致性，每轮交接必跑）
+> 6. 新发现模式 → knowledge/pattern_library.json
+
+> ⚠️ **对抗 AI 惰性/闭塞·五道防线红线（检索前置/引用门禁/原子化/濯石淘洗/主动抽考/不闭塞）**：永久生效，每次任务必守。完整规则见 `金水谣_纲.md §九`；收工经 `jinshuiyao-ai-diligence-check` 抽考兜底，联网新知由 `jinshuiyao-knowledge-refresh` 周常注入。
+
+> 环境速查：
+> - Python: %LOCALAPPDATA%\Jinshuiyao\venv\Scripts\python.exe（启动器自动建）
+> - 千万别用 py -3 / py -3.14 跑测试（系统Python缺依赖！必须用venv）
+> - 项目: C:\Users\Administrator\Nutstore\1\我的坚果云\模型\Jinshuiyao_Fixed\
+> - 端口: 18888 | 启动: 双击 启动金水谣助手.bat | ruff: ruff check
+> - 收工: py -3.14 tools/gate.py --check
+
+> ⚠️ 原 11 份规范文档已合并为纲/契/录三层。旧文件（编码规范/模块契约/优化防乱/全视角审查/AI协作规范_完整版等）已归档，内容以三层为准。
