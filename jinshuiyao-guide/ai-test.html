@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>金水谣万物引擎 - AI用例生成</title>
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+  <style>
+    /* @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap'); */
+    :root {
+      /* 映射到 theme.css 设计令牌 */
+      --bg: var(--deep);
+      --bg2: var(--card-bg);
+      --bg3: #1c3350;
+      --dim: var(--ink-mid);
+      --rule: var(--gold-border);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background:
+        radial-gradient(ellipse 800px 600px at 15% 20%, rgba(47,109,240,0.06), transparent),
+        radial-gradient(ellipse 600px 500px at 85% 70%, rgba(91,192,222,0.05), transparent),
+        radial-gradient(ellipse 400px 400px at 50% 50%, rgba(201,169,110,0.04), transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .container {
+      position: relative; z-index: 1;
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 2rem 2rem 3rem;
+    }
+
+    /* 顶部 */
+    .hero {
+      text-align: center;
+      padding: 2rem 0 1rem;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(91,192,222,0.1);
+      border: 1px solid rgba(91,192,222,0.25);
+      border-radius: 20px;
+      padding: 0.2rem 1rem;
+      font-size: 0.75rem;
+      color: var(--ice);
+      margin-bottom: 0.8rem;
+      letter-spacing: 0.05em;
+      font-weight: 500;
+    }
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      margin-bottom: 0.4rem;
+      background: linear-gradient(135deg, var(--ice), var(--ice), var(--warn));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-time {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 0.3rem;
+    }
+
+    /* 使用说明 */
+    .steps-banner {
+      background: rgba(91,192,222,0.08);
+      border: 1px solid rgba(91,192,222,0.2);
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      margin: 1.5rem 0 2rem;
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    .steps-banner strong { color: var(--ice); }
+    .step-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 0.8rem;
+      flex-wrap: wrap;
+    }
+    .step-item {
+      background: rgba(91,192,222,0.1);
+      border: 1px solid rgba(91,192,222,0.2);
+      border-radius: 8px;
+      padding: 0.4rem 1rem;
+      font-size: 0.85rem;
+      color: var(--ink);
+    }
+    .step-arrow {
+      color: var(--ice);
+      font-weight: 700;
+    }
+
+    /* 三栏布局 */
+    .main-layout {
+      display: grid;
+      grid-template-columns: 260px 1fr 280px;
+      gap: 1.25rem;
+      align-items: start;
+    }
+    @media (max-width: 1024px) {
+      .main-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* 左侧：接口列表 */
+    .panel {
+      background: var(--bg2);
+      border: 1px solid var(--rule);
+      border-radius: 16px;
+      padding: 1.25rem;
+      box-shadow: var(--shadow);
+    }
+    .panel-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--rule);
+      color: var(--ink);
+    }
+    .api-list-item {
+      padding: 0.65rem 0.8rem;
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      margin-bottom: 0.4rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.82rem;
+    }
+    .api-list-item:hover {
+      border-color: rgba(47,109,240,0.3);
+      background: var(--bg3);
+    }
+    .api-list-item.active {
+      border-color: var(--ice);
+      background: rgba(47,109,240,0.08);
+    }
+    .api-list-item .item-method {
+      display: inline-block;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      margin-right: 0.4rem;
+    }
+    .api-list-item .item-method.GET {
+      background: rgba(45,139,126,0.15);
+      color: var(--ok);
+    }
+    .api-list-item .item-method.POST {
+      background: rgba(59,130,246,0.15);
+      color: var(--blue);
+    }
+    .api-list-item .item-path {
+      font-family: 'Courier New', monospace;
+      color: var(--ink);
+    }
+    .api-list-item .item-desc {
+      color: var(--muted);
+      font-size: 0.75rem;
+      margin-top: 0.2rem;
+      display: block;
+    }
+
+    /* 中间：生成区域 */
+    .gen-area .gen-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+    }
+    .gen-selected {
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+    .gen-selected span {
+      color: var(--ice);
+      font-weight: 700;
+    }
+    .btn {
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 10px;
+      font-family: var(--font);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary {
+      background: var(--ice);
+      color: var(--bg);
+    }
+    .btn-primary:hover { background: #5BC0DE; }
+    .btn-ghost {
+      background: var(--bg3);
+      color: var(--muted);
+      border: 1px solid var(--rule);
+    }
+    .btn-ghost:hover {
+      border-color: var(--ice);
+      color: var(--ink);
+    }
+    .btn-green {
+      background: var(--ok);
+      color: var(--bg);
+    }
+    .btn-green:hover { background: #2D8B7E; }
+    .btn-amber {
+      background: var(--warn);
+      color: var(--bg);
+    }
+    .btn-amber:hover { background: var(--gold); }
+    .btn .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(0,0,0,0.2);
+      border-top-color: var(--bg);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Loading动画 */
+    .loading-area {
+      text-align: center;
+      padding: 3rem;
+      display: none;
+    }
+    .loading-area.visible { display: block; }
+    .loading-dots {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .loading-dots span {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--ice);
+      animation: bounce 1.4s infinite;
+    }
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.3; }
+      40% { transform: translateY(-12px); opacity: 1; }
+    }
+    .loading-text {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    /* 结果表格 */
+    .result-table-wrap {
+      overflow-x: auto;
+    }
+    .result-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    .result-table th {
+      background: var(--bg3);
+      color: var(--muted);
+      padding: 0.6rem 0.7rem;
+      text-align: left;
+      border: 1px solid var(--rule);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .result-table td {
+      padding: 0.5rem 0.7rem;
+      border: 1px solid var(--rule);
+      color: var(--ink);
+      vertical-align: top;
+    }
+    .result-table tr:hover {
+      background: rgba(47,109,240,0.04);
+    }
+    .result-table td[contenteditable] {
+      outline: none;
+      cursor: text;
+    }
+    .result-table td[contenteditable]:focus {
+      background: rgba(47,109,240,0.06);
+      border-color: var(--ice);
+    }
+    .priority-tag {
+      display: inline-block;
+      padding: 0.1rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .priority-tag.high { background: rgba(200,117,90,0.15); color: var(--err); }
+    .priority-tag.medium { background: rgba(201,169,110,0.15); color: var(--warn); }
+    .priority-tag.low { background: rgba(45,139,126,0.15); color: var(--ok); }
+
+    /* 右侧：用例管理 */
+    .manage-area .manage-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--rule);
+    }
+    .manage-stats {
+      margin-bottom: 1rem;
+    }
+    .manage-stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.4rem 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .manage-stat-row span:last-child {
+      font-weight: 700;
+      color: var(--ice);
+    }
+    .manage-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .manage-actions .btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    /* 全选 */
+    .select-all-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.8rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .select-all-row input[type="checkbox"] {
+      accent-color: var(--ice);
+      width: 16px; height: 16px;
+      cursor: pointer;
+    }
+    .row-checkbox {
+      accent-color: var(--ice);
+      width: 16px; height: 16px;
+      cursor: pointer;
+    }
+
+    /* 空状态 */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--muted);
+    }
+    .empty-state .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+    .empty-state p {
+      font-size: 0.9rem;
+    }
+
+    /* 底部 */
+    .footer-bar {
+      text-align: center;
+      padding: 2rem 0 0;
+      border-top: 1px solid var(--rule);
+      margin-top: 2rem;
+    }
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .footer-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: var(--ice); }
+    .footer-copy {
+      color: var(--dim);
+      font-size: 0.75rem;
+    }
+
+    @media (max-width: 768px) {
+      .container { padding: 1.25rem; }
+      .hero h1 { font-size: 1.6rem; }
+    }
+
+    /* ===== 知识库折叠面板样式 ===== */
+    .knowledge-section {
+      background: var(--bg2);
+      border: 1px solid var(--rule);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .knowledge-header {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.2s;
+    }
+    .knowledge-header:hover {
+      background: var(--bg3);
+    }
+    .knowledge-toggle {
+      font-size: 0.7rem;
+      color: var(--ice);
+      transition: transform 0.3s;
+      display: inline-block;
+    }
+    .knowledge-toggle.collapsed {
+      transform: rotate(-90deg);
+    }
+    .knowledge-title-text {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .knowledge-body {
+      padding: 0 1.25rem 1.25rem;
+    }
+    /* Tab样式 */
+    .knowledge-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 1rem;
+      border-bottom: 2px solid var(--rule);
+    }
+    .knowledge-tab {
+      padding: 0.6rem 1.2rem;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+    .knowledge-tab:hover {
+      color: var(--ink);
+    }
+    .knowledge-tab.active {
+      color: var(--ice);
+      border-bottom-color: var(--ice);
+    }
+    .knowledge-panel {
+      display: none;
+    }
+    .knowledge-panel.active {
+      display: block;
+    }
+    /* 行业趋势卡片 */
+    .trend-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 0.8rem;
+    }
+    .trend-card {
+      background: var(--bg3);
+      border: 1px solid var(--rule);
+      border-radius: 12px;
+      padding: 1rem;
+      transition: all 0.2s;
+    }
+    .trend-card:hover {
+      border-color: rgba(91,192,222,0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(91,192,222,0.12);
+    }
+    .trend-card-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 0.4rem;
+    }
+    .trend-card-desc {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+      line-height: 1.5;
+    }
+    .trend-card-benefit {
+      display: inline-block;
+      background: rgba(45,139,126,0.12);
+      border: 1px solid rgba(45,139,126,0.25);
+      border-radius: 6px;
+      padding: 0.15rem 0.6rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--ok);
+      margin-bottom: 0.5rem;
+    }
+    .trend-card-tools {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+    }
+    .trend-card-tools span {
+      background: rgba(47,109,240,0.1);
+      border: 1px solid rgba(47,109,240,0.2);
+      border-radius: 4px;
+      padding: 0.1rem 0.5rem;
+      font-size: 0.72rem;
+      color: var(--ice);
+    }
+    /* 学习路径时间线 */
+    .roadmap-timeline {
+      position: relative;
+      padding-left: 2rem;
+    }
+    .roadmap-timeline::before {
+      content: '';
+      position: absolute;
+      left: 8px;
+      top: 8px;
+      bottom: 8px;
+      width: 2px;
+      background: linear-gradient(to bottom, var(--ice), var(--ice), var(--warn));
+      border-radius: 1px;
+    }
+    .roadmap-stage {
+      position: relative;
+      margin-bottom: 1.2rem;
+    }
+    .roadmap-stage:last-child {
+      margin-bottom: 0;
+    }
+    .roadmap-stage::before {
+      content: '';
+      position: absolute;
+      left: -2rem;
+      top: 6px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 3px solid var(--ice);
+      z-index: 1;
+    }
+    .roadmap-stage:nth-child(2)::before {
+      border-color: var(--ice);
+    }
+    .roadmap-stage:nth-child(3)::before {
+      border-color: var(--warn);
+    }
+    .roadmap-stage:nth-child(4)::before {
+      border-color: var(--ok);
+    }
+    .roadmap-stage-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 0.3rem;
+    }
+    .roadmap-stage-duration {
+      display: inline-block;
+      background: rgba(201,169,110,0.12);
+      border: 1px solid rgba(201,169,110,0.25);
+      border-radius: 4px;
+      padding: 0.1rem 0.5rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--warn);
+      margin-left: 0.5rem;
+    }
+    .roadmap-skills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      margin-top: 0.3rem;
+    }
+    .roadmap-skills span {
+      background: var(--bg3);
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      padding: 0.2rem 0.6rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 顶部 -->
+    <div class="hero">
+      <div class="hero-badge">AI用例生成</div>
+      <h1>金水谣万物引擎 · AI用例生成</h1>
+      <div class="hero-time">用AI自动生成接口测试用例</div>
+    </div>
+
+    <!-- 使用说明 -->
+    <div class="steps-banner">
+      <strong>使用说明：</strong>只需3步即可生成专业测试用例，完全不需要编程知识。
+      <div class="step-flow">
+        <span class="step-item">第1步：从左侧选择接口</span>
+        <span class="step-arrow">&#8594;</span>
+        <span class="step-item">第2步：点击生成测试用例</span>
+        <span class="step-arrow">&#8594;</span>
+        <span class="step-item">第3步：导出或执行用例</span>
+      </div>
+    </div>
+
+    <!-- 三栏布局 -->
+    <div class="main-layout">
+      <!-- 左侧：接口列表 -->
+      <div class="panel api-panel">
+        <div class="panel-title">&#128220; 接口列表</div>
+        <div id="apiList"></div>
+      </div>
+
+      <!-- 中间：生成区域 -->
+      <div class="panel gen-area">
+        <div class="gen-header">
+          <div class="gen-selected">当前选择：<span id="selectedApi">未选择</span></div>
+          <button class="btn btn-primary" id="btnGenerate" onclick="generateTestCases()" disabled>
+            &#129302; AI生成测试用例
+          </button>
+        </div>
+
+        <!-- Loading -->
+        <div class="loading-area" id="loadingArea">
+          <div class="loading-dots">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="loading-text">AI正在分析接口并生成测试用例，请稍候...</div>
+        </div>
+
+        <!-- 结果表格 -->
+        <div id="resultArea" style="display:none;">
+          <div class="select-all-row">
+            <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this.checked)">
+            <label for="selectAll">全选 / 取消全选</label>
+            <span style="margin-left:auto;color:var(--muted);font-size:0.78rem;">点击表格内容可直接编辑</span>
+          </div>
+          <div class="result-table-wrap">
+            <table class="result-table">
+              <thead>
+                <tr>
+                  <th style="width:30px;"></th>
+                  <th style="width:50px;">编号</th>
+                  <th style="width:150px;">标题</th>
+                  <th>前置条件</th>
+                  <th>操作步骤</th>
+                  <th>预期结果</th>
+                  <th style="width:70px;">优先级</th>
+                </tr>
+              </thead>
+              <tbody id="resultBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 空状态 -->
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">&#128640;</div>
+          <p>请从左侧选择一个接口，然后点击"AI生成测试用例"</p>
+        </div>
+      </div>
+
+      <!-- 右侧：用例管理 -->
+      <div class="panel manage-area">
+        <div class="manage-title">&#128295; 用例管理</div>
+        <div class="manage-stats">
+          <div class="manage-stat-row">
+            <span>已生成用例数</span>
+            <span id="totalCount">0</span>
+          </div>
+          <div class="manage-stat-row">
+            <span>已选中用例数</span>
+            <span id="selectedCount">0</span>
+          </div>
+          <div class="manage-stat-row">
+            <span>高优先级</span>
+            <span id="highCount">0</span>
+          </div>
+        </div>
+        <div class="manage-actions">
+          <button class="btn btn-amber" onclick="exportAsMarkdown()" id="btnExportMd" disabled>&#128196; 导出为 Markdown</button>
+          <button class="btn btn-ghost" onclick="exportAsJson()" id="btnExportJson" disabled>&#128190; 导出为 JSON</button>
+          <button class="btn btn-green" onclick="executeSelected()" id="btnExecute" disabled>&#9654; 执行选中用例</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 知识库折叠面板 -->
+    <div class="knowledge-section" style="margin-top: 1.25rem;">
+      <div class="knowledge-header" onclick="toggleKnowledgePanel()">
+        <span class="knowledge-toggle" id="knowledgeToggle">&#9660;</span>
+        <span class="knowledge-title-text">&#128218; 测试知识库 -- 行业趋势 &amp; 学习路径</span>
+      </div>
+      <div class="knowledge-body" id="knowledgeBody" style="display:none;">
+        <!-- Tab切换 -->
+        <div class="knowledge-tabs">
+          <div class="knowledge-tab active" data-tab="trends" onclick="switchKnowledgeTab('trends')">&#127760; 行业趋势</div>
+          <div class="knowledge-tab" data-tab="roadmap" onclick="switchKnowledgeTab('roadmap')">&#128640; 学习路径</div>
+        </div>
+
+        <!-- 行业趋势面板 -->
+        <div class="knowledge-panel active" id="panelTrends">
+          <div class="trend-cards" id="trendCards"></div>
+        </div>
+
+        <!-- 学习路径面板 -->
+        <div class="knowledge-panel" id="panelRoadmap" style="display:none;">
+          <div class="roadmap-timeline" id="roadmapTimeline"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部 -->
+    <div class="footer-bar">
+      <div class="footer-links">
+        <a href="/">返回总控台</a>
+        <a href="/docs">接口文档</a>
+        <a href="/test-report">测试报告</a>
+      </div>
+      <div class="footer-copy">
+        金水谣万物引擎 &copy; 2026 | AI用例生成 v1.0 | 服务器端口 18888
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== 接口数据 =====
+    var apiList = [
+      { path: '/', method: 'GET', desc: '总控台首页重定向', params: '无' },
+      { path: '/open', method: 'GET', desc: '打开/启动本地文件', params: 'file, mode' },
+      { path: '/status', method: 'GET', desc: '获取系统状态', params: '无' },
+      { path: '/api/chat', method: 'POST', desc: 'AI对话接口', params: 'message' },
+      { path: '/api/extract', method: 'POST', desc: '视频文案提取', params: 'url' },
+      { path: '/api/refine', method: 'POST', desc: '内容提炼', params: 'content/data' },
+      { path: '/docs', method: 'GET', desc: '接口文档页面', params: '无' },
+      { path: '/test-report', method: 'GET', desc: '测试报告页面', params: '无' },
+      { path: '/ai-test', method: 'GET', desc: 'AI用例生成页面', params: '无' },
+      { path: '/api/test-results', method: 'GET', desc: '获取测试结果', params: '无' },
+      { path: '/api/run-tests', method: 'POST', desc: '运行测试', params: '无' }
+    ];
+
+    // 当前选中的接口
+    var selectedApiInfo = null;
+    // 当前生成的用例数据
+    var currentTestCases = [];
+    // 每个用例的选中状态
+    var caseChecked = {};
+
+    // ===== 渲染左侧接口列表 =====
+    function renderApiList() {
+      var container = document.getElementById('apiList');
+      var html = '';
+      apiList.forEach(function(api, index) {
+        html += '<div class="api-list-item" onclick="selectApi(' + index + ')" id="apiItem-' + index + '">';
+        html += '<span class="item-method ' + api.method + '">' + api.method + '</span>';
+        html += '<span class="item-path">' + api.path + '</span>';
+        html += '<span class="item-desc">' + api.desc + '</span>';
+        html += '</div>';
+      });
+      container.innerHTML = html;
+    }
+
+    // ===== 选择接口 =====
+    function selectApi(index) {
+      // 清除之前的选中状态
+      document.querySelectorAll('.api-list-item').forEach(function(el) {
+        el.classList.remove('active');
+      });
+      // 设置当前选中
+      document.getElementById('apiItem-' + index).classList.add('active');
+      selectedApiInfo = apiList[index];
+
+      // 更新显示
+      document.getElementById('selectedApi').textContent =
+        selectedApiInfo.method + ' ' + selectedApiInfo.path;
+      document.getElementById('btnGenerate').disabled = false;
+
+      // 重置结果区域
+      document.getElementById('resultArea').style.display = 'none';
+      document.getElementById('emptyState').style.display = 'block';
+    }
+
+    // ===== 生成AI测试用例 =====
+    async function generateTestCases() {
+      if (!selectedApiInfo) return;
+
+      var btn = document.getElementById('btnGenerate');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> 生成中...';
+      document.getElementById('loadingArea').classList.add('visible');
+      document.getElementById('resultArea').style.display = 'none';
+      document.getElementById('emptyState').style.display = 'none';
+
+      // 构建发送给AI的prompt
+      var prompt = '请为以下API接口生成测试用例：\n';
+      prompt += '接口路径: ' + selectedApiInfo.path + '\n';
+      prompt += '方法: ' + selectedApiInfo.method + '\n';
+      prompt += '说明: ' + selectedApiInfo.desc + '\n';
+      prompt += '参数: ' + selectedApiInfo.params + '\n\n';
+      prompt += '请生成5个测试用例，包括：\n';
+      prompt += '1. 正常流程测试\n';
+      prompt += '2. 参数缺失测试\n';
+      prompt += '3. 参数异常测试\n';
+      prompt += '4. 边界值测试\n';
+      prompt += '5. 安全性测试\n\n';
+      prompt += '每个用例包含：编号、标题、前置条件、操作步骤、预期结果、优先级\n\n';
+      prompt += '用JSON数组格式返回：\n';
+      prompt += '[{"id":1, "title":"...", "precondition":"...", "steps":"...", "expected":"...", "priority":"高"}]\n';
+      prompt += '注意：只返回JSON数组，不要返回其他内容。';
+
+      try {
+        var res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: prompt })
+        });
+        var data = await res.json();
+
+        // 尝试从AI回复中提取JSON数组
+        var cases = parseAiResponse(data.reply || '');
+        if (cases && cases.length > 0) {
+          currentTestCases = cases;
+          caseChecked = {};
+          cases.forEach(function(c) { caseChecked[c.id] = true; });
+          renderResultTable(cases);
+          updateManageStats();
+          showToast('成功生成 ' + cases.length + ' 个测试用例', 'success');
+        } else {
+          // AI返回的不是有效JSON，显示原始回复
+          showToast('AI返回格式异常，请查看结果区域', 'error');
+          document.getElementById('emptyState').innerHTML =
+            '<div style="text-align:left;color:var(--muted);">' +
+            '<p style="color:var(--warn);margin-bottom:0.5rem;">AI返回的内容无法自动解析为测试用例表格，原始回复如下：</p>' +
+            '<pre style="white-space:pre-wrap;font-size:0.82rem;background:var(--bg3);padding:1rem;border-radius:8px;max-height:400px;overflow-y:auto;">' +
+            escapeHtml(data.reply || '无回复') + '</pre></div>';
+          document.getElementById('emptyState').style.display = 'block';
+          currentTestCases = [];
+          updateManageStats();
+        }
+      } catch (err) {
+        showToast('生成失败: ' + err.message, 'error');
+        document.getElementById('emptyState').style.display = 'block';
+        document.getElementById('emptyState').innerHTML =
+          '<div class="empty-icon">&#9888;&#65039;</div>' +
+          '<p style="color:var(--err);">请求失败：' + err.message + '</p>' +
+          '<p style="color:var(--muted);font-size:0.82rem;margin-top:0.5rem;">请确认导航服务器和AI服务已启动</p>';
+        currentTestCases = [];
+        updateManageStats();
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = '&#129302; AI生成测试用例';
+      document.getElementById('loadingArea').classList.remove('visible');
+    }
+
+    // ===== 解析AI回复，提取JSON数组 =====
+    function parseAiResponse(reply) {
+      if (!reply) return null;
+
+      // 尝试直接解析整个回复
+      try {
+        var arr = JSON.parse(reply.trim());
+        if (Array.isArray(arr) && arr.length > 0 && arr[0].title) {
+          return normalizeCases(arr);
+        }
+      } catch (e) { /* 不是纯JSON */ }
+
+      // 尝试从回复中提取 ```json ... ``` 代码块
+      var jsonMatch = reply.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+      if (jsonMatch) {
+        try {
+          var arr = JSON.parse(jsonMatch[1].trim());
+          if (Array.isArray(arr) && arr.length > 0 && arr[0].title) {
+            return normalizeCases(arr);
+          }
+        } catch (e) { /* 代码块内不是有效JSON */ }
+      }
+
+      // 尝试匹配 [ ... ] 数组
+      var bracketMatch = reply.match(/\[[\s\S]*\]/);
+      if (bracketMatch) {
+        try {
+          var arr = JSON.parse(bracketMatch[0]);
+          if (Array.isArray(arr) && arr.length > 0 && arr[0].title) {
+            return normalizeCases(arr);
+          }
+        } catch (e) { /* 不是有效JSON */ }
+      }
+
+      return null;
+    }
+
+    // ===== 标准化用例字段 =====
+    function normalizeCases(arr) {
+      return arr.map(function(c, i) {
+        return {
+          id: c.id || (i + 1),
+          title: c.title || '未命名用例',
+          precondition: c.precondition || c.precondition || '无',
+          steps: c.steps || c.step || '无',
+          expected: c.expected || c.expect || '无',
+          priority: c.priority || '中'
+        };
+      });
+    }
+
+    // ===== 渲染结果表格 =====
+    function renderResultTable(cases) {
+      var tbody = document.getElementById('resultBody');
+      var html = '';
+      cases.forEach(function(c, i) {
+        var priorityClass = (c.priority === '高' || c.priority === 'high') ? 'high' :
+                           (c.priority === '低' || c.priority === 'low') ? 'low' : 'medium';
+        html += '<tr>';
+        html += '<td><input type="checkbox" class="row-checkbox" data-id="' + c.id + '" ' +
+          (caseChecked[c.id] ? 'checked' : '') + ' onchange="updateCaseCheck(' + c.id + ', this.checked)"></td>';
+        html += '<td>' + c.id + '</td>';
+        html += '<td contenteditable="true" data-id="' + c.id + '" data-field="title">' + escapeHtml(c.title) + '</td>';
+        html += '<td contenteditable="true" data-id="' + c.id + '" data-field="precondition">' + escapeHtml(c.precondition) + '</td>';
+        html += '<td contenteditable="true" data-id="' + c.id + '" data-field="steps">' + escapeHtml(c.steps) + '</td>';
+        html += '<td contenteditable="true" data-id="' + c.id + '" data-field="expected">' + escapeHtml(c.expected) + '</td>';
+        html += '<td><span class="priority-tag ' + priorityClass + '">' + escapeHtml(c.priority) + '</span></td>';
+        html += '</tr>';
+      });
+      tbody.innerHTML = html;
+      document.getElementById('resultArea').style.display = 'block';
+
+      // 监听编辑事件，同步更新数据
+      tbody.querySelectorAll('td[contenteditable]').forEach(function(td) {
+        td.addEventListener('blur', function() {
+          var id = parseInt(this.dataset.id);
+          var field = this.dataset.field;
+          currentTestCases.forEach(function(c) {
+            if (c.id === id) {
+              c[field] = td.textContent;
+            }
+          });
+        });
+      });
+    }
+
+    // ===== 全选/取消全选 =====
+    function toggleSelectAll(checked) {
+      document.querySelectorAll('.row-checkbox').forEach(function(cb) {
+        cb.checked = checked;
+        var id = parseInt(cb.dataset.id);
+        caseChecked[id] = checked;
+      });
+      updateManageStats();
+    }
+
+    // ===== 更新单个用例选中状态 =====
+    function updateCaseCheck(id, checked) {
+      caseChecked[id] = checked;
+      updateManageStats();
+    }
+
+    // ===== 更新管理统计 =====
+    function updateManageStats() {
+      var total = currentTestCases.length;
+      var selected = 0;
+      var high = 0;
+      currentTestCases.forEach(function(c) {
+        if (caseChecked[c.id]) selected++;
+        if (c.priority === '高' || c.priority === 'high') high++;
+      });
+      document.getElementById('totalCount').textContent = total;
+      document.getElementById('selectedCount').textContent = selected;
+      document.getElementById('highCount').textContent = high;
+
+      // 更新按钮状态
+      var hasCases = total > 0;
+      var hasSelected = selected > 0;
+      document.getElementById('btnExportMd').disabled = !hasCases;
+      document.getElementById('btnExportJson').disabled = !hasCases;
+      document.getElementById('btnExecute').disabled = !hasSelected;
+    }
+
+    // ===== 导出为Markdown =====
+    function exportAsMarkdown() {
+      var md = '# 测试用例报告\n\n';
+      if (selectedApiInfo) {
+        md += '**接口：** ' + selectedApiInfo.method + ' ' + selectedApiInfo.path + '\n\n';
+        md += '**说明：** ' + selectedApiInfo.desc + '\n\n';
+      }
+      md += '## 用例列表\n\n';
+      currentTestCases.forEach(function(c) {
+        md += '### 用例 ' + c.id + '：' + c.title + '\n\n';
+        md += '| 项目 | 内容 |\n';
+        md += '|------|------|\n';
+        md += '| 编号 | ' + c.id + ' |\n';
+        md += '| 优先级 | ' + c.priority + ' |\n';
+        md += '| 前置条件 | ' + c.precondition + ' |\n';
+        md += '| 操作步骤 | ' + c.steps + ' |\n';
+        md += '| 预期结果 | ' + c.expected + ' |\n\n';
+      });
+
+      downloadFile('test-cases-' + selectedApiInfo.path.replace(/\//g, '-') + '.md', md, 'text/markdown');
+      showToast('Markdown文件已导出', 'success');
+    }
+
+    // ===== 导出为JSON =====
+    function exportAsJson() {
+      var json = JSON.stringify(currentTestCases, null, 2);
+      downloadFile('test-cases-' + selectedApiInfo.path.replace(/\//g, '-') + '.json', json, 'application/json');
+      showToast('JSON文件已导出', 'success');
+    }
+
+    // ===== 下载文件辅助函数 =====
+    function downloadFile(filename, content, mimeType) {
+      var blob = new Blob([content], { type: mimeType + ';charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // ===== 执行选中用例 =====
+    async function executeSelected() {
+      var selectedCases = currentTestCases.filter(function(c) { return caseChecked[c.id]; });
+      if (selectedCases.length === 0 || !selectedApiInfo) {
+        showToast('请先选择要执行的用例', 'error');
+        return;
+      }
+
+      showToast('正在执行 ' + selectedCases.length + ' 个用例...', 'success');
+
+      // 根据接口类型，用最小参数调用实际接口
+      var api = selectedApiInfo;
+      try {
+        var options = { method: api.method };
+        if (api.method === 'POST') {
+          var body = {};
+          if (api.path === '/api/chat') body = { message: '测试消息' };
+          else if (api.path === '/api/extract') body = { url: 'https://example.com' };
+          else if (api.path === '/api/refine') body = { data: { title: '测试' } };
+          else body = {};
+          options.headers = { 'Content-Type': 'application/json' };
+          options.body = JSON.stringify(body);
+        }
+        var res = await fetch(api.path, options);
+        var data = await res.json();
+
+        // 显示执行结果摘要
+        var msg = '执行完成！接口 ' + api.path + ' 返回状态码 ' + res.status;
+        if (data.ok) {
+          msg += '（成功）';
+        } else if (data.error) {
+          msg += '（错误：' + data.error + '）';
+        }
+        showToast(msg, data.ok ? 'success' : 'error');
+      } catch (err) {
+        showToast('执行失败: ' + err.message, 'error');
+      }
+    }
+
+    // ===== HTML转义 =====
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // ===== Toast提示 =====
+    function showToast(message, type) {
+      var toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;transition:opacity 0.5s;';
+      toast.style.background = type === 'success' ? '#2D8B7E' : '#C8755A';
+      toast.style.color = '#fff';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(function() {
+        toast.style.opacity = '0';
+        setTimeout(function() { toast.remove(); }, 500);
+      }, 3000);
+    }
+
+    // 页面加载时渲染接口列表
+    renderApiList();
+    updateManageStats();
+
+    // ===== 知识库数据（从 AITestKnowledge 内联） =====
+    var industryTrends = [
+      { title: 'AI驱动用例生成', description: '通过自然语言描述自动生成可执行测试脚本，降低技术门槛', benefit: '脚本编写时间减少40-70%', tools: ['ChatGPT', 'Claude', 'DeepSeek', 'TestCraft'] },
+      { title: '智能接口文档解析', description: 'NLP技术自动解析Swagger/OpenAPI文档，识别参数和依赖关系', benefit: '接口分析效率提升80%', tools: ['BERT', 'SpaCy', 'OpenAI'] },
+      { title: '自愈测试机制', description: 'UI变化时自动调整元素定位策略，减少维护成本', benefit: '维护成本降低70%', tools: ['Healenium', 'Mabl', 'Testim.io'] },
+      { title: '性能测试AI辅助', description: '根据系统监控数据自动推荐压力测试模型和场景', benefit: '性能方案编写时间减少60%', tools: ['JMeter+AI', 'k6', 'Locust'] },
+      { title: '智能测试报告', description: 'AI自动分析测试结果，提取缺陷趋势，提供修复建议', benefit: '缺陷分析时间减少50%', tools: ['Allure', 'ExtentReports', '自研'] },
+      { title: '流量回放测试', description: '录制生产环境流量，自动生成回归测试用例', benefit: '回归覆盖率提升90%+', tools: ['Schemathesis', 'RESTler', '流量镜像'] },
+    ];
+
+    var skillRoadmap = [
+      { stage: '第1阶段：基础测试', skills: ['手工测试用例设计', '接口基础（HTTP/REST）', '抓包工具（Fiddler/Charles）', 'Postman基本使用'], duration: '2-4周' },
+      { stage: '第2阶段：自动化入门', skills: ['Python基础', 'Selenium/Appium', 'pytest框架', 'HTML/CSS/JS基础'], duration: '4-6周' },
+      { stage: '第3阶段：AI赋能', skills: ['AI提示工程', 'AI生成测试用例', 'AI辅助脚本编写', 'AI分析测试报告'], duration: '2-4周' },
+      { stage: '第4阶段：测试开发', skills: ['测试平台开发', 'CI/CD集成', '性能测试', '安全测试基础', '测试数据治理'], duration: '8-12周' },
+    ];
+
+    // ===== 折叠/展开知识库面板 =====
+    function toggleKnowledgePanel() {
+      var body = document.getElementById('knowledgeBody');
+      var toggle = document.getElementById('knowledgeToggle');
+      if (body.style.display === 'none') {
+        body.style.display = 'block';
+        toggle.classList.remove('collapsed');
+        renderKnowledgeContent();
+      } else {
+        body.style.display = 'none';
+        toggle.classList.add('collapsed');
+      }
+    }
+
+    // ===== 切换Tab =====
+    function switchKnowledgeTab(tabName) {
+      // 更新Tab样式
+      document.querySelectorAll('.knowledge-tab').forEach(function(el) {
+        el.classList.remove('active');
+        if (el.getAttribute('data-tab') === tabName) {
+          el.classList.add('active');
+        }
+      });
+      // 更新面板显示
+      document.getElementById('panelTrends').style.display = tabName === 'trends' ? 'block' : 'none';
+      document.getElementById('panelRoadmap').style.display = tabName === 'roadmap' ? 'block' : 'none';
+    }
+
+    // ===== 渲染知识库内容（仅首次展开时渲染） =====
+    var knowledgeRendered = false;
+    function renderKnowledgeContent() {
+      if (knowledgeRendered) return;
+      knowledgeRendered = true;
+      renderTrendCards();
+      renderRoadmapTimeline();
+    }
+
+    // ===== 渲染行业趋势卡片 =====
+    function renderTrendCards() {
+      var container = document.getElementById('trendCards');
+      var html = '';
+      industryTrends.forEach(function(trend) {
+        html += '<div class="trend-card">';
+        html += '<div class="trend-card-title">' + escapeHtml(trend.title) + '</div>';
+        html += '<div class="trend-card-desc">' + escapeHtml(trend.description) + '</div>';
+        html += '<div class="trend-card-benefit">' + escapeHtml(trend.benefit) + '</div>';
+        html += '<div class="trend-card-tools">';
+        trend.tools.forEach(function(tool) {
+          html += '<span>' + escapeHtml(tool) + '</span>';
+        });
+        html += '</div>';
+        html += '</div>';
+      });
+      container.innerHTML = html;
+    }
+
+    // ===== 渲染学习路径时间线 =====
+    function renderRoadmapTimeline() {
+      var container = document.getElementById('roadmapTimeline');
+      var html = '';
+      skillRoadmap.forEach(function(stage) {
+        html += '<div class="roadmap-stage">';
+        html += '<div class="roadmap-stage-title">' + escapeHtml(stage.stage);
+        html += '<span class="roadmap-stage-duration">' + escapeHtml(stage.duration) + '</span>';
+        html += '</div>';
+        html += '<div class="roadmap-skills">';
+        stage.skills.forEach(function(skill) {
+          html += '<span>' + escapeHtml(skill) + '</span>';
+        });
+        html += '</div>';
+        html += '</div>';
+      });
+      container.innerHTML = html;
+    }
+  </script>
+
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
+<script src="_shared/js/error-monitor.js"></script>
+</body>
+</html>

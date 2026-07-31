@@ -1,4 +1,30 @@
+# ==========================================
+# 金水谣项目 · 顶层 .gitignore
+# ==========================================
+# 注意：Jinshuiyao_Fixed/ 下也有 .gitignore，两者互补
+
+# ==========================================
+# 敏感文件 - 绝对不能提交
+# ==========================================
+deepseek_key.txt
+**/.jinshuiyao-secrets/
+*.key
+.env
+.env.*
+.secret_key
+AI代码助手(DeepSeek备用)/config.json
+AI代码助手(DeepSeek备用)/usage.json
+金水谣数据/log/token_usage.json
+金水谣数据/secure/encrypted_keys.dat
+金水谣数据/users/*/.secret_key
+金水谣数据/review/ai_review_cache.json
+Jinshuiyao_Fixed/金水谣数据/review/ai_review_cache.json
+Jinshuiyao_Fixed/金水谣数据/free_model_status.json
+Jinshuiyao_Fixed/金水谣数据/user_themes.json
+
+# ==========================================
 # Python
+# ==========================================
 __pycache__/
 *.pyc
 *.pyo
@@ -7,16 +33,9 @@ __pycache__/
 dist/
 build/
 
-# 敏感文件 - 绝对不能提交
-deepseek_key.txt
-*.key
-.env
-.env.*
-.secret_key
-AI代码助手(DeepSeek备用)/config.json
-AI代码助手(DeepSeek备用)/usage.json
-
-# 运行时数据
+# ==========================================
+# 运行时数据（大文件，不应提交）
+# ==========================================
 金水谣数据/backtest_results/
 金水谣数据/lot_data/
 金水谣数据/stock/cache/
@@ -27,67 +46,102 @@ AI代码助手(DeepSeek备用)/usage.json
 *.logl
 *.jsonl
 
+# ==========================================
 # 备份文件
+# ==========================================
 *.json.bak.*
 *.bak
-tools/backups/
-金水谣数据/backups/   # 副本层：派生快照，排除入库（JS-20260728-17）
 
+# ==========================================
 # 虚拟环境
+# ==========================================
 venv_314/
 .venv/
 venv/
 
+# ==========================================
 # 同步缓存
+# ==========================================
 sync/.device_identity.json
 sync/.local_cache.json
-sync/
 
-# 运行时自动生成状态（程序运行产生、可重建、不入库）
-金水谣数据/log/manifest.json
-金水谣数据/log/.expbox_hash
-金水谣数据/log/.expbox_triples_hash
-金水谣数据/log/.ai_decisions_hash
-金水谣数据/log/.ai_decisions_triples_hash
-金水谣数据/log/.kb_last_processed_line
-金水谣数据/log/auto_audit_report.json
-金水谣数据/brain_state.json
-金水谣数据/review/review_metrics.json
-knowledge/mirofish_db.json
-tools/.wrapup_hash_baseline.txt
-tools/.wrapup_skip_count.txt
-
+# ==========================================
 # 脚本临时数据
+# ==========================================
 scripts/.quality_baseline.json
 
-# 运行时报告与数据（程序生成、可重建、不入库 · JS-20260727-06 校准）
-金水谣数据/fund_reports/
-金水谣数据/fund_data/
-金水谣数据/review/
-knowledge/用户知识库/*.md
-
+# ==========================================
 # 已归档的废弃文件
+# ==========================================
 archive/
 
+# ==========================================
 # 编辑器
+# ==========================================
 .vscode/
 .idea/
 *.swp
 *.swo
 
+# ==========================================
 # 系统文件
+# ==========================================
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# 密钥/敏感文件防御性忽略（JS-修复D）
-sendkey.txt
-siliconflow_key.txt
-douyin_cookie.txt
-*_key.txt
-*_cookie.txt
-.secret*
+# ==========================================
+# 坚果云同步文件
+# ==========================================
+.nutstore/
+.nutstoreignore
 
-# 整理工具备份
-.reorg_backup/
-tools/reorg_manifest.json
+# ==========================================
+# Obsidian 本地只读 vault（金水谣知识库视图副本）
+# ==========================================
+obsidian-vault/
+
+# ==========================================
+# Windows保留名（git无法处理）
+# ==========================================
+nul
+
+# ==========================================
+# AI工具数据目录
+# ==========================================
+.workbuddy/
+.trae-html-share-packages/
+
+# ==========================================
+金水谣数据/log/.ai_decisions_hash
+金水谣数据/log/.ai_decisions_triples_hash
+金水谣数据/log/.expbox_hash
+金水谣数据/log/.expbox_triples_hash
+金水谣数据/log/manifest.json
+金水谣数据/review/
+knowledge/mirofish_db.json
+
+# 运行时生成物（金水谣 · 由 git 门禁 JS-20260726-21 校准补入）
+# 注意：knowledge/ 目录混有源码(.py)与生成物(.json/索引)，仅按需精确忽略生成物，
+#       切勿整目录忽略，否则会漏掉 kb_engine.py 等源码（见 git 门禁红线 F3）。
+# ==========================================
+Jinshuiyao_Fixed/knowledge/knowledge_graph.json
+Jinshuiyao_Fixed/knowledge/vector_index.json
+Jinshuiyao_Fixed/knowledge/用户知识库/INDEX.json
+Jinshuiyao_Fixed/knowledge/用户知识库/索引.md
+Jinshuiyao_Fixed/predictions/predictions.json
+Jinshuiyao_Fixed/tools/.file_hash_baseline.json
+Jinshuiyao_Fixed/金水谣数据/correlation_matrix.json
+Jinshuiyao_Fixed/金水谣数据/predictions.json
+Jinshuiyao_Fixed/金水谣数据/stock/cache_meta.json
+Jinshuiyao_Fixed/金水谣数据/video_cache/
+金水谣数据/log/watchdog_state.json
+金水谣数据/lottery_datasource_health.html
+金水谣数据/log/lottery_health_history.json
+# 运行时报告（自动生成、可重建、不入库 · JS-20260727-06 校准）
+金水谣数据/graph_triples_reconcile_report.html
+金水谣数据/graph_triples_reconcile_report.json
+金水谣数据/log/graph_triples_reconcile_history.json
+金水谣数据/token_efficiency_audit.html
+# 本地助手运行时记忆（对话历史/用户画像，自动生成不入库 · JS-31）
+Jinshuiyao_Fixed/金水谣数据/agent_memory/

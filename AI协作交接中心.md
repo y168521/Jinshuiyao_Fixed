@@ -1,10 +1,535 @@
-# 金水谣项目 · AI协作交接中心（重定向占位）
+# 金水谣项目 · AI协作交接中心
 
-> ⚠️ **本文件为重定向占位，不再单独维护。**
+> 本文件是所有AI助手（Qoder、豆包、TRAE、WorkBuddy等）的「工作交接本」。
+> 任何AI在开始工作前，请先读完本文件，了解：做了什么、还差什么、谁做得好。
+
+> 🚨🚨🚨 **收工前强制动作（不做=白干）：**
+> 1. 在本文件"已完成的优化"表格里**登记你做了什么**
+> 2. 往 `金水谣数据/log/经验收集箱.md` **追加你的经验**（踩坑/方法/建议）
+> 3. 在 `模型/工作留痕总索引.md` **登记一条**（编号+经手AI+改动文件+验证+关联），做到可倒查溯源
+> 4. 不执行以上三步 → 下一个AI完全不知道你做过什么 → 重复劳动 → 用户生气
+
+---
+
+## 📋 当前优先任务（新AI读完本节直接开工）
+
+> **你的工作：读完本节后，直接看下方【下一步】和【待办】列表，从第一个未完成项开始执行。**
+
+【下一步】中的第1项即为当前最优先任务。完成后回到这里勾选，然后继续下一项。
+
+如需询问主人，先列清楚选项再问。
+
+---
+
+### 📌 近期关键变更速查（2026-07-31）
+
+| 变更 | 说明 |
+|------|------|
+| 项目结构整理 | 9个前端目录移到 `frontend/`，echarts 去重 4→1，10个空目录删除 |
+| AI智能体升级 | 新增 `agent_orchestrator.py` / `agent_vector_memory.py` / `agent_tools.py` |
+| Git+GitHub | 仓库 `y168521/Jinshuiyao_Fixed`，SSH 已配，632文件已入库 |
+| 一键同步 | `同步代码.bat` 双向 pull+push，笔记本已设每小时自动运行 |
+
+**⚠️ 如果是第一天上手的 AI：请完整读完下方【给主人的超简单使用说明】和【一、项目基本情况】，不要只看速查。**
+
+---
+
+---
+
+## 给主人的超简单使用说明（你只看这里就够）
+
+**你不需要看懂代码，只需要记住下面5句话：**
+
+1. 不管用哪个AI（Qoder/豆包/TRAE/WorkBuddy），开头说一句：
+   → **"先看看AI协作交接中心"**
+   （AI就会自动读取这个文件，知道之前做了什么、还差什么）
+
+2. AI干完活之后，说一句：
+   → **"把这次做的更新到AI协作交接中心"**
+   （AI就会把成果写进来，下次别的AI能接着干）
+
+3. 想知道该用哪个AI，打开「模型」文件夹里的：
+   → **金水谣助手提示词库.html**（含 AI 分工速查）；更细的能力对比图见归档 `_old_backups_consolidated/根目录瘦身_20260725/AI模型能力对比.html`
+
+4. 对话记录和知识积累是**全自动**的，你什么都不用管：
+   - 每次AI调用自动记录（问了什么、花了多少Token）
+   - 每2小时自动把有价值的经验变成知识卡片存入知识库
+
+5. 换了电脑/设备之后，跟AI说一句：
+   → **"我换了电脑，先检查环境再开工"**
+   （AI就会自动检查Python路径、venv配置等，不会盲目报错）
+
+**文件在哪里找（都在「模型」文件夹里，不用翻子目录）：**
+- 金水谣助手提示词库.html → AI 分工速查 + 可复用 prompt 模板
+- 金水谣助手门户.html → 启动系统后的主页
+- 金水谣助手使用说明.html → 系统使用教程
+- 启动金水谣助手.bat → 双击启动系统
+- 启动提示词.txt → 薄入口，粘贴给任何AI启动用
+- 复制启动提示词.bat → 双击自动复制启动提示词到剪贴板，粘贴给AI即开工
+- **金水谣_纲.md** → 天层·不变纲领（铁律+道衍+Pipeline+安全+数据隔离）← **新AI开工必读**
+- **金水谣_契.md** → 地层·可执行契约（编码规范+模块边界+七色体系+部署）← **改代码前必读**
+- **金水谣_录.md** → 人层·过程记录（接手SOP+审查清单+防乱+质量保障）← **收工前必读**
+- 工作留痕总索引.md → 天枢/金水谣所有协作的**历史倒查与溯源总入口**
+- ⚠️ 旧文件（编码规范/模块契约/优化防乱/全视角审查/AI协作规范_完整版）已归档，顶部有跳转指引，内容以三层新文档为准
+
+---
+
+## 当前目标 / 待办 (AI讨论与规划记录)
+
+> 本节记录 AI 与主人的讨论结论、当前正在做什么、下一步做什么。
+> **新AI开工第一件事：读完本节，就知道从哪里接手。**
+
+### 当前目标 (2026-07-31)
+基金/股票 Web 功能补齐进行中。已完成：基金详情页+定投模拟器+持仓管理、个股详情页。下一步：足彩子系统 Web 功能（赔率分析+赛事详情+预测看板）。
+
+### 下一步
+- [x] 台式机部署同步（WorkBuddy）✅
+- [x] 彩票 P2/P3 全部 5 页面 ✅
+- [x] 基金详情页 + 定投模拟器 + 持仓管理 ✅
+- [x] 个股详情页 ✅
+- [x] 足彩比赛列表 + 赛事预测 + API路由 ✅
+- [x] **足彩 Domain 集成 jinshuiyao/ ML Pipeline**（analyze/generate/review 真实调用）✅
+- [x] **量化扫描（quant）集成主服务器**（handlers/quant.py + router注册 + app.js对接主服务端点）✅
+- [x] **足彩仪表盘对接真实 API**（assets/charts.js 连接 /api/football/predict）✅
+- [ ] **股票前端补充**（筛选/因子分析/回测页面 — 仪表盘已有内嵌tab，暂时充分）
+- [ ] 继续监控 P3 运维项目（API Key、watch dog、同族低危收口）
+
+### 讨论记录
+- 2026-07-29: 主人要求标准化收工流程，不允许跳过关卡；已实现 closeout_gate 硬门禁
+- 2026-07-29: 主人提出需要自动操作留痕系统，谁操作了什么自动记录；已搭建完成
+- 2026-07-29: 主人要求全中文可见的报告看板，不需要懂代码/英语；已创建 /audit-dashboard
+- 2026-07-29: 主人发现彩票工具散落各处、没有导航入口、自适应不行、参数不完整 → 从头摸清后做了子系统重组(Hub+统一路由+back-link+导航全覆盖)
+- 2026-07-29: 主人追问"还有没有遗漏" + "为什么每次都要人工检查才知道" → 系统做全链路交叉验证（7项检查全部 PASS），发现 5 个存量遗漏并补完；教训：必须在 "done" 之前主动跑一次全链路验证，不能等主人发现
+
+### 待办
+- [x] 基金详情页 ✅
+- [x] 定投模拟器 ✅
+- [x] 基金持仓管理 ✅
+- [x] 个股详情页 ✅
+- [ ] 足彩赔率分析页
+- [ ] 足彩赛事详情页
+- [ ] 足彩预测看板
+
+### 已完成 (近期)
+- [x] **基金详情页** `/fund/detail`：单只基金全景分析（净值走势+业绩指标+策略回测），TradingView 图表
+- [x] **定投模拟器** `/fund/dca`：基金定投模拟（每期金额/频率/费率可调，净值vs平均成本曲线）
+- [x] **基金持仓管理** `/fund/portfolio`：个人持仓增删查改 + 盈亏概览，API 对接 `FundDataManager`
+- [x] **个股详情页** `/stock/detail`：单只股票分析（K线+技术指标MA/MACD/KDJ/RSI+多因子评分），API 对接 `StockDomain`
+- [x] **基金 Hub 扩展**：4卡→7卡（新增详情/定投/持仓）
+- [x] **股票 Hub 扩展**：2卡→3卡（新增个股详情）
+- [x] P0: 收工流程标准化 hard gate (closeout_gate.py) + 钩子自愈
+- [x] P0: 操作留痕引擎 (audit_trail.py) — 链式hash防篡改
+- [x] P0: 合规督察CLI (compliance.py) — 检测谁跳过流程
+- [x] P0: 操作留痕看板 (audit-dashboard.html) — 全中文浏览器页面
+- [x] P1: 遗漏热力图 / 旋转矩阵 / 缩水过滤面板
+- [x] P2: 奖金计算器 / 龙头凤尾分析
+- [x] P2-5: 号码跟随分析 (number-follow-up.html)
+- [x] P2-6: 历史同期查询 (historical-same-period.html)
+- [x] P3: AC值计算器 (ac-calculator.html) / 012路质合五行走势 (trend-classification.html) / 交互式遗漏表格 (omission-table.html)
+- [x] **Lottery Hub 扩展**：8 卡→13 卡，含全部 P2/P3 新页面，Hub 页统一加链接
+- [x] **彩票子系统重组**：创建 /lottery/ 目录 + lottery-hub.html Hub 页面 + 全部 8 子页面加入 back-link + 注册 /lottery/xxx 路由（新旧兼容）+ 更新 control-center/lottery-dashboard/jinshuiyao-guide 三处导航全部指向新路径 + 文件编码规范化（path → hash）
+- [x] **全子系统重构**：创建 fund-hub / stock-hub / football-hub 三 Hub 页面 + 新建 stock-dashboard（股票仪表盘——此前严重缺失）+ fund/dashboard + football/dashboard 加 back-link + 注册 /fund /stock /football 系列路由（共6条）+ 4子系统控制中心卡片全加 web-tools 在线链接 + jinshuiyao-guide 新增基金/股票表格段落
+- [x] **全链路交叉验证+遗漏修补**：发现 5 个存量遗漏并修复——金水谣助手门户.html 加 4 子系统 Hub 按钮 / page_registry.json 注册 18 条路由 / 原 jinshuiyao-guide/ 8 文件补 back-link / engine-dashboard.html 加子系统导航 / 旧 omission-heatmap.html 补 back-link；全 7 项自检 PASS
+- [x] **引入 TradingView Lightweight Charts**：替换 fund/nav-trend.html 和 stock/stock-dashboard.html 的 Canvas 手绘图表为专业金融图表（十字光标、时间轴、涨跌色自动切换），CDN 引入 ~40KB
+- [x] **项目结构大整理**：9个前端目录统一移入 `frontend/`、echarts.min.js 去重（4→1）、10个空目录删除、server 路由自动适配、一键整理脚本 `tools/reorg.py`
+- [x] **AI 智能体升级**：新建 `agent_vector_memory.py`（n-gram 语义记忆/无外部依赖）、`agent_tools.py`（@tool 装饰器注册）、`agent_orchestrator.py`（Route→Worker→Review 多智能体管线）；`JinshuiyaoAgent` 增强：自动对话记忆 + `reason()` 入口
+- [x] **Git 初始化 + GitHub 远程仓库**：Git v2.55.0 安装至 `E:\Git`；SSH 密钥生成；GitHub 远程 `y168521/Jinshuiyao_Fixed` 配置；632 文件首次提交 `3d74e13`
+- [x] **一键同步脚本 + 定时自动同步**：`同步代码.bat`（双向 pull+push，自动检测 git 路径）；笔记本已设每小时定时任务；`README-台式机设置.txt` 供台式机 WorkBuddy 部署
+
+---
+
+## 一、项目基本情况（给AI看的背景）
+
+- 项目名称：金水谣万物引擎
+- 项目位置：`C:\Users\Administrator\Nutstore\1\我的坚果云\模型\Jinshuiyao_Fixed\`
+- 项目类型：本地多领域预测分析平台（彩票/股票/基金/足球/音乐/视频创作）
+- 技术栈：Python 3.14 + 标准库http.server + DeepSeek API + 坚果云同步
+- 运行方式：本地Windows，端口18888，浏览器访问
+- 用户水平：新手小白，不看代码不看英文，需要中文界面和一键操作
+- 当前阶段：本地单机运行，未来计划迁移到云端服务器
+
+---
+
+## 一-B、当前运行环境（换机器必看）
+
+> 🚨 **用户随时在「台式机 ↔ 笔记本」间切换。新设备上的 AI 如果跳过本节，大概率启动不了项目。**
 >
-> **权威版本在模型根目录**：`AI协作交接中心.md`
-> 绝对路径：`C:\Users\Administrator\Nutstore\1\我的坚果云\模型\AI协作交接中心.md`
+> 📌 **换设备/换模型标准动作**：用户会贴 `模型/启动提示词.txt`。任何AI接手后，按顺序读：本交接中心 → `模型/AI协作规范_完整版.md`（完整规范）→ 项目 `AGENTS.md`（五铁律）→ `模型/工作留痕总索引.md`（历史倒查）。换机时**先**核对下方设备信息表，再开工。> 📎 **多机部署/同步边界**（台式机已部署 ↔ 笔记本待部署）：见 `模型/金水谣_多机部署与同步边界.md`（venv 双机统一路径、笔记本 7 步部署清单、防不同步 Checklist）。
+
+### 当前设备信息（2026-07-21 更新 · 主用台式机；venv 盘符随机器：台式 D: / 笔记本 E:）
+
+| 项目 | 值 |
+|------|-----|
+| 主用设备 | 台式机（也可能切笔记本） |
+| 系统 | Windows（终端 GBK，文件 UTF-8） |
+| Python | 用系统 `py` 启动器（建议 3.10~3.14）；具体路径由启动器自动探测，**无需手填** |
+| 运行环境 venv | **`<本机盘符>:\Project_Env\jinshuiyao_env`**（盘符随机器：台式 D: / 笔记本 E:；2026-07-28 由 venv_314 迁移。launch.bat 策略0 自动扫描 C/D/E/F/G/H 盘符命中。缺失时 `ensure_runtime()` 自动建 `%LOCALAPPDATA%\Jinshuiyao\venv` 兜底） |
+| py 启动器 | 可用（`py --version` → 3.14.6） |
+| 旧 `venv_314` | 🚫 已删除（2026-07-28 迁移至 `D:\Project_Env\jinshuiyao_env`，释放 557MB；勿重建） |
+| 数据工程实测 venv | 本次 JS-20260728-06 数据脚本实际命中兜底 `%LOCALAPPDATA%\Jinshuiyao\venv`（D 盘首选 `D:\Project_Env\jinshuiyao_env` 本机未建），与文档一致，无需改路径 |
+| git | ✅ 已安装（v2.55.0，路径 `E:\Git`；GitHub 远程已配置，仓库 `y168521/Jinshuiyao_Fixed`，首次提交 `3d74e13`） |
+| 代码自动同步 | ✅ 每小时自动运行 `同步代码.bat`（双向 pull+push，覆盖笔记本和台式机） |
+
+### AI 开工前环境检查清单（换机器后第一次必做 · 新自愈方案）
+
+> 2026-07-21 起改为「启动器自愈」：不再手改 venv，双击 `启动金水谣助手.bat` 即自动配环境。
+
+1. **一键启动 + 验证**：双击根目录 `启动金水谣助手.bat` → 启动器自动探测 Python、`ensure_runtime()` 自动建 venv + 装依赖 → 浏览器打开 `http://127.0.0.1:18888/`
+2. **健康检查**：`curl http://127.0.0.1:18888/health` 应返回 `200` 且 `ai_mode: configured`、错误率接近 0
+3. **离线/依赖装不上**：正常用 `启动金水谣助手.bat` 已自动装依赖；断网补装脚本已归档至 `_old_backups_consolidated/根目录瘦身_20260725/安装依赖.bat`（必要时从归档取用）
+4. **端口被占**：`netstat -ano | findstr 18888` → `taskkill /F /PID <pid>`
+5. **坚果云同步**：确认无 `.nutstore` 冲突文件再开工
+
+### 用户换机器时该说什么（给主人的提示）
+
+跟任何AI说一句：**"我换了电脑，先检查环境再开工"**
+（AI 会按上面新清单走，双击启动器即自动配环境；双机 venv 路径见 `模型/金水谣_多机部署与同步边界.md`，不再手改 venv）
+
+---
+
+## 二、已完成的优化（截至 2026-07-22）
+
+### 📊 各AI工作量速览（按模型分类，方便溯源倒查）
+
+### 2026-07-24 代码审查记录
+- 修复 `count_ai_decisions_today` 函数重复问题（已移除 core/auto_knowledge.py 冗余实现）
+- 生成审查报告（12项问题，1项已修复）
+- 重点待处理：质量门禁拆分、风险评估数据源升级
+
+| AI模型 | 完成项数 | 编号前缀 | 主要贡献领域 | 代表成果 |
+|--------|----------|----------|--------------|----------|
+| Qoder | 44项 | #1 ~ #44 | 代码修改、Bug修复、前端升级、性能优化、测试治理 | Python 3.14适配、前端深海熔金主题、七色闭环配色、746项测试全绿、guide_server退役 |
+| WorkBuddy | 22项 | W1 ~ W22 | 流程规范、知识体系、防乱机制、环境解耦、测试隔离、经验箱同步链路、GraphRAG、并发锁、AI决策自动入知识库(Layer A+B)、多模式容错、彩票抓取防御层修复(三维框架)、彩票抓取熔断架构修复(单例Fetcher+全局三态熔断)、代码优化框架升四维(正反推导)、彩票抓取Layer1 S5通用管道+S6可观测、正反推导运用方法论、全功能深究优化清单、彩票数据time字段回填(P0-3数据完整性) | 工作留痕总索引、运行环境解耦坚果云、测试债清零、防乱机制文档体系、经验箱→知识库5项增强(A/B/C/D/E)、GraphRAG三元组、并发/异常安全修补、AI决策决策卡+图谱+门禁根治接力失真、代码优化三维框架提示词、彩票抓取Layer0(S1-S4 CWL白名单/砍假数据/指数退避/DNS降权)、彩票抓取Layer1(单例Fetcher+全局三态熔断 P2根治)、代码优化四维框架(加正反推导)+彩票三维架构正反推导、彩票抓取S5(通用管道消重复 P6全解)+S6(源健康端点+面板根治源悄悄挂)、正反推导运用方法论(四步法+运用指南模板 Layer A+B可搜)、全功能深究优化清单(3个P0+文件:行号)、彩票开奖数据time字段回填(7彩种100%干净) |
+| TRAE | 16项 | T1 ~ T16 | 架构审查、代码统一、精细化重构、文档体系优化、协作机制设计、质量保障、时间管理、准备工作体系、自检门禁强化（v1.0→v1.8）、git集成、bug修复、修后实测检验、事前拦截、行业标准安全扫描、足彩核心域测试 | 架构统一三件套、交接体系精细化、协作防冲突、提示词更新、质量保障防返工、时间管理效率保障、优化前准备工作体系、自检门禁v1.8（29项+git status优先）、git仓库初始化、预测服务热号KeyError修复、smoke_test冒烟测试、pre-commit hook三层拦截、密钥泄漏扫描（SAST标准15模式）、XSS/CSP前端安全审查（6风险分级）、足彩核心域48测试覆盖 |
+| 豆包 | 0项 | — | 方案规划、文案撰写 | （尚无落地代码项，贡献主要在前期方案讨论） |
+
+> 📎 详细完成记录（2026-07-24 及之前）已归档至 `AI协作交接中心_历史归档.md`
+
+> **溯源方法**：知道是哪个AI做的 → 查上表找编号前缀 → 到下方对应表格看详情 → 用「关联」列的 JS-XXXXXX-NN 去 `工作留痕总索引.md` 倒查改动文件行号和验证证据。
+
+---
+
+详细历史见 `AI协作交接中心_历史归档.md`
+
+详细历史见 `AI协作交接中心_历史归档.md`
+
+### 由其他AI完成（近期，2026-07-24 之后）：
+
+| 序号 | 优化项 | 执行者 | 状态 | 说明 |
+| W44 | 上线前全检（产品/安全/QA三专家）+ Go/No-Go + 待定上线后完善清单 | 金水谣 | 已完成 | GStack主理人调度三专家并行审查：🔴对外发布否决/🟡本机自用条件过；3阻塞项(无auth+CORS*+绑0.0.0.0 RCE / SSRF重定向 / 错误回显)；产出 pre-launch-check 报告 + post-launch-todo 清单(均存 deliverables/gstack) | JS-20260728-07 |
+| W45 | 安全质量修复(P0/P1)+彩票math-model保留与措辞整改 | 金水谣 | 已完成 | ①P0-①绑127.0.0.1+同源CORS+/open同源校验；②P0-②SSRF受控重定向(≤5跳逐跳_host校验)；③P1 router五处return修复+错误脱敏+chat并发RLock+project_scan限BASE_DIR；④math-model保留(用户决策)+输出改"候选集·非购买建议"声明 | JS-20260728-08 |
+| W46 | 上线前必做事项清单（对外发布 Go/No-Go 闸门） | 金水谣 | 已完成 | 产出 `deliverables/gstack/pre-launch-mustdo-jinshuiyao-2026-07-28.md`（A技术安全铁壁A1~A10/B资质合规B1~B8/C运维就绪C1~C6/D最终Go-No-Go勾选表）；与 post-launch-todo(上线后完善)严格区分：本清单=闸门(不做不能上线)，后者=锦上添花 | JS-20260728-11 |
+| W47 | 门禁去盲区(quality_gate 重新护住金水谣数据) | 金水谣(软件团队SOP) | 已完成 | 闭环全盘审查报告维度C/E：新增 scripts/jinshuiyao_data_guard.py（STRONG 12目录/21文件，严格排除运行时噪音防误报）；quality_gate.py 默认只告警不阻断、--verify 硬失败；closeout_gate.py 每日巡检 [G] 告警；tests 新增7用例自动断言；OVERRIDE 降级黄灯。零新依赖，未动 EXCLUDE_DIRS/safe_cleanup。QA 独立验证通过（零误报风险） | JS-20260728-02 |
+| W48 | 风险登记册(json单一真源+md生成+Lint挂钩) | 金水谣(软件团队SOP) | 已完成 | 闭环维度C：新增 金水谣数据/risk_register.json（10字段/条+R-001/002/003）+ scripts/gen_risk_md.py（同源渲染 md）+ scripts/verify_risk_register.py（过期>90天/缺字段=errors）+ lint_knowledge.py 挂 lint_risk_register（每月1号）+ AGENTS.md ⑦ 风险入册 铁律。QA 独立验证 10/10 PASS，无返工 | JS-20260728-03 |
+| W49 | 知识反事实字段(决策卡结构化随机基线三字段+[C]扩展check_counterfactual+AGENTS.md⑧+启动提示词注入+示范回填) | 金水瑶(软件团队SOP) | 已完成 | 闭环③：closeout_gate.py 新增 COUNTERFACTUAL_TRIGGER_TAGS/_is_counterfactual_scope/check_counterfactual（warn-only fail-safe，不翻转 all_ok/退出码）+ AC-5 祖父条款（仅今日/新增预测彩票卡强制）；tests 新增 8 pytest 全过；AGENTS.md ⑧ 反事实诚实 铁律（并行提交 6df336d 已落地，非本次重复加）；启动提示词.txt 决策卡模板注入三字段强制规则；ai_decisions.md 历史彩票卡 JS-20260723-28/29 示范回填。QA 严过关 独立验证通过（5 真实门禁场景 + 8 pytest + ⑧ 字面一致） | JS-20260728-16 |
+| W50 | 数据三层隔离(活层/副本层/保险层三层契约+写租约复用session_coordinator+周期快照+版本化恢复+演示真实物理隔离+风险册R-002回填) | 金水瑶(软件团队SOP) | 已完成 | 闭环④：新增 scripts/layer_registry.py(三层分类+LEASE_REQUIRED_FILES/INSURANCE_PROTECTED/LIVE_WRITABLE_WHITELIST+write_alert[G])+scripts/lease_helper.py(LeaseManager委托session_coordinator.acquire/release/heartbeat+assert_live_writable+write_protected)+scripts/data_backup.py(BackupManager快照+滚动24×hourly/7×daily/4×weekly+旧.bak迁移+build_manifest sha256)+scripts/data_restore.py(RestoreManager+RecoveryReport，generate_report对ok=False统一[G]告警+_verify sha256)+docs/数据分层约定.md+金水谣数据/insurance/.gitkeep；tests 19 pytest 全过(含write_protected拒绝保险层+损坏快照[G]断言)；AGENTS.md 铁律块+.gitignore(金水谣数据/backups/)+risk_register R-002已落地。QA 严过关 独立验证 19 测试+7 段 e2e 全过，fail-safe 告警链路完整 | JS-20260728-17 |
+| W51 | 操作留痕系统+龙头凤尾分析P2-4+导航/响应式修复 2026-07-29 | opencode | 已完成 | ①操作留痕系统：tools/audit_trail.py(JSONL链式哈希审计引擎) + tools/compliance.py(合规CLI) + pre-commit hook step4 + ops.py --start/--close接入 + audit-dashboard.html(响应式看板) + /api/audit-trail端点；②P2-4 龙头凤尾分析：head-tail-analysis.html Canvas 2D图表(零外部依赖) 4标签页(龙头/凤尾/趋势/数据表)；③server修复：filter.py import修复(log路径 + 删无用导入)；④导航修复：control-center.html新增彩票在线工具8链接 + lottery-dashboard.html导航栏补全7工具 + 指南表补audit-dashboard；⑤响应式CSS：彩票页面加overflow-x:auto + 移动端适配 + API不可用时友好提示。验证: 服务器启动/health200/3端点200(7页路由正常) | 待登记 |
+| W52 | 自动化系统优化 P0/P1/P2 落地（成本熔断+限流+健康闭环+遥测+并发门+影子测试+路由超时熔断 G1-G8）2026-07-29 | 金水谣(自动化优化架构师) | 已完成 | 新增 core/llm_budget.py(成本闸·日/分/单笔三重上限+跳闸冷却1h)、server/rate_limiter.py(每IP令牌桶+全局500%突增跳闸)、core/telemetry.py(统一遥测sink)、core/concurrency_gate.py(信号量背压)、core/model_shadow.py(LLM-as-Judge影子测试·默认关) + 改造 core/free_model_pool.py(健康闭环+成本回写+LLM熔断)、core/model_router.py(并发门+超时+影子钩子)、server/router.py(限流注入)、config/llm_budget.json+model_router.json(shadow配置)；产出 金水谣自动化优化方案.html 结构化方案(问题诊断/架构对比/缺口清单/自动化设计)。验证: 8文件py_compile全过 + 2配置JSON合法 + 内联烟雾测试(预算封顶拦付费/限流429/熔断跳死模型/遥测落盘/并发门BUSY_OVERLOAD/影子默认no-op)全绿 | JS-20260729-10 |
+| W53 | 深度复查(LAN绑定暴露+知识提取格式崩溃)+双重加固 2026-07-30 | 金水谣(软件工坊主理人·GStack) | 已完成 | 用户"再次深度检查复查逐一排查"→GStack主理人调度安全官+排障手并行：①根因=修复前旧进程PID7784绑0.0.0.0:18888未杀(taskkill拒绝访问)→局域网可访问假象，「脏pyc加载旧代码」假设经代码复核不成立(.pyc带源mtime自动重编译)；②双重加固 server/__init__.py(非本机地址默认拒启+打印实际监听地址)+launch_jinshuiyao.py(启动前_purge_pycache清全部__pycache__强制重编译)；③修复 scheduler.py/engines/evolution.py 的confidence字符串触发`{:.0%}`格式崩溃(安全转float兜底0.5)。验证: py_compile 4文件全过 / commit c35f4a7 / 报告deliverables/gstack/recheck-lan-binding-jinshuiyao-2026-07-30.md。⚠️运行时复测须用户本地关窗重启 netstat 确认127.0.0.1:18888(非0.0.0.0) | JS-20260730-01 |
+| W54 | 小隐患深度体检(代码层+安全边角) 2026-07-30 | 金水谣(软件工坊主理人·GStack) | 已完成 | 用户"仔细检查，小隐患也会扩大或是遗忘了"→主理人建团队gstack-minor-risks-sweep调度调查员+安全官并行纯诊断(未改码)：调查员扫出中危3(confidence格式化漏网4处 agent_formatters:42,78/stock_gui:507/fund_gui:548 同c35f4a7病根/ai_agent.py:692-701内存锁普通Lock且改存不同锁并发丢记忆+重入死锁/scripts/audit_system_scheduler.py:239,384 eval日志行→代码执行)+低危同族F2/F3/T2/T3/O2/O3+提示O4/O5；安全官扫出中危2(utils/simple_security.py:31假加密base64+硬编码默认密钥未接入生产/读推理状态端点ai.py:23 health.py:170-208,143-157缺_is_local守卫 LAN模式放大)+低危11(quant_server无绑定校验+未鉴权写/CORS通配残留/.gitignore漏sendkey等密钥文件/SSRF单点脆弱+DNS重绑定/配置信任边界/错误脱敏/XSS→RCE链路)。结论🔴0🟠5🟡16🟢2无紧急项，全部"现在小、放开LAN才放大"。报告deliverables/gstack/minor-risks-sweep-jinshuiyao-2026-07-30.md。待修：P0 F1/T1/O1、P1 F4/F8(开LAN前)、P2低危批量收口 | JS-20260730-02 |
+| W55 | 落实小隐患体检3中危修复+gitignore补漏 2026-07-30 | 金水谣(软件工坊主理人·GStack) | 已完成 | 用户"修"→主理人建团队gstack-fix-minor-risks调度排障手落地JS-20260730-02诊断的代码中危：①F1 confidence格式化4处漏网(agent_formatters:42→50,78→86 / stock_gui:507→515 / fund_gui:548→556)各加`_as_float`强转helper收口；②T1 core/ai_agent.py:70 Lock→RLock + `_save_profile(locked=)` + `_add_memory`改存同锁，消除重入死锁与并发丢记忆；③O1 scripts/audit_system_scheduler.py eval→`_safe_parse_log_line`(ast.literal_eval优先+json.loads安全回退，均不执行代码)；④.gitignore补sendkey/siliconflow_key/douyin_cookie防御性忽略。验证: 5py文件py_compile全PASS / 主理人grep复核全落地 / commit 87a4ab6(6文件+80-25仅本次改动) / 报告deliverables/gstack/fix-minor-risks-jinshuiyao-2026-07-30.md。⚠️未做: 同族低危(F2/F3/O3)一致性收口、`_remove_memory`补锁、F4/F8(开LAN前必做) | JS-20260730-03 |
+| W56 | 全部日志健康复查 2026-07-30 | 金水谣(软件工坊主理人·GStack) | 已完成 | 用户"审查全部日志看看还要什么问题吗"→主理人建团队gstack-log-review调度排障手审查16个日志/状态文件+代码交叉验证+git时间线：结论🔴0🟠3🟡5🟢3无P0。两轮修复(c35f4a7局域网暴露+confidence崩溃 / 87a4ab6三中危)基本有效(新启动日志仅监听127.0.0.1:18888、全库无非回环IP、崩溃类无复现)。残留P1×3:①server/handlers/knowledge.py:412 `refined.get('key_points','')`直拼字符串(list→TypeError 500,代码未修,与confidence同族AI返回结构无类型防御,主理人Read复核)；②AI API Key失效401反复(07-27→07-29数十次,知识精炼/AI不可用且连带引发①)；③"审查Pipeline有红灯:"详情恒为空(告警失明,07-29亦3次)。P2×5:前端2 JS错/模型审查NUL路径/备份清理堆积/写租约无过期/guide死链。提示×3:看门狗未运行/无HTTP访问日志/ConnectionAborted噪声。报告deliverables/gstack/log-health-review-jinshuiyao-2026-07-30.md | JS-20260730-04 |
+| W57 | 落实日志复查全量代码修复(A~G) 2026-07-30 | 金水谣(软件工坊主理人·GStack) | 已完成 | 用户"全部修复"→主理人建团队gstack-fix-log-review-issues调度排障手落地JS-20260730-04诊断的全部代码可修复项：①A/P1-1 server/handlers/knowledge.py 新增_as_text对refined(title/summary/key_points/domain)做类型防御消list拼接500；②B/P1-3 server/__init__.py 审查红灯详情兜底(过滤不到P0/FAIL时输出returncode+末尾行)；③C/P2-1 ai-agent.html(vars||{}+(X||[]).forEach)与assistant.html(askForm判空+typeof function)前端空值防御；④D/P2-2 auto_audit.py relpath包try/except跳过Windows保留设备名(nul)；⑤E/P2-4 scripts/session_coordinator.py 同机死pid接管+STALE_TAKEOVER_SECS=600s锁龄接管；⑥F/P2-5 指南页死链改绝对路径+auto_audit忽略_old_backups_consolidated+本地重生成风险登记册.md消分叉；⑦G1 同族_as_float收口(agent_formatters/stock/domain/fund/domain/fund_backtest新增helper并套用)；⑧G2 ai_agent.py _remove_memory补锁(改存同锁,RLock可重入)。验证: 9py+4html py_compile/grep复核全PASS + 隔离功能测试3/3 / commit b0ddfdf(13文件+614-109) / 报告deliverables/gstack/log-review-issues-fix-jinshuiyao-2026-07-30.md。⚠️未改: P1-2 API Key失效(用户侧)/P2-3 safe_json堆积(fail-closed设计正确)/watchdog启用(决策项)；风险登记册.md未进版本库(约定不入库,仅本地重生成) | JS-20260730-05 |
+| W42 | 前端全端点审计+修复2个[没反应]根因bug（审查_read_body缺失500 + 语义检索RLock死锁挂起）2026-07-25 | 金水谣 | 已完成 | 审计全部前端 fetch 端点(22 GET+20 POST)；定位①审查端点 GuideHandler 缺 _read_body()→router.py 补该方法；②vector/search 因 _BUILD_LOCK 非重入死锁→vector_index.py 改 RLock()；清理误写假卡。验证: 全端点冒烟无异常, vector/search 0.5s返回, review/trigger 正常 | JS-20260725-07 |
+| W43 | matches.csv 数据画像 + 字段优化(P2/P3/P4) 2026-07-28 | WorkBuddy(诺亚团队) | 已完成 | 上轮(07-28早)对 matches.csv(仅3行空壳模板)做数据画像：生成400行标注"非真实赛果"演示数据+EDA+ECharts仪表盘+HTML报告(金水谣_matches数据画像报告.html)；本轮P3清洗原始脏数据(500_003 league'世界杯半决赛'→'欧冠资格赛')、P2扩字段(handicap/over_under/home_rank/away_rank/home_form/away_form)、P4加collected_at/source+写matches_data_dictionary.md；真实赛果result/score(P1)待用户真实数据。验证: 增强CSV 400×16、缺失0、重复0、md5幂等；venv用兜底 %LOCALAPPDATA%\Jinshuiyao\venv | JS-20260728-06 |
+| W44 | matches.csv P1 真实赛果数据集构建 2026-07-28 | WorkBuddy(诺亚团队) | 已完成 | 用户要求"上网搜真实数据填充"。因演示400行是seed=42编造、无真实比赛可对应，改为另建独立真实文件 matches_real.csv（143场，2025-26赛季五大联赛真实完赛结果，WebSearch核实来源：premierleague.com/laliga.com/AS.com/Soccerway/纳米数据等）；演示CSV仅预留result/score空列(现18列，留空为正确状态)。赛果分布 主胜60/平39/客胜44。缺口：文件不含赔率(odds)，回测"赔率→赛果"需另行接入真实赔率源(对齐match_id/球队+日期)。验证: 143行、联赛分布英超30/西甲40/德甲25/意甲30/法甲18；附 matches_real_README.md + generate_real_dataset.py | JS-20260728-13 |
+| W45 | matches.csv 回测分析(WebSearch真实赔率·校准/Brier/准确率/代表性) 2026-07-28 | WorkBuddy(诺亚团队) | 已完成 | 承接W44真实赛果(143场)做回测：WebSearch核实真实赔率(英超/西甲组=真实赔率反推隐含概率；德甲/意甲/法甲隐含=外部赛季基准近似*)，跑聚合级回测——校准(隐含vs实际)、Brier Score、简单策略命中率vs随机33.3%、卡方样本代表性；6图ECharts仪表盘+9章HTML报告，合并为金水谣_matches回测报告.html(自包含·6图嵌入)。关键数字：总体命中42.0% vs随机33.3%(+8.6pp)；Brier 0.215~0.232 vs随机0.667；英超overround≈0%/西甲+6.20%；卡方p EPL0.937/Bundes0.264/SerieA0.772/Ligue10.637。缺口：演示数据无真实赔率→仅聚合级非逐场；德甲/意甲/法甲隐含为基准近似非真实赔率("偏差"实为样本vs赛季差)；西甲缺外部基准未做代表性检验。验证: 合并脚本断言全过(echarts CDN+6图div+0占位符残留) | JS-20260728-15 |
+| W46 | Stripe风格金水谣SaaS落地页设计(设计引擎五成员接力·单文件自包含HTML) 2026-07-29 | WorkBuddy(主理人画统筹) | 已完成 | 按设计引擎SOP(需求发现→设计系统→原型→质量审查→导出)五成员接力，产出Stripe版式骨架+owner七色体系的单文件自包含落地页(金水谣SaaS落地页.html，≈48KB，无外链/无禁色/响应式中文/内联SVG/极量JS)；质量审查5维20/25 PASS，Anti-Slop全通过；配色严格落七色令牌(墨蓝/深蓝灰/暖银白/香槟金+冰蓝/墨绿金/赤铜)，规避红绿黄紫橙禁色与违规承诺词。验证: export-specialist双Grep零外链零禁色、双击离线可开 | JS-20260729-08 |
+
+---
+
+## 三、待优化清单（按优先级排序）
+
+### P0 — 紧急/高价值（全部完成 ✅）
+
+| 序号 | 待办项 | 状态 |
+|------|--------|------|
+| ~~1~~ | ~~AI对话持久化~~ | ✅ conversation_log.py + JSONL |
+| ~~2~~ | ~~知识自动提取扩展~~ | ✅ 对话+经验收集箱→知识卡片，scheduler每120min |
+| ~~3~~ | ~~guide_server.py 完全退役~~ | ✅ 薄包装层移除，改用 server 包 |
+
+### P0.5 — 知识系统增强（全部完成 ✅ · WorkBuddy W2）
+
+| 序号 | 待办项 | 状态 |
+|------|--------|------|
+| ~~N1~~ | ~~知识系统接入scheduler~~ | ✅ memory_decay/cross_linker/knowledge_graph 每24h |
+| ~~N2~~ | ~~用户知识库前端写入~~ | ✅ 「＋新建卡片」按钮 + /api/user-kb/add |
+| ~~N3~~ | ~~知识体检Lint自动化~~ | ✅ 每月1号自动跑 |
+| N4 | 语音交互（需硬件） | ⏸️ 等8GB+显存硬件到位 |
+
+### P1 — 重要/中期（全部完成 ✅）
+
+| 序号 | 待办项 | 状态 |
+|------|--------|------|
+| ~~4~~ | ~~Token用量持久化~~ | ✅ token_usage.json增量写入，重启恢复 |
+| ~~5~~ | ~~定时任务可视化~~ | ✅ scheduler.html看板 + /api/scheduler/status |
+| ~~6~~ | ~~前端错误监控~~ | ✅ error-monitor.js + POST /api/error-report |
+| ~~7~~ | ~~云端迁移：认证+存储抽象~~ | → 移至「未来规划」 |
+
+### P2 — 改善/长期（全部完成 ✅）
+
+| 序号 | 待办项 | 状态 |
+|------|--------|------|
+| ~~8~~ | ~~ECharts图表规范化~~ | ✅ jinshuiyao-echarts-theme.js 统一主题 |
+| ~~9~~ | ~~多设备同步增强~~ | ✅ 冲突合并+离线队列+sync_data |
+| ~~10~~ | ~~预测引擎效果看板~~ | ✅ engine-dashboard.html + /api/prediction/stats |
+| ~~11~~ | ~~知识库深度参与核心选号~~ | ✅ _consult_knowledge() 按engine_hook修正选号 |
+| ~~12~~ | ~~预测结果号码球可视化~~ | ✅ 双击表格行→Canvas彩色号码球 |
+
+### P3 — 新增优化项（Token/成本治理 · 待落地）
+
+| 序号 | 待办项 | 状态 | 说明 |
+|------|--------|------|------|
+| P3-1 | AI 调用 Token 熔断 | ✅ 已完成(JS-20260729-10) | `core/llm_budget.py` 单例成本闸(日/分/单笔三重上限+超额跳闸冷却1h)+`core/free_model_pool.py` 付费前 `allow_paid()` 预检，复用 `CircuitBreakerRegistry` 做 LLM 调用级熔断；落地前已 `measure first` 确认大头(DeepSeek付费)再动手，不盲写；默认预算上限=日20元/分1元/单笔0.05元，配置在 `config/llm_budget.json` |
+| P3-2 | matches.csv 真实赛果字段回填(result/score) | ✅ 已完成(独立真实文件) | 真实赛果已落在独立文件 matches_real.csv（143场，2025-26五大联赛真实完赛，WebSearch核实来源），与演示CSV物理隔离不可合并；演示CSV仅预留result/score空列(留空即正确，因演示行无真实赛果可对)。回测赔率缺口见 matches_real_README.md。关联 JS-20260728-13 |
+
+### 未来规划（待接入计划，项目完善后再启动）
+
+> 以下计划当前不执行、不花钱。等本地功能全部完善、稳定运行后，再按需启动。
+
+| 方向 | 说明 | 前置条件 | 预估成本 |
+|------|------|----------|----------|
+| 网站版 | 把现有本地服务部署到云服务器，浏览器直接访问 | 认证+存储抽象（原P1-7）、域名、服务器 | 服务器约50-100元/月 |
+| 小程序版 | 微信小程序前端，调用云端API | 网站版先完成 + 小程序账号 + HTTPS | 小程序认证300元/年 |
+| 网站+小程序都做 | 共用一套后端API，两个前端入口 | 以上两项都完成 | 合计约100-150元/月 |
+| 云端迁移技术准备 | AUTH_TOKEN认证 + StorageBackend抽象 + 数据库替换JSON | 用户决定上云时再启动 | 纯代码改动，不花钱 |
+
+**当前策略**：坚果云同步 + 本地运行，零成本。先把功能完善、稳定运行后再规划上线。
+
+### 上线前必做清单（资质 + 合规 + 技术）
+
+> 🚨 以下事项在决定上线时逐项落实，当前阶段仅做规划，不花钱。
 >
-> 任何 AI 与主人请以**根目录那份为准**。2026-07-21 起两份合并为一份，避免双份漂移误导。
->
-> 开工请直接读根目录 `AI协作交接中心.md` → `AI协作规范_完整版.md` → `AGENTS.md`（五铁律）→ `工作留痕总索引.md`。
+> 📋 配套「一句话闸门版」速查清单：`deliverables/gstack/pre-launch-mustdo-jinshuiyao-2026-07-28.md`（含 A1~A10 / B1~B8 / C1~C6 勾选表 + 最终 Go/No-Go 核对清单，与「上线后完善清单」严格区分）。
+
+#### A. 资质要求
+
+| 事项 | 说明 | 费用 | 备注 |
+|------|------|------|------|
+| ICP备案 | 网站上线必须备案（个人名义即可） | 免费 | 前提：有国内服务器+域名 |
+| 域名 | .cn 或 .com 均可 | 约30-60元/年 | 备案必须用国内注册商的域名 |
+| 微信小程序账号 | 个人开发者可注册 | 免费 | 但"彩票/预测"类目需企业资质 |
+| 个体工商户营业执照 | 解决小程序类目审核问题 | 约200-500元（代办） | 注册"信息技术服务"或"数据分析服务"经营范围 |
+| 小程序认证 | 企业主体才能开通支付等高级能力 | 300元/年 | 个人主体可先不认证，功能受限 |
+
+#### B. 内容合规红线（彩票类应用特别注意）
+
+**绝对不能出现的措辞：**
+- "必中""稳赚""包中""保证中奖""提高中奖概率"
+- "投注建议""跟单""带赚""回本"
+- 任何暗示"用了就能赚钱"的承诺性语言
+
+**安全的替代表述：**
+- "预测" → "数据分析""趋势参考""统计模型输出"
+- "投注建议" → "赛事数据分析""历史统计参考"
+- "盈利" → "盈亏统计""历史表现"
+- "提高中奖率" → "系统化选号分析""数据辅助参考"
+
+**必须包含的免责声明（每个涉及彩票的页面底部）：**
+> 本系统仅提供历史数据统计分析，所有输出仅供参考娱乐，不构成任何投注建议。彩票开奖为随机事件，任何分析方法均不能保证结果。请理性对待，量力而行。
+
+**2026-07-20 已完成的合规整改（10处）：**
+- ai-agent.html："提高中奖概率"→"进行系统化选号分析"
+- jinshuiyao-guide.html×3："盈利组合"→"优化组合结构"、"看能赚多少"→"评估历史表现"、"让下次更准"→"调整策略权重"
+- workbench.html："适当增加频率"→"保持当前分析思路"
+- football_gui.py："累计盈利"→"累计盈亏"
+- llm_analyzer.py："投注建议"→"深度数据分析"
+- ai_agent.py：帮助文本"投注建议"→"赛事数据"
+- intent_rules.py：路由关键词"投注建议"→"赛事推荐"
+
+#### C. 上线技术准备（纯代码改动，不花钱）
+
+| 事项 | 说明 | 难度 |
+|------|------|------|
+| AUTH_TOKEN认证 | 多用户访问需要登录验证 | 中 |
+| StorageBackend抽象 | JSON文件→数据库（SQLite/MySQL） | 中 |
+| HTTPS | 小程序强制要求HTTPS | 低（Let's Encrypt免费证书） |
+| 免责声明组件化 | 做成公共JS组件，所有彩票页面自动加载 | 低 |
+| 敏感词过滤层 | 用户输入+AI输出双向过滤违禁词 | 中 |
+| 日志脱敏 | 上线后日志不能记录完整API Key等敏感信息 | 低 |
+> ✅ **2026-07-28 已落地（本机自用安全基线）**：P0-① 服务默认仅绑 `127.0.0.1`（不再暴露局域网）、CORS 由 `*` 改为同源反射、`/open` 加同源校验 → 根治「无登录 + 全CORS + 绑全网卡」RCE 暴露面；P0-② SSRF 重定向改为受控跟随（≤5跳、逐跳校验内网/云元数据）→ 防经 `/api/extract`/视频提取打内网；错误回显已脱敏。上述为**本机自用**临时闭环；对外发布前仍需补：AUTH_TOKEN 登录、HTTPS、限流、审计。详见 JS-20260728-08 / `deliverables/gstack/pre-launch-check-jinshuiyao-2026-07-28.md`。
+
+#### D. 上线路径建议（从零成本到正式运营）
+
+1. **第一步（零成本试水）**：用 Vercel/Railway 免费额度部署前端+API，自己和小范围朋友试用
+2. **第二步（小程序上架）**：注册个体工商户 → 小程序企业主体 → 类目选"工具/效率"而非"彩票" → 提交审核
+3. **第三步（正式运营）**：购买轻量云服务器（约50元/月）+ 域名备案 + 稳定运行
+
+**定位建议**：对外统一称为"数据分析工具"或"历史数据统计平台"，不出现"预测""彩票推荐"等敏感定位词。
+
+---
+
+## 四、各AI模型能力评估（用户实测记录）
+
+> 用户每次让不同AI做任务后，在此记录表现，方便下次选对工具。
+
+| AI模型 | 擅长领域 | 不擅长 | 实测评价 | 最近使用时间 |
+|--------|----------|--------|----------|--------------|
+| Qoder | 代码修改、架构拆分、Bug定位、批量修复、测试验证 | 需要联网搜索最新信息 | 能直接改代码跑测试，闭环能力强，质量稳定 | 2026-07-21 |
+| TRAE | 代码审查、架构统一、精细化重构、多模块协同优化、项目级质量把控 | 单次对话上下文比Qoder略短，超长文件分批处理 | 代码理解深，会主动读规范/交接中心再动手，做架构类和审查类任务最顺手；"做一个记一个"推进法很稳 | 2026-07-22 |
+| WorkBuddy | 流程规范设计、文档体系搭建、知识管理制度、备份整合、防乱机制 | 代码修改深度不如Qoder/TRAE，重代码任务偏弱 | 建制度/理流程/做规范是强项，留痕总索引+成熟度体系设计得好，擅长"把混乱变有序" | 2026-07-22 |
+| 豆包 | 方案规划、文案撰写、思路梳理、联网搜索信息 | 不能直接操作文件、代码落地需手动 | 给的方案全面但偏通用，需自己筛选；联网能力强适合查资料 | 2026-07-19 |
+
+### 选型建议（给用户的简单指南）：
+
+- 要改代码、修Bug、跑测试 → 用 **Qoder**
+- 要做架构审查、多模块统一、精细化重构 → 用 **TRAE**
+- 要建制度、理流程、文档体系、知识管理 → 用 **WorkBuddy**
+- 要写方案、理思路、做规划、查最新资料 → 用 **豆包**
+- 要批量处理文件、自动化操作 → 用 **Qoder** 或 **TRAE**
+
+---
+
+## 五、项目关键文件地图（给AI快速定位用）
+
+> **文档体系已于 2026-07-29 合并为三层**：`模型/金水谣_纲.md`（天层·不变纲领）→ `模型/金水谣_契.md`（地层·执行契约）→ `模型/金水谣_录.md`（人层·过程记录）。旧 11 份规范文档已归档。以下为代码与数据的文件地图。
+
+| 文件/目录 | 作用 | 注意事项 |
+|-----------|------|----------|
+| `server/__init__.py` | 导航服务器入口（main()） | 原guide_server.py已退役，这是唯一入口 |
+| `core/ai_service.py` | AI调用统一入口 | 无状态，不存对话历史 |
+| `core/auto_knowledge.py` | 预测结果→知识卡片 | 只覆盖预测域 |
+| `core/memory_decay.py` | 记忆衰减（用进废退） | 建议接入scheduler每24h跑一次 |
+| `core/audit_log.py` | 操作审计日志 | 写入 金水谣数据/log/change_audit.logl |
+| `server/router.py` | HTTP路由分发 | GET/POST都在这里注册 |
+| `server/handlers/` | 各API处理函数 | knowledge.py含双库+交叉链接+图谱端点 |
+| `server/utils.py` | 工具函数(打开文件等) | GUI文件必须注册到gui_files列表 |
+| `config/paths.json` | 路径配置 | Python路径在这里改 |
+| `config/__init__.py` | config桥接 | 解决config.py和config/冲突 |
+| `knowledge/mirofish_db.py` | 模型知识库（左脑） | 带engine_hook字段，AI自动管理 |
+| `knowledge/用户知识库/` | 个人知识库（右脑） | Markdown卡片，人管理，INDEX.json索引 |
+| `knowledge/kb_engine.py` | 知识引擎（统一检索） | 三层渐进增强：本地→联网→API |
+| `knowledge/cross_linker.py` | 双库交叉链接（胼胝体） | 自动发现跨库关联，crosslinks.json |
+| `knowledge/knowledge_graph.py` | 知识图谱（实体网络） | knowledge_graph.json，417节点/1472边 |
+| `tools/doctor.py` | 体检修复（11项检查） | 纯stdlib，项目坏了也能跑 |
+| `tools/auto_backup.py` | 自动备份（每次启动） | 快照保留3份，存 `%LOCALAPPDATA%\Jinshuiyao\backups`（与同步盘解耦）；含 `is_safe_backup_location()` 同步盘隔离守卫，fail-closed 不污染坚果云 |
+| `金水谣数据/` | 所有业务数据 | JSON文件+备份 |
+| `金水谣数据/log/` | 所有日志 | JSONL格式 |
+| `domains/` | 各业务域(彩票/基金等) | fund_data_manager用embed_checksum=False |
+| `tests/` | 测试 | pytest 运行，740 个用例（2026-07-22 删 preload 孤儿测试后；全量 0 failed） |
+
+---
+
+## 六-A、项目铁律（所有AI必须遵守）
+
+1. **safe_write_json 必须用 embed_checksum=False**（业务数据不能注入_metadata）
+2. **GUI文件必须在 gui_files 列表注册**（否则会被记事本打开）
+3. **新页面必须加 _PAGE_ROUTES**（否则404）
+4. **控制台输出必须用 _safe_icon()**（GBK终端不支持Emoji）
+5. **不要硬编码路径**（用 config/paths.json 或相对路径）
+6. **修改后必须跑 pytest**（确保746个测试全过）
+7. **用户是新手**（所有界面文字用中文，操作要一键化）
+8. **每次优化完成后更新本文件**（在第二章登记，第三章划掉）
+9. **换机器/新会话先检查环境**（venv路径、Python版本，见"一-B"节检查清单）
+10. **结构化留痕+登记总索引**：每次工作必须在 `模型/工作留痕总索引.md` 登记一条（含改动文件绝对路径与行号、验证命令与结果、关联编号），否则下一个AI无法倒查溯源
+11. **收工自检门禁**：说"完成"之前必须跑 `py -3.14 tools/gate.py --check`，36项全绿才能收工。旧 `wrapup_check.py` 已被 `gate.py` 合并
+12. **知止原则（道德经）**：达标即停，不无限优化。①任务达到成功标准就收工，不追求"完美"；②改动量超过黄灯阈值，停下来评估是否该拆分；③成熟度达到proven就别再动，留精力给更重要的事。**过犹不及，过则损金。**
+
+---
+
+## 六-B、工作留痕与溯源（倒查入口）
+
+> 所有大模型协作工作的**统一溯源层**在 `模型/工作留痕总索引.md`（天枢 TS / 金水谣 JS 统一登记）。
+> 此处只填"做了什么摘要"，**细节与可倒查证据在总索引**：谁干的、改了哪个文件哪一行、跑了什么验证、还留了什么坑。
+
+**收工必做（三步闭环）：**
+1. 本文件第二章登记摘要（序号/优化项/状态）
+2. 经验收集箱追加经验（踩坑/方法/建议）
+3. **总索引登记一条**（编号规则 `JS-YYYYMMDD-NN`，必填：经手AI、改动文件绝对路径+行号、验证命令+结果、遗留、关联编号、**被否决方案、人工介入触发、成熟度[draft/verified/proven]**）
+
+**📐 编号命名规则（全项目统一）：**
+
+| 编号格式 | 含义 | 示例 | 在哪用 |
+|----------|------|------|--------|
+| `JS-YYYYMMDD-NN` | 工作留痕总索引编号（金水谣项目） | JS-20260722-03 | 总索引每一行的主键 |
+| `#N` | Qoder 完成的任务序号 | #44 | 第二章 Qoder 表格 |
+| `WN` | WorkBuddy 完成的任务序号 | W12 | 第二章 其他AI表格 |
+| `TN` | TRAE 完成的任务序号 | T1 | 第二章 其他AI表格 |
+| `P0 / P1 / P2 / P3` | 优先级（紧急→次要） | P0-1 | 第三章 待优化清单 |
+| `N1 / N2 / N3` | 子任务编号（大任务拆分） | N1 | 大任务内细分标记 |
+
+**🔗 溯源链路（从粗到细，四层倒查）：**
+
+```
+第1层 交接中心§二（做了什么？）
+  → 按AI分类的任务列表 + 编号
+    ↓
+第2层 工作留痕总索引（改了哪行？）
+  → JS-YYYYMMDD-NN 条目 + 改动文件绝对路径+行号 + 验证命令+结果
+    ↓
+第3层 经验收集箱（踩过什么坑？）
+  → 每条经验含：做了什么/踩过的坑/下次注意/有效方法/被否决方案
+    ↓
+第4层 Git / 文件本身（实际代码）
+  → 用总索引里的路径+行号直接定位到代码
+```
+
+**跨项目溯源**：天枢(TS)与金水谣(JS)的根因常同源（如"运行态与代码/配置不同步"），倒查时看总索引「跨项目关联链」一节。
+
+---
+
+## 六-C、验收协议（防偷懒防撒谎 · 证据制度）
+
+> 背景：多AI协作中，"说完成≠真完成"。本协议用机械化手段杜绝偷懒和虚假汇报。
+> 与提示词「证据制度」10条完全同步，两边一字不差。
+
+**证据制度（所有AI交付时必须遵守）：**
+1. **说"完成"必须贴证据**：改了文件→贴改后关键行；跑了测试→贴pytest输出；调了接口→贴返回结果。没有证据＝没做，口头汇报不算数。
+2. **小批次交付**：一次最多做2-3个任务，做完验完再领下一批。禁止一口气揽10个任务然后"全部完成"。
+3. **交叉互审**：A做的活由B验收，验收方必须实际跑命令+核对文件+贴输出，不能只"看了一眼说OK"。验收结论写进留痕索引，签名担责。
+4. **收工自检门禁**：说"完成"之前必须跑 `py -3.14 tools/gate.py --check`（或 `%LOCALAPPDATA%\Jinshuiyao\venv\Scripts\python.exe tools/gate.py --check`），全绿才能收工。红灯＝没做完，修完重跑。旧版 `wrapup_check.py` 已合并为 `gate.py --check`。`--skip-tests` 连续用2次警告，连续3次强制跑全量（脚本自动强制执行）。自检不只查"有没有日期"，还查内容质量+配置一致性，糊弄不过去。
+5. **禁止模糊用词**：不许说"应该没问题""理论上可以""大概完成了"。要么贴证据证明做了，要么明说"没做/不确定"。
+6. **任务先认领再做**：开工前先在第三章待优化清单里认领（状态改成"🚧进行中·XXX认领"），24小时没进展自动解锁，下一个可以接手。详见§六-E。
+7. **质量保障防返工**：改代码前先做影响面分析（会不会影响前端/API/数据格式）；改完要对照§六-F的改动同步检查清单确认所有关联地方都改了；高风险改动必须实测验收（不能只跑pytest）。详见§六-F。
+8. **修后实测检验（防修A坏B）**：改完代码必须跑 `py -3.14 tools/gate.py --smoke --quick`（组件冒烟，7/7全绿）或 `py -3.14 tools/gate.py --e2e`（端到端冒烟，12项全绿），全绿才能说"修好了"。有红灯=修A坏了B，必须修完红灯重跑。旧版 `smoke_test.py` 已合并为 `gate.py --smoke`（组件）+ `gate.py --e2e`（端到端）。git提交时pre-commit hook自动拦截。
+9. **时间管理**：每个任务先估时，估时×1.5=时间盒上限，到点还没搞定就停下来汇报，别死磕；优先做P0/P1，别在P3小事上磨洋工；一次最多做2-3个任务，做完再领下一批。详见§六-G。
+10. **优化前准备工作**：动手改代码前先做5步准备：①现状摸底（读代码+查文档+搜经验）②目标明确（成功标准+边界）③方案设计（至少2种方案对比）④风险预判（影响面+回滚方案）⑤拆解排期（拆成子任务+估时）。详见§六-H。
+11. **自检内容质量**：留痕不是凑数，必须真有内容。总索引必填：①改动文件（绝对路径+行号+为什么改）②验证（命令+输出+结果）③被否决方案（试过但放弃的做法+原因）④人工介入触发（高利害/低把握处写明）⑤成熟度（draft/verified/proven）。经验收集箱必填：做了什么/踩过的坑/下次注意/有效方法。缺字段＝没做完，自检会红灯。详见§六-I。
+
+**交叉互审流程（A做→B验→补→确认）：**
+1. **执行方(A)**：完成任务，贴证据（命令+输出），登记留痕索引
+2. **验收方(B)**：必须实际跑命令验证（不是"看了一眼"），核对文件行号，贴自己的验证输出
+3. **有gap**：验收方列出gap清单→执行方修复→验收方再确认
+4. **验收通过**：验收方在留痕索引签名（注明"由XX验收通过"），双方共担责任
+
+**收工自检门禁（铁律⑤）：**
+- 任何AI说"完成"之前，必须跑 `py -3.14 tools/gate.py --check`（或 `%LOCALAPPDATA%\Jinshuiyao\venv\Scripts\python.exe tools/gate.py --check`）
+- **36项全绿**才能收工；有红灯＝未完成，修完重跑直到全绿
+- 旧版 `wrapup_check.py` 检测逻辑已合并到 `gate.py --check`，36 项覆盖原 29 项 + 跨文档一致性审计(cross_doc_audit)等新增项
+- 刚跑过pytest可加 `--skip-tests`，但**连续跳过2次警告、3次强制跑全量**
+
+---
+
+## 六-D~六-M、详细方法论与流程规范
+
+> **已迁移至 AI协作规范_完整版.md**（2026-07-22瘦身）
+> 包含：接手SOP、协作防冲突、质量保障、修后实测、时间管理、优化前准备、自检门禁、防漏洞体系等。
+> 需要时请读规范文件，本文件不再保留副本。
+
+---
+
+*本文件由 Qoder 创建于 2026-07-20，后续由各AI协作维护。*
+*用户无需手动编辑，每次让AI干活时说先看看AI协作交接中心即可。*
+
+---
+
+## 七、经验收集箱速查（按学习域 · 2026-07-31）
+
+> 以下经验分类索引，方便快速找到踩坑记录和有效方法。
+> 完整内容见 `金水谣数据/log/经验收集箱.md`（85条经验，含踩坑/架构/测试/前端/后端/运维/协作/安全/最佳实践/知识/流程 11域）。
+
+| 学习域 | 条数 | 典型经验 |
+|--------|------|----------|
+| 测试修复+架构优化 | 7 | Python 3.14适配、测试隔离、测试债清零、预存失败修复 |
+| 今日预测功能修复 | 5 | 线程死锁修复、预测类型细化、命中率口径校正、诚实基准回测 |
+| guide_server.py 退役 | 3 | 薄包装层移除、服务合并、旧模块退役方法论 |
+| 前端UI全面升级 | 4 | 深海熔金统一、七色闭环配色、响应式修复、ECharts规范化 |
+| 安全加固 | 4 | 密钥泄漏扫描、SSRF防护、XSS审查、静态文件安全 |
+| 知识系统 | 6 | 知识引擎、记忆衰减、双库胼胝体、知识图谱、知识库自动化 |
+| 运维 | 5 | 换机venv解耦、环境自愈、启动器优化、备份隔离 |
+| 彩票数据 | 6 | 抓取防御层修复、熔断架构、数据Time回填、数据画像 |
+| 足彩 | 3 | matches.csv真实数据集、回测分析、数据字典 |
+| 股票/基金 | 4 | 回测引擎、基金经理分析、基金对比、多因子选股 |
+| 自动化/门禁 | 5 | 自检门禁、操作留痕、AI决策卡、合规CLI |
+
+---

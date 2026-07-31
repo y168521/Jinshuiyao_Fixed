@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>金水谣万物引擎 - 接口文档</title>
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+  <style>
+    /* @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap'); */
+    :root {
+      /* 映射到 theme.css 设计令牌 */
+      --bg: var(--deep);
+      --bg2: var(--card-bg);
+      --bg3: #1c3350;
+      --dim: var(--ink-mid);
+      --rule: var(--gold-border);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    /* 背景动效 */
+    body::before {
+      content: '';
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background:
+        radial-gradient(ellipse 800px 600px at 15% 20%, rgba(91,192,222,0.06), transparent),
+        radial-gradient(ellipse 600px 500px at 85% 70%, rgba(91,192,222,0.05), transparent),
+        radial-gradient(ellipse 400px 400px at 50% 50%, rgba(201,169,110,0.03), transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .container {
+      position: relative; z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem 2rem 3rem;
+    }
+
+    /* 顶部 */
+    .hero {
+      text-align: center;
+      padding: 2rem 0 1rem;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: var(--ice-soft);
+      border: 1px solid rgba(91,192,222,.25);
+      border-radius: 20px;
+      padding: 0.2rem 1rem;
+      font-size: 0.75rem;
+      color: var(--ice);
+      margin-bottom: 0.8rem;
+      letter-spacing: 0.05em;
+      font-weight: 500;
+    }
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      margin-bottom: 0.4rem;
+      background: linear-gradient(135deg, var(--ice), var(--ice), var(--warn));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-time {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 0.3rem;
+    }
+
+    /* 新手提示 */
+    .tip-banner {
+      background: var(--ice-soft);
+      border: 1px solid rgba(91,192,222,.2);
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      margin: 1.5rem 0 2rem;
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    .tip-banner strong {
+      color: var(--ice);
+    }
+
+    /* 接口卡片 */
+    .api-card {
+      background: var(--bg2);
+      border: 1px solid var(--rule);
+      border-radius: 16px;
+      padding: 1.5rem 1.75rem;
+      margin-bottom: 1.25rem;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    .api-card:hover {
+      border-color: rgba(91,192,222,.3);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.3), 0 0 0 1px rgba(91,192,222,.1);
+    }
+    .api-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+    .api-card[data-method="GET"]::before {
+      background: linear-gradient(90deg, var(--ok), transparent);
+    }
+    .api-card[data-method="POST"]::before {
+      background: linear-gradient(90deg, var(--blue), transparent);
+    }
+
+    .api-header {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 0.8rem;
+      flex-wrap: wrap;
+    }
+    .method-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      flex-shrink: 0;
+    }
+    .method-badge.GET {
+      background: rgba(45,139,126,0.15);
+      color: var(--ok);
+      border: 1px solid rgba(45,139,126,0.3);
+    }
+    .method-badge.POST {
+      background: rgba(59,130,246,0.15);
+      color: var(--blue);
+      border: 1px solid rgba(59,130,246,0.3);
+    }
+    .api-path {
+      font-family: 'Courier New', monospace;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .api-desc {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+
+    /* 参数表格 */
+    .params-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1rem;
+      font-size: 0.85rem;
+    }
+    .params-table th {
+      background: var(--bg3);
+      color: var(--muted);
+      padding: 0.5rem 0.8rem;
+      text-align: left;
+      border: 1px solid var(--rule);
+      font-weight: 600;
+    }
+    .params-table td {
+      padding: 0.5rem 0.8rem;
+      border: 1px solid var(--rule);
+      color: var(--ink);
+    }
+    .params-table td:nth-child(1) {
+      font-family: 'Courier New', monospace;
+      color: var(--ice);
+    }
+    .params-table td:nth-child(3) {
+      color: var(--muted);
+    }
+
+    /* 代码块 */
+    .code-block {
+      background: #0d1117;
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      margin-bottom: 1rem;
+      color: #e6edf3;
+    }
+    .code-block .json-key { color: #79c0ff; }
+    .code-block .json-str { color: #a5d6ff; }
+    .code-block .json-num { color: #C9A96E; }
+    .code-block .json-bool { color: #ff7b72; }
+    .code-block .json-null { color: #8a96b0; }
+
+    /* 试试看按钮 */
+    .try-btn {
+      padding: 0.45rem 1rem;
+      border: 1px solid rgba(47,109,240,0.3);
+      border-radius: 8px;
+      background: rgba(47,109,240,0.1);
+      color: var(--ice);
+      font-family: var(--font);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .try-btn:hover {
+      background: rgba(47,109,240,0.2);
+      border-color: var(--ice);
+    }
+    .try-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .try-btn .spinner {
+      display: inline-block;
+      width: 12px; height: 12px;
+      border: 2px solid rgba(47,109,240,0.3);
+      border-top-color: var(--ice);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* 结果区域 */
+    .result-box {
+      background: #0d1117;
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin-top: 1rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      display: none;
+    }
+    .result-box.visible { display: block; }
+    .result-box .result-label {
+      color: var(--ice);
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      font-size: 0.78rem;
+    }
+    .result-box.error { border-color: rgba(200,117,90,0.3); }
+    .result-box.error .result-label { color: var(--err); }
+
+    /* 底部 */
+    .footer-bar {
+      text-align: center;
+      padding: 2rem 0 0;
+      border-top: 1px solid var(--rule);
+      margin-top: 2rem;
+    }
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .footer-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: var(--ice); }
+    .footer-copy {
+      color: var(--dim);
+      font-size: 0.75rem;
+    }
+
+    @media (max-width: 768px) {
+      .container { padding: 1.25rem; }
+      .hero h1 { font-size: 1.6rem; }
+      .api-header { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 顶部 -->
+    <div class="hero">
+      <div class="hero-badge">接口文档</div>
+      <h1>金水谣万物引擎 · 接口文档</h1>
+      <div class="hero-time">当前时间：<span id="currentTime"></span></div>
+    </div>
+
+    <!-- 新手提示 -->
+    <div class="tip-banner">
+      <strong>新手提示：</strong>这里是金水谣万物引擎的所有接口说明。每个接口旁边都有 <strong>"试试看"</strong> 按钮，点击后可以实际调用该接口并看到返回结果，无需任何编程知识。
+    </div>
+
+    <!-- 接口卡片列表 -->
+    <div id="apiCards"></div>
+
+    <!-- 底部 -->
+    <div class="footer-bar">
+      <div class="footer-links">
+        <a href="/">返回总控台</a>
+        <a href="/test-report">测试报告</a>
+        <a href="/ai-test">AI用例</a>
+      </div>
+      <div class="footer-copy">
+        金水谣万物引擎 &copy; 2026 | 接口文档 v1.0 | 服务器端口 18888
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== 接口数据定义 =====
+    // 每个接口的完整信息，包括路径、方法、说明、参数和返回值示例
+    var apis = [
+      {
+        path: '/',
+        method: 'GET',
+        desc: '总控台首页（302重定向到control-center.html）',
+        params: [],
+        response: {
+          _说明: '浏览器自动跳转到 /control-center.html',
+          状态码: 302,
+          Location: '/control-center.html'
+        }
+      },
+      {
+        path: '/open',
+        method: 'GET',
+        desc: '打开/启动本地文件（在电脑上打开指定文件或运行程序）',
+        params: [
+          { name: 'file', type: '字符串', required: '是', desc: '要打开的文件路径（相对于项目根目录）' },
+          { name: 'mode', type: '字符串', required: '否', desc: '打开模式：auto=自动判断, run=运行, view=记事本查看' }
+        ],
+        response: {
+          ok: true,
+          file: 'gui/main_window.py',
+          mode: 'run'
+        }
+      },
+      {
+        path: '/status',
+        method: 'GET',
+        desc: '获取系统状态（检查各子系统文件是否存在，返回JSON数据）',
+        params: [],
+        response: {
+          server: 'online',
+          timestamp: '2026-07-16T12:00:00',
+          lottery: { exists: true, path: 'gui/main_window.py' },
+          stock: { exists: true, path: 'domains/stock/stock_gui.py' },
+          football: { exists: true, path: 'jinshuiyao/football_gui.py' }
+        }
+      },
+      {
+        path: '/api/chat',
+        method: 'POST',
+        desc: 'AI对话接口（发送消息给AI助手，获取回复）',
+        params: [
+          { name: 'message', type: '字符串', required: '是', desc: '发送给AI的消息内容' }
+        ],
+        response: {
+          ok: true,
+          reply: '你好！我是金水谣AI助手，有什么可以帮你的？'
+        }
+      },
+      {
+        path: '/api/extract',
+        method: 'POST',
+        desc: '视频文案提取（从视频链接中提取文案/字幕内容）',
+        params: [
+          { name: 'url', type: '字符串', required: '是', desc: '视频链接地址' }
+        ],
+        response: {
+          ok: true,
+          data: {
+            title: '视频标题',
+            transcript: '提取的文字内容...'
+          }
+        }
+      },
+      {
+        path: '/api/refine',
+        method: 'POST',
+        desc: '内容提炼（将提取的原始内容提炼为结构化知识卡片）',
+        params: [
+          { name: 'data', type: '对象', required: '是', desc: '提取的原始数据对象' }
+        ],
+        response: {
+          ok: true,
+          card: {
+            title: '提炼后的标题',
+            summary: '摘要内容...',
+            tags: ['标签1', '标签2']
+          }
+        }
+      },
+      {
+        path: '/docs',
+        method: 'GET',
+        desc: '本页面（接口文档），在浏览器中查看所有API接口说明',
+        params: [],
+        response: {
+          _说明: '返回本HTML页面'
+        }
+      },
+      {
+        path: '/test-report',
+        method: 'GET',
+        desc: '测试报告页面，查看系统自动化测试的运行结果',
+        params: [],
+        response: {
+          _说明: '返回测试报告HTML页面'
+        }
+      },
+      {
+        path: '/ai-test',
+        method: 'GET',
+        desc: 'AI用例生成页面，用AI自动生成接口测试用例',
+        params: [],
+        response: {
+          _说明: '返回AI用例生成HTML页面'
+        }
+      },
+      {
+        path: '/api/test-results',
+        method: 'GET',
+        desc: '获取最近一次自动化测试的结果数据',
+        params: [],
+        response: {
+          log: '=== 冒烟测试报告 ===\nPASS test_1 ...',
+          time: 1752652800
+        }
+      },
+      {
+        path: '/api/run-tests',
+        method: 'POST',
+        desc: '触发运行自动化测试（执行冒烟测试脚本）',
+        params: [],
+        response: {
+          stdout: '=== 冒烟测试 ===\nPASS test_1\n...',
+          stderr: '',
+          returncode: 0
+        }
+      },
+      {
+        path: '/api/scheduler/status',
+        method: 'GET',
+        desc: '获取所有定时任务的运行状态（任务名、是否启用、间隔、上次/下次运行时间等）',
+        params: [],
+        response: {
+          ok: true,
+          tasks: [
+            { name: 'data_refresh', enabled: true, interval_minutes: 60, last_run: '2026-01-01T12:00:00', next_run: '2026-01-01T13:00:00', run_count: 5, last_error: null }
+          ]
+        }
+      },
+      {
+        path: '/api/scheduler/log',
+        method: 'GET',
+        desc: '获取最近的调度执行日志（JSONL格式，最新在前）',
+        params: [
+          { name: 'limit', type: '数字', required: '否', desc: '返回条数，默认50，最大200' }
+        ],
+        response: {
+          ok: true,
+          logs: [
+            { timestamp: '2026-01-01T12:00:00', name: 'data_refresh', duration_ms: 1234, success: true, error: null }
+          ],
+          total: 1
+        }
+      },
+      {
+        path: '/api/prediction/stats',
+        method: 'GET',
+        desc: '预测统计（按域聚合命中率 + 最近30天趋势）',
+        params: [],
+        response: {
+          ok: true,
+          by_domain: { lottery: { total: 100, hits: 35, misses: 65, rate: 0.35 } },
+          trend: [ { date: '2026-01-01', total: 5, hits: 2 } ],
+          overall: { total: 100, hits: 35, misses: 65, rate: 0.35 }
+        }
+      },
+      {
+        path: '/api/error-report',
+        method: 'POST',
+        desc: '前端JS错误上报（仅限本机请求，将错误信息写入日志文件）',
+        params: [
+          { name: 'message', type: '字符串', required: '是', desc: '错误消息' },
+          { name: 'source', type: '字符串', required: '否', desc: '出错的文件路径' },
+          { name: 'lineno', type: '数字', required: '否', desc: '出错行号' },
+          { name: 'colno', type: '数字', required: '否', desc: '出错列号' },
+          { name: 'stack', type: '字符串', required: '否', desc: '错误堆栈' },
+          { name: 'page', type: '字符串', required: '否', desc: '当前页面路径' }
+        ],
+        response: {
+          ok: true
+        }
+      },
+      {
+        path: '其他路径',
+        method: 'GET',
+        desc: '静态文件服务（HTML/CSS/JS等静态文件直接返回）',
+        params: [
+          { name: '文件路径', type: '路径', required: '是', desc: '如 /control-center.html' }
+        ],
+        response: {
+          _说明: '直接返回对应文件内容'
+        }
+      }
+    ];
+
+    // ===== 显示当前时间 =====
+    function updateTime() {
+      var now = new Date();
+      var str = now.getFullYear() + '-' +
+        String(now.getMonth()+1).padStart(2,'0') + '-' +
+        String(now.getDate()).padStart(2,'0') + ' ' +
+        String(now.getHours()).padStart(2,'0') + ':' +
+        String(now.getMinutes()).padStart(2,'0') + ':' +
+        String(now.getSeconds()).padStart(2,'0');
+      document.getElementById('currentTime').textContent = str;
+    }
+    updateTime();
+    setInterval(updateTime, 1000);
+
+    // ===== JSON语法高亮 =====
+    function highlightJson(obj) {
+      // 将JSON对象转换为带颜色标注的HTML字符串
+      var json = JSON.stringify(obj, null, 2);
+      // 转义HTML特殊字符
+      json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      // 给key上色
+      json = json.replace(/"([^"]+)":/g, '<span class="json-key">"$1"</span>:');
+      // 给字符串值上色
+      json = json.replace(/:\s*"([^"]*)"/g, ': <span class="json-str">"$1"</span>');
+      // 给数字上色
+      json = json.replace(/:\s*(\d+\.?\d*)/g, ': <span class="json-num">$1</span>');
+      // 给布尔值上色
+      json = json.replace(/:\s*(true|false)/g, ': <span class="json-bool">$1</span>');
+      // 给null上色
+      json = json.replace(/:\s*(null)/g, ': <span class="json-null">$1</span>');
+      return json;
+    }
+
+    // ===== 渲染所有接口卡片 =====
+    function renderApiCards() {
+      var container = document.getElementById('apiCards');
+      var html = '';
+
+      apis.forEach(function(api, index) {
+        var methodClass = api.method; // GET 或 POST
+        html += '<div class="api-card" data-method="' + methodClass + '" id="card-' + index + '">';
+
+        // 头部：方法标签 + 路径 + 试试看按钮
+        html += '<div class="api-header">';
+        html += '<span class="method-badge ' + methodClass + '">' + methodClass + '</span>';
+        html += '<span class="api-path">' + api.path + '</span>';
+        html += '<button class="try-btn" onclick="tryApi(' + index + ')" id="tryBtn-' + index + '">&#9889; 试试看</button>';
+        html += '</div>';
+
+        // 说明
+        html += '<div class="api-desc">' + api.desc + '</div>';
+
+        // 参数表格（如果有参数）
+        if (api.params.length > 0) {
+          html += '<table class="params-table">';
+          html += '<thead><tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>';
+          html += '<tbody>';
+          api.params.forEach(function(p) {
+            html += '<tr>';
+            html += '<td>' + p.name + '</td>';
+            html += '<td>' + p.type + '</td>';
+            html += '<td>' + p.required + '</td>';
+            html += '<td>' + p.desc + '</td>';
+            html += '</tr>';
+          });
+          html += '</tbody></table>';
+        }
+
+        // 返回值示例
+        html += '<div style="color:var(--muted);font-size:0.82rem;margin-bottom:0.5rem;">返回值示例：</div>';
+        html += '<div class="code-block">' + highlightJson(api.response) + '</div>';
+
+        // 实际调用结果区域
+        html += '<div class="result-box" id="result-' + index + '">';
+        html += '<div class="result-label">&#128268; 实际调用结果：</div>';
+        html += '<div id="result-content-' + index + '"></div>';
+        html += '</div>';
+
+        html += '</div>'; // .api-card 结束
+      });
+
+      container.innerHTML = html;
+    }
+
+    // ===== 试试看：实际调用接口 =====
+    async function tryApi(index) {
+      var api = apis[index];
+      var btn = document.getElementById('tryBtn-' + index);
+      var resultBox = document.getElementById('result-' + index);
+      var resultContent = document.getElementById('result-content-' + index);
+
+      // 静态页面接口（直接跳转，不fetch）
+      if (api.path === '/docs' || api.path === '/test-report' || api.path === '/ai-test') {
+        showToast('正在打开页面...', 'success');
+        window.open(api.path, '_blank');
+        return;
+      }
+
+      // 根路径，直接跳转
+      if (api.path === '/') {
+        showToast('正在跳转到总控台...', 'success');
+        window.open('/', '_self');
+        return;
+      }
+
+      // 其他路径（静态文件），不测试
+      if (api.path === '其他路径') {
+        showToast('静态文件接口无需测试', 'success');
+        return;
+      }
+
+      // 显示loading状态
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> 请求中...';
+
+      try {
+        var url = api.path;
+        var options = { method: api.method };
+
+        // POST请求需要发送body
+        if (api.method === 'POST') {
+          var body = {};
+          if (api.path === '/api/chat') {
+            body = { message: '你好' };
+          } else if (api.path === '/api/extract') {
+            body = { url: 'https://example.com' };
+          } else if (api.path === '/api/refine') {
+            body = { data: { title: '测试标题', content: '测试内容' } };
+          } else if (api.path === '/api/run-tests') {
+            body = {};
+          }
+          options.body = JSON.stringify(body);
+          options.headers = { 'Content-Type': 'application/json' };
+        }
+
+        var res = await fetch(url, options);
+        var data = await res.json();
+
+        // 显示结果
+        resultBox.className = 'result-box visible';
+        resultBox.classList.remove('error');
+        resultContent.innerHTML = '<pre style="white-space:pre-wrap;margin:0;">' + highlightJson(data) + '</pre>';
+
+      } catch (err) {
+        // 显示错误
+        resultBox.className = 'result-box visible error';
+        resultContent.innerHTML = '<span style="color:var(--err);">请求失败：' + err.message + '</span>';
+      }
+
+      // 恢复按钮状态
+      btn.disabled = false;
+      btn.innerHTML = '&#9889; 试试看';
+    }
+
+    // ===== Toast提示 =====
+    function showToast(message, type) {
+      var toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;transition:opacity 0.5s;';
+      toast.style.background = type === 'success' ? '#2D8B7E' : '#C8755A';
+      toast.style.color = '#fff';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(function() {
+        toast.style.opacity = '0';
+        setTimeout(function() { toast.remove(); }, 500);
+      }, 3000);
+    }
+
+    // 页面加载时渲染卡片
+    renderApiCards();
+  </script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
+<script src="_shared/js/error-monitor.js"></script>
+</body>
+</html>

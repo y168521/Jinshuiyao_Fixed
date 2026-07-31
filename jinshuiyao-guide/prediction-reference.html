@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>多维参考 · 福彩3D/排列三</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+  .lot-tabs { display:flex; gap:8px; margin:16px 0; }
+  .lot-tabs button { padding:8px 18px; border:1px solid var(--border,#ddd); background:var(--card,#fff); border-radius:8px; cursor:pointer; font-size:clamp(13px,1.4vw,15px); }
+  .lot-tabs button.active { background:var(--accent,#4a90d9); color:#fff; border-color:var(--accent,#4a90d9); }
+  .sqi-box { display:inline-block; padding:6px 14px; border-radius:8px; font-weight:600; }
+  .sqi-strong { background:#d6f5d6; color:#1a7f1a; }
+  .sqi-medium { background:#fff3cd; color:#8a6d00; }
+  .sqi-weak { background:#f8d7da; color:#a1202a; }
+  .pos-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:14px; }
+  .pos-card { background:var(--card,#fff); border:1px solid var(--border,#eee); border-radius:10px; padding:14px; }
+  .pos-card h3 { margin:0 0 10px; font-size:clamp(14px,1.6vw,16px); }
+  .kv { display:flex; justify-content:space-between; padding:3px 0; font-size:clamp(12px,1.2vw,13px); border-bottom:1px dashed var(--border,#eee); }
+  .kv span:last-child { font-weight:600; }
+  .summary { margin-top:14px; background:var(--card,#fff); border:1px solid var(--border,#eee); border-radius:10px; padding:14px; }
+  h2 { font-size:clamp(18px,2.4vw,24px); margin-top:0; }
+  .err { color:#a1202a; }
+  .note { margin-top:12px; font-size:clamp(11px,1.1vw,12px); color:#888; }
+  @media (max-width:720px){ .pos-grid{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <h2>多维参考特征 · 福彩3D / 排列三</h2>
+  <p class="note">描述性统计（遗漏/冷热/振幅/奇偶/大小/区间/和值/跨度），用于理解号码分布。<b>非预测信号、非中奖概率</b>。彩票本质近随机。</p>
+  <div class="lot-tabs">
+    <button data-lot="福彩3D" class="active">福彩3D</button>
+    <button data-lot="排列三">排列三</button>
+  </div>
+  <div id="sqi"></div>
+  <div id="out"></div>
+  <div class="note" id="updated"></div>
+</div>
+
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js" defer></script>
+<script>
+const $ = (s) => document.querySelector(s);
+let curLot = '福彩3D';
+
+async function load(lot) {
+  curLot = lot;
+  $('#sqi').innerHTML = '加载中…';
+  $('#out').innerHTML = '';
+  try {
+    const r = await fetch('/api/lottery/reference?lot=' + encodeURIComponent(lot));
+    const d = await r.json();
+    if (!d.ok) { $('#sqi').innerHTML = '<span class="err">错误：' + (d.error || '未知') + '</span>'; return; }
+    render(d);
+  } catch (e) {
+    $('#sqi').innerHTML = '<span class="err">请求失败：' + e.message + '（需金水谣服务在 18888 运行）</span>';
+  }
+}
+
+function render(d) {
+  const rf = d.ref_features || {};
+  const sqi = d.confidence || {};
+  const lvl = sqi.level || 'unknown';
+  const label = {strong:'强', medium:'中', weak:'弱', unknown:'-'}[lvl];
+  $('#sqi').innerHTML = 'SQI：<span class="sqi-box sqi-' + lvl + '">' + label + (sqi.score != null ? sqi.score : '') +
+    '</span> <span class="note">（仅信号清晰度+数据质量+多维覆盖，非中奖概率）</span>';
+  if (!rf.supported) { $('#out').innerHTML = '<p>暂无数据</p>'; return; }
+
+  const posNames = ['百位','十位','个位'];
+  let html = '<div class="pos-grid">';
+  for (const p of posNames) {
+    const o = (rf.positions && rf.positions[p]) || {};
+    html += '<div class="pos-card"><h3>' + p + '</h3>';
+    const rows = [
+      ['遗漏Top冷', (o['最近遗漏Top冷'] || []).join(' ')],
+      ['热号Top', (o['近期热号Top'] || []).join(' ')],
+      ['振幅均值', o['振幅均值']],
+      ['奇偶比', (o['奇偶比'] || []).join(' : ')],
+      ['大小比', (o['大小比'] || []).join(' : ')],
+      ['三区比', (o['三区比'] || []).join(' : ')],
+    ];
+    for (const [k,v] of rows) html += '<div class="kv"><span>' + k + '</span><span>' + (v ?? '-') + '</span></div>';
+    html += '</div>';
+  }
+  html += '</div>';
+
+  const sm = rf.summary || {};
+  html += '<div class="summary"><b>汇总</b><div class="kv"><span>和值均值</span><span>' + sm['和值均值'] + '</span></div>' +
+    '<div class="kv"><span>跨度均值</span><span>' + sm['跨度均值'] + '</span></div>' +
+    '<div class="kv"><span>和值近期(10期)</span><span>' + (sm['和值近期'] || []).join(', ') + '</span></div>' +
+    '<div class="kv"><span>特征覆盖度</span><span>' + rf.feature_coverage + '%</span></div></div>';
+
+  $('#out').innerHTML = html;
+  $('#updated').textContent = '数据更新于本地金水谣数据文件 · 覆盖度 ' + rf.feature_coverage + '%';
+}
+
+document.querySelectorAll('.lot-tabs button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.lot-tabs button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    load(b.dataset.lot);
+  });
+});
+load(curLot);
+</script>
+</body>
+</html>

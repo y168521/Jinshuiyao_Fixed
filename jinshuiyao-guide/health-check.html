@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>金水谣系统 - 体检中心</title>
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+  <style>
+    /* @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap'); */
+    :root {
+      /* 映射到 theme.css 设计令牌 */
+      --bg: var(--deep);
+      --bg2: var(--card-bg);
+      --bg3: #1c3350;
+      --bg4: #243d5c;
+      --dim: var(--ink-mid);
+      --accent2: var(--ice);
+      --rule: var(--gold-border);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { min-height: 100vh; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background:
+        radial-gradient(ellipse 900px 700px at 12% 15%, rgba(91,192,222,0.08), transparent),
+        radial-gradient(ellipse 700px 600px at 88% 75%, rgba(91,192,222,0.06), transparent),
+        radial-gradient(ellipse 500px 500px at 50% 50%, rgba(201,169,110,0.03), transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .container {
+      position: relative; z-index: 1;
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 1.5rem 1.5rem 3rem;
+    }
+
+    /* ===== 顶部 - 体检总评 ===== */
+    .hero {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2rem;
+      flex-wrap: wrap;
+      background: linear-gradient(135deg, var(--ice-soft), rgba(91,192,222,0.05));
+      border: 1px solid var(--rule);
+      border-radius: 20px;
+      padding: 1.8rem 2rem;
+      margin-bottom: 1.5rem;
+      backdrop-filter: blur(8px);
+    }
+    .hero-left { display: flex; align-items: center; gap: 2rem; flex-wrap: wrap; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      background: var(--ice-soft);
+      border: 1px solid rgba(91,192,222,.3);
+      border-radius: 20px;
+      padding: 0.25rem 0.9rem;
+      font-size: 0.72rem;
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+    .hero-badge .pulse {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      animation: blink 1.4s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .hero h1 {
+      font-size: 1.9rem;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      margin-top: 0.5rem;
+      background: linear-gradient(135deg, var(--accent), #67e8f9, var(--ice));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub { color: var(--muted); font-size: 0.82rem; margin-top: 0.2rem; }
+
+    /* 健康分数圆环 */
+    .ring-wrap {
+      position: relative;
+      width: 190px; height: 190px;
+      flex-shrink: 0;
+    }
+    .ring-wrap svg { transform: rotate(-90deg); display: block; }
+    .ring-track { stroke: rgba(55,65,81,0.5); }
+    .ring-bar {
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1.2s cubic-bezier(.22,1,.36,1), stroke 0.4s;
+      filter: drop-shadow(0 0 10px currentColor);
+    }
+    .ring-center {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    .ring-score {
+      font-size: 2.6rem; font-weight: 900; line-height: 1;
+      transition: color 0.4s;
+    }
+    .ring-score.high { color: var(--ok); }
+    .ring-score.medium { color: var(--warn); }
+    .ring-score.low { color: var(--err); }
+    .ring-unit { font-size: 0.85rem; color: var(--muted); font-weight: 500; }
+    .ring-label { font-size: 0.7rem; color: var(--dim); margin-top: 0.25rem; letter-spacing: 0.05em; }
+
+    .hero-meta {
+      display: flex; flex-direction: column; gap: 0.55rem;
+      min-width: 180px;
+    }
+    .meta-row { display: flex; align-items: center; gap: 0.6rem; font-size: 0.9rem; }
+    .meta-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 6px currentColor; }
+    .meta-dot.pass { background: var(--ok); color: var(--ok); }
+    .meta-dot.fail { background: var(--err); color: var(--err); }
+    .meta-dot.skip { background: var(--warn); color: var(--warn); }
+    .meta-dot.total { background: var(--accent); color: var(--accent); }
+    .meta-num { font-weight: 700; font-size: 1.05rem; }
+    .meta-time { font-size: 0.78rem; color: var(--dim); margin-top: 0.3rem; }
+
+    .run-btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #00131a;
+      border: none;
+      border-radius: 12px;
+      padding: 0.85rem 1.6rem;
+      font-size: 0.98rem;
+      font-weight: 700;
+      font-family: var(--font);
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      box-shadow: 0 6px 20px rgba(91,192,222,.35);
+      transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+      white-space: nowrap;
+    }
+    .run-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(91,192,222,.5); }
+    .run-btn:active { transform: translateY(0); }
+    .run-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .run-btn .spin {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(0,19,26,0.3);
+      border-top-color: #00131a;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+    .run-btn.loading .spin { display: inline-block; }
+    .run-btn.loading .play { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== 主体网格 ===== */
+    .main-grid {
+      display: grid;
+      grid-template-columns: minmax(320px, 1fr) minmax(0, 1.4fr);
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    @media (max-width: 920px) {
+      .main-grid { grid-template-columns: 1fr; }
+      .hero { flex-direction: column; align-items: flex-start; }
+    }
+
+    .panel {
+      background: linear-gradient(160deg, #ffffff, #f7f9fd);
+      border: 1px solid var(--rule);
+      border-radius: 16px;
+      padding: 1.3rem 1.3rem 1.5rem;
+    }
+    .panel-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1rem;
+      padding-bottom: 0.8rem;
+      border-bottom: 1px solid rgba(55,65,81,0.5);
+    }
+    .panel-title {
+      font-size: 1.05rem; font-weight: 700;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .panel-title .tag {
+      font-size: 0.68rem; font-weight: 500;
+      color: var(--accent);
+      background: var(--ice-soft);
+      border: 1px solid rgba(91,192,222,.25);
+      border-radius: 10px;
+      padding: 0.1rem 0.55rem;
+      letter-spacing: 0.05em;
+    }
+    .panel-hint { font-size: 0.78rem; color: var(--dim); }
+
+    /* ===== 左侧 - 科室卡片 ===== */
+    .dept-list { display: flex; flex-direction: column; gap: 0.7rem; }
+    .dept-card {
+      display: flex; align-items: center; gap: 0.9rem;
+      background: var(--bg4);
+      border: 1px solid var(--rule);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.15s, background 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .dept-card:hover { border-color: var(--accent); transform: translateX(3px); }
+    .dept-card.active {
+      border-color: var(--accent);
+      background: linear-gradient(135deg, var(--ice-soft), rgba(91,192,222,.05));
+      box-shadow: 0 0 0 1px rgba(91,192,222,.3), 0 4px 18px rgba(91,192,222,.15);
+    }
+    .dept-card.active::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+      background: var(--accent);
+    }
+    /* 体检脉冲动画 */
+    .dept-card.pulsing {
+      animation: dept-pulse 0.6s ease-out;
+      border-color: var(--accent);
+    }
+    @keyframes dept-pulse {
+      0% { box-shadow: 0 0 0 0 rgba(91,192,222,.6); transform: scale(1); }
+      50% { box-shadow: 0 0 0 10px rgba(91,192,222,.15); transform: scale(1.015); }
+      100% { box-shadow: 0 0 0 0 rgba(91,192,222,0); transform: scale(1); }
+    }
+    .dept-icon {
+      font-size: 1.5rem;
+      width: 42px; height: 42px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(47,109,240,0.08);
+      border: 1px solid rgba(47,109,240,0.2);
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
+    .dept-body { flex: 1; min-width: 0; }
+    .dept-name { font-size: 0.95rem; font-weight: 600; }
+    .dept-desc { font-size: 0.74rem; color: var(--dim); margin-top: 0.15rem; }
+    .dept-stat { text-align: right; flex-shrink: 0; }
+    .dept-count { font-size: 1.05rem; font-weight: 700; line-height: 1; }
+    .dept-count.all { color: var(--ink); }
+    .dept-count.ok { color: var(--ok); }
+    .dept-count.warn { color: var(--warn); }
+    .dept-count.bad { color: var(--err); }
+    .dept-count.idle { color: var(--dim); }
+    .dept-mini {
+      display: flex; gap: 3px; margin-top: 0.35rem; justify-content: flex-end;
+      flex-wrap: wrap; max-width: 90px;
+    }
+    .mini-dot { width: 7px; height: 7px; border-radius: 2px; background: var(--rule); }
+    .mini-dot.pass { background: var(--ok); }
+    .mini-dot.fail { background: var(--err); }
+    .mini-dot.skip { background: var(--warn); }
+    /* 进度条 */
+    .dept-bar {
+      position: absolute; left: 0; bottom: 0; height: 2px;
+      background: var(--accent);
+      transition: width 0.8s ease;
+    }
+
+    /* ===== 右侧 - 体检明细 ===== */
+    .detail-empty {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--dim);
+    }
+    .detail-empty .ico { font-size: 2.6rem; opacity: 0.5; margin-bottom: 0.6rem; }
+    .detail-empty p { font-size: 0.9rem; }
+    .detail-head {
+      display: flex; align-items: center; gap: 0.7rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.8rem;
+      border-bottom: 1px solid rgba(55,65,81,0.5);
+    }
+    .detail-head .ico { font-size: 1.4rem; }
+    .detail-head .name { font-size: 1.05rem; font-weight: 700; }
+    .detail-head .summary {
+      margin-left: auto;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .detail-head .summary b { color: var(--ink); }
+    .detail-list { display: flex; flex-direction: column; gap: 0.55rem; max-height: 560px; overflow-y: auto; padding-right: 0.3rem; }
+    .detail-list::-webkit-scrollbar { width: 6px; }
+    .detail-list::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 3px; }
+    .detail-item {
+      display: flex; align-items: flex-start; gap: 0.7rem;
+      background: var(--bg4);
+      border: 1px solid rgba(55,65,81,0.4);
+      border-left: 3px solid var(--rule);
+      border-radius: 8px;
+      padding: 0.7rem 0.9rem;
+      transition: border-color 0.2s;
+    }
+    .detail-item.pass { border-left-color: var(--ok); }
+    .detail-item.fail { border-left-color: var(--err); }
+    .detail-item.skip { border-left-color: var(--warn); }
+    .item-status {
+      width: 22px; height: 22px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 50%;
+      font-size: 0.78rem; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .item-status.pass { background: rgba(45,139,126,0.15); color: var(--ok); }
+    .item-status.fail { background: rgba(200,117,90,0.15); color: var(--err); }
+    .item-status.skip { background: rgba(201,169,110,0.15); color: var(--warn); }
+    .item-body { flex: 1; min-width: 0; }
+    .item-name {
+      font-size: 0.88rem; font-weight: 500;
+      word-break: break-all;
+    }
+    .item-name .fn { color: var(--muted); font-size: 0.76rem; font-weight: 400; }
+    .item-err {
+      margin-top: 0.4rem;
+      font-size: 0.76rem;
+      color: #fca5a5;
+      background: rgba(200,117,90,0.08);
+      border: 1px solid rgba(200,117,90,0.2);
+      border-radius: 6px;
+      padding: 0.4rem 0.6rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'Consolas', 'Courier New', monospace;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+    .item-time {
+      font-size: 0.72rem; color: var(--dim);
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ===== 底部 - 体检报告 ===== */
+    .report-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+      gap: 1.5rem;
+    }
+    @media (max-width: 920px) { .report-grid { grid-template-columns: 1fr; } }
+
+    .history-list { display: flex; flex-direction: column; gap: 0.5rem; max-height: 280px; overflow-y: auto; padding-right: 0.3rem; }
+    .history-list::-webkit-scrollbar { width: 6px; }
+    .history-list::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 3px; }
+    .history-item {
+      display: flex; align-items: center; gap: 0.8rem;
+      background: var(--bg4);
+      border: 1px solid rgba(55,65,81,0.4);
+      border-radius: 8px;
+      padding: 0.6rem 0.9rem;
+    }
+    .history-score {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.95rem;
+      flex-shrink: 0;
+      border: 2px solid;
+    }
+    .history-score.high { color: var(--ok); border-color: var(--ok); background: rgba(45,139,126,0.1); }
+    .history-score.medium { color: var(--warn); border-color: var(--warn); background: rgba(201,169,110,0.1); }
+    .history-score.low { color: var(--err); border-color: var(--err); background: rgba(200,117,90,0.1); }
+    .history-info { flex: 1; min-width: 0; }
+    .history-time { font-size: 0.82rem; font-weight: 500; }
+    .history-stat { font-size: 0.74rem; color: var(--dim); margin-top: 0.1rem; }
+    .history-empty { text-align: center; padding: 2rem 1rem; color: var(--dim); font-size: 0.85rem; }
+
+    /* 趋势柱状图 */
+    .trend-chart {
+      display: flex; align-items: flex-end; justify-content: space-around;
+      gap: 0.6rem;
+      height: 200px;
+      padding: 1rem 0.5rem 0;
+      border-bottom: 1px solid var(--rule);
+      position: relative;
+    }
+    .trend-col {
+      flex: 1;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 0.4rem;
+      height: 100%;
+      justify-content: flex-end;
+      min-width: 0;
+    }
+    .trend-bar {
+      width: 70%;
+      max-width: 46px;
+      border-radius: 6px 6px 0 0;
+      transition: height 0.8s cubic-bezier(.22,1,.36,1);
+      position: relative;
+      min-height: 4px;
+    }
+    .trend-bar.high { background: linear-gradient(180deg, var(--ok), rgba(45,139,126,0.4)); box-shadow: 0 0 12px rgba(45,139,126,0.4); }
+    .trend-bar.medium { background: linear-gradient(180deg, var(--warn), rgba(201,169,110,0.4)); box-shadow: 0 0 12px rgba(201,169,110,0.4); }
+    .trend-bar.low { background: linear-gradient(180deg, var(--err), rgba(200,117,90,0.4)); box-shadow: 0 0 12px rgba(200,117,90,0.4); }
+    .trend-bar.empty { background: var(--rule); }
+    .trend-val { font-size: 0.72rem; font-weight: 700; }
+    .trend-label { font-size: 0.68rem; color: var(--dim); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    .trend-grid-line {
+      position: absolute; left: 0; right: 0;
+      border-top: 1px dashed rgba(55,65,81,0.4);
+      font-size: 0.62rem; color: var(--dim);
+      padding-left: 0.2rem;
+    }
+
+    .report-actions {
+      display: flex; gap: 0.7rem; margin-top: 1rem; flex-wrap: wrap;
+    }
+    .ghost-btn {
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      padding: 0.6rem 1.1rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+    }
+    .ghost-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(47,109,240,0.06); }
+    .ghost-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 1.5rem; left: 50%;
+      transform: translateX(-50%) translateY(120%);
+      background: var(--bg3);
+      border: 1px solid var(--accent);
+      color: var(--ink);
+      padding: 0.7rem 1.3rem;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+      z-index: 100;
+      transition: transform 0.35s cubic-bezier(.22,1,.36,1);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* 加载占位 */
+    .skeleton {
+      background: linear-gradient(90deg, var(--bg4) 25%, rgba(31,41,55,0.6) 50%, var(--bg4) 75%);
+      background-size: 200% 100%;
+      animation: skel 1.4s infinite;
+      border-radius: 6px;
+    }
+    @keyframes skel { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    .footer-note {
+      text-align: center;
+      color: var(--dim);
+      font-size: 0.76rem;
+      margin-top: 2rem;
+      padding-top: 1.2rem;
+      border-top: 1px solid rgba(55,65,81,0.4);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- ===== 顶部 - 体检总评 ===== -->
+    <header class="hero">
+      <div class="hero-left">
+        <div class="ring-wrap" aria-label="健康分数">
+          <svg width="190" height="190" viewBox="0 0 190 190">
+            <circle class="ring-track" cx="95" cy="95" r="80" fill="none" stroke-width="12"/>
+            <circle id="ringBar" class="ring-bar" cx="95" cy="95" r="80" fill="none" stroke-width="12"
+                    stroke="#5BC0DE" stroke-dasharray="502.65" stroke-dashoffset="502.65"/>
+          </svg>
+          <div class="ring-center">
+            <div id="ringScore" class="ring-score low">--</div>
+            <div class="ring-unit">健康分</div>
+            <div class="ring-label">HEALTH SCORE</div>
+          </div>
+        </div>
+        <div class="hero-meta">
+          <span class="hero-badge"><span class="pulse"></span> 体检中心 · 在线</span>
+          <div class="meta-row"><span class="meta-dot total"></span> 总检查项 <span id="metaTotal" class="meta-num">0</span></div>
+          <div class="meta-row"><span class="meta-dot pass"></span> 通过 <span id="metaPass" class="meta-num" style="color:var(--ok)">0</span></div>
+          <div class="meta-row"><span class="meta-dot fail"></span> 异常 <span id="metaFail" class="meta-num" style="color:var(--err)">0</span></div>
+          <div class="meta-row"><span class="meta-dot skip"></span> 跳过 <span id="metaSkip" class="meta-num" style="color:var(--warn)">0</span></div>
+          <div id="metaTime" class="meta-time">尚未体检</div>
+        </div>
+      </div>
+      <button id="runBtn" class="run-btn" title="执行全系统体检">
+        <span class="play">▶</span>
+        <span class="spin"></span>
+        <span id="runBtnText">一键体检</span>
+      </button>
+    </header>
+
+    <!-- ===== 主体 - 左右布局 ===== -->
+    <div class="main-grid">
+
+      <!-- 左侧 - 各科室检查 -->
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-title">各科室检查 <span class="tag">DEPARTMENTS</span></div>
+          <span class="panel-hint">点击查看明细</span>
+        </div>
+        <div id="deptList" class="dept-list"></div>
+      </section>
+
+      <!-- 右侧 - 体检明细 -->
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-title">体检明细 <span class="tag">DETAILS</span></div>
+          <span id="detailHint" class="panel-hint">选择左侧科室</span>
+        </div>
+        <div id="detailBody">
+          <div class="detail-empty">
+            <div class="ico">🩺</div>
+            <p>点击左侧科室卡片查看详细检查项目<br>或点击「一键体检」开始全系统检查</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ===== 底部 - 体检报告 ===== -->
+    <div class="report-grid">
+
+      <!-- 历史记录 -->
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-title">历史体检记录 <span class="tag">HISTORY</span></div>
+          <span class="panel-hint">最近 5 次</span>
+        </div>
+        <div id="historyList" class="history-list">
+          <div class="history-empty">暂无历史记录，体检后自动保存</div>
+        </div>
+      </section>
+
+      <!-- 启动自检面板（独特测试工程：每次启动自动跑生命线检查）-->
+      <section class="panel" style="border-color: rgba(45,139,126,0.3);">
+        <div class="panel-head">
+          <div class="panel-title">启动自检（生命线检查） <span class="tag" style="background:rgba(45,139,126,0.15);color:#2D8B7E;">SELF-CHECK</span></div>
+          <button id="selfcheckBtn" class="ghost-btn" style="padding:4px 12px;font-size:12px;">🔄 立即自检</button>
+        </div>
+        <div id="selfcheckBody" style="padding:8px 16px 16px;font-size:13px;line-height:1.7;">
+          <div style="color:#64748b;">点击「立即自检」运行生命线检查（5大科室24项，&lt;1秒完成）<br>启动服务器时会自动运行一次，结果保存在 金水谣数据/log/selfcheck.log</div>
+        </div>
+      </section>
+
+      <!-- 趋势图 + 操作 -->
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-title">健康趋势 <span class="tag">TREND</span></div>
+          <span class="panel-hint">分数走势</span>
+        </div>
+        <div id="trendChart" class="trend-chart"></div>
+        <div class="report-actions">
+          <button id="exportBtn" class="ghost-btn" disabled>📄 导出报告</button>
+          <button id="clearBtn" class="ghost-btn">🗑 清除历史</button>
+          <span id="autoNext" class="panel-hint" style="align-self:center;">自动体检：每 5 分钟</span>
+        </div>
+      </section>
+
+    </div>
+
+    <div class="footer-note">金水谣系统体检中心 · 数据来自 /api/run-tests · 本地运行，不会上传任何信息</div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // ============================================================
+    // 科室定义与分组规则
+    // ============================================================
+    const DEPARTMENTS = [
+      { id: 'ai',      name: 'AI大脑科',   icon: '🧠', desc: 'AI体 + 知识库',     tests: ['test_ai_agent', 'test_ai_service', 'test_ai_test_knowledge'] },
+      { id: 'lottery', name: '彩票引擎科', icon: '🎰', desc: '9个预测引擎',       tests: ['test_prediction_service', 'test_engines'] },
+      { id: 'data',    name: '数据安全科', icon: '📊', desc: 'safe_json+备份+校验', tests: ['test_safe_json', 'test_audit', 'test_file_watcher'] },
+      { id: 'server',  name: '服务器科',   icon: '🌐', desc: 'guide_server+API路由', tests: ['test_quality_pages', 'test_guide_server'] },
+      { id: 'tools',   name: '工具科',     icon: '🔧', desc: 'utils+ticket校验',   tests: ['test_number_utils', 'test_utils_extra', 'test_ticket_validator'] },
+      { id: 'schedule',name: '调度科',     icon: '⏰', desc: 'scheduler+FileWatcher', tests: ['test_preload', 'test_scheduler', 'test_auto_systems'] },
+      { id: 'guard',   name: '防护科',     icon: '🛡️', desc: '熔断器+看门狗+审计',   tests: ['test_circuit_breaker', 'test_watchdog', 'test_data_truth_guard', 'test_subsystem_isolation'] },
+    ];
+
+    // 冒烟测试中文名 → 科室 的兜底映射（当后端返回 smoke_test 中文输出时使用）
+    const KEYWORD_DEPT = {
+      '导航服务器': 'server',
+      '彩票GUI': 'lottery',
+      '股票GUI': 'lottery',
+      '足彩GUI': 'lottery',
+      '知识库GUI': 'ai',
+      'AI服务': 'ai',
+      '数据获取': 'data',
+      '视频提取': 'tools',
+      '调度器': 'schedule',
+      '数据真实性检测': 'guard',
+    };
+
+    // 状态：当前所有测试项 [{name, file, status, error, duration}]
+    let allItems = [];
+    // 当前选中科室
+    let activeDeptId = null;
+    // 最新一次体检原始数据
+    let lastRecord = null;
+    // 自动刷新定时器
+    let autoTimer = null;
+
+    const HISTORY_KEY = 'jinshuiyao_health_history';
+    const RING_CIRC = 2 * Math.PI * 80; // 502.65
+
+    // ============================================================
+    // 解析测试输出
+    // ============================================================
+    // 去除 ANSI 颜色转义码（smoke_test.py 输出含 \033[92m 等）
+    function stripAnsi(s) {
+      return s.replace(/\x1b\[[0-9;]*m/g, '');
+    }
+
+    function parseTestOutput(stdout) {
+      const items = [];
+      const lines = stdout.split('\n');
+      let current = null;
+
+      const statusMap = { 'PASS': 'pass', 'OK': 'pass', 'pass': 'pass',
+                          'FAIL': 'fail', 'ERROR': 'fail', 'ERR!': 'fail', 'fail': 'fail',
+                          'SKIP': 'skip', 'skip': 'skip', 'xfail': 'skip' };
+
+      for (let raw of lines) {
+        const line = stripAnsi(raw).trimEnd();
+        if (!line.trim()) { continue; }
+
+        // 匹配: [PASS]/[FAIL]/[ERR!]/[SKIP]  name  ...
+        let m = line.match(/\[(PASS|FAIL|ERR!|SKIP|OK|ERROR)\]\s*(.+)/i);
+        if (m) {
+          if (current) items.push(current);
+          const status = statusMap[(m[1] || '').toUpperCase()] || 'fail';
+          const rest = m[2].trim();
+          // 提取首个 token（可能是 test_xxx.py::func 或 中文名）
+          // run_tests.py 格式: "test_ai_agent.py::test_xxx ..... OK"
+          let name = rest;
+          let file = null;
+          let fn = null;
+          const fileMatch = rest.match(/^(test_\w+)\.py::(\S+)/);
+          if (fileMatch) {
+            file = fileMatch[1];
+            fn = fileMatch[2];
+            name = fn;
+          } else {
+            const fileOnly = rest.match(/^(test_\w+)\.py/);
+            if (fileOnly) { file = fileOnly[1]; name = fileOnly[1]; }
+          }
+          // 去掉尾部 ..... OK 之类
+          name = name.replace(/\s*\.{2,}\s*\S*$/, '').trim();
+          // 取详情中可读部分（冒烟测试 [PASS] 名称 详情）
+          let detail = '';
+          if (!file) {
+            // 中文名行，detail 为后续文本
+            const dm = rest.match(/^(\S+)\s+(.*)$/);
+            if (dm) { name = dm[1]; detail = dm[2] || ''; }
+          } else if (!fn) {
+            detail = rest.replace(/^test_\w+\.py\s*/, '').trim();
+          }
+          current = { name, file, fn, status, error: detail ? detail : '', duration: 0, raw: rest };
+          continue;
+        }
+
+        // pytest 风格: test_xxx ... ok / test_xxx ... FAIL
+        m = line.match(/^(test_\S+)\s+\.{2,}\s+(ok|passed|PASSED|FAIL|ERROR|FAILED|SKIP|skip)/i);
+        if (m) {
+          if (current) items.push(current);
+          const st = /ok|passed/i.test(m[2]) ? 'pass' : (/skip/i.test(m[2]) ? 'skip' : 'fail');
+          const fileMatch = m[1].match(/^(test_\w+)/);
+          current = { name: m[1], file: fileMatch ? fileMatch[1] : null, fn: null,
+                      status: st, error: '', duration: 0, raw: line };
+          continue;
+        }
+
+        // 缩进的错误信息行（run_tests.py 在失败项下输出缩进的错误）
+        if (current && (current.status === 'fail') && /^\s{4,}\S/.test(line) && !line.match(/^\[|^=|^\s*>>|^  \[/)) {
+          const t = line.trim();
+          if (t && !/^[=\-]{3,}$/.test(t)) {
+            current.error += (current.error ? '\n' : '') + t;
+          }
+        }
+
+        // 耗时行: "耗时: 1.23 秒" 或 "took 0.5s"（粗略）
+        if (current) {
+          const tm = line.match(/(?:耗时|took)\D*([\d.]+)\s*(?:秒|s)/i);
+          if (tm) { current.duration = parseFloat(tm[1]); }
+        }
+      }
+      if (current) items.push(current);
+
+      return items;
+    }
+
+    // 将测试项归类到科室
+    function classifyItem(item) {
+      if (item.file) {
+        for (const d of DEPARTMENTS) {
+          if (d.tests.includes(item.file)) return d.id;
+        }
+      }
+      // 中文名兜底
+      if (KEYWORD_DEPT[item.name]) return KEYWORD_DEPT[item.name];
+      return null; // 未归类，计入总数但不入科室
+    }
+
+    // ============================================================
+    // 渲染：顶部圆环 + 统计
+    // ============================================================
+    function scoreClass(score) {
+      if (score >= 90) return 'high';
+      if (score >= 60) return 'medium';
+      return 'low';
+    }
+
+    function updateRing(score) {
+      const ringBar = document.getElementById('ringBar');
+      const ringScore = document.getElementById('ringScore');
+      const cl = scoreClass(score);
+      const color = cl === 'high' ? '#2D8B7E' : (cl === 'medium' ? '#C9A96E' : '#C8755A');
+      const offset = RING_CIRC * (1 - score / 100);
+      ringBar.style.stroke = color;
+      ringBar.style.strokeDashoffset = offset;
+      ringScore.className = 'ring-score ' + cl;
+      ringScore.textContent = score;
+    }
+
+    function updateMeta(pass, fail, skip) {
+      document.getElementById('metaPass').textContent = pass;
+      document.getElementById('metaFail').textContent = fail;
+      document.getElementById('metaSkip').textContent = skip;
+      document.getElementById('metaTotal').textContent = pass + fail + skip;
+    }
+
+    // ============================================================
+    // 渲染：科室列表
+    // ============================================================
+    function renderDepartments() {
+      const list = document.getElementById('deptList');
+      list.innerHTML = '';
+      DEPARTMENTS.forEach(d => {
+        const deptItems = allItems.filter(it => classifyItem(it) === d.id);
+        const pass = deptItems.filter(it => it.status === 'pass').length;
+        const fail = deptItems.filter(it => it.status === 'fail').length;
+        const skip = deptItems.filter(it => it.status === 'skip').length;
+        const total = deptItems.length;
+
+        const card = document.createElement('div');
+        card.className = 'dept-card' + (activeDeptId === d.id ? ' active' : '');
+        card.dataset.dept = d.id;
+
+        // 状态计数颜色
+        let countCls = 'idle';
+        let countTxt = '0/0';
+        if (total > 0) {
+          countTxt = pass + '/' + total;
+          if (fail === 0 && skip === 0) countCls = 'ok';
+          else if (fail > 0) countCls = 'bad';
+          else countCls = 'warn';
+        }
+
+        // 迷你状态点（最多展示 12 个）
+        let miniHtml = '';
+        const shown = deptItems.slice(0, 12);
+        shown.forEach(it => {
+          miniHtml += '<span class="mini-dot ' + it.status + '"></span>';
+        });
+        if (total > 12) miniHtml += '<span class="mini-dot"></span>'.repeat(Math.min(total - 12, 4));
+
+        // 进度条宽度
+        const pct = total > 0 ? (pass / total) * 100 : 0;
+
+        card.innerHTML =
+          '<div class="dept-icon">' + d.icon + '</div>' +
+          '<div class="dept-body">' +
+            '<div class="dept-name">' + d.name + '</div>' +
+            '<div class="dept-desc">' + d.desc + ' · ' + d.tests.length + '项</div>' +
+          '</div>' +
+          '<div class="dept-stat">' +
+            '<div class="dept-count ' + countCls + '">' + countTxt + '</div>' +
+            '<div class="dept-mini">' + miniHtml + '</div>' +
+          '</div>' +
+          '<div class="dept-bar" style="width:' + pct + '%"></div>';
+
+        card.addEventListener('click', () => selectDept(d.id));
+        list.appendChild(card);
+      });
+    }
+
+    // ============================================================
+    // 渲染：明细
+    // ============================================================
+    function selectDept(deptId) {
+      activeDeptId = deptId;
+      renderDepartments();
+      renderDetails();
+    }
+
+    function renderDetails() {
+      const body = document.getElementById('detailBody');
+      const hint = document.getElementById('detailHint');
+      if (!activeDeptId) {
+        body.innerHTML = '<div class="detail-empty"><div class="ico">🩺</div><p>点击左侧科室卡片查看详细检查项目</p></div>';
+        hint.textContent = '选择左侧科室';
+        return;
+      }
+      const dept = DEPARTMENTS.find(d => d.id === activeDeptId);
+      const items = allItems.filter(it => classifyItem(it) === activeDeptId);
+      const pass = items.filter(it => it.status === 'pass').length;
+      const fail = items.filter(it => it.status === 'fail').length;
+      const skip = items.filter(it => it.status === 'skip').length;
+      hint.innerHTML = '通过 <b style="color:var(--ok)">' + pass + '</b> · 异常 <b style="color:var(--err)">' + fail + '</b> · 跳过 <b style="color:var(--warn)">' + skip + '</b>';
+
+      if (items.length === 0) {
+        body.innerHTML = '<div class="detail-empty"><div class="ico">' + dept.icon + '</div><p>' + dept.name + ' 暂无检查数据<br>该科室测试项可能在本次体检中未输出结果</p></div>';
+        return;
+      }
+
+      const statusIcon = { pass: '✓', fail: '✗', skip: '⚠' };
+      let html = '<div class="detail-head"><span class="ico">' + dept.icon + '</span><span class="name">' + dept.name + '</span></div><div class="detail-list">';
+      items.forEach(it => {
+        const fnHtml = it.fn ? ' <span class="fn">:: ' + escapeHtml(it.fn) + '</span>' : '';
+        const errHtml = (it.status === 'fail' && it.error) ? '<div class="item-err">' + escapeHtml(it.error) + '</div>' : '';
+        const timeHtml = it.duration ? '<span class="item-time">' + it.duration.toFixed(2) + 's</span>' : '<span class="item-time">—</span>';
+        html +=
+          '<div class="detail-item ' + it.status + '">' +
+            '<div class="item-status ' + it.status + '">' + statusIcon[it.status] + '</div>' +
+            '<div class="item-body">' +
+              '<div class="item-name">' + escapeHtml(it.name) + fnHtml + '</div>' +
+              errHtml +
+            '</div>' +
+            timeHtml +
+          '</div>';
+      });
+      html += '</div>';
+      body.innerHTML = html;
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    // ============================================================
+    // 历史记录（localStorage）
+    // ============================================================
+    function loadHistory() {
+      try {
+        const raw = localStorage.getItem(HISTORY_KEY);
+        if (!raw) return [];
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) ? arr : [];
+      } catch (e) { return []; }
+    }
+
+    function saveHistory(records) {
+      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(records)); } catch (e) {}
+    }
+
+    function addHistory(record) {
+      const list = loadHistory();
+      list.unshift(record);
+      const trimmed = list.slice(0, 5);
+      saveHistory(trimmed);
+    }
+
+    function renderHistory() {
+      const box = document.getElementById('historyList');
+      const list = loadHistory();
+      if (list.length === 0) {
+        box.innerHTML = '<div class="history-empty">暂无历史记录，体检后自动保存</div>';
+        return;
+      }
+      box.innerHTML = '';
+      list.forEach(r => {
+        const cl = scoreClass(r.score);
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.innerHTML =
+          '<div class="history-score ' + cl + '">' + r.score + '</div>' +
+          '<div class="history-info">' +
+            '<div class="history-time">' + escapeHtml(r.time) + '</div>' +
+            '<div class="history-stat">通过 ' + r.pass + '/' + r.total + ' · 异常 ' + r.fail + '</div>' +
+          '</div>';
+        box.appendChild(item);
+      });
+    }
+
+    function renderTrend() {
+      const box = document.getElementById('trendChart');
+      const list = loadHistory();
+      // 展示最近5次，按时间正序（左旧右新）
+      const arr = list.slice(0, 5).reverse();
+      // 补齐到 5 列
+      while (arr.length < 5) arr.unshift(null);
+
+      let html = '';
+      // 网格参考线
+      [25, 50, 75].forEach(v => {
+        html += '<div class="trend-grid-line" style="bottom:' + v + '%">' + v + '</div>';
+      });
+      arr.forEach(r => {
+        if (!r) {
+          html += '<div class="trend-col"><div class="trend-bar empty" style="height:0%"></div><div class="trend-val">—</div><div class="trend-label">空</div></div>';
+        } else {
+          const cl = scoreClass(r.score);
+          const h = Math.max(r.score, 3);
+          const label = r.time ? r.time.split(' ')[1] || r.time : '';
+          html += '<div class="trend-col">' +
+                    '<div class="trend-val" style="color:var(--' + (cl==='high'?'ok':cl==='medium'?'warn':'err') + ')">' + r.score + '</div>' +
+                    '<div class="trend-bar ' + cl + '" style="height:' + h + '%"></div>' +
+                    '<div class="trend-label">' + escapeHtml(label) + '</div>' +
+                  '</div>';
+        }
+      });
+      box.innerHTML = html;
+    }
+
+    // ============================================================
+    // 体检动画：科室依次脉冲
+    // ============================================================
+    function pulseDepartments() {
+      const cards = document.querySelectorAll('.dept-card');
+      cards.forEach((card, i) => {
+        setTimeout(() => {
+          card.classList.remove('pulsing');
+          // 触发重绘
+          void card.offsetWidth;
+          card.classList.add('pulsing');
+        }, i * 180);
+      });
+    }
+
+    // ============================================================
+    // 执行体检
+    // ============================================================
+    async function runCheckup() {
+      const btn = document.getElementById('runBtn');
+      const btnText = document.getElementById('runBtnText');
+      btn.disabled = true;
+      btn.classList.add('loading');
+      btnText.textContent = '体检中...';
+
+      // 启动脉冲动画
+      pulseDepartments();
+
+      let stdout = '', stderr = '', returncode = -1;
+      try {
+        const res = await fetch('/api/run-tests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        stdout = data.stdout || '';
+        stderr = data.stderr || '';
+        returncode = (typeof data.returncode === 'number') ? data.returncode : -1;
+      } catch (e) {
+        showToast('体检请求失败：' + e.message);
+        btn.disabled = false;
+        btn.classList.remove('loading');
+        btnText.textContent = '一键体检';
+        return;
+      }
+
+      // 解析
+      allItems = parseTestOutput(stdout + '\n' + stderr);
+
+      // 统计
+      const pass = allItems.filter(it => it.status === 'pass').length;
+      const fail = allItems.filter(it => it.status === 'fail').length;
+      const skip = allItems.filter(it => it.status === 'skip').length;
+      const total = pass + fail + skip;
+      const score = total > 0 ? Math.round((pass / total) * 100) : 0;
+
+      updateMeta(pass, fail, skip);
+      updateRing(score);
+      document.getElementById('metaTime').textContent = '最近体检：' + formatNow();
+      renderDepartments();
+      // 自动选中首个有数据的科室，否则第一个
+      if (!activeDeptId) {
+        const firstWith = DEPARTMENTS.find(d => allItems.some(it => classifyItem(it) === d.id)) || DEPARTMENTS[0];
+        activeDeptId = firstWith.id;
+      }
+      renderDetails();
+
+      // 保存历史
+      lastRecord = { time: formatNow(), score, pass, fail, skip, total, returncode };
+      addHistory(lastRecord);
+      renderHistory();
+      renderTrend();
+      document.getElementById('exportBtn').disabled = false;
+
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      btnText.textContent = '一键体检';
+
+      if (total === 0) {
+        showToast('未解析到检查项，请确认测试脚本输出');
+      } else if (fail === 0) {
+        showToast('体检完成：全部通过 (' + score + '分)');
+      } else {
+        showToast('体检完成：发现 ' + fail + ' 项异常 (' + score + '分)');
+      }
+    }
+
+    function formatNow() {
+      const d = new Date();
+      const p = n => String(n).padStart(2, '0');
+      return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+    }
+
+    // ============================================================
+    // 导出报告（文本格式）
+    // ============================================================
+    function exportReport() {
+      if (!lastRecord) { showToast('请先执行体检'); return; }
+      let lines = [];
+      lines.push('==================================================');
+      lines.push('  金水谣系统 - 体检报告');
+      lines.push('  体检时间: ' + lastRecord.time);
+      lines.push('  健康分数: ' + lastRecord.score + ' / 100');
+      lines.push('  检查项: 通过 ' + lastRecord.pass + ' / 异常 ' + lastRecord.fail + ' / 跳过 ' + lastRecord.skip + ' / 共 ' + lastRecord.total);
+      lines.push('==================================================');
+      lines.push('');
+
+      DEPARTMENTS.forEach(d => {
+        const items = allItems.filter(it => classifyItem(it) === d.id);
+        const pass = items.filter(it => it.status === 'pass').length;
+        const total = items.length;
+        lines.push('【' + d.icon + ' ' + d.name + '】 ' + pass + '/' + total + ' 通过');
+        if (items.length === 0) {
+          lines.push('    (无检查数据)');
+        } else {
+          items.forEach(it => {
+            const icon = it.status === 'pass' ? '[✓]' : (it.status === 'skip' ? '[⚠]' : '[✗]');
+            const t = it.duration ? ' (' + it.duration.toFixed(2) + 's)' : '';
+            const fn = it.fn ? '::' + it.fn : '';
+            lines.push('    ' + icon + ' ' + it.name + fn + t);
+            if (it.status === 'fail' && it.error) {
+              it.error.split('\n').forEach(l => lines.push('        ' + l));
+            }
+          });
+        }
+        lines.push('');
+      });
+
+      // 未归类项
+      const others = allItems.filter(it => classifyItem(it) === null);
+      if (others.length > 0) {
+        lines.push('【其他检查项】');
+        others.forEach(it => {
+          const icon = it.status === 'pass' ? '[✓]' : (it.status === 'skip' ? '[⚠]' : '[✗]');
+          lines.push('    ' + icon + ' ' + it.name);
+          if (it.status === 'fail' && it.error) {
+            it.error.split('\n').forEach(l => lines.push('        ' + l));
+          }
+        });
+        lines.push('');
+      }
+
+      // 历史趋势
+      const hist = loadHistory();
+      if (hist.length > 0) {
+        lines.push('--- 历史趋势 ---');
+        hist.forEach(h => {
+          lines.push('    ' + h.time + '  分数 ' + h.score + '  通过 ' + h.pass + '/' + h.total);
+        });
+        lines.push('');
+      }
+
+      lines.push('==================================================');
+      lines.push('报告由 金水谣系统体检中心 生成');
+
+      const text = lines.join('\n');
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'jinshuiyao-health-' + lastRecord.time.replace(/[: ]/g, '-') + '.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('报告已导出');
+    }
+
+    // ============================================================
+    // Toast
+    // ============================================================
+    let toastTimer = null;
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // ============================================================
+    // 自动刷新（每 5 分钟）
+    // ============================================================
+    function startAutoRefresh() {
+      if (autoTimer) clearInterval(autoTimer);
+      autoTimer = setInterval(() => {
+        // 仅当页面可见时自动体检
+        if (!document.hidden) {
+          runCheckup();
+        }
+      }, 5 * 60 * 1000);
+    }
+
+    // ============================================================
+    // 启动自检（独特测试工程）
+    // ============================================================
+    async function runSelfcheck() {
+      const btn = document.getElementById('selfcheckBtn');
+      const body = document.getElementById('selfcheckBody');
+      btn.disabled = true;
+      btn.textContent = '⏳ 自检中...';
+      body.innerHTML = '<div style="color:#5BC0DE;">⏳ 正在运行5大科室24项生命线检查...</div>';
+      try {
+        const res = await fetch('/api/selfcheck', { cache: 'no-store' });
+        const report = await res.json();
+        renderSelfcheck(report);
+      } catch (e) {
+        body.innerHTML = '<div style="color:#C8755A;">❌ 自检请求失败: ' + e.message + '<br>请确认服务器已启动</div>';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🔄 立即自检';
+      }
+    }
+
+    function renderSelfcheck(report) {
+      const body = document.getElementById('selfcheckBody');
+      const allOk = report.all_passed;
+      const scoreColor = allOk ? '#2D8B7E' : '#C8755A';
+      const scoreBg = allOk ? 'rgba(45,139,126,0.12)' : 'rgba(200,117,90,0.12)';
+
+      let html = '';
+      // 顶部摘要
+      html += '<div style="display:flex;align-items:center;gap:16px;padding:12px;background:' + scoreBg + ';border-radius:10px;margin-bottom:14px;">';
+      html += '<div style="font-size:28px;">' + (allOk ? '✅' : '⚠️') + '</div>';
+      html += '<div>';
+      html += '<div style="font-size:16px;font-weight:600;color:' + scoreColor + ';">' + report.summary + '</div>';
+      html += '<div style="font-size:12px;color:#64748b;margin-top:2px;">时间: ' + report.timestamp + ' · 耗时: ' + report.duration_sec + '秒</div>';
+      html += '</div></div>';
+
+      // 各科室
+      if (report.departments) {
+        for (const [deptName, checks] of Object.entries(report.departments)) {
+          const deptPass = checks.filter(c => c.status === 'PASS').length;
+          const deptTotal = checks.length;
+          const deptOk = deptPass === deptTotal;
+          html += '<div style="margin-bottom:10px;padding:10px 12px;background:rgba(15,23,42,0.5);border-radius:8px;border-left:3px solid ' + (deptOk ? '#2D8B7E' : '#C8755A') + ';">';
+          html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+          html += '<span style="font-weight:600;color:#e2e8f0;font-size:13px;">' + deptName + '</span>';
+          html += '<span style="font-size:11px;color:' + (deptOk ? '#2D8B7E' : '#C8755A') + ';">' + deptPass + '/' + deptTotal + '</span>';
+          html += '</div>';
+          // 检查明细
+          for (const c of checks) {
+            const mark = c.status === 'PASS' ? '✓' : '✗';
+            const color = c.status === 'PASS' ? '#2D8B7E' : '#C8755A';
+            html += '<div style="font-size:12px;color:#94a3b8;padding:1px 0;">';
+            html += '<span style="color:' + color + ';font-weight:bold;margin-right:6px;">' + mark + '</span>';
+            html += c.name;
+            if (c.status === 'FAIL') {
+              html += '<span style="color:#fbbf24;margin-left:6px;">→ ' + c.detail + '</span>';
+            }
+            html += '</div>';
+          }
+          html += '</div>';
+        }
+      }
+
+      // 自检本身异常
+      if (report.selfcheck_error) {
+        html += '<div style="color:#fbbf24;font-size:12px;margin-top:8px;">⚠ 自检本身异常: ' + report.selfcheck_error + '</div>';
+      }
+
+      body.innerHTML = html;
+    }
+
+    // ============================================================
+    // 初始化
+    // ============================================================
+    function init() {
+      document.getElementById('runBtn').addEventListener('click', runCheckup);
+      document.getElementById('exportBtn').addEventListener('click', exportReport);
+      document.getElementById('clearBtn').addEventListener('click', () => {
+        if (confirm('确定清除全部历史体检记录？')) {
+          localStorage.removeItem(HISTORY_KEY);
+          renderHistory();
+          renderTrend();
+          showToast('历史记录已清除');
+        }
+      });
+
+      // 启动自检按钮
+      const scBtn = document.getElementById('selfcheckBtn');
+      if (scBtn) scBtn.addEventListener('click', runSelfcheck);
+
+      renderDepartments();
+      renderHistory();
+      renderTrend();
+      startAutoRefresh();
+
+      // 页面加载后自动拉取一次自检结果
+      setTimeout(runSelfcheck, 800);
+    }
+
+    init();
+  </script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
+<script src="_shared/js/error-monitor.js"></script>
+</body>
+</html>

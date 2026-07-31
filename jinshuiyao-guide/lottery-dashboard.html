@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 彩票分析仪表盘</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+  :root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim);
+          --c-ok:var(--ok); --c-warn:var(--warn); --bad:var(--err); --half:var(--ice);
+          --accent:var(--gold); --accent-dim:rgba(212,175,55,.15); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:18px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; }
+  @media(max-width:900px){ .grid2,.grid3{ grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; }
+  .card h2 { font-size:15px; margin:0 0 12px; color:var(--txt); }
+  .card h3 { font-size:13px; margin:10px 0 6px; color:var(--muted); }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th,td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--border); }
+  th { color:var(--muted); font-weight:600; font-size:12px; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; font-weight:600; }
+  .b-ok { background:rgba(34,197,94,.15); color:var(--c-ok); }
+  .b-warn { background:rgba(234,179,8,.15); color:var(--c-warn); }
+  .b-err { background:rgba(239,68,68,.15); color:var(--bad); }
+  .b-info { background:rgba(59,130,246,.15); color:var(--half); }
+  .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px; }
+  .pulse { width:9px; height:9px; border-radius:50%; background:var(--c-ok); animation:p 1.6s infinite; display:inline-block; }
+  @keyframes p { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .err { color:var(--bad); font-size:13px; }
+  .muted { color:var(--muted); }
+  .num { text-align:right; font-variant-numeric:tabular-nums; }
+  .tabs { display:flex; gap:4px; margin-bottom:12px; flex-wrap:wrap; }
+  .tab { padding:5px 14px; border-radius:6px; background:var(--card); border:1px solid var(--border);
+         cursor:pointer; font-size:12px; color:var(--muted); transition:.15s; }
+  .tab.active { background:var(--c-ok); color:var(--deep); border-color:var(--c-ok); font-weight:600; }
+  .tab:hover { border-color:var(--c-ok); }
+  select,input,button { background:var(--deep); color:var(--txt); border:1px solid var(--border);
+                 border-radius:6px; padding:5px 10px; font-size:12px; }
+  button { cursor:pointer; transition:.15s; }
+  button.primary { background:var(--c-ok); color:var(--deep); border:none; font-weight:600; padding:5px 14px; }
+  button.primary:hover { opacity:.85; }
+  .flex { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .mt12 { margin-top:12px; }
+  .mb12 { margin-bottom:12px; }
+  .method { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px; margin-top:12px; overflow-x:auto; }
+  .method h3 { margin:0 0 8px; font-size:14px; }
+  .kv { display:flex; justify-content:space-between; padding:3px 0; font-size:12px; border-bottom:1px dashed var(--border); }
+  .kv span:last-child { font-weight:600; }
+  .tickets { max-height:260px; overflow:auto; font-family:monospace; font-size:12px; line-height:1.7; }
+  .pos-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:12px; }
+  @media(max-width:720px){ .pos-grid{ grid-template-columns:1fr; } }
+  .pos-card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px; overflow-x:auto; }
+  .inline-flex { display:inline-flex; align-items:center; gap:8px; }
+  .age-fresh { color:var(--c-ok); } .age-stale { color:var(--bad); }
+  .lot-btn { padding:6px 14px; border:1px solid var(--border); background:var(--card); border-radius:8px; cursor:pointer; font-size:13px; color:var(--muted); transition:.15s; white-space:nowrap; }
+  .lot-btn.active { background:var(--accent-dim); color:var(--accent); border-color:var(--accent); font-weight:600; }
+  .lot-btn:hover { border-color:var(--accent); }
+  .sqi-box { display:inline-block; padding:4px 12px; border-radius:6px; font-weight:600; font-size:13px; }
+  .scroll-x { overflow-x:auto; }
+  @media(max-width:600px){ .lot-btn{ font-size:12px; padding:4px 10px; } body{ padding:12px; }
+    .card{ padding:12px; } .kv{ font-size:11px; } }
+</style>
+</head>
+<body>
+  <div style="margin-bottom:10px;"><a href="/lottery" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回彩票分析中心</a></div>
+  <div class="topbar">
+    <div><h1>彩票分析仪表盘</h1>
+      <div class="sub">数据源健康 · 数学模型 · 多维参考特征 — 工具性质，不预测中奖</div></div>
+    <div class="inline-flex"><span class="pulse" id="pulse"></span><span class="muted" id="ts">—</span></div>
+  </div>
+
+  <div class="flex" style="margin-bottom:12px;gap:6px;flex-wrap:wrap;">
+    <a href="/lottery" class="lot-btn" target="_blank" style="text-decoration:none;">彩票分析中心</a>
+    <a href="/lottery/omission-heatmap" class="lot-btn" target="_blank" style="text-decoration:none;">遗漏热力图</a>
+    <a href="/lottery/rotation-matrix" class="lot-btn" target="_blank" style="text-decoration:none;">旋转矩阵</a>
+    <a href="/lottery/filter-panel" class="lot-btn" target="_blank" style="text-decoration:none;">缩水过滤</a>
+    <a href="/lottery/prize-calculator" class="lot-btn" target="_blank" style="text-decoration:none;">奖金计算器</a>
+    <a href="/lottery/head-tail-analysis" class="lot-btn" target="_blank" style="text-decoration:none;">龙头凤尾</a>
+    <a href="/lottery/audit-dashboard" class="lot-btn" target="_blank" style="text-decoration:none;">操作留痕</a>
+    <a href="/lottery/sources-health" class="lot-btn" target="_blank" style="text-decoration:none;">彩票源健康</a>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <div class="tab active" data-tab="health">数据源健康</div>
+    <div class="tab" data-tab="models">数学模型</div>
+    <div class="tab" data-tab="reference">多维参考</div>
+  </div>
+
+  <div id="health" class="tab-content">
+    <div class="grid2">
+      <div class="card"><h2>数据源熔断状态</h2>
+        <div class="scroll-x"><table><thead><tr><th>源</th><th>状态</th><th>连续失败</th><th>成功/失败</th><th>最近失败</th></tr></thead>
+        <tbody id="srcBody"><tr><td colspan="5" class="muted">加载中...</td></tr></tbody></table></div>
+      </div>
+      <div class="card"><h2>各彩种数据新鲜度</h2>
+        <div class="scroll-x"><table><thead><tr><th>彩种</th><th>数据年龄</th><th>状态</th></tr></thead>
+        <tbody id="lotBody"><tr><td colspan="3" class="muted">加载中...</td></tr></tbody></table></div>
+      </div>
+    </div>
+    <div id="healthErr" class="mt12"></div>
+  </div>
+
+  <div id="models" class="tab-content" style="display:none;">
+    <div class="flex mb12">
+      <div id="model-tabs" class="flex" style="gap:4px;"></div>
+    </div>
+    <div id="modelOut"></div>
+    <div id="modelHonest" class="card" style="margin-top:12px;font-size:12px;color:var(--muted);"></div>
+  </div>
+
+  <div id="reference" class="tab-content" style="display:none;">
+    <div class="flex mb12">
+      <div id="ref-tabs" class="flex" style="gap:4px;">
+        <button class="lot-btn active" data-lot="福彩3D">福彩3D</button>
+        <button class="lot-btn" data-lot="排列三">排列三</button>
+      </div>
+    </div>
+    <div id="sqiDisplay" class="mb12"></div>
+    <div id="refOut"></div>
+    <div id="refUpdated" class="muted" style="font-size:12px;"></div>
+  </div>
+
+<script>
+const BASE = '/Jinshuiyao_Fixed';
+
+document.getElementById('tabs').addEventListener('click', function(e) {
+  const tab = e.target.closest('.tab');
+  if (!tab) return;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+  const pane = document.getElementById(tab.dataset.tab);
+  pane.style.display = 'block';
+  if (tab.dataset.tab === 'health') loadHealth();
+  if (tab.dataset.tab === 'models') { if (!window._modelsLoaded) loadModel(defaultModelLot); }
+  if (tab.dataset.tab === 'reference') { if (!window._refLoaded) loadRef(defaultRefLot); }
+});
+
+function ts() { document.getElementById('ts').textContent = new Date().toLocaleTimeString(); }
+
+// ===== Health =====
+async function loadHealth() {
+  ts();
+  try {
+    const r = await fetch('/api/lottery/sources-health', {cache:'no-store'});
+    if (!r.ok) { document.getElementById('healthErr').innerHTML = '<span class="err">API 请求失败 (状态码 ' + r.status + ')。<br>请确认：<b>服务器已启动</b>（双击「启动金水谣助手.bat」）</span>'; return; }
+    const j = await r.json();
+    document.getElementById('healthErr').innerHTML = '';
+    if (!j.ok) { document.getElementById('healthErr').innerHTML = '<span class="err">接口异常: '+(j.error||'')+'</span>'; return; }
+    const sb = document.getElementById('srcBody');
+    if (!j.sources || !j.sources.length) {
+      sb.innerHTML = '<tr><td colspan="5" class="muted">无源活动记录</td></tr>';
+    } else {
+      sb.innerHTML = j.sources.map(s => {
+        const cls = s.state==='closed'?'b-ok':(s.state==='open'?'b-err':'b-info');
+        const label = s.state==='closed'?'正常':(s.state==='open'?'已熔断':'半开');
+        return `<tr><td>${s.source}</td><td><span class="badge ${cls}">${label}</span></td>
+          <td class="num">${s.failure_count}</td><td class="num">${s.total_success}/${s.total_failure}</td>
+          <td class="muted">${s.last_failure ? new Date(s.last_failure*1000).toLocaleTimeString() : '—'}</td></tr>`;
+      }).join('');
+    }
+    const lb = document.getElementById('lotBody');
+    lb.innerHTML = (j.lotteries||[]).map(l =>
+      `<tr><td>${l.name}</td><td class="num ${l.stale?'age-stale':'age-fresh'}">${ageStr(l.data_age_min)}</td>
+        <td><span class="badge ${l.stale?'b-err':'b-ok'}">${l.stale?'陈旧':'新鲜'}</span></td></tr>`
+    ).join('') || '<tr><td colspan="3" class="muted">暂无数据</td></tr>';
+    if (j.generated_at) document.getElementById('ts').textContent = '更新于 '+new Date(j.generated_at*1000).toLocaleTimeString();
+  } catch(e) {
+    document.getElementById('healthErr').innerHTML = '<span class="err">刷新失败: '+e.message+'</span>';
+  }
+}
+
+function ageStr(m) {
+  if (m==null) return '无数据';
+  if (m<60) return m+' 分钟';
+  if (m<1440) return Math.floor(m/60)+' 小时';
+  return Math.floor(m/1440)+' 天';
+}
+
+// ===== Models =====
+const MODEL_LOTS = ["大乐透","双色球","福彩3D","排列三","七乐彩","快乐8"];
+const MODEL_KEYS = {combinatorics:"组合数学", stats:"统计推断", timeseries:"时间序列", montecarlo:"蒙特卡洛", calibration:"误差校准"};
+let defaultModelLot = "大乐透";
+
+(function initModelTabs() {
+  const el = document.getElementById('model-tabs');
+  MODEL_LOTS.forEach(l => {
+    const b = document.createElement('button');
+    b.className = 'lot-btn' + (l===defaultModelLot?' active':'');
+    b.textContent = l;
+    b.onclick = () => { document.querySelectorAll('#model-tabs .lot-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); loadModel(l); };
+    el.appendChild(b);
+  });
+})();
+
+async function loadModel(lot) {
+  window._modelsLoaded = true;
+  ts();
+  const out = document.getElementById('modelOut');
+  out.innerHTML = '加载中...';
+  try {
+    const r = await fetch('/api/lottery/math-model?lot='+encodeURIComponent(lot));
+    const d = await r.json();
+    if (!d.ok) { out.innerHTML = '<span class="err">错误: '+(d.error||'未知')+'</span>'; return; }
+    let h = '';
+    for (const key of Object.keys(MODEL_KEYS)) {
+      if (!d.methods || !d.methods[key]) continue;
+      const m = d.methods[key]; const nm = MODEL_KEYS[key];
+      h += '<div class="method"><h3>'+nm+'</h3>';
+      if (key==='combinatorics') {
+        h += kv('候选池组合数', m.total_combos)+kv('保留注数', m.kept)+kv('预算', m.budget)+kv('截断', m.truncated?'是':'否');
+        h += '<div class="tickets">'+(m.tickets||[]).slice(0,60).join('<br>')+((m.tickets||[]).length>60?'<br>…(共'+m.tickets.length+'注)':'')+'</div>';
+        if (m.note) h += '<div class="muted" style="font-size:11px;margin-top:6px;">'+m.note+'</div>';
+      } else if (key==='stats' && m) {
+        const c = m.chi2_uniform||{}; const z = m.zscore_deviation||{};
+        h += kv('chi2统计量', c.chi2)+kv('p值', c.p_value)+kv('是否均匀', c.uniform?'是':'否');
+        h += kv('偏离均值', z.mean)+kv('|z|>2的号', '['+(z.extreme||[]).join(',')+']');
+        if (z.note) h += '<div class="muted" style="font-size:11px;margin-top:6px;">'+z.note+'</div>';
+      } else if (key==='timeseries' && m) {
+        h += kv('平稳性', m.stationary?'平稳':'存疑')+kv('显著滞后', '['+(m.significant_lags||[]).join(',')+']');
+        if (m.note) h += '<div class="muted" style="font-size:11px;margin-top:6px;">'+m.note+'</div>';
+      } else if (key==='montecarlo' && m) {
+        h += kv('策略命中率', m.strategy_hit_rate)+kv('随机基线', m.random_baseline_rate)+kv('增益', m.gain);
+        if (m.note) h += '<div class="muted" style="font-size:11px;margin-top:6px;">'+m.note+'</div>';
+      } else if (key==='calibration' && m) {
+        h += kv('命中分布', JSON.stringify(m.hit_distribution));
+        if (m.note) h += '<div class="muted" style="font-size:11px;margin-top:6px;">'+m.note+'</div>';
+      }
+      h += '</div>';
+    }
+    out.innerHTML = h || '<span class="muted">无数据</span>';
+    const meta = d.meta||{};
+    document.getElementById('modelHonest').textContent = (meta.honest_note||'')+' 历史期数: '+(meta.n_periods||'?');
+  } catch(e) {
+    out.innerHTML = '<span class="err">请求失败: '+e.message+'</span>';
+  }
+}
+
+// ===== Reference =====
+const REF_LOTS = ["福彩3D","排列三"];
+const POS_NAMES = ['百位','十位','个位'];
+let defaultRefLot = "福彩3D";
+
+(function initRefTabs() {
+  const el = document.getElementById('ref-tabs');
+  el.querySelectorAll('.lot-btn').forEach(b => {
+    b.onclick = () => { el.querySelectorAll('.lot-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); loadRef(b.dataset.lot); };
+  });
+})();
+
+function kv(k,v) { return '<div class="kv"><span>'+k+'</span><span>'+(v??'-')+'</span></div>'; }
+
+async function loadRef(lot) {
+  window._refLoaded = true;
+  ts();
+  const sqiEl = document.getElementById('sqiDisplay');
+  const out = document.getElementById('refOut');
+  sqiEl.innerHTML = '加载中...'; out.innerHTML = '';
+  try {
+    const r = await fetch('/api/lottery/reference?lot='+encodeURIComponent(lot));
+    const d = await r.json();
+    if (!d.ok) { sqiEl.innerHTML = '<span class="err">错误: '+(d.error||'未知')+'</span>'; return; }
+    const rf = d.ref_features||{}; const sqi = d.confidence||{};
+    const lvl = sqi.level||'unknown'; const lmap = {strong:'强',medium:'中',weak:'弱',unknown:'-'};
+    sqiEl.innerHTML = 'SQI: <span class="sqi-box" style="background:'+(lvl==='strong'?'rgba(34,197,94,.15)':lvl==='medium'?'rgba(234,179,8,.15)':'rgba(239,68,68,.15)')+
+      ';color:'+(lvl==='strong'?'var(--c-ok)':lvl==='medium'?'var(--c-warn)':'var(--bad)')+'">'+lmap[lvl]+(sqi.score!=null?sqi.score:'')+
+      '</span> <span class="muted" style="font-size:12px;">(信号清晰度+数据质量+多维覆盖, 非中奖概率)</span>';
+    if (!rf.supported) { out.innerHTML = '<p class="muted">暂无数据</p>'; return; }
+    let html = '<div class="pos-grid">';
+    for (const p of POS_NAMES) {
+      const o = (rf.positions&&rf.positions[p])||{};
+      html += '<div class="pos-card"><h3>'+p+'</h3>';
+      const rows = [
+        ['遗漏Top冷', (o['最近遗漏Top冷']||[]).join(' ')],
+        ['热号Top', (o['近期热号Top']||[]).join(' ')],
+        ['振幅均值', o['振幅均值']],
+        ['奇偶比', (o['奇偶比']||[]).join(' : ')],
+        ['大小比', (o['大小比']||[]).join(' : ')],
+        ['三区比', (o['三区比']||[]).join(' : ')],
+      ];
+      for (const [k,v] of rows) html += kv(k, v);
+      html += '</div>';
+    }
+    html += '</div>';
+    const sm = rf.summary||{};
+    html += '<div class="card mt12"><h3>汇总</h3>'+kv('和值均值', sm['和值均值'])+kv('跨度均值', sm['跨度均值'])+
+      kv('和值近期(10期)', (sm['和值近期']||[]).join(', '))+kv('特征覆盖度', rf.feature_coverage+'%')+'</div>';
+    out.innerHTML = html;
+    document.getElementById('refUpdated').textContent = '数据更新于本地金水谣数据文件';
+  } catch(e) {
+    sqiEl.innerHTML = '<span class="err">请求失败: '+e.message+'</span>';
+  }
+}
+
+loadHealth();
+setInterval(loadHealth, 15000);
+</script>
+</body>
+</html>

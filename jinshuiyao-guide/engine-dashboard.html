@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>金水谣 - 引擎效果看板</title>
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+  <style>
+    :root {
+      --bg: var(--deep);
+      --bg2: var(--card-bg);
+      --bg3: #1c2128;
+      --muted: var(--ink-dim);
+      --dim: #484f58;
+      --rule: var(--gold-border);
+      --accent: var(--gold);
+      --accent-dim: var(--gold-soft);
+      --green-dim: rgba(34, 197, 94, 0.15);
+      --red-dim: rgba(239, 68, 68, 0.15);
+      --amber-dim: rgba(245, 158, 11, 0.15);
+      --blue: var(--ice);
+      --mono: var(--font-mono);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    body::before {
+      content: '';
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background:
+        radial-gradient(ellipse 800px 600px at 20% 15%, rgba(212,160,23,0.04), transparent),
+        radial-gradient(ellipse 600px 500px at 80% 75%, rgba(88,166,255,0.03), transparent);
+      pointer-events: none; z-index: 0;
+    }
+
+    .container {
+      position: relative; z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 3rem;
+    }
+
+    /* ===== 顶部 ===== */
+    .hero {
+      text-align: center;
+      padding: 2rem 0 1.5rem;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: var(--accent-dim);
+      border: 1px solid var(--gold-border);
+      border-radius: 20px;
+      padding: 0.2rem 1rem;
+      font-size: 0.75rem;
+      color: var(--accent);
+      margin-bottom: 0.8rem;
+      letter-spacing: 0.05em;
+      font-weight: 500;
+    }
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--gold), #f0c040, var(--ice));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.4rem;
+    }
+    .hero p {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    /* ===== 总体命中率大数字 ===== */
+    .overall-section {
+      text-align: center;
+      margin: 1.5rem 0 2rem;
+    }
+    .overall-rate {
+      font-size: 4rem;
+      font-weight: 900;
+      font-family: var(--mono);
+      background: linear-gradient(135deg, var(--gold), #f0c040);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.1;
+    }
+    .overall-label {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 0.3rem;
+    }
+    .overall-sub {
+      color: var(--dim);
+      font-size: 0.8rem;
+      margin-top: 0.2rem;
+    }
+
+    /* ===== 域命中率小卡片 ===== */
+    .domain-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .domain-card {
+      background: var(--card-bg);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--radius-sm);
+      padding: 1.2rem;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    .domain-card:hover {
+      border-color: var(--gold-glow);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .domain-card .domain-name {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+      font-weight: 500;
+    }
+    .domain-card .domain-rate {
+      font-size: 1.8rem;
+      font-weight: 900;
+      font-family: var(--mono);
+      color: var(--accent);
+    }
+    .domain-card .domain-detail {
+      font-size: 0.72rem;
+      color: var(--dim);
+      margin-top: 0.3rem;
+    }
+
+    /* ===== 图表区域 ===== */
+    .chart-section {
+      margin-bottom: 2rem;
+    }
+    .chart-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 0.8rem;
+      padding-left: 0.5rem;
+      border-left: 3px solid var(--accent);
+    }
+    .chart-box {
+      background: var(--card-bg);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      min-height: 320px;
+    }
+    .chart-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+    @media (max-width: 768px) {
+      .chart-row { grid-template-columns: 1fr; }
+    }
+
+    /* ===== 刷新状态 ===== */
+    .refresh-bar {
+      text-align: center;
+      color: var(--dim);
+      font-size: 0.75rem;
+      margin-top: 1.5rem;
+    }
+    .refresh-bar .dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      margin-right: 0.4rem;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ===== 加载/错误 ===== */
+    .loading-text {
+      text-align: center;
+      color: var(--muted);
+      padding: 3rem 0;
+      font-size: 0.9rem;
+    }
+    .error-text {
+      text-align: center;
+      color: var(--red);
+      padding: 2rem 0;
+      font-size: 0.85rem;
+    }
+
+    /* ===== 统计卡片行 ===== */
+    .stat-cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-gold);
+    }
+    .stat-card .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--gold);
+      font-family: var(--mono);
+    }
+    .stat-card .stat-label {
+      font-size: 12px;
+      color: var(--ink-dim);
+      margin-top: 4px;
+    }
+
+    /* ===== 骨架屏 ===== */
+    .skeleton {
+      background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: var(--radius-sm);
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .skeleton-chart {
+      width: 100%;
+      height: 300px;
+    }
+    .chart-box.loaded .skeleton-chart { display: none; }
+    .chart-box .chart-canvas { display: none; }
+    .chart-box.loaded .chart-canvas { display: block; }
+
+    /* ===== 页面加载淡入 ===== */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .container {
+      animation: fadeInUp 300ms ease-out both;
+    }
+
+    /* ===== 响应式：统计卡片 ===== */
+    @media (max-width: 768px) {
+      .stat-cards { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 顶部标题 -->
+    <div class="hero">
+      <div class="hero-badge">预测引擎分析</div>
+      <h1>引擎效果看板</h1>
+      <p>预测引擎命中率 & 知识库使用率 实时监控</p>
+    </div>
+
+    <!-- 统计卡片行 -->
+    <div class="stat-cards">
+      <div class="stat-card">
+        <span class="stat-value" id="statTotal">—</span>
+        <span class="stat-label">总预测数</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value" id="statHitRate">—</span>
+        <span class="stat-label">平均命中率</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value" id="statCards">—</span>
+        <span class="stat-label">知识卡片数</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value" id="statContribution">—</span>
+        <span class="stat-label">引擎贡献</span>
+      </div>
+    </div>
+
+    <!-- 总体命中率 -->
+    <div class="overall-section">
+      <div class="overall-rate" id="overallRate">--</div>
+      <div class="overall-label">总体命中率</div>
+      <div class="overall-sub" id="overallSub">加载中...</div>
+    </div>
+
+    <!-- 各域命中率小卡片 -->
+    <div class="domain-cards" id="domainCards">
+      <div class="loading-text">正在加载域统计...</div>
+    </div>
+
+    <!-- 命中率趋势折线图 -->
+    <div class="chart-section">
+      <div class="chart-title">命中率趋势（最近30天）</div>
+      <div class="chart-box" id="trendBox">
+        <div class="skeleton skeleton-chart"></div>
+        <div class="chart-canvas" id="trendChart" style="width:100%;height:300px;"></div>
+      </div>
+    </div>
+
+    <!-- 下部：左柱状图 + 右饼图 -->
+    <div class="chart-row">
+      <div class="chart-section">
+        <div class="chart-title">知识卡片使用率 Top-10</div>
+        <div class="chart-box" id="topUsedBox">
+          <div class="skeleton skeleton-chart"></div>
+          <div class="chart-canvas" id="topUsedChart" style="width:100%;height:300px;"></div>
+        </div>
+      </div>
+      <div class="chart-section">
+        <div class="chart-title">引擎贡献（各域预测次数占比）</div>
+        <div class="chart-box" id="pieBox">
+          <div class="skeleton skeleton-chart"></div>
+          <div class="chart-canvas" id="pieChart" style="width:100%;height:300px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 刷新状态 -->
+    <div class="refresh-bar">
+      <span class="dot"></span>
+      <span id="lastUpdate">等待数据...</span> · 每60秒自动刷新
+    </div>
+
+    <div class="footer" style="text-align:center;padding:1.5rem 0 0.5rem;color:var(--muted);font-size:0.82rem;">
+      金水谣万物引擎 &middot; 引擎效果看板 &middot;
+      <a href="/control-center" style="color:var(--accent);text-decoration:none;">返回总控台</a>
+      &nbsp;|&nbsp;
+      <a href="/lottery" style="color:var(--accent);text-decoration:none;">彩票分析中心</a>
+      <a href="/fund" style="color:var(--accent);text-decoration:none;">基金分析中心</a>
+      <a href="/stock" style="color:var(--accent);text-decoration:none;">股票分析中心</a>
+      <a href="/football" style="color:var(--accent);text-decoration:none;">足彩分析中心</a>
+    </div>
+  </div>
+
+  <!-- ECharts + 金水谣主题 -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <script src="_shared/js/jinshuiyao-echarts-theme.js"></script>
+  <!-- 统一顶栏导航 -->
+  <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
+  <script src="_shared/js/error-monitor.js"></script>
+  <script>
+  (function() {
+    'use strict';
+
+    var DOMAIN_LABELS = {
+      lottery: '彩票', stock: '股票', fund: '基金',
+      football: '足球', music: '音乐', video: '视频', other: '其他'
+    };
+
+    var trendChart = null, topUsedChart = null, pieChart = null;
+
+    function initCharts() {
+      try {
+        trendChart = echarts.init(document.getElementById('trendChart'), 'jinshuiyao');
+        topUsedChart = echarts.init(document.getElementById('topUsedChart'), 'jinshuiyao');
+        pieChart = echarts.init(document.getElementById('pieChart'), 'jinshuiyao');
+      } catch(e) {
+        console.error('[engine-dashboard] ECharts 初始化失败:', e);
+      }
+    }
+
+    function domainLabel(dom) {
+      return DOMAIN_LABELS[dom] || dom;
+    }
+
+    function renderOverall(data) {
+      try {
+        var o = data.overall || {};
+        var rate = (o.rate || 0) * 100;
+        document.getElementById('overallRate').textContent = rate.toFixed(1) + '%';
+        document.getElementById('overallSub').textContent =
+          '共 ' + (o.total || 0) + ' 次预测 · 命中 ' + (o.hits || 0) + ' · 未中 ' + (o.misses || 0);
+      } catch(e) {
+        console.error('[engine-dashboard] renderOverall error:', e);
+      }
+    }
+
+    function renderStatCards(predData, kbData) {
+      try {
+        var o = predData.overall || {};
+        // 总预测数
+        document.getElementById('statTotal').textContent =
+          (o.total != null) ? o.total : '—';
+        // 平均命中率
+        document.getElementById('statHitRate').textContent =
+          (o.rate != null) ? ((o.rate * 100).toFixed(1) + '%') : '—';
+        // 知识卡片数
+        var cardCount = (kbData.stats && kbData.stats.total_cards != null)
+          ? kbData.stats.total_cards
+          : (kbData.total != null ? kbData.total : null);
+        document.getElementById('statCards').textContent =
+          (cardCount != null) ? cardCount : '—';
+        // 引擎贡献（有预测的域数量）
+        var byDomain = predData.by_domain || {};
+        var domainKeys = Object.keys(byDomain);
+        var activeDomains = domainKeys.filter(function(k) { return (byDomain[k].total || 0) > 0; });
+        document.getElementById('statContribution').textContent =
+          activeDomains.length > 0 ? activeDomains.length + ' 域' : '—';
+      } catch(e) {
+        console.error('[engine-dashboard] renderStatCards error:', e);
+      }
+    }
+
+    function revealChart(boxId) {
+      var box = document.getElementById(boxId);
+      if (box) box.classList.add('loaded');
+    }
+
+    function renderDomainCards(data) {
+      try {
+        var byDomain = data.by_domain || {};
+        var html = '';
+        var keys = Object.keys(byDomain);
+        if (keys.length === 0) {
+          html = '<div class="loading-text">暂无预测数据</div>';
+        } else {
+          for (var i = 0; i < keys.length; i++) {
+            var dom = keys[i];
+            var d = byDomain[dom];
+            var rate = ((d.rate || 0) * 100).toFixed(1);
+            html += '<div class="domain-card">' +
+              '<div class="domain-name">' + domainLabel(dom) + '</div>' +
+              '<div class="domain-rate">' + rate + '%</div>' +
+              '<div class="domain-detail">' + (d.hits || 0) + '/' + (d.total || 0) + ' 命中</div>' +
+              '</div>';
+          }
+        }
+        document.getElementById('domainCards').innerHTML = html;
+      } catch(e) {
+        console.error('[engine-dashboard] renderDomainCards error:', e);
+      }
+    }
+
+    function renderTrendChart(data) {
+      if (!trendChart) return;
+      try {
+        var trend = data.trend || [];
+        var dates = [], totals = [], hits = [];
+        for (var i = 0; i < trend.length; i++) {
+          dates.push(trend[i].date.slice(5)); // MM-DD
+          totals.push(trend[i].total);
+          hits.push(trend[i].hits);
+        }
+        trendChart.setOption({
+          tooltip: { trigger: 'axis' },
+          legend: { data: ['预测总数', '命中数'], top: 5 },
+          grid: { left: 50, right: 20, top: 40, bottom: 30 },
+          xAxis: { type: 'category', data: dates, axisLabel: { fontSize: 10 } },
+          yAxis: { type: 'value', minInterval: 1 },
+          series: [
+            { name: '预测总数', type: 'line', data: totals, smooth: true, areaStyle: { opacity: 0.1 } },
+            { name: '命中数', type: 'line', data: hits, smooth: true, areaStyle: { opacity: 0.15 } }
+          ]
+        });
+      } catch(e) {
+        console.error('[engine-dashboard] renderTrendChart error:', e);
+      }
+    }
+
+    function renderTopUsedChart(usageStats) {
+      if (!topUsedChart) return;
+      try {
+        var topUsed = (usageStats && usageStats.top_used) || [];
+        if (topUsed.length === 0) {
+          topUsedChart.setOption({
+            title: { text: '暂无使用数据', left: 'center', top: 'center',
+                     textStyle: { color: '#8b949e', fontSize: 14 } }
+          });
+          return;
+        }
+        var names = [], counts = [];
+        for (var i = 0; i < topUsed.length; i++) {
+          var t = topUsed[i].title || topUsed[i].id || '';
+          names.push(t.length > 12 ? t.slice(0, 12) + '...' : t);
+          counts.push(topUsed[i].use_count || 0);
+        }
+        topUsedChart.setOption({
+          tooltip: { trigger: 'axis' },
+          grid: { left: 10, right: 30, top: 10, bottom: 30, containLabel: true },
+          xAxis: { type: 'value', minInterval: 1 },
+          yAxis: { type: 'category', data: names.reverse(), axisLabel: { fontSize: 10 } },
+          series: [{ type: 'bar', data: counts.reverse(), barMaxWidth: 20 }]
+        });
+      } catch(e) {
+        console.error('[engine-dashboard] renderTopUsedChart error:', e);
+      }
+    }
+
+    function renderPieChart(data) {
+      if (!pieChart) return;
+      try {
+        var byDomain = data.by_domain || {};
+        var pieData = [];
+        var keys = Object.keys(byDomain);
+        for (var i = 0; i < keys.length; i++) {
+          pieData.push({ name: domainLabel(keys[i]), value: byDomain[keys[i]].total || 0 });
+        }
+        if (pieData.length === 0) {
+          pieChart.setOption({
+            title: { text: '暂无预测数据', left: 'center', top: 'center',
+                     textStyle: { color: '#8b949e', fontSize: 14 } }
+          });
+          return;
+        }
+        pieChart.setOption({
+          tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+          legend: { orient: 'vertical', right: 10, top: 'center', textStyle: { fontSize: 11 } },
+          series: [{
+            type: 'pie', radius: ['35%', '65%'], center: ['40%', '50%'],
+            data: pieData, label: { show: false },
+            emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' } }
+          }]
+        });
+      } catch(e) {
+        console.error('[engine-dashboard] renderPieChart error:', e);
+      }
+    }
+
+    function fetchData() {
+      try {
+        Promise.all([
+          fetch('/api/prediction/stats').then(function(r) { return r.json(); }),
+          fetch('/api/knowledge/stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' }).then(function(r) { return r.json(); })
+        ]).then(function(results) {
+          var predData = results[0] || {};
+          var kbData = results[1] || {};
+
+          if (predData.ok) {
+            renderOverall(predData);
+            renderStatCards(predData, kbData);
+            renderDomainCards(predData);
+            renderTrendChart(predData);
+            renderPieChart(predData);
+            revealChart('trendBox');
+            revealChart('pieBox');
+          }
+
+          var usageStats = (kbData.stats && kbData.stats.usage_stats) || {};
+          renderTopUsedChart(usageStats);
+          revealChart('topUsedBox');
+
+          var now = new Date();
+          document.getElementById('lastUpdate').textContent =
+            '最后更新: ' + now.toLocaleTimeString('zh-CN');
+        }).catch(function(err) {
+          // P2-8: 失败时显示可见错误横幅 + 手动刷新按钮
+          console.error('[engine-dashboard] fetch error:', err);
+          var banner = document.getElementById('fetchErrorBanner');
+          if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'fetchErrorBanner';
+            banner.style.cssText = 'background:var(--err-soft);border:1px solid var(--err);color:var(--err);padding:10px 16px;border-radius:8px;margin:12px 0;display:flex;align-items:center;gap:12px;';
+            var msg = document.createElement('span');
+            msg.textContent = '数据加载失败，请检查服务器是否运行';
+            var btn = document.createElement('button');
+            btn.textContent = '重试';
+            btn.style.cssText = 'background:#dc2626;color:#fff;border:none;padding:4px 16px;border-radius:4px;cursor:pointer;';
+            btn.onclick = function() { banner.remove(); fetchData(); };
+            banner.appendChild(msg);
+            banner.appendChild(btn);
+            var container = document.querySelector('.container, .main, body');
+            if (container) container.insertBefore(banner, container.firstChild);
+          }
+          document.getElementById('lastUpdate').textContent = '数据加载失败';
+        });
+      } catch(e) {
+        console.error('[engine-dashboard] fetchData error:', e);
+      }
+    }
+
+    // 初始化
+    function init() {
+      try {
+        initCharts();
+        fetchData();
+        // 每60秒自动刷新
+        setInterval(fetchData, 60000);
+        // 窗口大小变化时重绘
+        window.addEventListener('resize', function() {
+          try {
+            if (trendChart) trendChart.resize();
+            if (topUsedChart) topUsedChart.resize();
+            if (pieChart) pieChart.resize();
+          } catch(e) {}
+        });
+      } catch(e) {
+        console.error('[engine-dashboard] init error:', e);
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+  </script>
+</body>
+</html>
