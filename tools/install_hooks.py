@@ -21,8 +21,7 @@ import subprocess
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _IS_WINDOWS = sys.platform == "win32"
-_SRC = os.path.join(_ROOT, "tools",
-    "pre-commit-hook.bat" if _IS_WINDOWS else "pre-commit-hook.sh")
+_SRC = os.path.join(_ROOT, "tools", "pre-commit-hook-wrapper.sh")
 
 
 def _git_dir():
@@ -49,11 +48,7 @@ def main():
     dst = os.path.join(hooks_dir, "pre-commit")
 
     shutil.copyfile(_SRC, dst)
-    try:
-        st = os.stat(dst)
-        os.chmod(dst, st.st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
-    except Exception:
-        pass  # Windows 下可执行位非必须，git bash 仍能用 sh 跑
+    # Windows + Linux 统一用 sh wrapper（Git for Windows 自带 sh.exe 可执行）
 
     print(f"[install_hooks] ✅ 已安装 pre-commit hook -> {dst}")
     print(f"[install_hooks] 后续提交自动运行: AST 语法检查 + 跨文档审计 + 收工门禁三件套")
