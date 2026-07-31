@@ -278,7 +278,11 @@
       overflow: hidden;
       transition: all 0.3s ease;
       cursor: default;
+      display: flex;
+      flex-direction: column;
     }
+    .system-card .card-actions { margin-top: auto; }
+    .system-card .web-tools { margin-top: 10px; }
     .system-card:hover {
       transform: translateY(-2px);
       box-shadow: var(--shadow-gold), var(--shadow);
@@ -358,6 +362,29 @@
     .card-actions {
       display: flex;
       gap: 8px;
+    }
+    .lot-btn {
+      padding: 4px 11px;
+      border: 1px solid var(--gold-border);
+      background: rgba(0,0,0,0.2);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--ink-mid);
+      text-decoration: none;
+      transition: all 0.15s;
+      white-space: nowrap;
+      display: inline-block;
+    }
+    .lot-btn:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+      background: rgba(201,169,110,0.08);
+    }
+    .web-tools .web-tools-label {
+      font-size: 12px;
+      color: var(--ink-dim);
+      margin-bottom: 6px;
     }
     .btn {
       flex: 1;
@@ -773,9 +800,8 @@
           <div class="card-actions">
             <button class="btn btn-primary" onclick="openSubsystem('gui/main_window.py','run')">&#9654; 启动窗口（桌面程序）</button>
           </div>
-        </div>
-          <div class="web-tools" style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);">
-            <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">&#127760; 在线分析工具（浏览器打开）：</div>
+          <div class="web-tools" style="margin-top:auto;padding-top:10px;border-top:1px dashed var(--border);">
+            <div class="web-tools-label">&#127760; 在线分析工具（浏览器打开）：</div>
             <div style="display:flex;flex-wrap:wrap;gap:4px;">
               <a href="/lottery" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">彩票分析中心</a>
               <a href="/lottery/dashboard" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">彩票仪表盘</a>
@@ -813,9 +839,8 @@
           <div class="card-actions">
             <button class="btn btn-green" onclick="openSubsystem('jinshuiyao/football_gui.py','run')">&#9654; 启动窗口（桌面程序）</button>
           </div>
-        </div>
-          <div class="web-tools" style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);">
-            <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">&#127760; 在线分析工具（浏览器打开）：</div>
+          <div class="web-tools" style="margin-top:auto;padding-top:10px;border-top:1px dashed var(--border);">
+            <div class="web-tools-label">&#127760; 在线分析工具（浏览器打开）：</div>
             <div style="display:flex;flex-wrap:wrap;gap:4px;">
               <a href="/football" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">足彩分析中心</a>
               <a href="/football/dashboard" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">AI赛前模拟</a>
@@ -842,8 +867,8 @@
             <button class="btn btn-ghost" onclick="openFundReport()">&#128176; 日报</button>
             <button class="btn btn-ghost" onclick="viewSource('domains/fund/fund_gui.py')">&#128065; 源码</button>
           </div>
-          <div class="web-tools" style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);">
-            <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">&#127760; 在线分析工具（浏览器打开）：</div>
+          <div class="web-tools" style="margin-top:auto;padding-top:10px;border-top:1px dashed var(--border);">
+            <div class="web-tools-label">&#127760; 在线分析工具（浏览器打开）：</div>
             <div style="display:flex;flex-wrap:wrap;gap:4px;">
               <a href="/fund" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">基金分析中心</a>
               <a href="/fund/dashboard" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">基金仪表盘</a>
@@ -872,9 +897,8 @@
           <div class="card-actions">
             <button class="btn btn-purple" onclick="openSubsystem('domains/stock/stock_gui.py','run')">&#9654; 启动窗口（桌面程序）</button>
           </div>
-        </div>
-          <div class="web-tools" style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);">
-            <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">&#127760; 在线分析工具（浏览器打开）：</div>
+          <div class="web-tools" style="margin-top:auto;padding-top:10px;border-top:1px dashed var(--border);">
+            <div class="web-tools-label">&#127760; 在线分析工具（浏览器打开）：</div>
             <div style="display:flex;flex-wrap:wrap;gap:4px;">
               <a href="/stock" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">股票分析中心</a>
               <a href="/stock/dashboard" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">股票仪表盘</a>

@@ -247,6 +247,67 @@ def check_shared_resources():
     return errors
 
 
+def check_html_structure():
+    """⑥ HTML 结构平衡：所有标签必须正确闭合（防卡片错位/布局错乱）"""
+    from html.parser import HTMLParser
+
+    VOID = {'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
+            'link', 'meta', 'param', 'source', 'track', 'wbr'}
+
+    class P(HTMLParser):
+        def __init__(self):
+            super().__init__(convert_charrefs=False)
+            self.stack = []
+            self.errors = []
+
+        def handle_starttag(self, tag, attrs):
+            if tag in VOID:
+                return
+            self.stack.append((tag, self.getpos()))
+
+        def handle_endtag(self, tag):
+            if tag in VOID:
+                return
+            if not self.stack:
+                self.errors.append(f'多余 </{tag}> @{self.getpos()}')
+                return
+            if self.stack[-1][0] == tag:
+                self.stack.pop()
+            else:
+                for i in range(len(self.stack) - 1, -1, -1):
+                    if self.stack[i][0] == tag:
+                        self.errors.append(
+                            f'未闭合 <{self.stack[-1][0]}> @{self.stack[-1][1]} (遇 </{tag}> @{self.getpos()})')
+                        del self.stack[i:]
+                        break
+                else:
+                    self.errors.append(f'多余 </{tag}> @{self.getpos()}')
+
+    errors = []
+    html_dirs = [HTML_DIR, FRONTEND_DIR,
+                 os.path.join(BASE_DIR, 'frontend', 'guide')]
+    for html_dir in html_dirs:
+        if not os.path.isdir(html_dir):
+            continue
+        for dirpath, dirnames, filenames in os.walk(html_dir):
+            for fn in sorted(filenames):
+                if not fn.endswith('.html'):
+                    continue
+                fp = os.path.join(dirpath, fn)
+                with open(fp, 'r', encoding='utf-8', errors='replace') as f:
+                    content = f.read()
+                p = P()
+                p.feed(content)
+                issues = list(p.errors)
+                for tag, pos in p.stack:
+                    issues.append(f'未闭合 <{tag}> @{pos}')
+                if issues:
+                    rel = os.path.relpath(fp, BASE_DIR)
+                    for i in issues[:5]:
+                        errors.append(f"  HTMLSTRUCT {rel}: {i}")
+    return errors
+
+
 def run_all():
     """运行全部检查"""
     checks = {
@@ -255,6 +316,7 @@ def run_all():
         'Git同步状态': check_git_sync,
         '门户链接可解析': check_portal_links,
         '共享资源完整性': check_shared_resources,
+        'HTML结构平衡': check_html_structure,
     }
     all_ok = True
     report = []

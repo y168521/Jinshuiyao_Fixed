@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 REM 金水谣 · pre-commit 钩子（仓库可跟踪规范源）
 REM 安装方式: py -3.14 tools/install_hooks.py
 REM 绕过方式: git commit --no-verify

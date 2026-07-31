@@ -82,9 +82,9 @@
       "probability": "中",
       "impact_level": "中",
       "mitigation": "因子权重外部配置化；技术因子永远基于真实K线计算而非模拟；基本面因子仅在akshare可用时启用",
-      "mitigation_status": "部分落地（权重配置化待完成）",
+      "mitigation_status": "部分落地",
       "owner": "domains/stock/stock_screener.py",
-      "early_signal": "选股推荐与实际走势偏差持续扩大；回测收益率与实盘差距>50%",
+      "early_signal": "选股推荐与实际走势偏差持续扩大；回测收益率与实盘差距>50%（权重配置化待完成）",
       "last_review": "2026-07-29",
       "file_paths": [
         "`domains/stock/stock_screener.py`",

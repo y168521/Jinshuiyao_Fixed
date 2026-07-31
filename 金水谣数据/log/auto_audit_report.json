@@ -1,0 +1,22 @@
+{
+  "time": "2026-07-31T10:11:09",
+  "root": "C:\\Users\\Administrator\\Nutstore\\1\\我的坚果云\\模型",
+  "total_files": 846,
+  "checked_bat": 17,
+  "checked_py": 399,
+  "checked_html": 134,
+  "error_count": 0,
+  "warning_count": 0,
+  "kb_error_count": 0,
+  "kb_warning_count": 0,
+  "added": [],
+  "removed": [],
+  "modified": [
+    "Jinshuiyao_Fixed\\startup_selfcheck.py",
+    "Jinshuiyao_Fixed\\金水谣数据\\review\\review_history.jsonl",
+    "Jinshuiyao_Fixed\\tools\\pre-commit-hook.bat",
+    "Jinshuiyao_Fixed\\金水谣数据\\review\\review_metrics.json"
+  ],
+  "errors": [],
+  "warnings": []
+}

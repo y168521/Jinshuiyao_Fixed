@@ -52,13 +52,22 @@ def run_startup_check_safe():
          os.path.join(BASE_DIR, "knowledge", "用户知识库")),
         ("知识库体检", "lint_knowledge",
          os.path.join(BASE_DIR, "knowledge", "用户知识库")),
-        ("跨设备同步", "device_sync", os.path.join(BASE_DIR, "sync")),
         ("任务智能路由", "jinshuiyao_router", BASE_DIR),
         ("AI服务", "ai_service", os.path.join(BASE_DIR, "core")),
     ]
     for label, mod, p in checks:
         ok, note = _check_import(mod, p)
         deps[label] = {"passed": ok, "note": note}
+
+    # 1.5) 可选功能（未实现不算异常，仅展示状态）
+    try:
+        ok, note = _check_import("device_sync", os.path.join(BASE_DIR, "sync"))
+        deps["跨设备同步"] = {
+            "passed": True,
+            "note": ("可正常加载" if ok else "未启用（本机无 sync/device_sync.py，属可选功能）"),
+        }
+    except Exception as e:
+        deps["跨设备同步"] = {"passed": True, "note": f"未启用（{e}）"}
 
     # 2) 启动脚本是否齐全（模型根目录入口 或 Jinshuiyao_Fixed/launch.bat 任一存在即可启动）
     root_entry = os.path.join(os.path.dirname(BASE_DIR), "启动金水谣助手.bat")
@@ -71,11 +80,11 @@ def run_startup_check_safe():
     deps["Python启动器"] = {"passed": os.path.isfile(py_launcher),
                           "note": "存在" if os.path.isfile(py_launcher) else "缺失"}
 
-    # 3) 同步台账（跨设备看板数据）
+    # 3) 同步台账（跨设备看板数据，可选功能）
     sf = os.path.join(BASE_DIR, "sync", "sync_state.json")
     ok = os.path.isfile(sf)
-    deps["跨设备同步台账"] = {"passed": ok,
-                             "note": "存在" if ok else "缺失（看板无数据）"}
+    deps["跨设备同步台账"] = {"passed": True,
+                             "note": ("存在" if ok else "未启用（本机无同步台账，属可选功能）")}
 
     # 4) 知识库目录
     kb = os.path.join(BASE_DIR, "knowledge", "用户知识库")

@@ -29,7 +29,7 @@ REQUIRED_KEYS = [
     "mitigation", "mitigation_status", "owner", "early_signal", "last_review",
 ]
 PROBABILITY_LEVELS = {"高", "中", "低"}
-MITIGATION_STATUSES = {"已落地", "待落地(项④)", "待落地(项⑤/⑥)", "规划中"}
+MITIGATION_STATUSES = {"已落地", "部分落地", "待落地(项④)", "待落地(项⑤/⑥)", "规划中"}
 ID_RE = re.compile(r"^R-\d{3}$")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 OWNER_FORBIDDEN = {"待定", "待补充", "TBD", "?"}

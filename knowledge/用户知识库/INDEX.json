@@ -8,31 +8,16 @@
     ],
     "source": "整理自 raw/20260718_evidence_karpathy_llm_wiki.md 与网络资料",
     "time": "2026-07-18 15:55:00",
-    "file": "20260718_Karpathy_LLM_Wiki方法论要点.md"
-  },
-  {
-    "title": "共形预测是什么",
-    "tags": [
-      "方法",
-      "不确定性",
-      "SOTA"
-    ],
-    "source": "本轮多维分析对话",
-    "time": "2026-07-18 01:16:34",
-    "file": "20260718_共形预测是什么.md"
+    "file": "20260731_Karpathy_LLM_Wiki_方法论要点.md"
   },
   {
     "title": "左脑知识库技术（子栩Skill）",
     "tags": [
-      "产品",
-      "知识库",
-      "Agent",
-      "记忆引擎",
-      "抖音"
+      "`#workbuddy #大模型agent开发 #Qclaw #CoPaw #自动剪辑`"
     ],
     "source": "抖音极速版视频页面文案（raw/20260718_evidence_zuonaoknowledge_douyin.md）",
     "time": "2026-07-18 16:13",
-    "file": "20260718_左脑知识库技术（子栩Skill）.md"
+    "file": "20260731_左脑知识库技术（子栩Skill）.md"
   },
   {
     "title": "视频内容：【大模型RAG】2026年B站最全最细的RAG知识库搭建系统教程，手把手教你搭建私有知识库，从入门到实战全流程教学！全程干货！少走99%的弯路！",
@@ -42,7 +27,20 @@
     ],
     "source": "B站视频 https://www.bilibili.com/video/BV1otokBpENn（VideoExtractor）",
     "time": "2026-07-18 21:09:58",
-    "file": "20260718_视频内容：【大模型RAG】2026年B站最全最细的RAG知识库搭建系统教程，手把.md"
+    "file": "20260731_视频内容：【大模型RAG】2026年B站最全最细的RAG知识库搭建系统教程，手把.md"
+  },
+  {
+    "title": "视频内容：和同学没事养龙虾玩，做了skill，比较实用。分享给大家，可以找我要skill包",
+    "tags": [
+      "workbuddy",
+      "ai",
+      "openclaw",
+      "免费实用工具",
+      "节省token神技"
+    ],
+    "source": "抖音视频 https://v.douyin.com/j6Dm7pQSnyA/（VideoExtractor+cookie）",
+    "time": "2026-07-19 05:06:51",
+    "file": "20260731_视频内容：和同学没事养龙虾玩，做了skill，比较实用。分享给大家，可以找我要s.md"
   },
   {
     "title": "视频内容：用Notion和Obsidian搭建个人成长管理系统V2.0——notion模块搭建",
@@ -55,92 +53,19 @@
     ],
     "source": "B站视频 https://www.bilibili.com/video/BV1TiWQeCEmh（VideoExtractor）",
     "time": "2026-07-18 21:05:04",
-    "file": "20260718_视频内容：用Notion和Obsidian搭建个人成长管理系统V2.0——not.md"
+    "file": "20260731_视频内容：用Notion和Obsidian搭建个人成长管理系统V2.0——not.md"
   },
   {
     "title": "视频内容：首发 左脑知识库，你没见过的新技术，建议都要装下试试，需要的找我要Skill#w",
     "tags": [
-      "视频提取",
       "workbuddy",
       "大模型agent开发",
       "qclaw",
       "copaw",
-      "token",
-      "新技术",
-      "大模型",
-      "Agent开发",
-      "知识库",
-      "技能分享"
+      "token"
     ],
     "source": "抖音视频 https://v.douyin.com/PmABdRMBXEI/（VideoExtractor+cookie）",
     "time": "2026-07-18 22:05:06",
-    "file": "20260718_视频内容：首发_左脑知识库，你没见过的新技术，建议都要装下试试，需要的找我要Sk.md"
-  },
-  {
-    "title": "视频内容：和同学没事养龙虾玩，做了skill，比较实用。分享给大家，可以找我要skill包",
-    "tags": [
-      "视频提取",
-      "workbuddy",
-      "ai",
-      "openclaw",
-      "免费实用工具",
-      "节省token神技",
-      "AI工具",
-      "技能分享"
-    ],
-    "source": "抖音视频 [https://v.d3ouyin.com/j6Dm7pQSnyA/（VideoExtractor+cookie）](https://v.douyin.com/j6Dm7pQSnyA/（VideoExtractor+cookie）)",
-    "time": "2026-07-19 05:06:51",
-    "file": "20260719_视频内容：和同学没事养龙虾玩，做了skill，比较实用。分享给大家，可以找我要s.md"
-  },
-  {
-    "title": "PARA知识管理法：打造第二大脑",
-    "tags": [
-      "PARA",
-      "知识管理",
-      "第二大脑",
-      "方法论",
-      "Obsidian"
-    ],
-    "source": "MiroFish模型知识库镜像 + 抖音视频 + 《打造第二大脑》",
-    "time": "2026-07-20 19:15:00",
-    "file": "20260720_PARA知识管理法.md"
-  },
-  {
-    "title": "基金定投策略要点",
-    "tags": [
-      "基金",
-      "定投",
-      "投资",
-      "ETF",
-      "策略"
-    ],
-    "source": "MiroFish模型知识库镜像（3张fund卡片合并）",
-    "time": "2026-07-20 19:15:00",
-    "file": "20260720_基金定投策略要点.md"
-  },
-  {
-    "title": "t",
-    "tags": [],
-    "source": "网页录入",
-    "time": "2026-07-25 05:35:06",
-    "file": "20260725_t.md"
-  },
-  {
-    "title": "视频内容：Example Domain",
-    "tags": [
-      "视频提取"
-    ],
-    "source": "通用视频 http://example.com（VideoExtractor）",
-    "time": "2026-07-27 08:56:08",
-    "file": "20260727_视频内容：Example_Domain.md"
-  },
-  {
-    "title": "视频内容：Example Domain",
-    "tags": [
-      "视频提取"
-    ],
-    "source": "通用视频 http://example.com（VideoExtractor）",
-    "time": "2026-07-28 09:16:48",
-    "file": "20260728_视频内容：Example_Domain.md"
+    "file": "20260731_视频内容：首发_左脑知识库，你没见过的新技术，建议都要装下试试，需要的找我要Sk.md"
   }
 ]
