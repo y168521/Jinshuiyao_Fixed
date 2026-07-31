@@ -18,9 +18,9 @@ AI代码助手(DeepSeek备用)/usage.json
 金水谣数据/secure/encrypted_keys.dat
 金水谣数据/users/*/.secret_key
 金水谣数据/review/ai_review_cache.json
-Jinshuiyao_Fixed/金水谣数据/review/ai_review_cache.json
-Jinshuiyao_Fixed/金水谣数据/free_model_status.json
-Jinshuiyao_Fixed/金水谣数据/user_themes.json
+金水谣数据/review/ai_review_cache.json
+金水谣数据/free_model_status.json
+金水谣数据/user_themes.json
 
 # ==========================================
 # Python
@@ -125,16 +125,16 @@ knowledge/mirofish_db.json
 # 注意：knowledge/ 目录混有源码(.py)与生成物(.json/索引)，仅按需精确忽略生成物，
 #       切勿整目录忽略，否则会漏掉 kb_engine.py 等源码（见 git 门禁红线 F3）。
 # ==========================================
-Jinshuiyao_Fixed/knowledge/knowledge_graph.json
-Jinshuiyao_Fixed/knowledge/vector_index.json
-Jinshuiyao_Fixed/knowledge/用户知识库/INDEX.json
-Jinshuiyao_Fixed/knowledge/用户知识库/索引.md
-Jinshuiyao_Fixed/predictions/predictions.json
-Jinshuiyao_Fixed/tools/.file_hash_baseline.json
-Jinshuiyao_Fixed/金水谣数据/correlation_matrix.json
-Jinshuiyao_Fixed/金水谣数据/predictions.json
-Jinshuiyao_Fixed/金水谣数据/stock/cache_meta.json
-Jinshuiyao_Fixed/金水谣数据/video_cache/
+knowledge/knowledge_graph.json
+knowledge/vector_index.json
+knowledge/用户知识库/INDEX.json
+knowledge/用户知识库/索引.md
+predictions/predictions.json
+tools/.file_hash_baseline.json
+金水谣数据/correlation_matrix.json
+金水谣数据/predictions.json
+金水谣数据/stock/cache_meta.json
+金水谣数据/video_cache/
 金水谣数据/log/watchdog_state.json
 金水谣数据/lottery_datasource_health.html
 金水谣数据/log/lottery_health_history.json
@@ -144,4 +144,20 @@ Jinshuiyao_Fixed/金水谣数据/video_cache/
 金水谣数据/log/graph_triples_reconcile_history.json
 金水谣数据/token_efficiency_audit.html
 # 本地助手运行时记忆（对话历史/用户画像，自动生成不入库 · JS-31）
-Jinshuiyao_Fixed/金水谣数据/agent_memory/
+金水谣数据/agent_memory/
+
+# 知识图谱运行时生成物（可重建、不入库 · 2026-07-31 补充）
+knowledge/crosslinks.json
+knowledge/graph_triples.json
+knowledge/pattern_library.json
+knowledge/kb_index.db
+knowledge/file_knowledge_index.json
+
+# 基金监控/报告运行时生成物（2026-07-31 补充）
+金水谣数据/fund_data/
+金水谣数据/fund_reports/
+金水谣数据/log/.kb_last_processed_line
+
+金水谣数据/stock/cache_meta*.json
+
+金水谣数据/brain_state.json
