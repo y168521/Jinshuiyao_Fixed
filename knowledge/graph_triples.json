@@ -15093,19 +15093,789 @@
       "object": "god object 2630行难维护难单测",
       "source": "ai_decisions.md",
       "extracted_at": "2026-07-24 17:00:18"
+    },
+    {
+      "subject": "知识维护任务",
+      "predicate": "接入",
+      "object": "core/scheduler.py",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "新接口",
+      "predicate": "不被识别",
+      "object": "旧进程",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "根目录",
+      "predicate": "瘦身",
+      "object": "提示词3合1、报告归档、垃圾文件删除",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "文件移动",
+      "predicate": "需要",
+      "object": "检查引用链",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "旧 launch.bat",
+      "predicate": "不安装",
+      "object": "依赖",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "内容营销智能体",
+      "predicate": "使用",
+      "object": "视频文案提取接口 /api/video/ingest",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "内容营销智能体",
+      "predicate": "使用",
+      "object": "DeepSeek 生成同赛道文案",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "视频方法",
+      "predicate": "需要",
+      "object": "DeepSeek 结构化抽取钩子/痛点/结构",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "行业模板",
+      "predicate": "做成",
+      "object": "可切换 Skill",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "AI协作规范_完整版.md",
+      "predicate": "包含",
+      "object": "过时设备信息",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "文档",
+      "predicate": "导致",
+      "object": "配置不同步",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "双份相同文档",
+      "predicate": "使用",
+      "object": "diff 确认无漂移",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "生成文案",
+      "predicate": "需要",
+      "object": "把行业/产品写进 prompt",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "前端 SPA 插入",
+      "predicate": "使用",
+      "object": "唯一锚点",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "killer_fixed.py",
+      "predicate": "是",
+      "object": "killer.py 的实现",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "大文件 Edit",
+      "predicate": "导致",
+      "object": "File has not been read yet 错误",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "大文件 Edit",
+      "predicate": "替换为",
+      "object": "Python 补丁脚本",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "WorkBuddy 自动化",
+      "predicate": "注册",
+      "object": "知识体检 Lint 任务",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "auto_backup.py",
+      "predicate": "添加",
+      "object": "is_safe_backup_location() 守卫",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "守卫",
+      "predicate": "使用",
+      "object": "fail-closed 设计",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "启动器打不开",
+      "predicate": "根因是",
+      "object": "pip 安装失败后 os.execv 重启",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "启动器打不开",
+      "predicate": "根因是",
+      "object": "窗口静默消失无日志",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "launch_jinshuiyao.py",
+      "predicate": "添加",
+      "object": "_Tee 双写日志",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "ensure_runtime",
+      "predicate": "添加",
+      "object": "check=True 和 timeout=900",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "launch.bat",
+      "predicate": "改为",
+      "object": "start 独立窗口",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "server/config.py",
+      "predicate": "包含",
+      "object": "写死的 venv_314 路径",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "测试债",
+      "predicate": "清零后",
+      "object": "全量复跑 0 failed / 740 passed",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "单独跑通过、全量跑偶发失败",
+      "predicate": "是",
+      "object": "测试隔离问题信号",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "测试",
+      "predicate": "使用",
+      "object": "tempfile.mkdtemp() 独立临时目录",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "被测类硬编码持久根",
+      "predicate": "需要",
+      "object": "给构造器加可选 root_dir 参数",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "数据目录",
+      "predicate": "位于",
+      "object": "Jinshuiyao_Fixed/金水谣数据/",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "统一入口重构",
+      "predicate": "使用",
+      "object": "先抽函数保持调用方不变",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "协作机制",
+      "predicate": "新增",
+      "object": "任务认领与锁定",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "协作机制",
+      "predicate": "新增",
+      "object": "质量评估与红黑榜",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "协作机制",
+      "predicate": "新增",
+      "object": "变更风险分级",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "协作机制",
+      "predicate": "新增",
+      "object": "优化效果追踪表",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "提示词",
+      "predicate": "更新",
+      "object": "venv 路径",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "质量保障机制",
+      "predicate": "新增",
+      "object": "改动影响面分析",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "质量保障机制",
+      "predicate": "新增",
+      "object": "改动同步检查清单",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "质量保障机制",
+      "predicate": "新增",
+      "object": "上线前验收清单",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "质量保障机制",
+      "predicate": "新增",
+      "object": "返工原因追踪表",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "自检脚本",
+      "predicate": "升级为",
+      "object": "v1.4",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "自检脚本",
+      "predicate": "升级为",
+      "object": "v1.5",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "自检脚本",
+      "predicate": "升级为",
+      "object": "v1.7",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "smoke_test --quick",
+      "predicate": "阻止",
+      "object": "提交",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "AIService().chat()",
+      "predicate": "抽取",
+      "object": "三元组",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "七色暗色体系",
+      "predicate": "应用于",
+      "object": "全部前端界面",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "core/theme.py",
+      "predicate": "共享主题",
+      "object": "多子系统 GUI",
+      "source": "经验收集箱.md",
+      "extracted_at": "2026-07-31 08:01:03"
+    },
+    {
+      "subject": "BacktestEngine.run_fund",
+      "predicate": "新增",
+      "object": "基金回测功能",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "FundDomain.backtest()",
+      "predicate": "接入",
+      "object": "回测引擎",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "基金回测引擎缺失",
+      "predicate": "根因",
+      "object": "股基最大功能缺口",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "股票run_stock与基金逻辑",
+      "predicate": "同构",
+      "object": "应抽共享循环",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "StockDomain.DEFAULT_STOCK_POOL",
+      "predicate": "新增",
+      "object": "24只跨行业A股龙头",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "StockDomain.screen()",
+      "predicate": "新增",
+      "object": "多因子选股",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "StockDomain.screen()",
+      "predicate": "替换",
+      "object": "原仅3指数排序空壳",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "股票域默认只抓3指数",
+      "predicate": "根因",
+      "object": "无真正选股能力",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "BacktestEngine.simulate_dca()",
+      "predicate": "新增",
+      "object": "定投模拟引擎",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "simulate_dca",
+      "predicate": "记录",
+      "object": "累计份额/平均成本/市值/收益率曲线",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "simulate_dca",
+      "predicate": "输出",
+      "object": "max_drawdown+break_even_nav",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "基金域无独立定投模拟",
+      "predicate": "根因",
+      "object": "用户需要定投模拟引擎",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "run_fund的DCA策略",
+      "predicate": "无法给出",
+      "object": "逐期份额/成本摊薄明细",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "明文密钥文件",
+      "predicate": "删除",
+      "object": "同步盘deepseek_key.txt",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "密钥躺坚果云同步树",
+      "predicate": "根因",
+      "object": "会随同步外泄",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "smoke_test引用已删main.py",
+      "predicate": "根因",
+      "object": "门禁必挂形同虚设",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "analyzer.evaluate_manager",
+      "predicate": "新增",
+      "object": "_resolve_tenure_years三优先级解析",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "_fetch_real_manager_tenure",
+      "predicate": "新增",
+      "object": "akshare实时抓取真实任职日期",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "经理任职年限误用成立日期",
+      "predicate": "根因",
+      "object": "任期/经验评估严重失真",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "fetchers/fetcher.py",
+      "predicate": "修复",
+      "object": "20处裸except改具名异常+日志",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "lottery_dashboard.html",
+      "predicate": "修复",
+      "object": "渲染函数化+liveRefresh覆盖",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "分析脚本_生成仪表盘.py",
+      "predicate": "重写",
+      "object": "数据注入模式",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "smoke_test.py",
+      "predicate": "新增",
+      "object": "并发写安全+异常恢复语义门禁",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "requirements.txt",
+      "predicate": "补",
+      "object": "pytest",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "裸except让源失效零日志",
+      "predicate": "根因",
+      "object": "无从排查",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "看板双口径复辟",
+      "predicate": "根因",
+      "object": "生成器内嵌旧模板",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "FundDomain.compare_funds(codes, top_n)",
+      "predicate": "新增",
+      "object": "横向对比多基金",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "StockDomain.backtest",
+      "predicate": "新增",
+      "object": "复用BacktestEngine.run_stock",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "handlers/backtest.py",
+      "predicate": "新增",
+      "object": "handle_backtest按type分发",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "router",
+      "predicate": "注册",
+      "object": "5路由",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "股基对比与统一回测API",
+      "predicate": "根因",
+      "object": "Phase2第5项补足缺口",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "core/auto_knowledge.py",
+      "predicate": "新增",
+      "object": "search_graph_triples检索三元组",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "server/handlers/knowledge.py",
+      "predicate": "新增",
+      "object": "handle_knowledge_search并入triples",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "router",
+      "predicate": "注册",
+      "object": "/api/knowledge/graph/search",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "图谱三元组不进检索",
+      "predicate": "根因",
+      "object": "用户/AI无法按实体查关系",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "scripts/closeout_gate.py",
+      "predicate": "属于",
+      "object": "元流程防漏DoD门禁",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "流程漏项",
+      "predicate": "根因",
+      "object": "收工三步不含§7知识库+§8三层闭环",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "流程漏项",
+      "predicate": "根因",
+      "object": "各环节无交叉核对",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "Skill治理",
+      "predicate": "需要",
+      "object": "优先升级合并",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "元流程防漏DoD门禁",
+      "predicate": "属主",
+      "object": "WorkBuddy",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "启动提示词.txt",
+      "predicate": "触发",
+      "object": "五道防线",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "模型误绑",
+      "predicate": "根因",
+      "object": "两个隔离边界当一个池子",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "模型误绑",
+      "predicate": "根因",
+      "object": "不实测就钉配置",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "五道防线",
+      "predicate": "属于",
+      "object": "对抗AI惰性/闭塞",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "commit↔索引交叉核对",
+      "predicate": "修复",
+      "object": "commit→索引段断链",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "LotteryDomain.generate()",
+      "predicate": "修复",
+      "object": "_engine_states静默失败",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "closeout_gate.py",
+      "predicate": "修复",
+      "object": "commit→索引断链",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "遗留文件未入库",
+      "predicate": "根因",
+      "object": "被漏提交的合法源码/文档",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "closeout_gate.py",
+      "predicate": "触发",
+      "object": "[A]残留告警",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "free_model_pool.py",
+      "predicate": "触发",
+      "object": "故障转移+自动探活",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "config/free_models.json",
+      "predicate": "依赖",
+      "object": "配置外部化",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "safe_cleanup.py",
+      "predicate": "属于",
+      "object": "安全删除框架",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "安全删除框架",
+      "predicate": "根因",
+      "object": "清理事故暴露删除环节无细致划分",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "道衍推导框架",
+      "predicate": "属于",
+      "object": "生成式铁律",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "道衍推导框架",
+      "predicate": "根因",
+      "object": "每条规则是被事故逼出的孤立补丁",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "quality_gate.py",
+      "predicate": "修复",
+      "object": "命门文档盲区",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "session_coordinator.py",
+      "predicate": "属于",
+      "object": "多会话占锁机制",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "多会话占锁机制",
+      "predicate": "根因",
+      "object": "多AI接力无共识分布式写入",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "kb_append.py",
+      "predicate": "属于",
+      "object": "共享知识文件append-only",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "共享知识文件append-only",
+      "predicate": "根因",
+      "object": "整文件覆盖丢历史",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "风险登记册.md",
+      "predicate": "属于",
+      "object": "风险登记册",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
+    },
+    {
+      "subject": "风险登记册",
+      "predicate": "根因",
+      "object": "已知风险散落记忆不可见",
+      "source": "ai_decisions.md",
+      "extracted_at": "2026-07-31 08:01:12"
     }
   ],
-  "built_at": "2026-07-24 17:00:18",
+  "built_at": "2026-07-31 08:01:12",
   "sources": {
     "经验收集箱.md": {
-      "triples": 1592,
+      "triples": 1640,
       "first_extracted_at": "2026-07-22 18:43:23",
-      "last_extracted_at": "2026-07-24 16:58:22"
+      "last_extracted_at": "2026-07-31 08:01:03"
     },
     "ai_decisions.md": {
-      "triples": 549,
+      "triples": 611,
       "first_extracted_at": "2026-07-22 22:46:39",
-      "last_extracted_at": "2026-07-24 17:00:18"
+      "last_extracted_at": "2026-07-31 08:01:12"
     },
     "quant_case_studies_seed": {
       "triples": 15,

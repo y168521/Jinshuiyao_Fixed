@@ -1,0 +1,224 @@
+/* ═══════════════════════════════════════════════════════════
+   金水谣 · 统一设计系统 (Design Tokens + 基础组件)
+   所有页面共用此文件，确保视觉一致性。
+   配色体系：深海熔金（深海墨蓝 / 深蓝灰 / 暖银白 / 香槟金）
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── 核心四色 ── */
+  --deep: #0B1A2F;
+  --card-bg: #162840;
+  --ink: #E8ECF1;
+  --gold: #C9A96E;
+
+  /* ── 功能三辅色 ── */
+  --ice: #5BC0DE;
+  --jade: #2D8B7E;
+  --copper: #C8755A;
+
+  /* ── 统一强调色 ── */
+  --accent: var(--ice);
+
+  /* ── 层次衍生 ── */
+  --ink-dim: rgba(232,236,241,.55);
+  --ink-mid: rgba(232,236,241,.7);
+  --gold-soft: rgba(201,169,110,.12);
+  --gold-border: rgba(201,169,110,.18);
+  --gold-glow: rgba(201,169,110,.22);
+  --ice-soft: rgba(91,192,222,.12);
+
+  /* ── 状态色（七色闭环，不引入杂气） ── */
+  --ok: var(--jade);           /* 在线/成功/盈利 — 墨绿金，水木相生 */
+  --err: var(--copper);        /* 报错/严重告警 — 赤铜色，金煞克火 */
+  --warn: rgba(201,169,110,.7); /* 轻微警告/待处理 — 香槟金降透明度 */
+  --idle: rgba(11,26,47,.4);   /* 离线/空闲/暂停 — 北冥潜藏 */
+
+  /* ── 阴影与圆角 ── */
+  --shadow: 0 8px 32px rgba(0,0,0,.25);
+  --shadow-gold: 0 4px 24px rgba(201,169,110,.15);
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+
+  /* ── 字体（本地优先，不依赖外网） ── */
+  --font: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", system-ui, -apple-system, sans-serif;
+  --font-mono: "Cascadia Code", "Consolas", "Source Code Pro", monospace;
+}
+
+/* ── 基础重置 ── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font);
+  background: var(--deep);
+  color: var(--ink);
+  line-height: 1.7;
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* ── 顶部光晕（品牌感） ── */
+body::before {
+  content: '';
+  position: fixed;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 900px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(201,169,110,.12), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── 容器 ── */
+.container { max-width: 1040px; margin: 0 auto; padding: 28px 20px 60px; position: relative; z-index: 1; }
+
+/* ── 卡片 ── */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  box-shadow: var(--shadow);
+  transition: transform .2s, box-shadow .2s;
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-gold), var(--shadow);
+}
+
+/* ── 按钮 ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  transition: all .2s;
+}
+.btn-gold {
+  background: linear-gradient(135deg, var(--gold), #b8944f);
+  color: #0B1A2F;
+}
+.btn-gold:hover { box-shadow: var(--shadow-gold); transform: translateY(-1px); }
+.btn-ice {
+  background: var(--ice-soft);
+  color: var(--ice);
+  border: 1px solid rgba(91,192,222,.3);
+}
+.btn-ice:hover { background: rgba(91,192,222,.2); }
+.btn-ghost {
+  background: transparent;
+  color: var(--ink-mid);
+  border: 1px solid var(--gold-border);
+}
+.btn-ghost:hover { color: var(--gold); border-color: var(--gold); }
+
+/* ── 标题 ── */
+h1, h2, h3 { color: var(--ink); font-weight: 700; }
+h1 { font-size: 28px; letter-spacing: 1px; }
+h2 { font-size: 20px; margin-bottom: 12px; }
+h3 { font-size: 16px; }
+.text-gold { color: var(--gold); }
+.text-ice { color: var(--ice); }
+.text-dim { color: var(--ink-dim); }
+.text-jade { color: var(--jade); }
+.text-copper { color: var(--copper); }
+
+/* ── 链接 ── */
+a { color: var(--ice); text-decoration: none; transition: color .2s; }
+a:hover { color: var(--gold); }
+
+/* ── 标签/徽章 ── */
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.badge-gold { background: var(--gold-soft); color: var(--gold); }
+.badge-ice { background: var(--ice-soft); color: var(--ice); }
+.badge-ok { background: rgba(45,139,126,.12); color: var(--ok); }
+.badge-err { background: rgba(200,117,90,.12); color: var(--err); }
+
+/* ── 网格布局 ── */
+.grid { display: grid; gap: 16px; }
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+/* ── 分割线 ── */
+.divider { border: none; border-top: 1px solid var(--gold-border); margin: 24px 0; }
+
+/* ── 代码块 ── */
+code {
+  font-family: var(--font-mono);
+  background: rgba(0,0,0,.3);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--ice);
+}
+pre {
+  background: rgba(0,0,0,.4);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.6;
+}
+pre code { background: none; padding: 0; }
+
+/* ── 表格 ── */
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { background: rgba(201,169,110,.08); color: var(--gold); text-align: left; padding: 10px 14px; font-weight: 600; }
+td { padding: 10px 14px; border-bottom: 1px solid rgba(232,236,241,.06); }
+tr:hover td { background: rgba(91,192,222,.04); }
+
+/* ── 输入框 ── */
+input, textarea, select {
+  background: rgba(0,0,0,.3);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  padding: 10px 14px;
+  font-size: 14px;
+  font-family: var(--font);
+  outline: none;
+  transition: border-color .2s;
+}
+input:focus, textarea:focus, select:focus { border-color: var(--gold); }
+
+/* ── 滚动条 ── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--deep); }
+::-webkit-scrollbar-thumb { background: rgba(201,169,110,.3); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(201,169,110,.5); }
+
+/* ── 响应式 ── */
+@media (max-width: 768px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .container { padding: 16px 12px 40px; }
+  h1 { font-size: 22px; }
+}
+@media (max-width: 480px) {
+  body { font-size: 14px; }
+  .card { padding: 16px; }
+  .btn { padding: 8px 14px; font-size: 13px; }
+}
+
+/* ── 加载动画 ── */
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--gold-border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner-lg{width:36px;height:36px;border-width:3px}
+.loading-placeholder{text-align:center;padding:40px;color:var(--ink-dim);font-size:14px}
+.loading-placeholder .spinner{display:block;margin:0 auto 12px}
