@@ -24,6 +24,22 @@ ROOT_DIR = os.path.dirname(BASE_DIR)  # 模型/
 HTML_DIR = os.path.join(BASE_DIR, 'jinshuiyao-guide')
 FRONTEND_DIR = os.path.join(BASE_DIR, 'frontend')
 
+
+def _find_git():
+    """探测 git 可执行文件（PATH 无 git 时回退常见安装路径）"""
+    import shutil
+    g = shutil.which('git')
+    if g:
+        return g
+    for cand in [r'E:\Git\cmd\git.exe', r'C:\Program Files\Git\cmd\git.exe',
+                 r'C:\Program Files (x86)\Git\cmd\git.exe']:
+        if os.path.isfile(cand):
+            return cand
+    return 'git'
+
+
+GIT = _find_git()
+
 # ── 注册表：所有已知的子系统页面（与 router.py / static.py 保持一致）──
 # 从 static.py 复制而来，作为单一真源
 KNOWN_SUBSYSTEM_PAGES = {
@@ -308,8 +324,159 @@ def check_html_structure():
     return errors
 
 
-def run_all():
-    """运行全部检查"""
+# 已人工确认无害的组合类（2026-07-31 审查）：样式由基类/JS/inline 承担，
+# 加类名只为语义标记。检查器不报这些。
+KNOWN_HARMLESS_CLASSES = {
+    # workbench 视图容器：切换靠 .view.active + JS classList
+    'kb-view', 've-view', 'cm-view', 'collab-view', 'mem-view',
+    'kb-library-tabs', 'kb-tab', 'kb-content',
+    # 页面容器：JS 注入 CSS 或 inline style 兜底
+    'cu-app', 'cu-error',
+    'api-panel', 'api-desc', 'api-header', 'api-path', 'api-list-item',
+    # 通用辅助类（视觉由 theme 变量/父级承担）
+    'muted', 'footer', 'sub', 'flex', 'pulse', 'primary', 'tabs', 'tab',
+    'active', 'tab-content', 'tab-pane', 'grid2', 'grid4', 'stat-grid',
+    'legend', 'scroll-x', 'num-grid', 'hidden', 'btn-primary', 'btn-sm',
+    'flex-row', 'card-title', 'header', 'time', 'page-title', 'page-sub',
+    'stats', 'stat-card', 'neutral', 'lbl', 'val', 'card-icon',
+    'section-title', 'back', 'tag', 'header-bar', 'controls', 'stat-item',
+    'chart-wrap', 'chart-tip', 'trend-chart', 'table-wrap', 'filter-row',
+    'summary-grid', 'price-grid', 'idx-card', 'name', 'chart-card',
+    'factor-grid', 'mt12', 'indicator-grid', 'info-grid', 'brand', 'spacer',
+    'ticker-box', 'sym-select', 'sym-name', 'live-price', 'live-chg',
+    'mode-badge', 'static', 'ctrl', 'danger', 'panel', 'dot', 'body',
+    'signals', 'bt-line', 'event-wrap', 'event-input', 'event-table',
+    'event-summary', 'terminal', 'drawer', 'hint', 'grow', 'on', 'ch', 'cn',
+    'p', 'pl', 'pv', 'si', 'sv', 'ssd', 'ssi', 's1', 's2', 's3', 's4',
+    'back-link', 'loading', 'timeline', 'topbar', 'weights', 'scanlines',
+    'filter-group', 'btn-amber', 'btn-green', 'btn-purple', 'btn-run',
+    'btn-row', 'btn-mini', 'tag-active', 'tag-blue', 'tag-core', 'tag-dev',
+    'tag-green', 'tag-purple', 'tag-red', 'tag-shield', 'tag-v4',
+    'tag-yellow', 'stat-blue', 'stat-green', 'stat-red', 'stat-yellow',
+    'gen-area', 'manage-area', 'priority-body', 'modal-section-content',
+    'dislike-btn', 'like-btn', 'download-btn', 'api-panel',
+    # 动态拼接前缀（JS 生成）
+    'c-', 'ci-', 'sqi-', 'af-', 'cm-', 'cu-', 'kb-', 've-', 'sc-', 'ws-',
+}
+
+
+def check_css_classes(changed_files=None):
+    """⑦ CSS 类自洽性检查：页面使用的类必须在其引用的 CSS 或内联 <style> 中有定义。
+    规则：每个 HTML 页面的静态 class 属性（排除 <script> 内动态模板）必须能在
+    ① 该页面 <link> 引用的本地 css 文件 或 ② 页面内 <style> 块 中找到定义。
+    覆盖：.lot-btn 42 处使用但从未定义 → 裸样式类。
+    changed_files: 若传入（pre-commit 增量模式），只检查这些文件中【新增行】引入的类，
+    存量未定义类不阻塞（登记于 error_registry E-003 待清理），新引入的必拦截。
+    """
+    errors = []
+    html_dirs = [HTML_DIR, FRONTEND_DIR,
+                 os.path.join(BASE_DIR, 'frontend', 'guide')]
+    RE_DEF = re.compile(r'\.([A-Za-z_][A-Za-z0-9_-]*)(?![A-Za-z0-9_-])')
+    RE_CLASS = re.compile(r'class\s*=\s*["\']([^"\']+)["\']')
+    RE_SCRIPT = re.compile(r'<script[^>]*>.*?</script>', re.S)
+    RE_STYLE = re.compile(r'<style[^>]*>(.*?)</style>', re.S)
+    RE_LINK = re.compile(r'<link[^>]*rel\s*=\s*["\']stylesheet["\'][^>]*>')
+
+    def _defined_classes(fp, content):
+        defined = set()
+        for m in RE_LINK.finditer(content):
+            href_m = re.search(r'href\s*=\s*["\']([^"\']+)["\']', m.group(0))
+            if not href_m:
+                continue
+            href = href_m.group(1)
+            if href.startswith('http') or href.startswith('//'):
+                continue
+            if href.startswith('/'):
+                css_fp = os.path.normpath(os.path.join(ROOT_DIR, href.lstrip('/')))
+            else:
+                css_fp = os.path.normpath(os.path.join(os.path.dirname(fp), href))
+            if not os.path.isfile(css_fp):
+                continue  # 资源存在性由检查②负责
+            try:
+                css_txt = open(css_fp, 'r', encoding='utf-8', errors='replace').read()
+            except Exception:
+                continue
+            for dm in RE_DEF.finditer(css_txt):
+                defined.add(dm.group(1))
+        for m in RE_STYLE.finditer(content):
+            for dm in RE_DEF.finditer(m.group(1)):
+                defined.add(dm.group(1))
+        return defined
+
+    def _page_classes(content):
+        body = RE_SCRIPT.sub('', content)
+        out = set()
+        for m in RE_CLASS.finditer(body):
+            if '${' in m.group(1) or '<%' in m.group(1):
+                continue
+            for c in m.group(1).split():
+                if re.match(r'^[A-Za-z_][A-Za-z0-9_-]*$', c):
+                    out.add(c)
+        return out
+
+    for html_dir in html_dirs:
+        if not os.path.isdir(html_dir):
+            continue
+        for dirpath, dirnames, filenames in os.walk(html_dir):
+            for fn in sorted(filenames):
+                if not fn.endswith('.html'):
+                    continue
+                fp = os.path.join(dirpath, fn)
+                try:
+                    content = open(fp, 'r', encoding='utf-8', errors='replace').read()
+                except Exception:
+                    continue
+                rel = os.path.relpath(fp, BASE_DIR).replace('\\', '/')
+
+                defined = _defined_classes(fp, content)
+                page_classes = _page_classes(content)
+                missing = (page_classes - defined) - KNOWN_HARMLESS_CLASSES
+                if not missing:
+                    continue
+
+                if changed_files is None:
+                    # 全量模式：存量未定义类登记告警，不阻塞（待 error_registry E-003 清理）
+                    for c in sorted(missing):
+                        errors.append(f"  CSSCLASS-STALE {rel}: 类 {c} 未定义（存量，登记待清理）")
+                else:
+                    # 增量模式：只检查本次变更文件的新增行
+                    if rel not in changed_files:
+                        continue
+                    try:
+                        import subprocess
+                        # 变更行（pre-commit 下用索引对比）
+                        base_cmd = [GIT, 'diff', '--cached', '-U0', '--', rel]
+                        proc = subprocess.run(base_cmd, capture_output=True, text=True,
+                                              encoding='utf-8', errors='replace', cwd=BASE_DIR)
+                        diff = proc.stdout
+                    except Exception:
+                        diff = ''
+                    added_lines = set()
+                    for line in diff.splitlines():
+                        if line.startswith('+') and not line.startswith('+++'):
+                            for m in RE_CLASS.finditer(line):
+                                if '${' in m.group(1) or '<%' in m.group(1):
+                                    continue
+                                for c in m.group(1).split():
+                                    if re.match(r'^[A-Za-z_][A-Za-z0-9_-]*$', c):
+                                        added_lines.add(c)
+                    for c in sorted(missing & added_lines):
+                        errors.append(
+                            f"  CSSCLASS {rel}: 本次新增了类 {c} 但本页引用 CSS/内联样式中无定义"
+                            f"（要么补样式定义，要么去掉该 class）")
+    # 去重
+    seen = set()
+    uniq = []
+    for e in errors:
+        if e not in seen:
+            seen.add(e)
+            uniq.append(e)
+    return uniq
+
+
+def run_all(changed_files=None):
+    """运行全部检查。changed_files: pre-commit 增量模式的变更文件列表（相对 BASE_DIR）"""
+    css_fn = check_css_classes
     checks = {
         '路由-文件一致性': check_routes,
         'HTML资源存在性': check_html_assets,
@@ -317,6 +484,7 @@ def run_all():
         '门户链接可解析': check_portal_links,
         '共享资源完整性': check_shared_resources,
         'HTML结构平衡': check_html_structure,
+        'CSS类定义完整': lambda: css_fn(changed_files),
     }
     all_ok = True
     report = []
@@ -338,7 +506,18 @@ if __name__ == '__main__':
         sys.stdout.reconfigure(encoding='utf-8')
     except Exception:
         pass
-    all_ok, report = run_all()
+    changed = None
+    if '--changed' in sys.argv:
+        # pre-commit 增量模式：取暂存区变更的 HTML
+        try:
+            import subprocess
+            proc = subprocess.run([GIT, 'diff', '--cached', '--name-only'],
+                                  capture_output=True, text=True,
+                                  encoding='utf-8', errors='replace', cwd=BASE_DIR)
+            changed = {l.strip() for l in proc.stdout.splitlines() if l.strip()}
+        except Exception:
+            changed = None
+    all_ok, report = run_all(changed)
     print("=" * 50)
     print("  系统一致性检测报告")
     print("=" * 50)

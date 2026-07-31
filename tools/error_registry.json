@@ -1,0 +1,103 @@
+{
+  "schema": "jinshuiyao-error-registry-v1",
+  "更新说明": "每次修复任何问题，必须在此登记：错误类型→检测规则→验证方式。未登记的修复视为无效。",
+  "登记时间": "2026-07-31",
+  "errors": [
+    {
+      "id": "E-001",
+      "类型": "HTML结构错位",
+      "示例": "control-center.html 彩票/足彩/股票卡 web-tools 在 system-card 外导致卡片大小不一",
+      "检测规则": "check_consistency.check_html_structure() 标签平衡扫描",
+      "验证方式": "mutation_test.py 用例 M-001 故意加多余</div> 必须拦截",
+      "登记于": "2026-07-31"
+    },
+    {
+      "id": "E-002",
+      "类型": "HTML缺闭合标签",
+      "示例": "assistant.html 缺 </body></html>",
+      "检测规则": "check_consistency.check_html_structure()",
+      "验证方式": "mutation_test.py 用例 M-002 删闭合标签必须拦截",
+      "登记于": "2026-07-31"
+    },
+    {
+      "id": "E-003",
+      "类型": "CSS类未定义（共享样式缺失）",
+      "示例": "control-center.html 42 处使用 .lot-btn 但 CSS 从未定义",
+      "检测规则": "check_consistency.check_css_classes() 全局css中未定义但在HTML中使用的类",
+      "验证方式": "mutation_test.py 用例 M-003 在页面加未定义类必须拦截",
+      "登记于": "2026-07-31"
+    },
+    {
+      "id": "E-004",
+      "类型": "死链接（门户/页面指向不存在路由或文件）",
+      "示例": "金水谣助手门户.html → Jinshuiyao_Fixed/AI代码助手(DeepSeek备用)/使用说明.html 404",
+      "检测规则": "check_consistency.check_portal_links() + auto_audit",
+      "验证方式": "mutation_test.py 用例 M-004 门户加死链必须拦截",
+      "登记于": "2026-07-31"
+    },
+    {
+      "id": "E-005",
+      "类型": "知识库孤儿索引",
+      "示例": "INDEX.json 12 条指向不存在的 .md",
+      "检测规则": "lint_knowledge.lint() INDEX 一致性",
+      "验证方式": "mutation_test.py 用例 M-005 INDEX.json 加孤儿条目必须拦截",
+      "登记于": "2026-07-31"
+    },
+    {
+      "id": "E-006",
+      "类型": "知识库占位符/空正文污染",
+      "示例": "Example Domain 测试卡片",
+      "检测规则": "lint_knowledge.lint() 占位符/幻觉标记检测",
+      "验证方式": "mutation_test.py 用例 M-006 放占位符卡片必须拦截",
+      "登记于": "2026-07-31"
+    },
+    {
+      "id": "E-007",
+      "类型": "风险登记册字段/枚举非法",
+      "示例": "R-005 状态用词不在枚举",
+      "检测规则": "verify_risk_register.verify()",
+      "验证方式": "mutation_test.py 用例 M-007 篡改枚举必须拦截",
+      "登记于": "2026-07-31"
+    },
+    {
+      "id": "E-008",
+      "类型": "数据根目录缺失",
+      "示例": "backtest_results/fund/fund_data/users 缺失导致数据门禁红灯",
+      "检测规则": "jinshuiyao_data_guard.check_jinshuiyao_data()",
+      "验证方式": "mutation_test.py 用例 M-008 rename 数据目录必须拦截",
+      "登记于": "2026-07-31"
+    },
+    {
+      "id": "E-009",
+      "类型": "路由注册但文件缺失",
+      "示例": "static.py 路由指向不存在 HTML",
+      "检测规则": "check_consistency.check_routes()",
+      "验证方式": "mutation_test.py 用例 M-009 删除路由文件必须拦截",
+      "登记于": "2026-07-31"
+    },
+    {
+      "id": "E-010",
+      "类型": "钩子未安装（写了没用）",
+      "示例": "pre-commit 钩子只有 .bat 无法被 Git for Windows spawn；install_hooks 找不到 git",
+      "检测规则": "closeout_gate.check_precommit_hook() + gate_all 自检",
+      "验证方式": "mutation_test.py 用例 M-010 移除 .git/hooks/pre-commit 必须拦截",
+      "登记于": "2026-07-31"
+    },
+    {
+      "id": "E-011",
+      "类型": "启动自检误报（检查不存在的功能）",
+      "示例": "startup_selfcheck 把从未实现的 sync/device_sync 当异常",
+      "检测规则": "startup_selfcheck.run_startup_check_safe() all_passed",
+      "验证方式": "mutation_test.py 用例 M-011 故意断依赖必须拦截",
+      "登记于": "2026-07-31"
+    },
+    {
+      "id": "E-012",
+      "类型": "auto_audit 错误未清零就提交",
+      "示例": "死链/孤儿索引在报告里但无人阻止提交",
+      "检测规则": "gate_all 检查 金水谣数据/log/auto_audit_report.json 若有 error 则拦截",
+      "验证方式": "mutation_test.py 用例 M-012 制造 auto_audit 错误必须拦截",
+      "登记于": "2026-07-31"
+    }
+  ]
+}
