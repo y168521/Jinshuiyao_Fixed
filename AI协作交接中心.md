@@ -25,6 +25,10 @@
 
 | 变更 | 说明 |
 |------|------|
+| **🔴 致命修复：根目录手顺文档未入仓** | 所有根目录文档（启动提示词/纲/契/录/复制启动提示词.bat等）之前从未在 git 中，已全部拷入 repo 并推送 |
+| **🔴 致命修复：control-center 路由404** | `jinshuiyao-guide/` 缺少 HTML 页面 → `frontend/guide/*.html` 全部拷入 `jinshuiyao-guide/`，`/control-center` `/workbench` `/ai-agent` 等路由恢复正常 |
+| **🔴 致命修复：前端大量死链接** | 7页面 echarts 路径从相对路径(`../../_shared/`等)改为 CDN；`trend-data.js` 引用改为绝对路径；`archive/旧报告/` 死链创建重定向页 |
+| **🟡 修复：知识库孤儿索引** | INDEX.json 12条孤儿索引已清除/修正（9条指向正确文件，3条无引用删除） |
 | 项目结构整理 | 9个前端目录移到 `frontend/`，echarts 去重 4→1，10个空目录删除 |
 | AI智能体升级 | 新增 `agent_orchestrator.py` / `agent_vector_memory.py` / `agent_tools.py` |
 | Git+GitHub | 仓库 `y168521/Jinshuiyao_Fixed`，SSH 已配，632文件已入库 |
@@ -80,7 +84,7 @@
 > **新AI开工第一件事：读完本节，就知道从哪里接手。**
 
 ### 当前目标 (2026-07-31)
-基金/股票 Web 功能补齐进行中。已完成：基金详情页+定投模拟器+持仓管理、个股详情页。下一步：足彩子系统 Web 功能（赔率分析+赛事详情+预测看板）。
+🔴 致命修复已完成：根目录文档入仓、control-center路由修复、前端死链大清理(echarts/trend-data/archive)、知识库孤儿索引清理。
 
 ### 下一步
 - [x] 台式机部署同步（WorkBuddy）✅
@@ -91,6 +95,10 @@
 - [x] **足彩 Domain 集成 jinshuiyao/ ML Pipeline**（analyze/generate/review 真实调用）✅
 - [x] **量化扫描（quant）集成主服务器**（handlers/quant.py + router注册 + app.js对接主服务端点）✅
 - [x] **足彩仪表盘对接真实 API**（assets/charts.js 连接 /api/football/predict）✅
+- [x] **🔴 致命修复: 根目录文档入仓** ✅
+- [x] **🔴 致命修复: control-center 等路由404→frontend/guide→jinshuiyao-guide** ✅
+- [x] **🔴 致命修复: 前端死链大清理(echarts/trend-data/archive)** ✅
+- [x] **🟡 修复: 知识库孤儿索引12条清理** ✅
 - [ ] **股票前端补充**（筛选/因子分析/回测页面 — 仪表盘已有内嵌tab，暂时充分）
 - [ ] 继续监控 P3 运维项目（API Key、watch dog、同族低危收口）
 
@@ -235,6 +243,7 @@
 | W44 | matches.csv P1 真实赛果数据集构建 2026-07-28 | WorkBuddy(诺亚团队) | 已完成 | 用户要求"上网搜真实数据填充"。因演示400行是seed=42编造、无真实比赛可对应，改为另建独立真实文件 matches_real.csv（143场，2025-26赛季五大联赛真实完赛结果，WebSearch核实来源：premierleague.com/laliga.com/AS.com/Soccerway/纳米数据等）；演示CSV仅预留result/score空列(现18列，留空为正确状态)。赛果分布 主胜60/平39/客胜44。缺口：文件不含赔率(odds)，回测"赔率→赛果"需另行接入真实赔率源(对齐match_id/球队+日期)。验证: 143行、联赛分布英超30/西甲40/德甲25/意甲30/法甲18；附 matches_real_README.md + generate_real_dataset.py | JS-20260728-13 |
 | W45 | matches.csv 回测分析(WebSearch真实赔率·校准/Brier/准确率/代表性) 2026-07-28 | WorkBuddy(诺亚团队) | 已完成 | 承接W44真实赛果(143场)做回测：WebSearch核实真实赔率(英超/西甲组=真实赔率反推隐含概率；德甲/意甲/法甲隐含=外部赛季基准近似*)，跑聚合级回测——校准(隐含vs实际)、Brier Score、简单策略命中率vs随机33.3%、卡方样本代表性；6图ECharts仪表盘+9章HTML报告，合并为金水谣_matches回测报告.html(自包含·6图嵌入)。关键数字：总体命中42.0% vs随机33.3%(+8.6pp)；Brier 0.215~0.232 vs随机0.667；英超overround≈0%/西甲+6.20%；卡方p EPL0.937/Bundes0.264/SerieA0.772/Ligue10.637。缺口：演示数据无真实赔率→仅聚合级非逐场；德甲/意甲/法甲隐含为基准近似非真实赔率("偏差"实为样本vs赛季差)；西甲缺外部基准未做代表性检验。验证: 合并脚本断言全过(echarts CDN+6图div+0占位符残留) | JS-20260728-15 |
 | W46 | Stripe风格金水谣SaaS落地页设计(设计引擎五成员接力·单文件自包含HTML) 2026-07-29 | WorkBuddy(主理人画统筹) | 已完成 | 按设计引擎SOP(需求发现→设计系统→原型→质量审查→导出)五成员接力，产出Stripe版式骨架+owner七色体系的单文件自包含落地页(金水谣SaaS落地页.html，≈48KB，无外链/无禁色/响应式中文/内联SVG/极量JS)；质量审查5维20/25 PASS，Anti-Slop全通过；配色严格落七色令牌(墨蓝/深蓝灰/暖银白/香槟金+冰蓝/墨绿金/赤铜)，规避红绿黄紫橙禁色与违规承诺词。验证: export-specialist双Grep零外链零禁色、双击离线可开 | JS-20260729-08 |
+| W58 | 🔴 致命修复: 根目录文档未入仓+前端死链大规模清理 2026-07-31 | opencode | 已完成 | ①根目录18文档(启动提示词/纲/契/录/复制启动提示词.bat等)从未入git→拷入repo并push;②control-center等路由404→`frontend/guide/`29HTML拷入`jinshuiyao-guide/`;③7页面echarts路径从相对(`../../_shared/`)改CDN;④`trend-data.js`引用改绝对路径(含omission-heatmap2处);⑤`archive/旧报告/`死链创建重定向页;⑥INDEX.json12条孤儿索引清理/修正(9条→正确证据文件,3条无引用删除);⑦.gitignore补漏数据hash文件;验证: git push b78bc68(38files) | 待登记 |
 
 ---
 
