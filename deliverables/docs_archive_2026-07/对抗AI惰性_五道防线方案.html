@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>对抗 AI 惰性 · 五道防线方案</title>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#1a2230; --panel2:#222c3c; --line:#2e3a4d;
+    --txt:#e6edf3; --dim:#9fb0c3; --gold:#e0b25a; --water:#5ab0e0;
+    --ok:#4ec9a1; --warn:#e0a85a; --bad:#e06a6a; --accent:#7aa2d6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.7;padding:32px 20px}
+  .wrap{max-width:920px;margin:0 auto}
+  h1{font-size:26px;margin:0 0 4px;color:var(--gold);letter-spacing:1px}
+  .sub{color:var(--dim);font-size:14px;margin-bottom:24px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:20px 22px;margin-bottom:16px}
+  .card h2{margin:0 0 10px;font-size:18px;color:var(--water);
+    display:flex;align-items:center;gap:10px}
+  .num{display:inline-flex;width:30px;height:30px;border-radius:8px;background:var(--panel2);
+    color:var(--gold);font-weight:700;align-items:center;justify-content:center;font-size:15px;flex:0 0 auto}
+  .tag{font-size:12px;padding:2px 9px;border-radius:20px;margin-left:auto;font-weight:600}
+  .t-gate{background:rgba(224,168,90,.15);color:var(--warn);border:1px solid var(--warn)}
+  .t-soft{background:rgba(90,176,224,.15);color:var(--water);border:1px solid var(--water)}
+  .t-auto{background:rgba(78,201,161,.15);color:var(--ok);border:1px solid var(--ok)}
+  p{margin:8px 0;color:var(--txt)}
+  .dim{color:var(--dim);font-size:14px}
+  ul{margin:8px 0;padding-left:20px}
+  li{margin:5px 0}
+  code{background:var(--panel2);padding:1px 6px;border-radius:5px;color:var(--accent);
+    font-size:13px;font-family:"Cascadia Code",Consolas,monospace}
+  .quote{border-left:3px solid var(--gold);padding:6px 14px;background:rgba(224,178,90,.07);
+    color:var(--dim);font-size:14px;margin:10px 0;border-radius:0 8px 8px 0}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:var(--panel2);color:var(--gold)}
+  tr:nth-child(even){background:rgba(255,255,255,.02)}
+  .road{border:1px dashed var(--line);border-radius:10px;padding:16px 18px;margin-top:8px;background:var(--panel2)}
+  .road h3{margin:0 0 8px;color:var(--gold);font-size:15px}
+  .pill{display:inline-block;font-size:12px;padding:3px 10px;border-radius:6px;
+    background:rgba(122,162,214,.13);color:var(--accent);margin:2px 4px 2px 0;border:1px solid var(--line)}
+  .foot{text-align:center;color:var(--dim);font-size:12px;margin-top:26px}
+  .badge{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+  .b-ok{background:var(--ok)} .b-warn{background:var(--warn)} .b-bad{background:var(--bad)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>对抗 AI 惰性 · 五道防线</h1>
+  <div class="sub">金水谣项目 · 针对「长文本被粗略略过、缺乏认真思考」的深层机制设计 · 2026-07-27</div>
+
+  <div class="card">
+    <h2><span class="num">!</span>问题本质</h2>
+    <p>AI 在长上下文里并非「逐字精读」，而是受 <b>注意力近因偏差（recency bias）</b> 与 <b>长度导致的粗略扫读</b> 影响：当一段长文档（日志、历史对话、规范库）整体塞进上下文时，模型容易「看起来读过了」就下结论，跳过中间关键段落，且缺少强制验证机制时不会自曝「没读全」。</p>
+    <p class="dim">这与人的惰性同源——信息过载时大脑也启动「略读+脑补」捷径。所以对抗方法不是「要求更认真」，而是<b>从流程上让惰性无法发生</b>：把长文本拆小、强制引用证据、用便宜模型先做脏活、定期抽考验证。</p>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">1</span>检索前置（Retrieval-First）<span class="tag t-soft">流程红线</span></h2>
+    <p><b>原理：</b>禁止「整本文档塞进上下文再读」。先由工具抽取关键片段置顶，再让模型处理。</p>
+    <ul>
+      <li><b>落地：</b>处理 &gt;2000 字文档前，先用 <code>Grep</code>/<code>grep</code> 定位相关段落，只把命中片段 + 行号交给模型；Obsidian vault 用 <code>[[wikilink]]</code> 导航而非通读全库。</li>
+      <li><b>铁律：</b>凡引用长文档结论，必须「先检索后引用」，禁止「我大致看了一下」式断言。</li>
+    </ul>
+    <div class="quote">已生效：Obsidian 双链（JS-20260727-06）让知识库可导航而非通读；前端巡检/健康日报等 Skill 均走「脚本抽取→模型判断」而非模型通读。</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">2</span>引用门禁（Citation Gate）<span class="tag t-gate">强门禁</span></h2>
+    <p><b>原理：</b>每段结论必须标注可复核证据，无引用即「未证实」。</p>
+    <ul>
+      <li><b>落地：</b>凡输出「已修复 / 已验证 / 已对齐」类断言，必须附 <code>📌 依据：&lt;文件#行号&gt;</code> 或命令输出片段。</li>
+      <li><b>门禁：</b>在「收工自检」「知识体检 Lint」中加「结论—证据」配对检查；无证据的断言标记为【未证实】回退重做。</li>
+      <li><b>铁律：</b>跨文件/跨会话的结论，必须在总索引或交接中心登记可溯源编号（JS-/TS-）。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">3</span>原子化（Atomic Processing）<span class="tag t-soft">流程红线</span></h2>
+    <p><b>原理：</b>一次性吞下大文档再略过，是惰性的温床。拆成 ≤1 个逻辑单元，逐个处理并即时反馈。</p>
+    <ul>
+      <li><b>落地：</b>文档审查按章节原子化；多文件改动用 <code>TaskCreate</code> 拆任务，逐个标记完成；单轮只处理一个逻辑单元。</li>
+      <li><b>铁律：</b>跨单元的结论需在单元边界做「已读确认」——未确认不得跨单元引用。</li>
+    </ul>
+    <div class="quote">已生效：本会话 git 收尾即拆成「补 gitignore / 取消跟踪 / 提交源码」三个原子任务逐一完成，避免一次性漏改。</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">4</span>濯石淘洗（Zhuoshi Pre-filter）<span class="tag t-auto">已落地</span></h2>
+    <p><b>原理：</b>便宜模型（濯石 / <code>zhuoshi</code>）承担「读全 + 结构化」脏活，贵模型（DeepSeek）只做高价值决策。濯石读全成本低，惰性代价小；贵模型只看结构化结果，不被长文本淹没。</p>
+    <ul>
+      <li><b>落地：</b>长文档分析流程 = 濯石抽取摘要 / 矛盾清单 / 待核实项 → 人工或 DeepSeek 基于结构化结果复核。</li>
+      <li><b>已落地：</b>今日已将全部 10 个维护型自动化（看门狗 / 诚实回测 / 记忆蒸馏 / 健康巡检 / 基金日报 / 提示词同步 / 收工自检 / 数据源健康 / GraphRAG 调和 / 知识体检 Lint）钉死 <code>modelId=zhuoshi</code> + <code>modelIsThinking=false</code>。让便宜模型承担运维脏活，贵模型留给真正的推理与创作。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">5</span>主动抽考（Active Quiz）<span class="tag t-gate">建议新建 Skill</span></h2>
+    <p><b>原理：</b>定期随机抽查 AI 是否真读全，答不出 = 读不全，触发重读。把「自检」变成不可跳过的关卡。</p>
+    <ul>
+      <li><b>落地（建议）：</b>新建自动化 Skill <code>jinshuiyao-ai-diligence-check</code>——每次收工或 AI 接力交接时，从当日处理的文档随机抽 1–2 个细节提问（如「第 X 章第 Y 节说了什么」「文档里哪个结论与 Z 矛盾」），答不出则判定读不全并强制重读该段。</li>
+      <li><b>铁律：</b>多 AI 接力时，接手方必须先用 1 个抽考问题验证前一手真读过，否则不接手。</li>
+      <li><b>复用：</b>可嵌入现有「知识体检 Lint」做交叉验证，不另起炉灶。</li>
+    </li>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">≡</span>落地点映射</h2>
+    <table>
+      <tr><th>防线</th><th>类型</th><th>落地动作</th><th>状态</th></tr>
+      <tr><td>① 检索前置</td><td>流程红线</td><td>写进启动提示词铁律 + 提示词库「AI协作类」</td><td><span class="badge b-warn"></span>待写铁律</td></tr>
+      <tr><td>② 引用门禁</td><td>强门禁</td><td>加进收工自检 / 知识体检 Lint 的「结论-证据」配对检查</td><td><span class="badge b-warn"></span>待接</td></tr>
+      <tr><td>③ 原子化</td><td>流程红线</td><td>TaskCreate 拆任务 + 单元边界已读确认</td><td><span class="badge b-ok"></span>已践行</td></tr>
+      <tr><td>④ 濯石淘洗</td><td>模型分工</td><td>10 个维护型自动化钉 zhuoshi</td><td><span class="badge b-ok"></span>已落地</td></tr>
+      <tr><td>⑤ 主动抽考</td><td>新建 Skill</td><td><code>jinshuiyao-ai-diligence-check</code> 抽考自检</td><td><span class="badge b-bad"></span>待建</td></tr>
+    </table>
+    <div class="road">
+      <h3>建议落地路线（需用户拍板）</h3>
+      <span class="pill">A. 写铁律</span> 将 ①②③ 红线补进 <code>启动提示词.txt</code>（第8条附近）并同步提示词库.html、MEMORY §（遵循三层闭环铁律⑧）<br>
+      <span class="pill">B. 建抽考 Skill</span> 新建 <code>jinshuiyao-ai-diligence-check</code>，挂收工自检或独立周常，随机抽考当日文档细节<br>
+      <span class="pill">C. 门禁接线</span> 在收工自检脚本加「结论-证据」配对校验，无引用即告警
+    </div>
+  </div>
+
+  <div class="foot">金水谣 · 五行相生：金生水，水生木；濯石淘洗，留真去伪。 · 本方案为设计文档，落地动作待用户确认后执行</div>
+</div>
+</body>
+</html>

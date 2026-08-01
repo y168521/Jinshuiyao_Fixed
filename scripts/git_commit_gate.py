@@ -22,7 +22,7 @@ import os
 import sys
 import subprocess
 
-ROOT = "C:/Users/Administrator/Nutstore/1/我的坚果云/模型"
+ROOT = "C:/Users/Administrator/Nutstore/1/我的坚果云/模型/Jinshuiyao_Fixed"
 
 # 运行时噪音黑名单（目录前缀 / 文件名模式 / 后缀）
 # 这些产物按铁律不入库，出现在本地的未提交清单里属于噪音，应被过滤。

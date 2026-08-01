@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 启动 AI 知识库搭建手册</title>
+<style>
+  :root{ --bg:#0f1419; --card:#1a2230; --ink:#e6edf3; --sub:#9fb0c3; --acc:#4cc2ff; --ok:#3fb950; --warn:#f0883e; --bad:#f85149; --line:#2b3648; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.7;font-size:15px}
+  .wrap{max-width:960px;margin:0 auto;padding:32px 24px 80px}
+  h1{font-size:28px;margin:0 0 6px;color:var(--acc)}
+  h2{font-size:21px;margin:38px 0 12px;padding-left:10px;border-left:4px solid var(--acc);color:#fff}
+  h3{font-size:17px;margin:22px 0 8px;color:var(--acc)}
+  .lead{color:var(--sub);margin:0 0 20px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:14px 0}
+  code{background:#0b0f14;border:1px solid var(--line);border-radius:6px;padding:1px 6px;color:#9fe6a0;font-size:13px}
+  pre{background:#0b0f14;border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow:auto;font-size:13px;color:#cfe3ff}
+  pre .c{color:var(--sub)} /* comment */
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:#16202e;color:var(--acc)}
+  .tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:20px;margin-right:4px}
+  .t-low{background:rgba(63,185,80,.15);color:var(--ok)}
+  .t-mid{background:rgba(240,136,62,.15);color:var(--warn)}
+  .t-high{background:rgba(248,81,73,.15);color:var(--bad)}
+  .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+  .node{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:13px}
+  .arrow{color:var(--acc);font-weight:bold}
+  .warn{background:rgba(240,136,62,.1);border-left:4px solid var(--warn);padding:10px 14px;border-radius:6px;margin:12px 0}
+  .ok{background:rgba(63,185,80,.1);border-left:4px solid var(--ok);padding:10px 14px;border-radius:6px;margin:12px 0}
+  .bad{background:rgba(248,81,73,.1);border-left:4px solid var(--bad);padding:10px 14px;border-radius:6px;margin:12px 0}
+  .small{color:var(--sub);font-size:13px}
+  ol,ul{margin:8px 0;padding-left:22px}
+  li{margin:5px 0}
+  a{color:var(--acc)}
+  .foot{margin-top:40px;color:var(--sub);font-size:12px;border-top:1px solid var(--line);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>金水谣 · 启动 AI 知识库搭建手册</h1>
+<p class="lead">面向多 AI 接力协作的个人/项目知识库体系。讲清：知识库是什么、七层闭环怎么转、Obsidian 怎么接、门禁怎么卡、以及——<b>删东西怎么才不翻车</b>。<br>
+<span class="small">本手册由 AI 依据项目现有体系（启动提示词.txt / 提示词库.html / obsidian-vault / closeout_gate.py / safe_cleanup.py）重建（JS-20260727-14）。</span></p>
+
+<div class="warn"><b>为什么需要这本手册？</b> 一次常规清理中，某个会话把"清理金水谣数据/"理解成整目录 <code>rm</code>，没区分独有文档 / 运行时杂物 / 活跃文档，导致一份从未提交 git 的独有手册被循环删除、<b>永久丢失</b>。根因＝删除环节"没细致划分 + 无闸门 + 无兜底"。本手册第 6 节给出经实测的安全删除框架，直接从机制上根除该漏洞。</div>
+
+<h2>1. 知识库是什么（金水谣的三类知识）</h2>
+<div class="card">
+<p>金水谣的知识不在某个神秘数据库里，而是<b>三层纯文本 Markdown</b>，机器和人都能读：</p>
+<table>
+<tr><th>层</th><th>文件</th><th>作用</th><th>谁来写</th></tr>
+<tr><td>① 协作层</td><td><code>AI协作交接中心.md</code><br><code>工作留痕总索引.md</code></td><td>进度/待办/分工；所有改动按 <code>JS-编号</code> 登记</td><td>AI 收工必写</td></tr>
+<tr><td>② 决策层</td><td><code>Jinshuiyao_Fixed/金水谣数据/log/ai_decisions.md</code></td><td>AI 决策卡（8 字段：属主/做了什么/为什么根因/验证/坑/有效方法/关联文件/关联总索引）</td><td>AI 每任务必写</td></tr>
+<tr><td>③ 运营层</td><td><code>.workbuddy/memory/MEMORY.md</code><br><code>.workbuddy/memory/YYYY-MM-DD.md</code></td><td>长期铁律 + 每日日志（AI 状态，人手别改）</td><td>AI 自动维护</td></tr>
+</table>
+<p class="small">另有 <code>经验收集箱.md</code>（踩坑/有效方法）、<code>graph_triples.json</code>（2156 条语义三元组，给 AI 离线检索用）。这些才是"知识库"的真身——不是 Obsidian，Obsidian 只是它的阅读视图（见第 4 节）。</p>
+</div>
+
+<h2>2. 七层知识闭环（知识要复利，不要漏斗）</h2>
+<p>核心原则：<b>一件事只在一处写（单一真源），写一次自动传播到所有下游</b>。断任一环＝复利变漏斗。</p>
+<div class="card">
+<div class="flow">
+  <span class="node">① 干活</span><span class="arrow">→</span>
+  <span class="node">② 写 memory</span><span class="arrow">→</span>
+  <span class="node">③ 登记总索引</span><span class="arrow">→</span>
+  <span class="node">④ 写 ai_decisions 决策卡</span><span class="arrow">→</span>
+  <span class="node">⑤ (自动)知识卡片+三元组</span><span class="arrow">→</span>
+  <span class="node">⑥ Skill/自动化</span><span class="arrow">→</span>
+  <span class="node">⑦ 启动提示词</span><span class="arrow">→</span>
+  <span class="node">回到①下一轮</span>
+</div>
+<p class="small">每个箭头都有<b>门禁/自动化兜底</b>。例如 ③→④ 由 <code>closeout_gate.py</code> 的 [B] 项反向核对（见第 5 节）；④→⑦ 由每周"启动提示词同步"Skill 保证。</p>
+</div>
+
+<h2>3. 多 AI 接力：接手前必读</h2>
+<div class="card">
+<ol>
+<li>读 <code>启动提示词.txt</code> → 按顺序读 4 个入口文件（交接中心 / 规范 / AGENTS / 总索引）。</li>
+<li>读 <code>AI协作规范_完整版.md §六-D</code> 接手 SOP（7 步清单）。</li>
+<li>在交接中心"待优化清单"里<b>先认领任务</b>（状态改 🚧进行中·XXX认领），24h 无进展自动解锁。</li>
+<li>动手前做影响面分析；改完跑冒烟测试 <code>smoke_test.py --quick</code> 7/7 全绿才算修好。</li>
+<li>收工必须：更新交接中心 + 写经验收集箱 + 跑收工自检（第 5 节）+ 登记总索引 + 写决策卡 + git commit。</li>
+</ol>
+<div class="bad"><b>致命禁忌：</b>禁止对"金水谣数据/"这类目录下<b>宽指令整目录删除</b>。任何清理必须先分类、先 salvage、低风险才删（见第 6 节）。曾因此丢失独有文档。</div>
+</div>
+
+<h2>4. 用 Obsidian 接知识库（只读视图）</h2>
+<p>知识库是纯 .md，Obsidian 本质就是"读一个文件夹里的 .md"。已搭好<b>只读 vault</b>：</p>
+<div class="card">
+<h3>打开方式</h3>
+<ol>
+<li>装好 Obsidian → 左下「打开其他仓库」→「打开文件夹作为仓库」。</li>
+<li>选 <code>C:\Users\Administrator\Nutstore\1\我的坚果云\模型\obsidian-vault</code>。</li>
+<li>入口看 <code>00-开始这里.md</code>；顶部搜索框可全文搜（"死锁""并发""熔断"）。</li>
+</ol>
+<h3>里面有什么（4 份子集）</h3>
+<table>
+<tr><th>文件</th><th>内容</th></tr>
+<tr><td><code>经验收集箱.md</code></td><td>AI 自动收集的经验/踩坑/有效方法</td></tr>
+<tr><td><code>工作留痕总索引.md</code></td><td>所有改动登记总表（按 JS- 编号）</td></tr>
+<tr><td><code>AI协作交接中心.md</code></td><td>待办/优化清单/多 AI 接力记录</td></tr>
+<tr><td><code>ai_decisions.md</code></td><td>AI 决策卡（可搜索的知识库原文）</td></tr>
+</table>
+<h3>刷新联动（单向复制，原件绝不改）</h3>
+<pre><span class="c"># 自动：Windows 计划任务每 15 分钟跑（仅当源比副本新才拷）</span>
+schtasks /create /sc minute /mo 15 /tn "JinshuiyaoObsidianSync" ^
+  /tr "C:\Users\Administrator\Nutstore\1\我的坚果云\模型\obsidian-vault\刷新vault.bat" /f
+<span class="c"># 手动：双击 刷新vault.bat，或对话里说"刷新 vault"</span></pre>
+<div class="ok"><b>只读铁律：</b>不要在 Obsidian 里改这些文档——改了会被监听线程覆盖。要改回体系里让 AI 操作。vault 已写进 <code>.gitignore</code>，零 git 污染。<code>link_vault.py</code> 会注入 <code>[[wikilink]]</code> 让图谱连通。</div>
+</div>
+
+<h2>5. 收工门禁：closeout_gate（防漏，不是靠记性）</h2>
+<div class="card">
+<p>说"完成"之前必须跑（每日 23:30 自动化已接）：</p>
+<pre>py -3.14 Jinshuiyao_Fixed/scripts/closeout_gate.py   <span class="c"># 全绿=CLOSEOUT-OK，退出码0</span></pre>
+<table>
+<tr><th>项</th><th>核对内容</th><th>抓什么漏</th></tr>
+<tr><td>[A]</td><td>git 待提交 / gitignore 隐患</td><td>漏提交的源码、泄漏的运行时文件</td></tr>
+<tr><td>[B]</td><td>今日总索引每个 JS 编号是否都进 ai_decisions.md</td><td>干了没写知识库</td></tr>
+<tr><td>[C]</td><td>今日决策卡 8 字段完整</td><td>卡写残缺</td></tr>
+<tr><td>[D]</td><td>启动提示词 mtime 今日同步</td><td>铁律改了没同步入口</td></tr>
+<tr><td>[E]</td><td>今日每个 commit 的 JS 编号是否登记总索引</td><td><b>有 commit 没登记</b>（跨会话断链，曾抓中 JS-07/08/09、JS-12）</td></tr>
+</table>
+<div class="warn">[E] 项是<b>反向核对</b>：从 <code>git log --since=midnight</code> 抓 JS 编号，反向比总索引标题。任何会话（含跨会话）提交的编号若没登记，会被点名。这是"纸面打通≠真打通"的硬保险。</div>
+</div>
+
+<h2>6. 安全删除框架（JS-20260727-14 · 事故后优化）</h2>
+<p>取代"宽指令 rm 整目录"。四道保险：<b>①只读扫描先行 ②七类精细划分 ③SALVAGE 兜底 ④三级闸门</b>。</p>
+
+<h3>6.1 七类精细划分（每文件归一类，区分价值）</h3>
+<table>
+<tr><th>类别</th><th>判定</th><th>风险</th><th>闸门</th></tr>
+<tr><td>运行时杂物</td><td><code>*.log</code> / <code>_kb_backup_*.json</code> / <code>*.bak.*</code> / watchdog* / video_cache</td><td><span class="tag t-low">低</span></td><td>自动（需 <code>--apply</code>）</td></tr>
+<tr><td>冲突残留</td><td><code>*冲突*</code> / <code>*.orig</code> / <code>*.rej</code> / <code>*.mine</code></td><td><span class="tag t-low">低</span></td><td>自动（需 <code>--apply</code>）</td></tr>
+<tr><td>死文件</td><td>git 跟踪、全仓零引用、无权威副本</td><td><span class="tag t-mid">中</span></td><td>需 <code>--apply</code></td></tr>
+<tr><td>冗余副本</td><td>仓库内有同名权威文件（另一处）</td><td><span class="tag t-mid">中</span></td><td>需 <code>--apply</code></td></tr>
+<tr><td>独有文档</td><td>人读知识(.md/.html)，零引用、无副本</td><td><span class="tag t-high">高</span></td><td>需 <code>--confirm-unique</code></td></tr>
+<tr><td>活跃引用</td><td>被代码/索引引用</td><td><span class="tag t-high">高</span></td><td>需 <code>--confirm-unique</code></td></tr>
+<tr><td>未提交新文件</td><td>git 未跟踪且未忽略，价值未知</td><td><span class="tag t-high">高</span></td><td>需 <code>--confirm-unique</code></td></tr>
+</table>
+
+<h3>6.2 用法</h3>
+<pre><span class="c"># 1) 只读分类报告（默认，零副作用）——先看清再决定</span>
+py -3.14 Jinshuiyao_Fixed/scripts/safe_cleanup.py &lt;路径&gt;
+
+<span class="c"># 2) 执行：低风险+中风险删，高风险的独有/活跃/未提交会拒绝(🛡)</span>
+py -3.14 Jinshuiyao_Fixed/scripts/safe_cleanup.py &lt;路径&gt; --apply
+
+<span class="c"># 3) 确要认真删高风险项：显式加 --confirm-unique（仍需先 salvage）</span>
+py -3.14 Jinshuiyao_Fixed/scripts/safe_cleanup.py &lt;路径&gt; --apply --confirm-unique</pre>
+
+<h3>6.3 三重硬约束（任何模式都生效）</h3>
+<div class="ok">
+<ul>
+<li><b>SALVAGE 兜底：</b>删前把拟删文件全拷到仓库外 <code>../_cleanup_salvage/&lt;时间戳&gt;/</code>（循环删/误删都能找回，已实测持久化）。</li>
+<li><b>不递归 rm：</b>只逐文件删"已分类且过闸门"的项，结构上杜绝整目录误删。</li>
+<li><b>仓库外拒绝：</b>目标在仓库外（如 <code>C:/Windows</code>）或位于 <code>.git/</code> 内 → 直接拒绝（退出码 3）。</li>
+</ul>
+</div>
+<div class="warn"><b>铁律：</b>删 <code>tracked</code> 文件后必须单独 <code>git commit</code> 入库，<b>切勿把独有文档的删除和清理混在同一批提交</b>——这正是事故扩大的原因。</div>
+
+<h2>7. 防 AI 惰性 · 五道防线（摘要）</h2>
+<div class="card">
+<ol>
+<li><b>检索前置：</b>动手前读全上下文（交接中心+总索引+经验箱+源码），禁凭印象下结论。</li>
+<li><b>引用门禁：</b>任何结论附证据（文件:行号/命令输出/数据），无引用＝未做。</li>
+<li><b>原子化：</b>一次最多领 2-3 个任务，做完验完再领下一批。</li>
+<li><b>濯石淘洗：</b>硅基流动免费模型(THUDM/GLM-4-9B-0414)只在项目代码内部干脏活省费，不替代 DeepSeek 核心质量。</li>
+<li><b>主动抽考 + 不闭塞：</b>收工随机抽考当日文档细节；结论受外部影响时先联网核验，禁闭门造车。</li>
+</ol>
+</div>
+
+<h2>8. 常见坑速查</h2>
+<table>
+<tr><th>坑</th><th>正确做法</th></tr>
+<tr><td>py 版本错用 → 孤儿双进程</td><td>一律 <code>py -3.14</code>，禁用 <code>py -3</code></td></tr>
+<tr><td>多线程 Lock 不可重入 → 死锁</td><td>重入场景用 <code>threading.RLock()</code></td></tr>
+<tr><td>GuideHandler 缺方法 → 前端 500</td><td>新增方法须实现在 server/router.py</td></tr>
+<tr><td>git -C 对 CJK 路径失效</td><td>用 <code>cd &lt;路径&gt; &amp;&amp; git ...</code></td></tr>
+<tr><td>运行时生成文件误提交</td><td>已被 .gitignore 屏蔽，commit 只加源码+留痕</td></tr>
+<tr><td><b>整目录宽删 → 丢独有文档</b></td><td><b>用第 6 节 safe_cleanup.py，先分类先 salvage</b></td></tr>
+</table>
+
+<div class="foot">
+金水谣知识库搭建手册 · 由 AI 依据现有体系重建（JS-20260727-14）· 与 <code>启动提示词.txt</code> / <code>obsidian-vault/00-开始这里.md</code> 互为补充 · 改动后须在总索引登记并保持启动提示词同步。
+</div>
+
+</div>
+</body>
+</html>
