@@ -187,9 +187,29 @@ class Killer:
         kill_set.update(kill_missing)
 
         # ---- c) 位置杀号（仅 3D / 排列三） ----
+        kill_position = set()
         if lot in ("福彩3D", "排列三"):
             kill_position = self._kill_by_position(recent[-10:])
             kill_set.update(kill_position)
+
+        # ---- JS-20260802-01: 小盘彩杀号上限收敛 ----
+        # 福彩3D/排列三 只有 10 个数字，三个杀号法并集可达 5-6 个（60%），
+        # 会逼得 FormatGen 从杀号里回填，导致号码池塌缩成固定集合（如 {0,1,6,7,8,9}），
+        # 呈现"预测全是 0"的畸形输出。这里按彩种限制杀号上限，保留置信度最高的几个。
+        kill_limit = self._kill_limit(lot)
+        if kill_limit is not None and len(kill_set) > kill_limit:
+            # 各维度投票数：一个号码被多个杀号法命中的置信度更高
+            votes = Counter()
+            votes.update(kill_interval)
+            votes.update(kill_missing)
+            votes.update(kill_position)
+            ranked = sorted(kill_set, key=lambda n: (-votes.get(n, 0), n))
+            keep = set(ranked[:kill_limit])
+            logger.info(
+                "[%s] 小盘彩杀号上限 %d：%s -> 保留 %s",
+                lot, kill_limit, sorted(kill_set), sorted(keep),
+            )
+            kill_set = keep
 
         logger.info(
             "[%s] 高级杀号结果：%s (间隔=%d, 遗漏=%d, 位置=%d)",
@@ -288,6 +308,19 @@ class Killer:
             "快乐8": 20,     # 20*1 = 20
         }
         return rules.get(lot, 6)  # 默认保留6个
+
+    def _kill_limit(self, lot):
+        """小盘彩杀号上限：超过则按置信度收敛。
+
+        福彩3D/排列三 只有 10 个数字，若三个杀号法并集杀 5-6 个（60%），
+        会逼 FormatGen 从杀号里回填，导致号码池塌缩、预测畸形（如"全是0"）。
+        这里限制最多杀 2 个；其他彩种不设上限（返回 None）。
+        """
+        rules = {
+            "福彩3D": 2,
+            "排列三": 2,
+        }
+        return rules.get(lot, None)
 
     # ------------------------------------------------------------------
     # a) 间隔杀号法

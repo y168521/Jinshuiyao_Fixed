@@ -217,7 +217,9 @@ class PredictionService:
             try:
                 from engines.miss_analyzer import MissAnalyzer
                 miss_analyzer = MissAnalyzer(lot)
-                miss_data = miss_analyzer.analyze(arr)
+                # 注意：MissAnalyzer.analyze 期望 history 按时间从近到远（index 0 = 最新），
+                # 而 Data.load 返回的是旧→新，这里需反转，否则 current_miss/breakthrough_score 全部失真
+                miss_data = miss_analyzer.analyze(list(reversed(arr)))
                 alerts = miss_analyzer.get_cold_alerts(1.5)
                 if alerts:
                     alert_nums = [f"{n:02d}" for n, _ in alerts[:3]]
