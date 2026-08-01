@@ -27,6 +27,7 @@ $noise = @(
     "correlation_matrix.json", "predictions.json",
     "auto_audit_report.json", "brain_state.json",
     "auto_sync.log", "token_usage.json",
+    "server\config.py",
     "__pycache__", ".ruff_cache", ".pytest_cache"
 )
 $candidates = @()
