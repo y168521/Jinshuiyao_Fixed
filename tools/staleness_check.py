@@ -131,6 +131,14 @@ def check(verbose=True):
             if probe is True:
                 is_stale = False  # 内容已含最新知识 → mtime 失真，视为新鲜
         if is_stale:
+            # Skill 蒸馏区是可选增强层：分布式地只在存在蒸馏内容时更新；
+            # 源 mtime 被碰/无待蒸馏项时不应判为知识断链 → 仅提示不阻断。
+            if name == 'Skill蒸馏区':
+                if verbose:
+                    print('%-22s %s  %s   (依赖: %s)%s  [提示: 无待蒸馏内容则忽略]' % (
+                        name, time.strftime('%m-%d %H:%M', time.localtime(ts)), mark, dep,
+                        '  (内容探针: 已含最新知识)' if probe is True else ''))
+                continue
             stale += 1
         mark = '陈旧' if is_stale else '新鲜'
         if verbose:

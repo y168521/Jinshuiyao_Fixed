@@ -561,6 +561,16 @@ class JinshuiyaoAgent:
 
             # 3. 如果是系统命令或知识库命令，直接返回
             if subsystem in ("system", "knowledge"):
+                # 知识库查询类动作：用知识网关四源召回补充（卡片+三元组+向量+经验+项目文档），
+                # 让"搜索知识 xxx/查项目记忆/查风险/查总索引"不再是单文件搜索。
+                if subsystem == "knowledge" and action in ("search", "project_memory", "risk_register", "total_index"):
+                    try:
+                        from core.knowledge_gateway import summarize
+                        gw_text = summarize(user_input, limit=5)
+                        if gw_text:
+                            data_result += "\n\n【知识网关补充·四源召回】\n" + gw_text
+                    except Exception:
+                        pass
                 self._history.append(("assistant", data_result))
                 return self._with_reminders(data_result)
 

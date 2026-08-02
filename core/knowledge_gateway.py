@@ -122,10 +122,11 @@ def _recall_cards(query, limit):
     """知识卡片：MiroFish 全文 + BM25 排序（资产缓存，mtime 失效）"""
     try:
         from knowledge.mirofish_db import MiroFishDB
+        _MIRO_PATH = os.path.join(BASE_DIR, 'knowledge', 'mirofish_db.json')
 
         def _load():
             return MiroFishDB()._data.get('cards', [])
-        cards = _cached_asset('cards', _load)
+        cards = _cached_asset('cards', _load, _MIRO_PATH)
         docs = []
         for c in cards:
             docs.append({
@@ -146,7 +147,7 @@ def _recall_triples(query, limit):
         def _load():
             with open(TRIPLE_PATH, encoding='utf-8') as f:
                 return json.load(f).get('triples', [])
-        triples = _cached_asset('triples', _load)
+        triples = _cached_asset('triples', _load, TRIPLE_PATH)
         docs = [{
             'id': str(i),
             'text': (t.get('subject', '') + ' ' + t.get('predicate', '') + ' ' + t.get('object', '')
@@ -190,7 +191,7 @@ def _load_expbox_entries():
             if re.match(r'^\d{4}-\d{2}-\d{2}', title):
                 entries.append({'title': title, 'body': m.group(2).strip()})
         return entries
-    return _cached_asset('expbox', _load)
+    return _cached_asset('expbox', _load, EXPBOX_PATH)
 
 
 def _recall_experiences(query, limit):
