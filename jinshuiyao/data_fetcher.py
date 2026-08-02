@@ -140,7 +140,8 @@ class DataFetcher:
                 'away_rank': away_rank,
                 'home_goals': 0,
                 'away_goals': 0,
-                'is_live': False
+                'is_live': False,
+                'source': '离线兜底-真实球队名+未来日期(非官方赛程)',
             })
         
         return matches

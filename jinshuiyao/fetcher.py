@@ -694,6 +694,7 @@ class FootballFetcher:
                     'odds_win': base_win,
                     'odds_draw': base_draw,
                     'odds_lose': base_lose,
+                    'source': '离线兜底-模拟数据(所有数据源失败时生成)',
                 })
         
         random.shuffle(matches)
