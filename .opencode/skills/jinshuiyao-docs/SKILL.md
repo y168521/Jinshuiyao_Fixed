@@ -68,6 +68,18 @@ description: 金水谣文档登记与交接规范。Use when completing any task
 - [ ] 外层副本同步了吗？（改了仓库根的 md 时）
 
 ## 📥 自动蒸馏区（auto_distill 维护，勿手改）
+- **2026-08-02 第十三条：跨进程"联动"靠心跳文件——GUI与web状态互通** — ①跨进程状态互通最轻量的方案是"文件心跳+pid 存活校验"，比端口探测/进程枚举可靠（Windows 下无 psutil 也能做）；②联动要有"回显"闭环：web 发起动作，web 能看到结果，否则用户感觉不到联动；③日志联动要防两坑：目
+  - ①`core/gui_registry.py` 心跳注册：GUI 启动时写 金水谣数据/log/gui_status.json（pid/标题/启动时间），退出 atexit 自动清理；检测方读文件 + pid 存活校验（OpenProcess+GetExitCodeProcess=259），异常退出不残留脏状态；②5 个 GUI 入口统一接入 register()（try-except 包裹，失败
+  - 原文: 金水谣数据/log/经验收集箱.md#2026-08-02 第十三条（L1 原始层）
+  - 关联: JS-20260802-09 / 交接中心 W63补13
+- **2026-08-02 第十二条：相对路径的"幽灵垃圾目录"——cwd 不是项目根时数据写错位** — ①数据/日志路径必须锚定代码位置或显式配置，绝不依赖 cwd（GUI 经中转启动 cwd 不可控）；②用户报告"弹窗"往往是表层，深挖启动链（谁启动、cwd 是什么、异常在哪丢的）；③初始化失败弹窗必须带原因，否则用户/开发者无从下手；④未
+  - ①`domains/base.py` 新增 `PROJECT_ROOT` 自定位（`os.path.dirname(os.path.dirname(os.path.abspath(__file__)))`，不依赖 cwd）+ `project_data_dir(sub)` 辅助；②6 处相对路径改绝对路径（stock/music/fund/creator/lottery 的 data_dir/ou
+  - 原文: 金水谣数据/log/经验收集箱.md#2026-08-02 第十二条（L1 原始层）
+  - 关联: JS-20260802-08 / 交接中心 W63补12
+- **2026-08-02 第十一条：Windows GUI 跨会话启动双坑——explorer 中转 + 桌面美化** — ①跨会话 GUI 启动 = 无头父进程不直连，经 explorer 借壳进入桌面会话；②美化=主题函数集中化+入口统一接入，每个 GUI 单独改样式必然漂移；③GUI 启动链任何一步失败都要有回退路径，否则"打不开"。
+  - ①`server/utils.py` 加 `_launch_gui_via_explorer`：先 `explorer.exe <空目录>` 拿 explorer 的父级(继承桌面会话)作为起始进程，再 Popen 起 pythonw 跑 GUI——GUI 进入用户桌面会话；失败自动回退直接 Popen（不静默失败）；②vbs 中转方案（把启动命令写进临时 vbs 由 explorer 打开）也可
+  - 原文: 金水谣数据/log/经验收集箱.md#2026-08-02 第十一条（L1 原始层）
+  - 关联: JS-20260802-07 / 交接中心 W63补11
 - **2026-08-02 第七条：AI蒸馏首跑全失败——三个隐蔽坑**
   - ①调用外部 API 的库函数，异常必须显式打印而不是 `except: return None`（否则排查全靠猜）；②LLM 输出**永远不保证格式**，解析必须容错（首行/全文/前缀全兜底）；③幂等标记+flush 模式是调试好帮手——清空 seen 重跑即全量重蒸。
   - ①属性访问 `ai.is_available`（不加括号）；②宽松解析：首行不在 Skill 名列表就全文扫描找 Skill 名；③规则行 `lstrip("- ")` 兜底。修复后单测 killer 合并→正确归 jinshuiyao-dev 3 条规则。
