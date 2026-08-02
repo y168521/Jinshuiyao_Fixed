@@ -50,18 +50,14 @@ Set-Clipboard -Value $c
 ## 📥 自动蒸馏区（auto_distill 维护，勿手改）
 - **2026-08-02 第六条：自动蒸馏器——经验到Skill的全自动管线**
   - ①启发式蒸馏能处理80%规则型经验，复杂语义经验进"待蒸馏队列"留给AI消化（分层：自动搬运+人工提炼）；②幂等标记文件（.distill_seen）要与内容分离管理，防误提交；③自动化管道要"先验证闭环再宣布成功"——实测首次12条→3进Skill+9待队列→幂等0→SKILL.md被自动同步提交(8fe4a4d)，才算闭环。
-  - tools/auto_distill.py（纯标准库）挂进自动同步.ps1第6步：检测经验收集箱新条目（^## 日期 标题格式，sha256幂等）→抽取规则/教训/方案/处理段落→关键词归类到encoding/sync/docs三Skill→追加SKILL.md「📥自动蒸馏区」（标题去重）→无法归类写待蒸馏队列.md。全闭环：经验写入→30分钟自动蒸馏→SKILL.md自动更新→下轮自动commit+push。
+  - 原文: 金水谣数据/log/经验收集箱.md#2026-08-02 第六条（L1 原始层）
   - 关联: JS-20260802-04 / 交接中心 W63补6
 
 - **2026-08-02 第三条：自动同步脚本的黑名单必须覆盖所有不该入库的文件**
   - ①任何"自动提交"机制，其黑名单必须穷举所有不该入库的文件（运行时配置、密钥文件、环境变量、其他会话的工作区）；②上线自动机制前务必用"脏工作区 + 无源码改动"和"源码改动"两种场景实测；③force push 需谨慎但这里是唯一私有仓库工作副本，安全。
-  - 黑名单加 server\config.py，reset 撤销 + force push 清理远程，验证修复生效。
+  - 原文: 金水谣数据/log/经验收集箱.md#2026-08-02 第三条（L1 原始层）
   - 关联: JS-20260802-04 / 交接中心 W63补
-- **2026-08-02 第四条：Windows 脚本编码规则（bat=GBK, ps1=UTF-8 BOM）**
-  - ①.bat 文件必须 GBK(ANSI) 编码 + 首行 chcp 936；②.ps1 文件必须 UTF-8 带 BOM；③.bat 永远不要把中文路径作为参数传给 powershell——让 ps1 用 System.Management.Automation.InvocationInfo.MyCommand.Path 自定位；④含中文文件名操作优先用 ps1，别在 bat 里内联复杂 powershell 命令（内嵌引号在 GBK 下会碎裂）。
-  - 12 个 bat 全查（8 个转 GBK+chcp936），复制启动提示词.bat 重写为 bat 调独立 ps1，protocol_handler.bat 中文注释+BASE 路径（已损坏成?）重写恢复。
-  - 关联: JS-20260802-04 / 交接中心 W63补4
 - **2026-08-02 第五条：经验三层蒸馏管线（L1原始→L2知识库→L3 Skill）**
   - ①Skill 只留"可执行规则"，过程细节留在 L1；②每个 Skill 的 description 必须含触发关键词（否则模型不会主动调用）；③Skill 改动要重启 opencode 生效。
-  - 三层各司其职：L1 经验收集箱（日更原始记录，当天写）→ L2 ai_decisions.md/成败案例库（周更知识卡片）→ L3 .opencode/skills/*/SKILL.md（可执行规则，frontmatter 带触发词）。蒸馏工具 .opencode/command/distill.md：扫描素材→归类→升级已有/新建 Skill→验证→登记→提交。
+  - 原文: 金水谣数据/log/经验收集箱.md#2026-08-02 第五条（L1 原始层）
   - 关联: JS-20260802-04 / 交接中心 W63补5

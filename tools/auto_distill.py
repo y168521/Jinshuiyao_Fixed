@@ -49,10 +49,65 @@ SKILL_KEYWORDS = [
 ]
 
 SECTION_MARKER = "## 📥 自动蒸馏区（auto_distill 维护，勿手改）"
+MAX_DISTILL_ENTRIES = 12  # 蒸馏区容量上限：超出后最旧条目压缩为归档行（原文永远在经验收集箱）
 
 
 def sha256_hex(s):
     return hashlib.sha256(s.encode("utf-8")).hexdigest()
+
+
+def _compact_distill_section(text):
+    """蒸馏区瘦身：真实条目超过 MAX_DISTILL_ENTRIES 时，把最旧的压缩为归档行。
+
+    条目只保留"标题+要点+原文指针"，细节原文在经验收集箱（L1），
+    Skill 只承载索引，避免无限膨胀成累赘。
+
+    归档行（📜 开头）不参与计数、不被拆解——只记录被淘汰条目标题，
+    内容永远以经验收集箱为准，防止链式压缩丢标题。
+    """
+    if SECTION_MARKER not in text:
+        return text
+    marker_pos = text.index(SECTION_MARKER)
+    head = text[:marker_pos]
+    rest = text[marker_pos + len(SECTION_MARKER):]
+
+    # 行级解析：条目 = "- **标题**" 行 + 后续缩进行；归档行（📜）单独识别
+    blocks, cur_title, cur = [], None, []
+    archive_titles = []
+    for ln in rest.split("\n"):
+        m = re.match(r"- \*\*(.+?)\*\*", ln)
+        if m:
+            if cur_title is not None:
+                blocks.append((cur_title, "\n".join(cur)))
+            cur, cur_title = [ln], m.group(1).strip()
+            if cur_title.startswith("📜"):
+                inner = re.search(r"——\s*(.+?)\s*——", ln)
+                if inner:
+                    for t in inner.group(1).split("；"):
+                        t = t.strip()
+                        if t and not t.startswith("📜"):
+                            archive_titles.append(t)
+                cur_title = None  # 归档行不参与计数
+        elif cur_title is not None:
+            cur.append(ln)
+    if cur_title is not None:
+        blocks.append((cur_title, "\n".join(cur)))
+
+    real = [b for b in blocks if not b[0].startswith("📜")]
+    if len(real) <= MAX_DISTILL_ENTRIES:
+        return text
+
+    keep = real[:MAX_DISTILL_ENTRIES]
+    merged = []
+    for t in [b[0] for b in real[MAX_DISTILL_ENTRIES:]] + archive_titles:
+        if t not in merged:
+            merged.append(t)
+    body = "\n".join(b[1] for b in keep)
+    archive_line = (
+        "- **📜 历史蒸馏归档（" + str(len(merged)) + " 条）** —— " + "；".join(merged)
+        + " —— 完整内容见 金水谣数据/log/经验收集箱.md（L1 原始层，永不删除）"
+    )
+    return head + SECTION_MARKER + "\n" + body + "\n" + archive_line + "\n"
 
 
 def load_seen():
@@ -107,9 +162,14 @@ def append_to_skill(skill, title, points, rel_js):
         text = f.read()
     if title in text:
         return False  # 已存在，跳过（幂等）
-    entry_lines = ["- **" + title + "**"]
-    for p in points:
-        entry_lines.append("  - " + p)
+    # 索引式条目：1 行要点 + 原文指针（细节在经验收集箱 L1，Skill 不复制全文防膨胀）
+    first_point = points[0] if points else "见原文要点"
+    entry_lines = ["- **" + title + "** — " + first_point[:120]]
+    for p in points[1:4]:
+        entry_lines.append("  - " + p[:200])
+    # 原文指针：经验收集箱文件 + 条目标题（锚点定位）
+    title_anchor = title.split("：", 1)[0] if "：" in title else title
+    entry_lines.append("  - 原文: 金水谣数据/log/经验收集箱.md#" + title_anchor + "（L1 原始层）")
     entry_lines.append("  - 关联: " + rel_js)
     entry_block = "\n".join(entry_lines)
     if SECTION_MARKER in text:
@@ -119,6 +179,7 @@ def append_to_skill(skill, title, points, rel_js):
         text = text[:insert_at] + "\n" + entry_block + text[insert_at:]
     else:
         text = text.rstrip() + "\n\n" + SECTION_MARKER + "\n\n" + entry_block + "\n"
+    text = _compact_distill_section(text)
     with open(skill_file, "w", encoding="utf-8") as f:
         f.write(text)
     return True

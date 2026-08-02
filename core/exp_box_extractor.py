@@ -127,15 +127,16 @@ def _extract_from_experience_box_inner() -> Dict[str, Any]:
     if current_hash == last_hash:
         return {"new_entries": 0, "extracted": 0, "saved": 0, "info": "无新内容"}
 
-    # C: 按带日期的 ### 经验标题切分（精确，避免条目内嵌 ### 被误拆）
-    pattern = re.compile(r"(?m)^### \d{4}-\d{2}-\d{2}.*$")
+    # C: 按带日期的经验标题切分（兼容 ## 与 ### 两种标题级别，精确避免内嵌标题误拆）
+    pattern = re.compile(r"(?m)^#{2,3} \d{4}-\d{2}-\d{2}.*$")
     positions = [m.start() for m in pattern.finditer(content)]
     new_entries = []
     for idx, pos in enumerate(positions):
         end = positions[idx + 1] if idx + 1 < len(positions) else len(content)
         entry = content[pos:end].strip()
-        # 只处理包含结构化字段的正式条目
-        if "做了什么" in entry or "有效方法" in entry:
+        # 条目有效性判定：任一分节字段存在即视为正式条目
+        # （旧格式用"做了什么/有效方法"，新格式用"问题/根因/方案/教训"）
+        if any(k in entry for k in ("做了什么", "有效方法", "问题", "根因", "方案", "教训")):
             new_entries.append(entry)
 
     if not new_entries:
@@ -148,8 +149,8 @@ def _extract_from_experience_box_inner() -> Dict[str, Any]:
     all_cards = []
 
     for entry in new_entries:
-        # 提取标题（条目首行即 ### 经验标题）
-        heading = entry.split("\n", 1)[0].replace("###", "", 1).strip()
+        # 提取标题（条目首行即经验标题；去掉 ##/### 前缀）
+        heading = entry.split("\n", 1)[0].replace("###", "", 1).replace("##", "", 1).strip()
         title = heading[:40]
         # E(溯源): source 带 文件#标题，可回溯到经验收集箱原文
         card = {
@@ -315,14 +316,14 @@ def extract_triples_from_experience_box(batch: int = _TRIPLE_BATCH) -> Dict[str,
     if current_hash == last_hash:
         return {"processed": 0, "triples": 0, "saved": 0, "info": "无新内容"}
 
-    # 切分新条目（与 A/C 同一规则）
-    pattern = re.compile(r"(?m)^### \d{4}-\d{2}-\d{2}.*$")
+    # 切分新条目（与 A/C 同一规则：兼容 ## 与 ### 标题）
+    pattern = re.compile(r"(?m)^#{2,3} \d{4}-\d{2}-\d{2}.*$")
     positions = [m.start() for m in pattern.finditer(content)]
     new_entries = []
     for idx, pos in enumerate(positions):
         end = positions[idx + 1] if idx + 1 < len(positions) else len(content)
         entry = content[pos:end].strip()
-        if "做了什么" in entry or "有效方法" in entry:
+        if any(k in entry for k in ("做了什么", "有效方法", "问题", "根因", "方案", "教训")):
             new_entries.append(entry)
 
     if not new_entries:
