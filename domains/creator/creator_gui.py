@@ -841,7 +841,13 @@ class CreatorToolboxWindow:
 # =======================================================================
 def main():
     """创作者工具箱入口"""
-    app = CreatorToolboxWindow()
+    root = tk.Tk()
+    try:
+        from core.tk_style import apply_dark_style
+        apply_dark_style(root)
+    except Exception:
+        pass
+    app = CreatorToolboxWindow(root)
     app.run()
 
 

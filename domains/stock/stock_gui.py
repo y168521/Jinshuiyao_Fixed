@@ -738,7 +738,13 @@ class StockAnalysisWindow:
 # =======================================================================
 def main():
     """股票分析系统入口"""
-    app = StockAnalysisWindow()
+    root = tk.Tk()
+    try:
+        from core.tk_style import apply_dark_style
+        apply_dark_style(root)
+    except Exception:
+        pass
+    app = StockAnalysisWindow(root)
     app.run()
 
 

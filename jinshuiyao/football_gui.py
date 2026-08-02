@@ -1431,6 +1431,11 @@ class FootballApp:
 def launch_football_gui():
     """启动足彩预测GUI"""
     root = tk.Tk()
+    try:
+        from core.tk_style import apply_dark_style
+        apply_dark_style(root)
+    except Exception:
+        pass
     app = FootballApp(root)
     root.mainloop()
 

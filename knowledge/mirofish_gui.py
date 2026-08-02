@@ -1100,6 +1100,11 @@ class MiroFishApp:
 # ============================================================
 def main():
     root = tk.Tk()
+    try:
+        from core.tk_style import apply_dark_style
+        apply_dark_style(root)
+    except Exception:
+        pass
     app = MiroFishApp(root)
     root.mainloop()
 

@@ -816,7 +816,13 @@ class FundAnalysisWindow:
 # =======================================================================
 def main():
     """基金分析系统入口"""
-    app = FundAnalysisWindow()
+    root = tk.Tk()
+    try:
+        from core.tk_style import apply_dark_style
+        apply_dark_style(root)
+    except Exception:
+        pass
+    app = FundAnalysisWindow(root)
     app.run()
 
 

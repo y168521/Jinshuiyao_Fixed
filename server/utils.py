@@ -33,6 +33,39 @@ def get_local_ip():
 
 
 # ---------------------------------------------------------------------------
+# GUI 跨会话启动（explorer 中转）
+# ---------------------------------------------------------------------------
+def _launch_gui_via_explorer(full_path: str) -> bool:
+    """通过 explorer.exe 在用户桌面会话启动 GUI（隐藏启动器窗口）
+
+    服务器进程可能运行在无桌面会话（watchdog DETACHED 拉起），直接 Popen
+    的窗口用户看不到。explorer 常驻用户桌面会话，把任务交给它即可跨会话显示。
+    返回 True 表示已交给 explorer（实际是否弹出由系统决定）。
+    """
+    import tempfile
+    try:
+        vbs = os.path.join(tempfile.gettempdir(),
+                           'jinshuiyao_launch_%d.vbs' % os.getpid())
+        python = SYSTEM_PYTHON.replace('.exe', 'w.exe')  # pythonw 无控制台窗口
+        if not os.path.isfile(python):
+            python = SYSTEM_PYTHON
+        body = ('Set sh = CreateObject("WScript.Shell")\r\n'
+                'sh.Run """%s"" ""%s""", 0, False\r\n'
+                % (python.replace('"', '""'), full_path.replace('"', '""')))
+        with open(vbs, 'w', encoding='utf-16-le', newline='') as f:
+            f.write('\ufeff' + body)
+        subprocess.Popen(['explorer.exe', vbs])
+        return True
+    except Exception:
+        try:
+            if os.path.isfile(vbs):
+                os.remove(vbs)
+        except Exception:
+            pass
+        return False
+
+
+# ---------------------------------------------------------------------------
 # 日志系统
 # ---------------------------------------------------------------------------
 _logger_obj = None
@@ -155,7 +188,19 @@ def open_local_file(rel_path, mode='auto'):
                 env = os.environ.copy()
                 env['PYTHONPATH'] = BASE_DIR
                 if is_gui_file:
-                    log(f'→ [运行-GUI] {SYSTEM_PYTHON} "{full_path}" (窗口显示)')
+                    # GUI 窗口必须显示在用户桌面会话。
+                    # 服务器可能由 watchdog 以 DETACHED_PROCESS 拉起（无桌面会话），
+                    # 直接 Popen 的 tkinter 窗口会跑到后台会话 → 用户看不到"打不开"。
+                    # 方案：写临时 vbs(UTF-16LE BOM，中文路径安全) → explorer.exe 中转
+                    #（explorer 运行在用户桌面会话，由它调 wscript 隐藏启动器窗口）。
+                    try:
+                        ok = _launch_gui_via_explorer(full_path)
+                        if ok:
+                            return True
+                        log(f'× explorer 中转失败，回退直接启动: {full_path}')
+                    except Exception as e:
+                        log(f'× explorer 中转异常: {e}，回退直接启动')
+                    log(f'→ [运行-GUI-回退] {SYSTEM_PYTHON} "{full_path}" (窗口显示)')
                     result = subprocess.Popen(
                         [SYSTEM_PYTHON, full_path],
                         cwd=BASE_DIR,
