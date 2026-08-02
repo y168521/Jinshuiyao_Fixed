@@ -541,6 +541,28 @@ def _read_user_kb_card(filename):
         return None
 
 
+def handle_knowledge_gateway(handler, parsed):
+    """GET /api/knowledge/gateway?q=xxx&limit=8 — 知识网关四源召回
+
+    供外部AI/网页助手/服务器统一使用：一次调用从
+    知识卡片 + 图谱三元组 + 向量 + 经验条目 + 项目文档 召回相关知识。
+    本地离线、fail-safe（任一来源失败不影响其它）。
+    """
+    params = urllib.parse.parse_qs(parsed.query)
+    query = params.get('q', params.get('query', ['']))[0].strip()
+    try:
+        limit = min(max(int(params.get('limit', ['8'])[0]), 1), 20)
+    except Exception:
+        limit = 8
+    try:
+        from core.knowledge_gateway import search
+        data = search(query, limit=limit)
+        handler._send_json({"ok": True, **data})
+    except Exception as e:
+        log(f'知识网关检索异常: {e}')
+        handler._send_json({"ok": False, "error": f"知识网关检索失败：{e}"}, 500)
+
+
 def handle_user_kb_list(handler):
     """GET /api/user-kb/list — 个人知识库卡片列表"""
     try:

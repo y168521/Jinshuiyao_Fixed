@@ -239,6 +239,11 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
             h_knowledge.handle_kg_search(self, parsed)
             return
 
+        # /api/knowledge/gateway — 知识网关四源召回（外部AI/助手统一入口）
+        if parsed.path.startswith('/api/knowledge/gateway'):
+            h_knowledge.handle_knowledge_gateway(self, parsed)
+            return
+
         # /api/knowledge/vector/search — 语义向量召回（离线 VSM）
         if parsed.path.startswith('/api/knowledge/vector/search'):
             h_knowledge.handle_knowledge_vector_search(self, parsed)

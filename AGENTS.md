@@ -95,6 +95,21 @@
 - 测试: 使用 venv python 跑 `-m pytest tests/ -q`（约814项）
 - 收工: `py -3.14 tools/gate.py --check`
 
+## 知识网关（2026-08-02 加入）
+
+> 任何 AI（opencode / Claude Code / Cursor / 网页助手）接入项目知识库的统一入口：
+> **先读 `知识网关索引.md`**（全资产清单+检索入口），再用 `core/knowledge_gateway.py::search` 或 MCP 检索。
+
+| 入口 | 说明 |
+|------|------|
+| 知识网关索引 | `知识网关索引.md`（仓库根，`tools/gen_knowledge_index.py` 自动生成） |
+| 四源召回（代码） | `core/knowledge_gateway.py` — search()/summarize()，BM25+图谱+向量+经验+项目文档 |
+| 四源召回（HTTP） | `GET /api/knowledge/gateway?q=xxx&limit=8`（服务器 18888） |
+| MCP 服务 | `tools/knowledge_mcp.py`（stdio JSON-RPC，Claude Code/Cursor 接入，见 `knowledge-mcp.md`） |
+| 经验箱直读 | `金水谣数据/log/经验收集箱.md`（L1 原始层，`## 日期` 标题） |
+
+**使用规则**：遇到报错/异常先查经验箱（90% 的坑有记录）；问题相关时 AI 助手会自动注入网关上下文（`core/ai_agent.py` 纯聊天路径），无需手动。
+
 ## 用户沟通
 
 - 全中文回复，通俗解释，不甩代码不甩英文

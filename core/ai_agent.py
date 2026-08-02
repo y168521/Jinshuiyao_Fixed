@@ -603,6 +603,18 @@ class JinshuiyaoAgent:
                 "如果用户问的是其他话题，可以适当回答但建议回归专业领域。"
                 "回答简洁、口语化、中文，直接输出文本，不要返回 JSON 格式。"
             )
+            # 注入项目级知识（知识网关四源召回：经验/卡片/项目文档，让助手懂"金水谣项目本身"）
+            try:
+                from core.knowledge_gateway import summarize
+                gw_text = summarize(user_input, limit=4)
+                if gw_text:
+                    system += (
+                        "\n\n以下是金水谣项目知识库中与该问题相关的线索"
+                        "（经验/知识卡片/项目文档，回答项目相关问题时优先参考，无需提及来源）：\n"
+                        + gw_text
+                    )
+            except Exception:
+                pass
             # 注入长期记忆（"越来越懂你"）
             profile_memories = self._get_memories(limit=15)
             if profile_memories:
