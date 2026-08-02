@@ -15,6 +15,9 @@ deepseek_key.txt
 AI代码助手(DeepSeek备用)/config.json
 AI代码助手(DeepSeek备用)/usage.json
 金水谣数据/log/token_usage.json
+金水谣数据/log/gui_status.json
+金水谣数据/log/auto_audit_report.json
+金水谣数据/log/data_truth.log
 金水谣数据/secure/encrypted_keys.dat
 金水谣数据/users/*/.secret_key
 金水谣数据/review/ai_review_cache.json
