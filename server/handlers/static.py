@@ -423,6 +423,19 @@ def handle_automation_status(handler):
         except Exception:
             return False
 
+    # 7) 数据真实性守卫：data_truth.log（自动同步第7步写入）
+    dt_lines = _read_tail('data_truth.log', 6)
+    dt_last = _last_line_ts('data_truth.log')
+    dt_ok = None  # None=未知
+    if dt_lines:
+        last = dt_lines[-1]
+        if '健康' in last:
+            dt_ok = True
+        elif '降级' in last:
+            dt_ok = None
+        elif '异常' in last:
+            dt_ok = False
+
     data = {
         "updated_at": datetime.datetime.now().isoformat(),
         "server": {"alive": server_alive, "port": 18888},
@@ -447,6 +460,11 @@ def handle_automation_status(handler):
         "vault": {
             "last_refresh": vault_last,
             "recent": vault_lines,
+        },
+        "data_truth": {
+            "ok": dt_ok,
+            "last_run": dt_last,
+            "recent": dt_lines[-4:],
         },
     }
     handler._send_json(data)

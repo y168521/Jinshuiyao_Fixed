@@ -8,15 +8,18 @@
 <style>
 .back-link { margin-bottom:10px; } .back-link a { color:var(--ink-dim); font-size:13px; text-decoration:none; } .back-link a:hover { color:var(--gold); }
 .container { max-width: 1040px; margin: 0 auto; padding: 28px 20px 60px; position: relative; z-index: 1; }
-.page-title { font-size: 24px; margin-bottom: 4px; }
+.page-title { font-size: 26px; margin-bottom: 4px; }
 .page-sub { color: var(--ink-dim); font-size: 13px; margin-bottom: 24px; }
-.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
-.stat-card { background: var(--card-bg); border: 1px solid var(--gold-border); border-radius: var(--radius-md); padding: 16px 20px; text-align: center; }
+.stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+.stat-card { background: linear-gradient(160deg, rgba(22,40,64,.9), rgba(11,26,47,.95)); border: 1px solid var(--gold-border); border-radius: var(--radius-md); padding: 16px 20px; text-align: center; position: relative; overflow: hidden; transition: transform .2s, box-shadow .2s, border-color .2s; }
+.stat-card:hover { transform: translateY(-3px); box-shadow: 0 0 26px rgba(201,169,110,.18); border-color: rgba(201,169,110,.45); }
+.stat-card::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity: 0; transition: opacity .3s; }
+.stat-card:hover::after { opacity: .8; }
 .stat-card .lbl { font-size: 12px; color: var(--ink-dim); }
-.stat-card .val { font-size: 28px; font-weight: 700; margin-top: 4px; transition: color .3s; }
-.stat-card.ok .val { color: var(--jade); }
-.stat-card.fail .val { color: var(--copper); }
-.stat-card.warn .val { color: var(--gold); }
+.stat-card .val { font-size: 26px; font-weight: 700; margin-top: 4px; transition: color .3s; }
+.stat-card.ok .val { color: var(--jade); text-shadow: 0 0 14px rgba(45,139,126,.55); }
+.stat-card.fail .val { color: var(--copper); text-shadow: 0 0 14px rgba(200,117,90,.55); }
+.stat-card.warn .val { color: var(--gold); text-shadow: 0 0 14px rgba(201,169,110,.55); }
 .stat-card.neutral .val { color: var(--ice); }
 .card { background: var(--card-bg); border: 1px solid var(--gold-border); border-radius: var(--radius-md); padding: 20px 24px; margin-bottom: 16px; box-shadow: var(--shadow); }
 .card-title { font-size: 15px; font-weight: 600; margin-bottom: 14px; color: var(--ice); }
@@ -40,16 +43,18 @@
 </style>
 </head>
 <body>
+<div class="tech-bg"></div>
+<div class="tech-grid"></div>
 <div class="container">
 <div class="back-link"><a href="/control-center">&larr; 返回控制中心</a></div>
-<div class="page-title">自动化状态仪表盘</div>
-<div class="page-sub">自动同步 · 看门狗 · 经验蒸馏 · Obsidian 联动 — 一眼看全 <span id="refresh-tip"></span></div>
+<div class="page-title grad-title">自动化状态仪表盘</div>
+<div class="page-sub">自动同步 · 看门狗 · 经验蒸馏 · Obsidian 联动 · 数据真实性 — 一眼看全 <span id="refresh-tip"></span></div>
 
 <div class="legend">
-  <span><span class="dot dot-green"></span>正常</span>
-  <span><span class="dot dot-red"></span>异常/未运行</span>
-  <span><span class="dot dot-yellow"></span>注意</span>
-  <span><span class="dot dot-gray"></span>未知</span>
+  <span><span class="pulse-dot"></span>正常</span>
+  <span><span class="pulse-dot red"></span>异常/未运行</span>
+  <span><span class="pulse-dot gold"></span>注意</span>
+  <span><span class="pulse-dot dim"></span>未知</span>
 </div>
 
 <div class="stats" id="stats">
@@ -57,30 +62,37 @@
   <div class="stat-card neutral"><div class="lbl">自动同步</div><div class="val" id="s-sync">-</div></div>
   <div class="stat-card neutral"><div class="lbl">看门狗</div><div class="val" id="s-wd">-</div></div>
   <div class="stat-card neutral"><div class="lbl">蒸馏队列</div><div class="val" id="s-queue">-</div></div>
+  <div class="stat-card neutral"><div class="lbl">数据真实性</div><div class="val" id="s-truth">-</div></div>
 </div>
 
-<div class="card">
+<div class="card hud-card"><span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
   <div class="card-title">⏱ 自动同步（每 30 分钟） <span id="b-sync" class="status-muted status-big" style="float:right;">检测中...</span></div>
   <div class="meta-row" id="m-sync">计划任务状态加载中...</div>
   <div class="log-box" id="l-sync">加载中...</div>
 </div>
 
-<div class="card">
+<div class="card hud-card"><span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
   <div class="card-title">🛡 服务看门狗（每小时巡检，挂了自动拉起） <span id="b-wd" class="status-muted status-big" style="float:right;">检测中...</span></div>
   <div class="meta-row" id="m-wd">计划任务状态加载中...</div>
   <div class="log-box" id="l-wd">加载中...</div>
 </div>
 
-<div class="card">
+<div class="card hud-card"><span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
   <div class="card-title">🧠 经验蒸馏（自动同步第 6 步） <span id="b-distill" class="status-muted status-big" style="float:right;">检测中...</span></div>
   <div class="meta-row" id="m-distill">最近运行时间加载中...</div>
   <div class="log-box" id="l-distill">加载中...</div>
 </div>
 
-<div class="card">
+<div class="card hud-card"><span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
   <div class="card-title">📓 Obsidian 联动（自动同步第 5 步） <span id="b-vault" class="status-muted status-big" style="float:right;">检测中...</span></div>
   <div class="meta-row" id="m-vault">最近刷新时间加载中...</div>
   <div class="log-box" id="l-vault">加载中...</div>
+</div>
+
+<div class="card hud-card"><span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+  <div class="card-title">🛡 数据真实性守卫（自动同步第 7 步，足彩/股票/彩票 全量检测） <span id="b-truth" class="status-muted status-big" style="float:right;">检测中...</span></div>
+  <div class="meta-row" id="m-truth">最近检测时间加载中...</div>
+  <div class="log-box" id="l-truth">加载中...</div>
 </div>
 
 <div class="updated">数据更新于 <span id="updated-at">-</span>（页面每 60 秒自动刷新）</div>
@@ -93,7 +105,7 @@ function fmt(iso) {
   try { var d = new Date(iso.replace('T', ' ').replace(' ', 'T')); if (isNaN(d)) return iso; return d.toLocaleString('zh-CN', { hour12: false }); } catch(e) { return iso; }
 }
 function badge(el, ok, okText, failText) {
-  el.className = 'status-big ' + (ok ? 'status-ok' : 'status-fail');
+  el.className = 'status-big ' + (ok ? 'status-ok badge-glow ok-badge' : 'status-fail badge-glow fail-badge');
   el.textContent = ok ? okText : failText;
 }
 function stat(el, ok, text) {
@@ -133,6 +145,17 @@ function load() {
     badge(document.getElementById('b-vault'), d.vault.last_refresh ? true : false, '已联动', '从未联动');
     document.getElementById('m-vault').textContent = '最近刷新: ' + fmt(d.vault.last_refresh);
     document.getElementById('l-vault').textContent = (d.vault.recent || []).join('\n') || '（暂无日志）';
+
+    // 数据真实性
+    var dt = d.data_truth || {};
+    var dtOk = dt.ok;
+    badge(document.getElementById('b-truth'), dtOk === true, '健康', dtOk === false ? '异常' : '未知');
+    document.getElementById('b-truth').className = 'status-big ' + (dtOk === true ? 'status-ok' : dtOk === false ? 'status-fail' : 'status-warn');
+    document.getElementById('m-truth').textContent = '最近检测: ' + fmt(dt.last_run) + (dtOk === true ? ' · 足彩/股票/彩票 全部正常' : dtOk === false ? ' · 存在异常，请查看下方日志' : ' · 尚无检测记录（等自动同步第 7 步运行）');
+    document.getElementById('l-truth').textContent = (dt.recent || []).join('\n') || '（暂无日志）';
+    var st = document.getElementById('s-truth');
+    st.textContent = dtOk === true ? '健康' : dtOk === false ? '异常' : '未知';
+    st.parentElement.className = 'stat-card ' + (dtOk === true ? 'ok' : dtOk === false ? 'fail' : 'warn');
   }).catch(function(e){
     document.querySelectorAll('.log-box').forEach(function(x){ x.textContent = '加载失败: ' + e.message; });
   });

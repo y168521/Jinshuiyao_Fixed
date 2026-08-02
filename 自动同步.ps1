@@ -81,5 +81,19 @@ if (Test-Path $py) {
     & $py "$Repo\tools\auto_distill.py" 2>&1 | Out-Null
 }
 
+# 7) 数据真实性自动守卫: 全量检测足彩/股票/彩票数据真实性, 结果写 data_truth.log
+#    状态变化(健康<->降级<->异常)时弹窗提醒, 平时静默
+if (Test-Path $py) {
+    $truthOut = & $py "$Repo\tools\auto_data_truth.py" 2>&1
+    $truthCode = $LASTEXITCODE
+    if ($truthOut -match "STATUS-CHANGED") {
+        Notify "数据真实性检测状态变化: $(($truthOut | Select-Object -Last 1))"
+    } elseif ($truthCode -eq 2) {
+        Log "data truth: critical (exit=$truthCode)"
+    } elseif ($truthCode -ne 0) {
+        Log "data truth: degraded (exit=$truthCode)"
+    }
+}
+
 exit 0
 
