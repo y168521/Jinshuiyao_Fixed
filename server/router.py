@@ -412,6 +412,11 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
             h_static.handle_automation_status(self)
             return
 
+        # /api/logs — 统一日志联动查看（列表/尾部）
+        if parsed.path == '/api/logs':
+            h_static.handle_logs(self)
+            return
+
         # 已知页面路由（批量查表）
         if h_static.handle_page(self, parsed.path):
             return

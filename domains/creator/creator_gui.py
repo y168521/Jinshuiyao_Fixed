@@ -853,6 +853,11 @@ class CreatorToolboxWindow:
 # =======================================================================
 def main():
     """创作者工具箱入口"""
+    try:
+        from core.gui_registry import register
+        register('creator', '创作者工具箱')
+    except Exception:
+        pass
     root = tk.Tk()
     try:
         from core.tk_style import apply_dark_style

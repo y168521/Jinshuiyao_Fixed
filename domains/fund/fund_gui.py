@@ -829,6 +829,11 @@ class FundAnalysisWindow:
 # =======================================================================
 def main():
     """基金分析系统入口"""
+    try:
+        from core.gui_registry import register
+        register('fund', '金水谣基金分析系统')
+    except Exception:
+        pass
     root = tk.Tk()
     try:
         from core.tk_style import apply_dark_style

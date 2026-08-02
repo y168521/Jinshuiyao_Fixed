@@ -34,6 +34,21 @@
 .legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
 .dot-green { background: var(--jade); } .dot-red { background: var(--copper); } .dot-yellow { background: var(--gold); } .dot-gray { background: #8c96a0; }
 .updated { color: var(--ink-dim); font-size: 11px; margin-top: 16px; text-align: right; }
+.gui-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.gui-cell { background: rgba(0,0,0,.25); border: 1px solid var(--gold-border); border-radius: var(--radius-sm); padding: 10px 12px; text-align: center; }
+.gui-cell.on { border-color: rgba(45,139,126,.6); box-shadow: 0 0 14px rgba(45,139,126,.2) inset; }
+.gui-cell.off { opacity: .55; }
+.gui-name { font-size: 12px; color: var(--ice); font-weight: 600; }
+.gui-state { font-size: 13px; font-weight: 700; margin-top: 6px; }
+.gui-state.on { color: var(--jade); text-shadow: 0 0 12px rgba(45,139,126,.55); }
+.gui-state.off { color: var(--copper); }
+.gui-info { font-size: 10px; color: var(--ink-dim); margin-top: 4px; word-break: break-all; }
+.log-select-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.log-select { background: rgba(0,0,0,.3); color: var(--ice); border: 1px solid var(--gold-border); border-radius: var(--radius-sm); padding: 6px 10px; font-size: 12px; min-width: 220px; }
+.log-select:focus { outline: none; border-color: var(--gold); }
+.log-btn { background: linear-gradient(160deg, rgba(201,169,110,.25), rgba(201,169,110,.1)); color: var(--gold); border: 1px solid var(--gold-border); border-radius: var(--radius-sm); padding: 6px 14px; font-size: 12px; cursor: pointer; }
+.log-btn:hover { box-shadow: 0 0 12px rgba(201,169,110,.3); }
+.log-meta { font-size: 11px; color: var(--ink-dim); }
 .footer { text-align: center; color: var(--ink-dim); font-size: 12px; margin-top: 40px; padding: 16px; border-top: 1px solid var(--gold-border); }
 .loading { text-align: center; padding: 40px; color: var(--ink-dim); }
 .loading::after { content: ''; display: inline-block; width: 16px; height: 16px; border: 2px solid var(--gold-border); border-top-color: var(--gold); border-radius: 50%; animation: spin .8s linear infinite; margin-left: 8px; vertical-align: middle; }
@@ -93,6 +108,29 @@
   <div class="card-title">🛡 数据真实性守卫（自动同步第 7 步，足彩/股票/彩票 全量检测） <span id="b-truth" class="status-muted status-big" style="float:right;">检测中...</span></div>
   <div class="meta-row" id="m-truth">最近检测时间加载中...</div>
   <div class="log-box" id="l-truth">加载中...</div>
+</div>
+
+<div class="card hud-card"><span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+  <div class="card-title">🖥 桌面程序联动（控制中心一键启动，此处回显运行状态） <span id="b-gui" class="status-muted status-big" style="float:right;">检测中...</span></div>
+  <div class="meta-row" id="m-gui">GUI 启动时自动注册心跳，关闭后自动清除；pid 存活校验，异常退出不残留</div>
+  <div class="gui-grid" id="gui-grid">
+    <div class="gui-cell"><div class="gui-name">基金分析</div><div class="gui-state" id="g-fund">-</div><div class="gui-info" id="g-fund-i">-</div></div>
+    <div class="gui-cell"><div class="gui-name">股票分析</div><div class="gui-state" id="g-stock">-</div><div class="gui-info" id="g-stock-i">-</div></div>
+    <div class="gui-cell"><div class="gui-name">创作者工具箱</div><div class="gui-state" id="g-creator">-</div><div class="gui-info" id="g-creator-i">-</div></div>
+    <div class="gui-cell"><div class="gui-name">足彩预测</div><div class="gui-state" id="g-football">-</div><div class="gui-info" id="g-football-i">-</div></div>
+    <div class="gui-cell"><div class="gui-name">预测面板</div><div class="gui-state" id="g-mirofish">-</div><div class="gui-info" id="g-mirofish-i">-</div></div>
+  </div>
+</div>
+
+<div class="card hud-card"><span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+  <div class="card-title">📜 全部日志（统一查看：同步/看门狗/蒸馏/vault/守卫/审计） <span id="b-logs" class="status-muted status-big" style="float:right;">检测中...</span></div>
+  <div class="meta-row">选择日志文件，查看最新内容（最多 500 行）</div>
+  <div class="log-select-row">
+    <select id="log-select" class="log-select"></select>
+    <button id="log-refresh" class="log-btn" onclick="loadLogs(false)">刷新</button>
+    <span class="log-meta" id="log-meta"></span>
+  </div>
+  <div class="log-box" id="l-logs" style="max-height: 320px;">加载中...</div>
 </div>
 
 <div class="updated">数据更新于 <span id="updated-at">-</span>（页面每 60 秒自动刷新）</div>
@@ -156,13 +194,66 @@ function load() {
     var st = document.getElementById('s-truth');
     st.textContent = dtOk === true ? '健康' : dtOk === false ? '异常' : '未知';
     st.parentElement.className = 'stat-card ' + (dtOk === true ? 'ok' : dtOk === false ? 'fail' : 'warn');
+
+    // 桌面程序联动
+    var guis = d.guis || {};
+    var guiNames = { fund: '基金分析', stock: '股票分析', creator: '创作者工具箱', football: '足彩预测', mirofish: '预测面板' };
+    var guiOn = 0, guiTotal = 0;
+    Object.keys(guiNames).forEach(function(k){
+      var rec = guis[k] || {};
+      var cell = document.getElementById('g-' + k);
+      var info = document.getElementById('g-' + k + '-i');
+      var on = !!rec.running;
+      if (guis[k]) guiTotal++;
+      if (on) guiOn++;
+      cell.className = 'gui-state ' + (on ? 'on' : 'off');
+      cell.textContent = on ? '运行中' : (rec.running === undefined ? '未知' : '未运行');
+      cell.parentElement.className = 'gui-cell ' + (on ? 'on' : 'off');
+      info.textContent = on ? (rec.title || '') + ' · pid ' + rec.pid : '未启动';
+    });
+    var gb = document.getElementById('b-gui');
+    gb.className = 'status-big ' + (guiOn > 0 ? 'status-ok' : 'status-muted');
+    gb.textContent = guiOn > 0 ? guiOn + '/' + guiTotal + ' 个运行中' : '全部未运行';
+    document.getElementById('m-gui').textContent = '运行中: ' + guiOn + ' 个' + (guiOn > 0 ? ' · 见下方各程序状态（每 60 秒自动刷新）' : ' · 可在控制中心一键启动');
   }).catch(function(e){
     document.querySelectorAll('.log-box').forEach(function(x){ x.textContent = '加载失败: ' + e.message; });
   });
 }
+function loadLogs(keepSelection) {
+  var sel = document.getElementById('log-select');
+  var meta = document.getElementById('log-meta');
+  var box = document.getElementById('l-logs');
+  if (!keepSelection) {
+    fetch('/api/logs?list=1').then(function(r){ return r.json(); }).then(function(d){
+      if (d.error) { box.textContent = d.error; return; }
+      var cur = sel.value || '';
+      sel.innerHTML = '';
+      (d.files || []).forEach(function(f){
+        var o = document.createElement('option');
+        o.value = f.name;
+        o.textContent = f.name + ' · ' + f.mtime + ' · ' + (f.size >= 1024 ? (f.size/1024).toFixed(0) + ' KB' : f.size + ' B');
+        sel.appendChild(o);
+      });
+      if (d.files.length === 0) { sel.innerHTML = '<option value="">（日志目录为空）</option>'; return; }
+      if (cur) sel.value = cur;
+      if (!sel.value) sel.value = d.files[0].name;
+      loadLogs(true);
+    }).catch(function(e){ box.textContent = '加载失败: ' + e.message; });
+    return;
+  }
+  if (!sel.value) return;
+  fetch('/api/logs?name=' + encodeURIComponent(sel.value) + '&tail=150').then(function(r){ return r.json(); }).then(function(d){
+    if (d.error) { box.textContent = d.error; return; }
+    box.textContent = d.lines.join('\n') || '（暂无日志内容）';
+    meta.textContent = '共 ' + d.total + ' 行 · 显示最近 150 行';
+    box.scrollTop = box.scrollHeight;
+  }).catch(function(e){ box.textContent = '加载失败: ' + e.message; });
+}
 document.getElementById('refresh-tip').textContent = '（每 60 秒自动刷新）';
 load();
+loadLogs(false);
 setInterval(load, 60000);
+setInterval(function(){ loadLogs(true); }, 60000);
 </script>
 </body>
 </html>

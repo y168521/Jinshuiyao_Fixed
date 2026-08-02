@@ -751,6 +751,11 @@ class StockAnalysisWindow:
 # =======================================================================
 def main():
     """股票分析系统入口"""
+    try:
+        from core.gui_registry import register
+        register('stock', '金水谣股票分析系统')
+    except Exception:
+        pass
     root = tk.Tk()
     try:
         from core.tk_style import apply_dark_style

@@ -1430,6 +1430,11 @@ class FootballApp:
 
 def launch_football_gui():
     """启动足彩预测GUI"""
+    try:
+        from core.gui_registry import register
+        register('football', '金水谣足彩预测系统')
+    except Exception:
+        pass
     root = tk.Tk()
     try:
         from core.tk_style import apply_dark_style

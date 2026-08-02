@@ -1099,6 +1099,11 @@ class MiroFishApp:
 # 入口
 # ============================================================
 def main():
+    try:
+        from core.gui_registry import register
+        register('mirofish', '金水谣预测面板')
+    except Exception:
+        pass
     root = tk.Tk()
     try:
         from core.tk_style import apply_dark_style

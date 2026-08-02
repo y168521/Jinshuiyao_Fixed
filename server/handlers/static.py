@@ -467,7 +467,73 @@ def handle_automation_status(handler):
             "recent": dt_lines[-4:],
         },
     }
+
+    # 8) 桌面程序（GUI）联动状态：心跳注册 + pid 存活检测
+    try:
+        from core.gui_registry import all_status
+        data["guis"] = all_status(['fund', 'stock', 'creator', 'football', 'mirofish'])
+    except Exception as e:
+        data["guis"] = {"error": str(e)}
+
     handler._send_json(data)
+
+
+# ---------------------------------------------------------------------------
+# GET /api/logs — 统一日志联动查看
+# ---------------------------------------------------------------------------
+def handle_logs(handler):
+    """GET /api/logs[?name=auto_sync.log][&tail=100][&list=1]
+
+    list=1 时返回 log 目录下全部日志文件（名称/大小/修改时间/最后一行时间戳）；
+    否则返回指定日志文件的末尾 tail 行。
+    """
+    import datetime
+    LOG_DIR = os.path.join(BASE_DIR, '金水谣数据', 'log')
+    q = urllib.parse.parse_qs(urllib.parse.urlparse(handler.path).query)
+    if q.get('list', [''])[0]:
+        try:
+            files = []
+            for name in sorted(os.listdir(LOG_DIR)):
+                p = os.path.join(LOG_DIR, name)
+                if not os.path.isfile(p):
+                    continue
+                if not (name.endswith('.log') or name.endswith('.jsonl')):
+                    continue
+                try:
+                    mtime = datetime.datetime.fromtimestamp(os.path.getmtime(p)).strftime('%Y-%m-%d %H:%M:%S')
+                    size = os.path.getsize(p)
+                except Exception:
+                    mtime, size = '', 0
+                tail = ''
+                try:
+                    with open(p, encoding='utf-8', errors='replace') as f:
+                        lines = [ln.rstrip() for ln in f.readlines()[-3:] if ln.strip()]
+                    tail = lines[-1] if lines else ''
+                except Exception:
+                    pass
+                files.append({'name': name, 'size': size, 'mtime': mtime, 'last': tail})
+            handler._send_json({'files': files, 'updated_at': datetime.datetime.now().isoformat()})
+        except Exception as e:
+            handler._send_json({'error': f'读取日志目录失败: {e}', 'files': []})
+        return
+
+    name = q.get('name', ['auto_sync.log'])[0]
+    name = os.path.basename(name)  # 防路径穿越
+    tail = 100
+    try:
+        tail = min(max(int(q.get('tail', ['100'])[0]), 1), 500)
+    except Exception:
+        pass
+    p = os.path.join(LOG_DIR, name)
+    if not os.path.isfile(p):
+        handler._send_json({'error': f'日志不存在: {name}', 'lines': []})
+        return
+    try:
+        with open(p, encoding='utf-8', errors='replace') as f:
+            lines = [ln.rstrip() for ln in f.readlines()[-tail:] if ln.strip()]
+        handler._send_json({'name': name, 'lines': lines, 'total': len(lines)})
+    except Exception as e:
+        handler._send_json({'error': f'读取日志失败: {e}', 'lines': []})
 
 
 # ---------------------------------------------------------------------------
