@@ -12,6 +12,7 @@ import os
 import sys
 import shutil
 import platform
+import subprocess
 import threading
 import concurrent.futures
 
@@ -111,8 +112,38 @@ if not _CANDIDATE_PYTHONS:
 PYTHON_EXE = sys.executable
 
 
+def _tkinter_ok(python_exe):
+    """探测该 Python 能否导入 tkinter（GUI 窗口必需；缺失时启动即报 ModuleNotFoundError）"""
+    try:
+        r = subprocess.run(
+            [python_exe, '-c', 'import tkinter'],
+            capture_output=True, timeout=10)
+        return r.returncode == 0
+    except Exception:
+        return False
+
+
 def _find_python():
-    """按优先级查找可用的系统Python（用于启动各子程序）"""
+    """按优先级查找可用的系统Python（用于启动各子程序）
+
+    候选解释器可能缺少 tkinter（例如精简安装/嵌入式环境），导致
+    总控台点「启动窗口」时报 No module named 'tkinter'。因此优先选择：
+      1) 当前解释器（正在跑服务器，说明依赖齐全且自带 tkinter）
+      2) 候选列表里第一个能导入 tkinter 的解释器
+      3) 退而求其次：候选列表第一个存在的解释器（脚本可运行，但 GUI 可能打不开）
+    """
+    # 1) 当前解释器优先（自带 tkinter 且依赖齐全时最稳）
+    try:
+        import tkinter  # noqa: F401
+        if sys.executable and os.path.isfile(sys.executable):
+            return sys.executable, sys.executable
+    except Exception:
+        pass
+    # 2) 候选列表里第一个能导入 tkinter 的解释器
+    for cand in _CANDIDATE_PYTHONS:
+        if os.path.isfile(cand) and _tkinter_ok(cand):
+            return cand, cand
+    # 3) 回退：候选列表第一个存在的解释器
     for cand in _CANDIDATE_PYTHONS:
         if os.path.isfile(cand):
             return cand, cand

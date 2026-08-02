@@ -1,65 +1,65 @@
 @echo off
-chcp 65001 >nul
-REM é‡‘æ°´è°£ Â· pre-commit é’©å­ï¼ˆä»“åº“å¯è·Ÿè¸ªè§„èŒƒæºï¼‰
-REM å®‰è£…æ–¹å¼: py -3.14 tools/install_hooks.py
-REM ç»•è¿‡æ–¹å¼: git commit --no-verify
+chcp 936 >nul
+REM ½ğË®Ò¥ ¡¤ pre-commit ¹³×Ó£¨²Ö¿â¿É¸ú×Ù¹æ·¶Ô´£©
+REM °²×°·½Ê½: py -3.14 tools/install_hooks.py
+REM ÈÆ¹ı·½Ê½: git commit --no-verify
 
 setlocal enabledelayedexpansion
 
-REM è‡ªåŠ¨å®šä½é¡¹ç›®æ ¹ç›®å½•ï¼ˆå…ˆè¯• gitï¼Œå†è¯•ç›¸å¯¹è·¯å¾„ï¼‰
+REM ×Ô¶¯¶¨Î»ÏîÄ¿¸ùÄ¿Â¼£¨ÏÈÊÔ git£¬ÔÙÊÔÏà¶ÔÂ·¾¶£©
 for /f "delims=" %%i in ('git rev-parse --show-toplevel 2^>nul') do set "ROOT=%%i"
 if not defined ROOT set "ROOT=%~dp0..\.."
 
 set "PY=py -3.14"
 
 echo [pre-commit] ========================================
-echo [pre-commit] é‡‘æ°´è°£ Â· æäº¤å‰æ£€æŸ¥
+echo [pre-commit] ½ğË®Ò¥ ¡¤ Ìá½»Ç°¼ì²é
 echo [pre-commit] ========================================
 
-REM 1. AST è¯­æ³•æ£€æŸ¥
-echo [pre-commit] 1/3 AST è¯­æ³•æ£€æŸ¥...
+REM 1. AST Óï·¨¼ì²é
+echo [pre-commit] 1/3 AST Óï·¨¼ì²é...
 %PY% "%ROOT%\Jinshuiyao_Fixed\tools\gate.py" --ast --quick
 if errorlevel 1 (
-    echo [pre-commit] FAIL AST è¯­æ³•æ£€æŸ¥æœªé€šè¿‡ï¼
+    echo [pre-commit] FAIL AST Óï·¨¼ì²éÎ´Í¨¹ı£¡
     exit /b 1
 )
-echo [pre-commit] OK AST é€šè¿‡
+echo [pre-commit] OK AST Í¨¹ı
 
-REM 2. è·¨æ–‡æ¡£ä¸€è‡´æ€§å®¡è®¡
-echo [pre-commit] 2/3 è·¨æ–‡æ¡£ä¸€è‡´æ€§å®¡è®¡...
+REM 2. ¿çÎÄµµÒ»ÖÂĞÔÉó¼Æ
+echo [pre-commit] 2/3 ¿çÎÄµµÒ»ÖÂĞÔÉó¼Æ...
 %PY% "%ROOT%\Jinshuiyao_Fixed\tools\gate.py" --audit
 if errorlevel 1 (
-    echo [pre-commit] FAIL å®¡è®¡æœªé€šè¿‡ï¼
+    echo [pre-commit] FAIL Éó¼ÆÎ´Í¨¹ı£¡
     exit /b 1
 )
-echo [pre-commit] OK å®¡è®¡é€šè¿‡
+echo [pre-commit] OK Éó¼ÆÍ¨¹ı
 
-REM 3. æ”¶å·¥é—¨ç¦ï¼ˆäº¤æ¥ä¸­å¿ƒ/ç»éªŒæ”¶é›†ç®±/æ€»ç´¢å¼•ä¸‰ä»¶å¥—ï¼‰
-echo [pre-commit] 3/3 æ”¶å·¥é—¨ç¦...
+REM 3. ÊÕ¹¤ÃÅ½û£¨½»½ÓÖĞĞÄ/¾­ÑéÊÕ¼¯Ïä/×ÜË÷ÒıÈı¼şÌ×£©
+echo [pre-commit] 3/3 ÊÕ¹¤ÃÅ½û...
 %PY% "%ROOT%\Jinshuiyao_Fixed\tools\closeout_gate.py"
 if errorlevel 1 (
-    echo [pre-commit] FAIL æ”¶å·¥ä¸‰ä»¶å¥—ä¸å…¨ï¼
+    echo [pre-commit] FAIL ÊÕ¹¤Èı¼şÌ×²»È«£¡
     exit /b 1
 )
-echo [pre-commit] OK æ”¶å·¥é—¨ç¦é€šè¿‡
+echo [pre-commit] OK ÊÕ¹¤ÃÅ½ûÍ¨¹ı
 
-REM 4. ç³»ç»Ÿä¸€è‡´æ€§æ£€æµ‹ï¼ˆé˜²å¤å‘ï¼šè·¯ç”±/èµ„æº/åŒæ­¥/é“¾æ¥ï¼‰
-echo [pre-commit] 4/5 ç³»ç»Ÿä¸€è‡´æ€§æ£€æµ‹...
+REM 4. ÏµÍ³Ò»ÖÂĞÔ¼ì²â£¨·À¸´·¢£ºÂ·ÓÉ/×ÊÔ´/Í¬²½/Á´½Ó£©
+echo [pre-commit] 4/5 ÏµÍ³Ò»ÖÂĞÔ¼ì²â...
 %PY% "%ROOT%\Jinshuiyao_Fixed\tools\check_consistency.py"
 if errorlevel 1 (
-    echo [pre-commit] FAIL ç³»ç»Ÿä¸€è‡´æ€§æ£€æµ‹æœªé€šè¿‡ï¼
-    echo [pre-commit] è¿è¡Œ python tools/check_consistency.py æŸ¥çœ‹è¯¦æƒ…
+    echo [pre-commit] FAIL ÏµÍ³Ò»ÖÂĞÔ¼ì²âÎ´Í¨¹ı£¡
+    echo [pre-commit] ÔËĞĞ python tools/check_consistency.py ²é¿´ÏêÇé
     exit /b 1
 )
-echo [pre-commit] OK ç³»ç»Ÿä¸€è‡´æ€§é€šè¿‡
+echo [pre-commit] OK ÏµÍ³Ò»ÖÂĞÔÍ¨¹ı
 
-REM 5. æ“ä½œç•™ç—•ï¼ˆè®°å½•æœ¬æ¬¡æäº¤ï¼‰
-echo [pre-commit] 5/5 æ“ä½œç•™ç—•...
+REM 5. ²Ù×÷ÁôºÛ£¨¼ÇÂ¼±¾´ÎÌá½»£©
+echo [pre-commit] 5/5 ²Ù×÷ÁôºÛ...
 git diff --cached --name-only > "%TEMP%\jinshuiyao_staged.txt"
-%PY% -c "import sys; sys.path.insert(0, r'%ROOT%\Jinshuiyao_Fixed'); f=open(r'%TEMP%\jinshuiyao_staged.txt'); files=[l.strip() for l in f if l.strip()]; f.close(); from tools.audit_trail import log_event; log_event('commit', 'pre-commit è‡ªåŠ¨è®°å½•', files=files)"
-echo [pre-commit] OK ç•™ç—•è®°å½•
+%PY% -c "import sys; sys.path.insert(0, r'%ROOT%\Jinshuiyao_Fixed'); f=open(r'%TEMP%\jinshuiyao_staged.txt'); files=[l.strip() for l in f if l.strip()]; f.close(); from tools.audit_trail import log_event; log_event('commit', 'pre-commit ×Ô¶¯¼ÇÂ¼', files=files)"
+echo [pre-commit] OK ÁôºÛ¼ÇÂ¼
 
 echo [pre-commit] ========================================
-echo [pre-commit] å…¨éƒ¨æ£€æŸ¥é€šè¿‡ï¼Œå¯ä»¥æäº¤ï¼
+echo [pre-commit] È«²¿¼ì²éÍ¨¹ı£¬¿ÉÒÔÌá½»£¡
 echo [pre-commit] ========================================
 exit /b 0

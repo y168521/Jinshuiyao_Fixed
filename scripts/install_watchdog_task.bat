@@ -1,5 +1,5 @@
 @echo off
-chcp 65001 >nul
+chcp 936 >nul
 REM Jinshuiyao Watchdog Task Installer
 REM Creates an hourly Windows scheduled task to monitor the Jinshuiyao service.
 REM If not running as admin, this script will automatically request elevation.

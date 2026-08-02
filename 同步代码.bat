@@ -1,34 +1,34 @@
 @echo off
-chcp 65001 >nul
-title ä»£ç åŒæ­¥ä¸­...
+chcp 936 >nul
+title ´úÂëÍ¬²½ÖÐ...
 cd /d "%~dp0"
 
-echo ========== æ­£åœ¨åŒæ­¥ä»£ç  ==========
+echo ========== ÕýÔÚÍ¬²½´úÂë ==========
 
-REM è‡ªåŠ¨æ£€æµ‹ git è·¯å¾„
+REM ×Ô¶¯¼ì²â git Â·¾¶
 set GITCMD=git
 where git >nul 2>nul
 if %errorlevel% neq 0 set GITCMD=E:\Git\cmd\git.exe
 
-REM å…ˆä¸‹è½½è¿œç¨‹æ›´æ–°ï¼ˆè‡ªåŠ¨æš‚å­˜æœ¬åœ°ä¿®æ”¹ï¼‰
-echo [1/3] ä¸‹è½½è¿œç¨‹æ›´æ–°...
+REM ÏÈÏÂÔØÔ¶³Ì¸üÐÂ£¨×Ô¶¯ÔÝ´æ±¾µØÐÞ¸Ä£©
+echo [1/3] ÏÂÔØÔ¶³Ì¸üÐÂ...
 %GITCMD% pull --rebase --autostash
 if %errorlevel% neq 0 (
-    echo Ã— ä¸‹è½½å¤±è´¥ï¼Œå¯èƒ½æœ‰å†²çª
+    echo ¡Á ÏÂÔØÊ§°Ü£¬¿ÉÄÜÓÐ³åÍ»
     pause
     exit /b
 )
 
-REM å†ä¸Šä¼ æœ¬åœ°ä¿®æ”¹
-echo [2/3] æäº¤æœ¬åœ°ä¿®æ”¹...
+REM ÔÙÉÏ´«±¾µØÐÞ¸Ä
+echo [2/3] Ìá½»±¾µØÐÞ¸Ä...
 %GITCMD% add -A
-%GITCMD% commit -m "è‡ªåŠ¨åŒæ­¥ %date% %time%"
+%GITCMD% commit -m "×Ô¶¯Í¬²½ %date% %time%"
 if %errorlevel% equ 0 (
-    echo [3/3] ä¸Šä¼ åˆ° GitHub...
+    echo [3/3] ÉÏ´«µ½ GitHub...
     %GITCMD% push
 ) else (
-    echo - æ²¡æœ‰æ–°çš„ä¿®æ”¹éœ€è¦ä¸Šä¼ 
+    echo - Ã»ÓÐÐÂµÄÐÞ¸ÄÐèÒªÉÏ´«
 )
 
-echo ========== åŒæ­¥å®Œæˆ ==========
+echo ========== Í¬²½Íê³É ==========
 timeout /t 3 /nobreak >nul

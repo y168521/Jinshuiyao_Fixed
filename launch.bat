@@ -1,17 +1,17 @@
 @echo off
-chcp 65001 >nul 2>&1
+chcp 936 >nul 2>&1
 setlocal EnableDelayedExpansion
 
 :: ============================================================
-::  é‡‘æ°´è°£åŠ©æ‰‹ å¯åŠ¨å™¨ v3.0ï¼ˆä¸Ž ensure_runtime é…åˆï¼‰
-::  èŒè´£ï¼šæ‰¾åˆ°ä»»æ„å¯ç”¨ Python â†’ äº¤ç»™ launch_jinshuiyao.py
-::  venvåˆ›å»º/ä¾èµ–å®‰è£…/è·¯å¾„ä¿®å¤ å…¨éƒ¨ç”± ensure_runtime() è‡ªåŠ¨å®Œæˆ
-::  æ¢ç”µè„‘é›¶é…ç½®ï¼ŒåŒå‡»å³ç”¨
+::  ½ðË®Ò¥ÖúÊÖ Æô¶¯Æ÷ v3.0£¨Óë ensure_runtime ÅäºÏ£©
+::  Ö°Ôð£ºÕÒµ½ÈÎÒâ¿ÉÓÃ Python ¡ú ½»¸ø launch_jinshuiyao.py
+::  venv´´½¨/ÒÀÀµ°²×°/Â·¾¶ÐÞ¸´ È«²¿ÓÉ ensure_runtime() ×Ô¶¯Íê³É
+::  »»µçÄÔÁãÅäÖÃ£¬Ë«»÷¼´ÓÃ
 :: ============================================================
 
 set "PY="
 
-:: â”€â”€â”€ ç­–ç•¥0ï¼šæœ¬æœºä¸“ç”¨ venvï¼ˆ2026-07-28 ç”± venv_314 è¿ç§»è‡³æœ¬åœ°ç›˜ Project_Env\jinshuiyao_envï¼›ç›˜ç¬¦éšæœºå™¨ï¼šå°å¼D/ç¬”è®°æœ¬Eï¼Œè‡ªåŠ¨æ‰«æï¼‰â”€â”€â”€
+:: ©¤©¤©¤ ²ßÂÔ0£º±¾»ú×¨ÓÃ venv£¨2026-07-28 ÓÉ venv_314 Ç¨ÒÆÖÁ±¾µØÅÌ Project_Env\jinshuiyao_env£»ÅÌ·ûËæ»úÆ÷£ºÌ¨Ê½D/±Ê¼Ç±¾E£¬×Ô¶¯É¨Ãè£©©¤©¤©¤
 if not defined PY (
     for %%d in (C D E F G H) do (
         if not defined PY if exist "%%d:\Project_Env\jinshuiyao_env\Scripts\python.exe" (
@@ -20,8 +20,8 @@ if not defined PY (
     )
 )
 
-:: â”€â”€â”€ ç­–ç•¥1ï¼šWindows Python Launcherï¼ˆæœ€å¯é ï¼Œè£…Pythonæ—¶è‡ªåŠ¨æ³¨å†Œï¼‰ â”€â”€â”€
-:: æ³¨æ„ï¼špy è¿”å›žçš„ python è·¯å¾„å¿…é¡»çœŸå®žå­˜åœ¨ä¸”å¯è¿è¡Œï¼Œå¦åˆ™å®å¯ä¸é‡‡ç”¨ï¼ˆé¿å…æŒ‡å‘æ—§æœºåè·¯å¾„ï¼‰
+:: ©¤©¤©¤ ²ßÂÔ1£ºWindows Python Launcher£¨×î¿É¿¿£¬×°PythonÊ±×Ô¶¯×¢²á£© ©¤©¤©¤
+:: ×¢Òâ£ºpy ·µ»ØµÄ python Â·¾¶±ØÐëÕæÊµ´æÔÚÇÒ¿ÉÔËÐÐ£¬·ñÔòÄþ¿É²»²ÉÓÃ£¨±ÜÃâÖ¸Ïò¾É»ú»µÂ·¾¶£©
 if not defined PY (
     for /f "delims=" %%i in ('py -3 -c "import sys; print(sys.executable)" 2^>nul') do (
         if exist "%%i" (
@@ -30,7 +30,7 @@ if not defined PY (
     )
 )
 
-:: â”€â”€â”€ ç­–ç•¥2ï¼šPATHä¸­çš„pythonï¼ˆæŽ’é™¤WindowsAppså•†åº—å ä½ç¬¦ï¼‰ â”€â”€â”€
+:: ©¤©¤©¤ ²ßÂÔ2£ºPATHÖÐµÄpython£¨ÅÅ³ýWindowsAppsÉÌµêÕ¼Î»·û£© ©¤©¤©¤
 if not defined PY (
     for /f "delims=" %%i in ('where python 2^>nul') do (
         if not defined PY (
@@ -41,10 +41,10 @@ if not defined PY (
     )
 )
 
-:: â”€â”€â”€ ç­–ç•¥3ï¼šå¸¸è§å®‰è£…ä½ç½®ï¼ˆè¦†ç›–å„ç§ç›˜ç¬¦ï¼‰ â”€â”€â”€
+:: ©¤©¤©¤ ²ßÂÔ3£º³£¼û°²×°Î»ÖÃ£¨¸²¸Ç¸÷ÖÖÅÌ·û£© ©¤©¤©¤
 if not defined PY (
     for %%d in (C D E F G) do (
-        if not defined PY if exist "%%d:\ä¸‹è½½\python.exe" set "PY=%%d:\ä¸‹è½½\python.exe"
+        if not defined PY if exist "%%d:\ÏÂÔØ\python.exe" set "PY=%%d:\ÏÂÔØ\python.exe"
         if not defined PY if exist "%%d:\Python314\python.exe" set "PY=%%d:\Python314\python.exe"
         if not defined PY if exist "%%d:\Python313\python.exe" set "PY=%%d:\Python313\python.exe"
         if not defined PY if exist "%%d:\Python312\python.exe" set "PY=%%d:\Python312\python.exe"
@@ -52,7 +52,7 @@ if not defined PY (
     )
 )
 
-:: â”€â”€â”€ ç­–ç•¥4ï¼šç”¨æˆ·AppDataæ ‡å‡†å®‰è£…ä½ç½® â”€â”€â”€
+:: ©¤©¤©¤ ²ßÂÔ4£ºÓÃ»§AppData±ê×¼°²×°Î»ÖÃ ©¤©¤©¤
 if not defined PY (
     for /f "delims=" %%u in ('echo %LocalAppData%') do (
         for %%v in (Python314 Python313 Python312 Python311 Python310) do (
@@ -61,7 +61,7 @@ if not defined PY (
     )
 )
 
-:: â”€â”€â”€ ç­–ç•¥5ï¼šWorkBuddyå†…ç½®Python â”€â”€â”€
+:: ©¤©¤©¤ ²ßÂÔ5£ºWorkBuddyÄÚÖÃPython ©¤©¤©¤
 if not defined PY (
     for /d %%v in ("%UserProfile%\.workbuddy\binaries\python\versions\*") do (
         if not defined PY if exist "%%v\python.exe" set "PY=%%v\python.exe"
@@ -69,20 +69,20 @@ if not defined PY (
 )
 
 if not defined PY (
-    echo [é”™è¯¯] æœªæ‰¾åˆ° Pythonã€‚è¯·å®‰è£… Python 3.10+ åŽé‡è¯•ã€‚
-    echo         ä¸‹è½½åœ°å€: https://www.python.org/downloads/
+    echo [´íÎó] Î´ÕÒµ½ Python¡£Çë°²×° Python 3.10+ ºóÖØÊÔ¡£
+    echo         ÏÂÔØµØÖ·: https://www.python.org/downloads/
     pause
     exit /b 1
 )
 
-:: â”€â”€â”€ æ¸…ç†å ç”¨18888ç«¯å£çš„æ—§è¿›ç¨‹ â”€â”€â”€
+:: ©¤©¤©¤ ÇåÀíÕ¼ÓÃ18888¶Ë¿ÚµÄ¾É½ø³Ì ©¤©¤©¤
 for /f "tokens=5" %%a in ('netstat -ano 2^>nul ^| findstr "LISTENING" ^| findstr ":18888"') do (
     taskkill /F /PID %%a >nul 2>&1
 )
 
-:: â”€â”€â”€ ç¦æ­¢ Python ç”Ÿæˆ .pyc ç¼“å­˜ï¼ˆåšæžœäº‘ä¸æ”¯æŒå¿½ç•¥åˆ—è¡¨ï¼Œä»Žæºå¤´ä¸äº§ç”Ÿç¼“å­˜ï¼‰ â”€â”€â”€
+:: ©¤©¤©¤ ½ûÖ¹ Python Éú³É .pyc »º´æ£¨¼á¹ûÔÆ²»Ö§³ÖºöÂÔÁÐ±í£¬´ÓÔ´Í·²»²úÉú»º´æ£© ©¤©¤©¤
 set "PYTHONDONTWRITEBYTECODE=1"
 
-:: â”€â”€â”€ å¯åŠ¨ï¼ˆç‹¬ç«‹çª—å£è¿è¡Œï¼Œé¿å… bat ç­‰å¾…å¯¼è‡´æœåŠ¡è¢«è¯¯å…³ï¼‰ â”€â”€â”€
+:: ©¤©¤©¤ Æô¶¯£¨¶ÀÁ¢´°¿ÚÔËÐÐ£¬±ÜÃâ bat µÈ´ýµ¼ÖÂ·þÎñ±»Îó¹Ø£© ©¤©¤©¤
 start "" "%PY%" "%~dp0launch_jinshuiyao.py"
 exit /b 0

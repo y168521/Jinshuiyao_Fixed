@@ -1,20 +1,20 @@
 @echo off
-chcp 65001 >nul 2>&1
-title é‡‘æ°´è°£ä½“æ£€åŒ»ç”Ÿ
+chcp 936 >nul 2>&1
+title ½ğË®Ò¥Ìå¼ìÒ½Éú
 setlocal EnableDelayedExpansion
 
 :: ============================================================
-::  é‡‘æ°´è°£ä½“æ£€åŒ»ç”Ÿ v3.0ï¼ˆdoctor.pyæ˜¯çº¯æ ‡å‡†åº“ï¼Œä»»æ„Pythonå³å¯è¿è¡Œï¼‰
+::  ½ğË®Ò¥Ìå¼ìÒ½Éú v3.0£¨doctor.pyÊÇ´¿±ê×¼¿â£¬ÈÎÒâPython¼´¿ÉÔËĞĞ£©
 :: ============================================================
 
 set "PY="
 
-:: â”€â”€â”€ ç­–ç•¥1ï¼šWindows Python Launcher â”€â”€â”€
+:: ©¤©¤©¤ ²ßÂÔ1£ºWindows Python Launcher ©¤©¤©¤
 if not defined PY (
     for /f "delims=" %%i in ('py -3 -c "import sys; print(sys.executable)" 2^>nul') do set "PY=%%i"
 )
 
-:: â”€â”€â”€ ç­–ç•¥2ï¼šPATHä¸­çš„python â”€â”€â”€
+:: ©¤©¤©¤ ²ßÂÔ2£ºPATHÖĞµÄpython ©¤©¤©¤
 if not defined PY (
     for /f "delims=" %%i in ('where python 2^>nul') do (
         if not defined PY (
@@ -25,16 +25,16 @@ if not defined PY (
     )
 )
 
-:: â”€â”€â”€ ç­–ç•¥3ï¼šå¸¸è§å®‰è£…ä½ç½® â”€â”€â”€
+:: ©¤©¤©¤ ²ßÂÔ3£º³£¼û°²×°Î»ÖÃ ©¤©¤©¤
 if not defined PY (
     for %%d in (C D E F G) do (
-        if not defined PY if exist "%%d:\ä¸‹è½½\python.exe" set "PY=%%d:\ä¸‹è½½\python.exe"
+        if not defined PY if exist "%%d:\ÏÂÔØ\python.exe" set "PY=%%d:\ÏÂÔØ\python.exe"
         if not defined PY if exist "%%d:\Python314\python.exe" set "PY=%%d:\Python314\python.exe"
         if not defined PY if exist "%%d:\python38\python.exe" set "PY=%%d:\python38\python.exe"
     )
 )
 
-:: â”€â”€â”€ ç­–ç•¥4ï¼šç”¨æˆ·AppData â”€â”€â”€
+:: ©¤©¤©¤ ²ßÂÔ4£ºÓÃ»§AppData ©¤©¤©¤
 if not defined PY (
     for /f "delims=" %%u in ('echo %LocalAppData%') do (
         for %%v in (Python314 Python313 Python312 Python311 Python310) do (
@@ -44,8 +44,8 @@ if not defined PY (
 )
 
 if not defined PY (
-    echo [é”™è¯¯] æ‰¾ä¸åˆ°Pythonï¼Œæ— æ³•è¿è¡Œä½“æ£€ã€‚
-    echo è¯·å®‰è£… Python 3.10+ åé‡è¯•ã€‚
+    echo [´íÎó] ÕÒ²»µ½Python£¬ÎŞ·¨ÔËĞĞÌå¼ì¡£
+    echo Çë°²×° Python 3.10+ ºóÖØÊÔ¡£
     pause
     exit /b 1
 )

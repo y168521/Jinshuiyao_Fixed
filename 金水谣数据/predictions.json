@@ -18162,8 +18162,11 @@
     "type": "组三",
     "confidence": "强78",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 0,
+    "draw_date": "2026-07-31",
+    "hit_type": "未中",
+    "coverage": 0.0
   },
   {
     "scheme": "默认方案",
@@ -18173,8 +18176,11 @@
     "type": "组六",
     "confidence": "强78",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 0,
+    "draw_date": "2026-07-31",
+    "hit_type": "未中",
+    "coverage": 0.0
   },
   {
     "scheme": "默认方案",
@@ -18184,8 +18190,11 @@
     "type": "组六",
     "confidence": "强78",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 0,
+    "draw_date": "2026-07-31",
+    "hit_type": "未中",
+    "coverage": 0.0
   },
   {
     "scheme": "默认方案",
@@ -18195,8 +18204,11 @@
     "type": "组六复式(6码)",
     "confidence": "强78",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 2,
+    "draw_date": "2026-07-31",
+    "hit_type": "未中",
+    "coverage": 0.667
   },
   {
     "scheme": "默认方案",
@@ -18206,8 +18218,11 @@
     "type": "胆拖",
     "confidence": "强78",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 1,
+    "draw_date": "2026-07-31",
+    "hit_type": "未中",
+    "coverage": 0.333
   },
   {
     "scheme": "默认方案",
@@ -18217,8 +18232,11 @@
     "type": "直选",
     "confidence": "强78",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 0,
+    "draw_date": "2026-07-31",
+    "hit_type": "未中",
+    "coverage": 0.0
   },
   {
     "scheme": "默认方案",
@@ -18228,8 +18246,11 @@
     "type": "直选",
     "confidence": "强78",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 0,
+    "draw_date": "2026-07-31",
+    "hit_type": "未中",
+    "coverage": 0.0
   },
   {
     "scheme": "默认方案",
@@ -18239,8 +18260,11 @@
     "type": "直选",
     "confidence": "强78",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 0,
+    "draw_date": "2026-07-31",
+    "hit_type": "未中",
+    "coverage": 0.0
   },
   {
     "scheme": "默认方案",
@@ -18250,8 +18274,11 @@
     "type": "直选",
     "confidence": "强78",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 0,
+    "draw_date": "2026-07-31",
+    "hit_type": "未中",
+    "coverage": 0.0
   },
   {
     "scheme": "默认方案",
@@ -18261,8 +18288,11 @@
     "type": "直选",
     "confidence": "强78",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 0,
+    "draw_date": "2026-07-31",
+    "hit_type": "未中",
+    "coverage": 0.0
   },
   {
     "scheme": "默认方案",
@@ -18272,8 +18302,11 @@
     "type": "组三",
     "confidence": "强77",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 0,
+    "draw_date": "2026-07-31",
+    "hit_type": "未中",
+    "coverage": 0.0
   },
   {
     "scheme": "默认方案",
@@ -18283,8 +18316,11 @@
     "type": "组六",
     "confidence": "强77",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 0,
+    "draw_date": "2026-07-31",
+    "hit_type": "未中",
+    "coverage": 0.0
   },
   {
     "scheme": "默认方案",
@@ -18294,8 +18330,11 @@
     "type": "组六",
     "confidence": "强77",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 1,
+    "draw_date": "2026-07-31",
+    "hit_type": "未中",
+    "coverage": 0.333
   },
   {
     "scheme": "默认方案",
@@ -18305,8 +18344,11 @@
     "type": "组六复式(6码)",
     "confidence": "强77",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 2,
+    "draw_date": "2026-07-31",
+    "hit_type": "未中",
+    "coverage": 0.667
   },
   {
     "scheme": "默认方案",
@@ -18316,8 +18358,11 @@
     "type": "胆拖",
     "confidence": "强77",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 1,
+    "draw_date": "2026-07-31",
+    "hit_type": "未中",
+    "coverage": 0.333
   },
   {
     "scheme": "默认方案",
@@ -18327,8 +18372,11 @@
     "type": "直选",
     "confidence": "强77",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 2,
+    "draw_date": "2026-07-31",
+    "hit_type": "未中",
+    "coverage": 0.667
   },
   {
     "scheme": "默认方案",
@@ -18338,8 +18386,11 @@
     "type": "直选",
     "confidence": "强77",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 1,
+    "draw_date": "2026-07-31",
+    "hit_type": "未中",
+    "coverage": 0.333
   },
   {
     "scheme": "默认方案",
@@ -18349,8 +18400,11 @@
     "type": "直选",
     "confidence": "强77",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 1,
+    "draw_date": "2026-07-31",
+    "hit_type": "未中",
+    "coverage": 0.333
   },
   {
     "scheme": "默认方案",
@@ -18360,8 +18414,11 @@
     "type": "直选",
     "confidence": "强77",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 1,
+    "draw_date": "2026-07-31",
+    "hit_type": "未中",
+    "coverage": 0.333
   },
   {
     "scheme": "默认方案",
@@ -18371,8 +18428,11 @@
     "type": "直选",
     "confidence": "强77",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 1,
+    "draw_date": "2026-07-31",
+    "hit_type": "未中",
+    "coverage": 0.333
   },
   {
     "scheme": "默认方案",
@@ -18382,8 +18442,11 @@
     "type": "单注",
     "confidence": "中67",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 3,
+    "draw_date": "2026-07-31",
+    "hit_type": "组选",
+    "coverage": 0.429
   },
   {
     "scheme": "默认方案",
@@ -18393,8 +18456,11 @@
     "type": "单注",
     "confidence": "中67",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 4,
+    "draw_date": "2026-07-31",
+    "hit_type": "组选",
+    "coverage": 0.571
   },
   {
     "scheme": "默认方案",
@@ -18404,8 +18470,11 @@
     "type": "单注",
     "confidence": "中67",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 3,
+    "draw_date": "2026-07-31",
+    "hit_type": "组选",
+    "coverage": 0.429
   },
   {
     "scheme": "默认方案",
@@ -18415,8 +18484,11 @@
     "type": "复式",
     "confidence": "中67",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 3,
+    "draw_date": "2026-07-31",
+    "hit_type": "组选",
+    "coverage": 0.429
   },
   {
     "scheme": "默认方案",
@@ -18426,8 +18498,11 @@
     "type": "胆拖",
     "confidence": "中67",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 1,
+    "draw_date": "2026-07-31",
+    "hit_type": "组选",
+    "coverage": 0.143
   },
   {
     "scheme": "默认方案",
@@ -18437,8 +18512,11 @@
     "type": "单注",
     "confidence": "中68",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 3,
+    "draw_date": "2026-07-31",
+    "hit_type": "组选",
+    "coverage": 0.429
   },
   {
     "scheme": "默认方案",
@@ -18448,8 +18526,11 @@
     "type": "单注",
     "confidence": "中68",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 2,
+    "draw_date": "2026-07-31",
+    "hit_type": "组选",
+    "coverage": 0.286
   },
   {
     "scheme": "默认方案",
@@ -18459,8 +18540,11 @@
     "type": "单注",
     "confidence": "中68",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 3,
+    "draw_date": "2026-07-31",
+    "hit_type": "组选",
+    "coverage": 0.429
   },
   {
     "scheme": "默认方案",
@@ -18470,8 +18554,11 @@
     "type": "复式",
     "confidence": "中68",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 3,
+    "draw_date": "2026-07-31",
+    "hit_type": "组选",
+    "coverage": 0.429
   },
   {
     "scheme": "默认方案",
@@ -18481,8 +18568,11 @@
     "type": "胆拖",
     "confidence": "中68",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 2,
+    "draw_date": "2026-07-31",
+    "hit_type": "组选",
+    "coverage": 0.286
   },
   {
     "scheme": "默认方案",
@@ -18492,8 +18582,11 @@
     "type": "单注",
     "confidence": "中60",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 2,
+    "draw_date": "2026-07-31",
+    "hit_type": "组选",
+    "coverage": 0.1
   },
   {
     "scheme": "默认方案",
@@ -18503,8 +18596,11 @@
     "type": "单注",
     "confidence": "中60",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 2,
+    "draw_date": "2026-07-31",
+    "hit_type": "组选",
+    "coverage": 0.1
   },
   {
     "scheme": "默认方案",
@@ -18514,8 +18610,11 @@
     "type": "单注",
     "confidence": "中60",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 1,
+    "draw_date": "2026-07-31",
+    "hit_type": "组选",
+    "coverage": 0.05
   },
   {
     "scheme": "默认方案",
@@ -18525,8 +18624,11 @@
     "type": "复式",
     "confidence": "中60",
     "date": "2026-07-31 09:34",
-    "reviewed": false,
-    "hits": 0
+    "reviewed": true,
+    "hits": 0,
+    "draw_date": "2026-07-31",
+    "hit_type": "未中",
+    "coverage": 0.0
   },
   {
     "scheme": "默认方案",
@@ -18536,6 +18638,394 @@
     "type": "胆拖",
     "confidence": "中60",
     "date": "2026-07-31 09:34",
+    "reviewed": true,
+    "hits": 1,
+    "draw_date": "2026-07-31",
+    "hit_type": "组选",
+    "coverage": 0.05
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "双色球",
+    "period": 2026088,
+    "nums": "06,11,14,17,23,33+15",
+    "type": "单注",
+    "confidence": "中63",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "双色球",
+    "period": 2026088,
+    "nums": "05,06,12,15,21,32+01",
+    "type": "单注",
+    "confidence": "中63",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "双色球",
+    "period": 2026088,
+    "nums": "01,06,12,21,25,28+04",
+    "type": "单注",
+    "confidence": "中63",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "双色球",
+    "period": 2026088,
+    "nums": "05,11,12,14,17,19,25+15",
+    "type": "复式",
+    "confidence": "中63",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "双色球",
+    "period": 2026088,
+    "nums": "[胆:05,06]拖:04,11,25,27,31+01,04",
+    "type": "胆拖",
+    "confidence": "中63",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "福彩3D",
+    "period": 2026204,
+    "nums": "08,00,08",
+    "type": "组三",
+    "confidence": "强78",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "福彩3D",
+    "period": 2026204,
+    "nums": "08,08,05",
+    "type": "组三",
+    "confidence": "强78",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "福彩3D",
+    "period": 2026204,
+    "nums": "08,02,02",
+    "type": "组三",
+    "confidence": "强78",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "福彩3D",
+    "period": 2026204,
+    "nums": "00,02,03,06,08,09",
+    "type": "组六复式(6码)",
+    "confidence": "强78",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "福彩3D",
+    "period": 2026204,
+    "nums": "[胆:03,08]拖:00,02,09",
+    "type": "胆拖",
+    "confidence": "强78",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "福彩3D",
+    "period": 2026204,
+    "nums": "603",
+    "type": "直选",
+    "confidence": "强78",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "福彩3D",
+    "period": 2026204,
+    "nums": "632",
+    "type": "直选",
+    "confidence": "强78",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "福彩3D",
+    "period": 2026204,
+    "nums": "623",
+    "type": "直选",
+    "confidence": "强78",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "福彩3D",
+    "period": 2026204,
+    "nums": "633",
+    "type": "直选",
+    "confidence": "强78",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "福彩3D",
+    "period": 2026204,
+    "nums": "263",
+    "type": "直选",
+    "confidence": "强78",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "排列三",
+    "period": 2026204,
+    "nums": "00,07,07",
+    "type": "组三",
+    "confidence": "强77",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "排列三",
+    "period": 2026204,
+    "nums": "03,07,07",
+    "type": "组三",
+    "confidence": "强77",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "排列三",
+    "period": 2026204,
+    "nums": "07,08,09",
+    "type": "组六",
+    "confidence": "强77",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "排列三",
+    "period": 2026204,
+    "nums": "00,01,06,07,08,09",
+    "type": "组六复式(6码)",
+    "confidence": "强77",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "排列三",
+    "period": 2026204,
+    "nums": "[胆:05,07]拖:06,08,09",
+    "type": "胆拖",
+    "confidence": "强77",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "排列三",
+    "period": 2026204,
+    "nums": "096",
+    "type": "直选",
+    "confidence": "强77",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "排列三",
+    "period": 2026204,
+    "nums": "076",
+    "type": "直选",
+    "confidence": "强77",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "排列三",
+    "period": 2026204,
+    "nums": "186",
+    "type": "直选",
+    "confidence": "强77",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "排列三",
+    "period": 2026204,
+    "nums": "689",
+    "type": "直选",
+    "confidence": "强77",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "排列三",
+    "period": 2026204,
+    "nums": "196",
+    "type": "直选",
+    "confidence": "强77",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "七星彩",
+    "period": 2026088,
+    "nums": "01,06,06,07,06,06+02",
+    "type": "单注",
+    "confidence": "中69",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "七星彩",
+    "period": 2026088,
+    "nums": "09,07,05,06,01,09+06",
+    "type": "单注",
+    "confidence": "中69",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "七星彩",
+    "period": 2026088,
+    "nums": "01,07,05,06,08,09+06",
+    "type": "单注",
+    "confidence": "中69",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "七星彩",
+    "period": 2026088,
+    "nums": "09,05,08,01,08,01+02",
+    "type": "复式",
+    "confidence": "中69",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "七星彩",
+    "period": 2026088,
+    "nums": "[胆:09,09,01,07]拖:01/09,08/09+07",
+    "type": "胆拖",
+    "confidence": "中69",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "快乐8",
+    "period": 2026204,
+    "nums": "03,08,13,17,20,31,44,45,49,52",
+    "type": "单注",
+    "confidence": "中58",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "快乐8",
+    "period": 2026204,
+    "nums": "17,20,26,27,31,65,71,73,76,79",
+    "type": "单注",
+    "confidence": "中58",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "快乐8",
+    "period": 2026204,
+    "nums": "03,08,13,17,20,27,44,45,49,52",
+    "type": "单注",
+    "confidence": "中58",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "快乐8",
+    "period": 2026204,
+    "nums": "03,13,17,20,65,68,73,76,78,79,80",
+    "type": "复式",
+    "confidence": "中58",
+    "date": "2026-08-02 05:51",
+    "reviewed": false,
+    "hits": 0
+  },
+  {
+    "scheme": "默认方案",
+    "lot": "快乐8",
+    "period": 2026204,
+    "nums": "[胆:29,32,40]拖:13,17,26,27,31,44,45,49,52",
+    "type": "胆拖",
+    "confidence": "中58",
+    "date": "2026-08-02 05:51",
     "reviewed": false,
     "hits": 0
   }
