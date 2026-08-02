@@ -15,7 +15,7 @@ import wave
 import logging
 from datetime import datetime
 
-from domains.base import DomainBase
+from domains.base import DomainBase, project_data_dir
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ class MusicDomain(DomainBase):
 
     def __init__(self, config=None):
         super().__init__(config)
-        self.data_dir = self.config.get("data_dir", os.path.join("金水谣数据", "music"))
+        self.data_dir = self.config.get("data_dir", project_data_dir("music"))
         self._toolkit = None          # audio_toolkit 模块引用
         self._ffmpeg_available = False
         self._ffmpeg_path = None

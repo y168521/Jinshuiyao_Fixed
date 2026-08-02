@@ -92,15 +92,25 @@ class CreatorToolboxWindow:
 
     def _init_domain(self):
         """初始化 CreatorDomain（不可用时降级提示）"""
+        self._domain_err = None
         try:
             from domains.creator.domain import CreatorDomain
             self._domain = CreatorDomain()
             ok = self._domain.setup()
             if not ok:
+                self._domain_err = "CreatorDomain.setup() 返回 False"
                 print("[WARN] CreatorDomain.setup() 返回False")
         except Exception as e:
+            self._domain_err = str(e)
             print(f"[ERR] 创作者工具箱子系统初始化失败: {e}")
             self._domain = None
+
+    def _ensure_domain(self):
+        """确保创作者域已初始化；未初始化则自动重试一次"""
+        if self._domain is not None:
+            return True
+        self._init_domain()
+        return self._domain is not None
 
     # ---------------------------------------------------------------
     # UI构建
@@ -537,8 +547,10 @@ class CreatorToolboxWindow:
             func: 无参可调用，返回结果dict
             result_handler: 接收结果dict的回调（在主线程执行）
         """
-        if self._domain is None:
-            messagebox.showerror("错误", "创作者工具箱子系统未初始化")
+        if not self._ensure_domain():
+            reason = self._domain_err or "未知原因"
+            messagebox.showerror("创作者工具箱子系统初始化失败",
+                                 f"无法连接创作者服务：{reason}\n\n请检查项目目录是否完整，或稍后重试。")
             return
 
         self._log(f"开始执行：{action_name}")

@@ -17,7 +17,7 @@ import os
 import json
 import logging
 from datetime import datetime
-from domains.base import DomainBase
+from domains.base import DomainBase, project_data_dir
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ class FundDomain(DomainBase):
             config: 子系统配置字典
         """
         super().__init__(config)
-        self.data_dir = self.config.get("data_dir", os.path.join("金水谣数据", "fund"))
+        self.data_dir = self.config.get("data_dir", project_data_dir("fund"))
         self._fetcher = None
         self._analyzer = None
         self._ai_service = None

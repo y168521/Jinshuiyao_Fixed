@@ -6,7 +6,7 @@
 """
 import os
 import logging
-from domains.base import DomainBase
+from domains.base import DomainBase, project_data_dir
 from config import LOT_ALL, DEGRADED_LOTS
 from core.context import run_in_subsystem
 from models.lottery_data import Data
@@ -25,7 +25,7 @@ class LotteryDomain(DomainBase):
 
     def __init__(self, config=None):
         super().__init__(config)
-        self.data_dir = self.config.get("data_dir", "金水谣数据")
+        self.data_dir = self.config.get("data_dir", project_data_dir(""))
         self._engines = {}
         self._smart_brain = None
         self._brain_state_file = os.path.join(self.data_dir, "brain_state.json")

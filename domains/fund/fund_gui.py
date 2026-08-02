@@ -86,15 +86,25 @@ class FundAnalysisWindow:
 
     def _init_domain(self):
         """初始化 FundDomain（不可用时降级提示）"""
+        self._domain_err = None
         try:
             from domains.fund.domain import FundDomain
             self._domain = FundDomain()
             ok = self._domain.setup()
             if not ok:
+                self._domain_err = "FundDomain.setup() 返回 False"
                 print("[WARN] FundDomain.setup() 返回False")
         except Exception as e:
+            self._domain_err = str(e)
             print(f"[ERR] 基金子系统初始化失败: {e}")
             self._domain = None
+
+    def _ensure_domain(self):
+        """确保基金域已初始化；未初始化则自动重试一次"""
+        if self._domain is not None:
+            return True
+        self._init_domain()
+        return self._domain is not None
 
     # ---------------------------------------------------------------
     # UI构建
@@ -451,8 +461,11 @@ class FundAnalysisWindow:
 
         def do_refresh():
             try:
-                if self._domain is None:
-                    self.root.after(0, lambda: messagebox.showerror("错误", "基金子系统未初始化"))
+                if not self._ensure_domain():
+                    reason = self._domain_err or "未知原因"
+                    self.root.after(0, lambda: messagebox.showerror(
+                        "基金子系统初始化失败",
+                        f"无法连接基金数据服务：{reason}\n\n请检查项目目录是否完整，或稍后重试。"))
                     return
 
                 result = self._domain.fetch([self._current_fund])

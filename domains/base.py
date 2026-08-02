@@ -16,8 +16,20 @@
 """
 import abc
 import logging
+import os
 
 logger = logging.getLogger(__name__)
+
+# 项目根目录：base.py -> domains/ -> 项目根（不依赖 cwd，GUI 由 explorer 中转
+# 启动时 cwd 是用户目录，相对路径会导致数据写到错误位置）
+PROJECT_ROOT = os.path.normpath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+)
+
+
+def project_data_dir(sub: str) -> str:
+    """返回子系统数据目录的绝对路径（项目根/金水谣数据/<sub>）"""
+    return os.path.join(PROJECT_ROOT, "金水谣数据", sub)
 
 
 class DomainBase(abc.ABC):

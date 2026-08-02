@@ -9,7 +9,7 @@
 import os
 import logging
 from datetime import datetime
-from domains.base import DomainBase
+from domains.base import DomainBase, project_data_dir
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ class CreatorDomain(DomainBase):
         """
         super().__init__(config)
         self.output_dir = self.config.get(
-            "output_dir", os.path.join("金水谣数据", "creator_output")
+            "output_dir", project_data_dir("creator_output")
         )
         self._copywriter = None
         self._stt = None

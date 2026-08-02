@@ -17,7 +17,7 @@ import os
 import json
 import logging
 from datetime import datetime, timedelta
-from domains.base import DomainBase
+from domains.base import DomainBase, project_data_dir
 from core.context import run_in_subsystem
 
 logger = logging.getLogger(__name__)
@@ -63,7 +63,7 @@ class StockDomain(DomainBase):
 
     def __init__(self, config=None):
         super().__init__(config)
-        self.data_dir = self.config.get("data_dir", os.path.join("金水谣数据", "stock"))
+        self.data_dir = self.config.get("data_dir", project_data_dir("stock"))
         self._fetcher = None
         self._tech_engine = None
         self._trend_engine = None
