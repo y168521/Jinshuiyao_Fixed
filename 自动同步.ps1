@@ -7,6 +7,11 @@ $env:GIT_SSH_COMMAND = "ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes
 $env:PYTHONIOENCODING = "utf-8"
 $env:GIT_OPTIONAL_LOCKS = "0"
 
+function Notify($msg) {
+    Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue
+    [System.Windows.Forms.MessageBox]::Show($msg, "金水谣自动同步", "OK", "Warning") | Out-Null
+}
+
 Set-Location -LiteralPath $Repo
 function Log($m) { "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') $m" | Out-File -FilePath $Log -Append -Encoding utf8 }
 
@@ -18,6 +23,7 @@ $pullOk = $LASTEXITCODE -eq 0
 git stash pop 2>&1 | Out-Null
 if (-not $pullOk) {
     Log "pull failed (conflict or offline), skip"
+    Notify "拉取 GitHub 最新代码失败（断网或冲突），本次跳过同步。请检查网络，或找 AI 帮忙看。"
     exit 1
 }
 
@@ -57,6 +63,7 @@ if ($candidates.Count -gt 0) {
             Log "committed and pushed ($($staged.Count) files)"
         } else {
             Log "commit ok but push failed (network?)"
+            Notify "代码已提交但推送到 GitHub 失败（网络问题）。改动保留在本地，网络恢复后会自动补推。"
         }
     } else {
         Log "nothing staged, skip commit"
