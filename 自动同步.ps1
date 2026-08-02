@@ -75,5 +75,11 @@ if ($candidates.Count -gt 0) {
 # 5) 顺带刷新 Obsidian vault(金水谣活文档 -> vault 副本, 只读联动)
 & powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\Administrator\Nutstore\1\我的坚果云\模型\obsidian-vault\刷新vault.ps1" 2>&1 | Out-Null
 
+# 6) 自动蒸馏: 经验收集箱新条目 -> SKILL.md(幂等), 有改动下轮自动同步提交
+$py = "D:\Project_Env\jinshuiyao_env\Scripts\python.exe"
+if (Test-Path $py) {
+    & $py "$Repo\tools\auto_distill.py" 2>&1 | Out-Null
+}
+
 exit 0
 
