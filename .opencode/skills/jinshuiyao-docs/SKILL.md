@@ -68,6 +68,9 @@ description: 金水谣文档登记与交接规范。Use when completing any task
 - [ ] 外层副本同步了吗？（改了仓库根的 md 时）
 
 ## 📥 自动蒸馏区（auto_distill 维护，勿手改）
+- **2026-08-02 第十六条：同族bug要全仓扫描——修了一处"降级吞标记"，还有一处** — ①包 fail-safe 的检查点必须"看得见"——单测断言 total>0 太弱，要断言"每个来源都>0"（满足后一种断言就不会漏 ai_decisions 全空）；②staleness_check 的源vs资产mtime对比查不出"图谱
+  - 原文: 金水谣数据/log/经验收集箱.md#2026-08-02 第十六条（L1 原始层）
+  - 关联: JS-20260802-13 / 交接中心 W63补17
 - **2026-08-02 第十三条：跨进程"联动"靠心跳文件——GUI与web状态互通** — ①跨进程状态互通最轻量的方案是"文件心跳+pid 存活校验"，比端口探测/进程枚举可靠（Windows 下无 psutil 也能做）；②联动要有"回显"闭环：web 发起动作，web 能看到结果，否则用户感觉不到联动；③日志联动要防两坑：目
   - ①`core/gui_registry.py` 心跳注册：GUI 启动时写 金水谣数据/log/gui_status.json（pid/标题/启动时间），退出 atexit 自动清理；检测方读文件 + pid 存活校验（OpenProcess+GetExitCodeProcess=259），异常退出不残留脏状态；②5 个 GUI 入口统一接入 register()（try-except 包裹，失败
   - 原文: 金水谣数据/log/经验收集箱.md#2026-08-02 第十三条（L1 原始层）

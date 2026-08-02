@@ -14,6 +14,7 @@
 
 import os
 import re
+import time
 import hashlib
 import threading
 import logging
@@ -49,6 +50,36 @@ _EXPERIENCE_BOX_MARKER = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     "金水谣数据", "log", ".expbox_hash"
 )
+
+# 三元组"未解析"重试冷却（防止 DeepSeek 临时抽空/异常时高频空转烧钱，
+# 同时保证该批经验不会被标记吞掉——冷却期内 watcher 重入直接跳过）
+_TRIPLE_RETRY_MARKER = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "金水谣数据", "log", ".triple_retry_cooldown"
+)
+_TRIPLE_RETRY_COOLDOWN_SEC = 600
+
+
+def _triple_retry_ready() -> bool:
+    """距上次"未解析"尝试超过冷却期则允许重试。"""
+    if not os.path.isfile(_TRIPLE_RETRY_MARKER):
+        return True
+    try:
+        return time.time() - os.path.getmtime(_TRIPLE_RETRY_MARKER) > _TRIPLE_RETRY_COOLDOWN_SEC
+    except OSError:
+        return True
+
+
+def _touch_triple_retry() -> None:
+    """记录一次"未解析"尝试时间（原子写）。"""
+    try:
+        os.makedirs(os.path.dirname(_TRIPLE_RETRY_MARKER), exist_ok=True)
+        tmp = _TRIPLE_RETRY_MARKER + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        os.replace(tmp, _TRIPLE_RETRY_MARKER)
+    except OSError:
+        pass
 
 
 # ---------------------------------------------------------------------------
@@ -350,6 +381,10 @@ def extract_triples_from_experience_box(batch: int = _TRIPLE_BATCH) -> Dict[str,
     for ci in range(0, len(new_entries), batch):
         if chunks >= _TRIPLE_MAX_CHUNKS:
             break
+        # 冷却期内不调模型（上次未解析的批次待重试，避免空转烧钱）
+        if not _triple_retry_ready():
+            return {"processed": len(new_entries), "triples": 0,
+                    "saved": 0, "info": "三元组冷却中，标记保留待重试"}
         chunk = new_entries[ci:ci + batch]
         chunks += 1
         try:
@@ -362,12 +397,15 @@ def extract_triples_from_experience_box(batch: int = _TRIPLE_BATCH) -> Dict[str,
             triples_all.extend(_parse_triples(reply))
         except Exception as e:
             logger.error("[GraphRAG] DeepSeek 调用异常(块%d): %s", chunks, e)
+            _touch_triple_retry()
             break
 
     if not triples_all:
-        _write_triple_marker(current_hash)
+        # ⚠ 不更新哈希标记：否则该批经验永远进不了图谱（真断链）。
+        # 只记冷却时间，冷却过后 watcher/调度器会自动重试。
+        _touch_triple_retry()
         return {"processed": len(new_entries), "triples": 0,
-                "saved": 0, "info": "未解析到三元组"}
+                "saved": 0, "info": "未解析到三元组（标记保留，冷却后重试）"}
 
     # 归一化 + 去重 + 写库（整段临界区加锁，避免监听/调度并发丢 append）
     with _TRIPLE_STORE_LOCK:

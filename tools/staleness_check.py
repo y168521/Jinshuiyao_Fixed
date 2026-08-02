@@ -78,6 +78,23 @@ def _content_probe(name, path, titles):
     return None  # 不适用（无探针）
 
 
+def _graph_source_coverage():
+    """深度体检：图谱三元组必须同时覆盖两个知识源。
+
+    mtime 对比只会发现"某资产没重建"，查不出"重建了但某源内容缺失"
+    （如 ai_decisions 三元组曾被降级吞掉，图谱里该源为 0）。
+    返回缺失的源列表；空=完整。
+    """
+    try:
+        with open(os.path.join(BASE_DIR, 'knowledge', 'graph_triples.json'), encoding='utf-8') as f:
+            store = json.load(f)
+    except Exception:
+        return ['经验收集箱', 'AI决策']
+    srcs = {t.get('source') for t in store.get('triples', [])}
+    want = {'经验收集箱.md': '经验收集箱', 'ai_decisions.md': 'AI决策'}
+    return [cn for key, cn in want.items() if not any(key in s for s in srcs)]
+
+
 def check(verbose=True):
     newest = _newest_source_mtime()
     titles = _newest_exp_titles()
@@ -120,10 +137,16 @@ def check(verbose=True):
             note = '  (内容探针: 已含最新知识)' if probe is True else ''
             print('%-22s %s  %s   (依赖: %s)%s' % (
                 name, time.strftime('%m-%d %H:%M', time.localtime(ts)), mark, dep, note))
+    # 深度体检：图谱 source 覆盖
+    missing_src = _graph_source_coverage()
+    if missing_src:
+        stale += 1
+        if verbose:
+            print('%-22s  %-8s  %s' % ('图谱源覆盖', '缺源', '图谱缺少来源: ' + '、'.join(missing_src)))
     if verbose:
         print('-' * 66)
         if stale:
-            print('⚠ %d 个资产陈旧：知识写了但没进派生层，建议重跑提取/蒸馏' % stale)
+            print('⚠ %d 个问题：知识写了但没进派生层，建议重跑提取/蒸馏' % stale)
         else:
             print('✓ 全部新鲜，知识网无断链')
     return 0 if stale == 0 else 1

@@ -10,6 +10,7 @@
 
 import os
 import re
+import time
 import hashlib
 import threading
 import logging
@@ -58,6 +59,36 @@ _AI_DECISIONS_TRIPLE_MARKER = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     "金水谣数据", "log", ".ai_decisions_triples_hash"
 )
+
+# 三元组"未解析"重试冷却（防 DeepSeek 临时抽空/异常时高频空转，
+# 且该批决策不会被标记吞掉——冷却期内重入直接跳过，冷却后自动重试）
+_AI_DECISIONS_RETRY_MARKER = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "金水谣数据", "log", ".ai_decisions_triple_retry_cooldown"
+)
+_AI_DECISIONS_RETRY_COOLDOWN_SEC = 600
+
+
+def _ai_decisions_retry_ready() -> bool:
+    """距上次"未解析"尝试超过冷却期则允许重试。"""
+    if not os.path.isfile(_AI_DECISIONS_RETRY_MARKER):
+        return True
+    try:
+        return time.time() - os.path.getmtime(_AI_DECISIONS_RETRY_MARKER) > _AI_DECISIONS_RETRY_COOLDOWN_SEC
+    except OSError:
+        return True
+
+
+def _touch_ai_decisions_retry() -> None:
+    """记录一次"未解析"尝试时间（原子写）。"""
+    try:
+        os.makedirs(os.path.dirname(_AI_DECISIONS_RETRY_MARKER), exist_ok=True)
+        tmp = _AI_DECISIONS_RETRY_MARKER + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        os.replace(tmp, _AI_DECISIONS_RETRY_MARKER)
+    except OSError:
+        pass
 
 
 def _write_ai_decisions_marker(hash_str: str) -> None:
@@ -239,14 +270,19 @@ def extract_triples_from_ai_decisions(batch: int = _TRIPLE_BATCH) -> Dict[str, A
     if ai_offline or _ai_decisions_skip_triples():
         reason = "无key/离线" if ai_offline else f"模式={get_pipeline_mode()}"
         logger.info("[AI决策 GraphRAG] 降级跳过三元组抽取（%s）", reason)
-        _write_ai_decisions_triple_marker(current_hash)
-        return {"processed": len(new_entries), "triples": 0, "saved": 0, "info": f"降级：{reason}"}
+        # ⚠ 降级时**不更新哈希标记**：否则 key 恢复后该批决策永远进不了图谱（真断链）。
+        return {"processed": len(new_entries), "triples": 0, "saved": 0,
+                "info": f"降级：{reason}，标记保留待 key 恢复后重提"}
 
     triples_all: List[Dict[str, str]] = []
     chunks = 0
     for ci in range(0, len(new_entries), batch):
         if chunks >= _TRIPLE_MAX_CHUNKS:
             break
+        # 冷却期内不调模型（上次未解析的批次待重试，避免空转烧钱）
+        if not _ai_decisions_retry_ready():
+            return {"processed": len(new_entries), "triples": 0,
+                    "saved": 0, "info": "三元组冷却中，标记保留待重试"}
         chunk = new_entries[ci:ci + batch]
         chunks += 1
         try:
@@ -259,11 +295,15 @@ def extract_triples_from_ai_decisions(batch: int = _TRIPLE_BATCH) -> Dict[str, A
             triples_all.extend(_parse_triples(reply))
         except Exception as e:
             logger.error("[AI决策 GraphRAG] DeepSeek 调用异常(块%d): %s", chunks, e)
+            _touch_ai_decisions_retry()
             break
 
     if not triples_all:
-        _write_ai_decisions_triple_marker(current_hash)
-        return {"processed": len(new_entries), "triples": 0, "saved": 0, "info": "未解析到三元组"}
+        # ⚠ 不更新哈希标记：否则该批决策永远进不了图谱（真断链）。
+        # 只记冷却时间，冷却过后 watcher/调度器会自动重试。
+        _touch_ai_decisions_retry()
+        return {"processed": len(new_entries), "triples": 0, "saved": 0,
+                "info": "未解析到三元组（标记保留，冷却后重试）"}
 
     # 归一化 + 去重 + 写库（共享锁，与经验箱三元组库同一文件，防并发覆盖丢失）
     with _TRIPLE_STORE_LOCK:
