@@ -120,6 +120,7 @@ nul
 金水谣数据/log/.ai_decisions_triples_hash
 金水谣数据/log/.expbox_hash
 金水谣数据/log/.expbox_triples_hash
+金水谣数据/log/.distill_seen
 金水谣数据/log/manifest.json
 金水谣数据/review/
 knowledge/mirofish_db.json
