@@ -1,9 +1,9 @@
 {
-  "total_tokens": 418383,
-  "total_prompt_tokens": 328080,
-  "total_completion_tokens": 90303,
-  "total_calls": 162,
-  "last_updated": "2026-07-31T07:59:51",
+  "total_tokens": 444851,
+  "total_prompt_tokens": 346515,
+  "total_completion_tokens": 98336,
+  "total_calls": 185,
+  "last_updated": "2026-08-02T09:42:58",
   "daily": {
     "2026-07-20": {
       "tokens": 1110,
@@ -28,6 +28,10 @@
     "2026-07-31": {
       "tokens": 4562,
       "calls": 1
+    },
+    "2026-08-02": {
+      "tokens": 26468,
+      "calls": 23
     }
   }
 }
