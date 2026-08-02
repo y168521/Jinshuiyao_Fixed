@@ -68,6 +68,10 @@ description: 金水谣文档登记与交接规范。Use when completing any task
 - [ ] 外层副本同步了吗？（改了仓库根的 md 时）
 
 ## 📥 自动蒸馏区（auto_distill 维护，勿手改）
+- **2026-08-02 第七条：AI蒸馏首跑全失败——三个隐蔽坑**
+  - ①调用外部 API 的库函数，异常必须显式打印而不是 `except: return None`（否则排查全靠猜）；②LLM 输出**永远不保证格式**，解析必须容错（首行/全文/前缀全兜底）；③幂等标记+flush 模式是调试好帮手——清空 seen 重跑即全量重蒸。
+  - ①属性访问 `ai.is_available`（不加括号）；②宽松解析：首行不在 Skill 名列表就全文扫描找 Skill 名；③规则行 `lstrip("- ")` 兜底。修复后单测 killer 合并→正确归 jinshuiyao-dev 3 条规则。
+  - 关联: JS-20260802-04 / 交接中心 W63补7
 
 - **2026-07-21（WorkBuddy）内容营销智能体 · 全网开源对标**
   - 1. 视频生产全链路开源工具（如 MoneyPrinterTurbo、ClawReel）可作 C 档"对外网页"扩展素材，对外文档需明确开源许可与 HITL 审核点。
