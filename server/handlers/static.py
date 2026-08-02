@@ -66,6 +66,7 @@ _EXTERNAL_PAGE_ROUTES = {
     '/filter-panel':    os.path.join(HTML_DIR, 'filter-panel.html'),
     '/prize-calculator': os.path.join(HTML_DIR, 'prize-calculator.html'),
     '/audit-dashboard':  os.path.join(HTML_DIR, 'audit-dashboard.html'),
+    '/automation-dashboard': os.path.join(HTML_DIR, 'automation-dashboard.html'),
     '/head-tail-analysis': os.path.join(HTML_DIR, 'head-tail-analysis.html'),
     '/lottery-sources-health': os.path.join(HTML_DIR, 'lottery-sources-health.html'),
 }
@@ -291,6 +292,164 @@ def handle_audit_trail(handler):
         handler._send_json(data)
     except Exception as e:
         handler._send_json({"error": f"读取操作留痕数据失败: {e}", "events": [], "user": "未知", "chain_ok": False})
+
+
+def handle_automation_status(handler):
+    """GET /api/automation-status — 自动化体系运行状态（自动同步/看门狗/蒸馏/vault/服务器）"""
+    import datetime
+    import re as _re
+    LOG_DIR = os.path.join(BASE_DIR, '金水谣数据', 'log')
+
+    def _read_tail(name, n=8):
+        try:
+            p = os.path.join(LOG_DIR, name)
+            if not os.path.isfile(p):
+                return []
+            with open(p, encoding='utf-8', errors='replace') as f:
+                return [ln.rstrip() for ln in f.readlines()[-n:] if ln.strip()]
+        except Exception:
+            return []
+
+    def _last_line_ts(name):
+        """从日志最后一行解析时间戳（ISO 或 自定义），无则 None"""
+        lines = _read_tail(name, 1)
+        if not lines:
+            return None
+        return _last_line_ts_from_lines(lines)
+
+    def _last_line_ts_from_lines(lines):
+        """从给定行列表最后一行解析时间戳"""
+        if not lines:
+            return None
+        ln = lines[-1]
+        m = _re.search(r'\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]', ln)
+        if m:
+            try:
+                return datetime.datetime.strptime(m.group(1), '%Y-%m-%d %H:%M:%S').isoformat()
+            except Exception:
+                return None
+        m = _re.search(r'(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})', ln)
+        if m:
+            try:
+                return datetime.datetime.strptime(m.group(1).replace('T', ' '), '%Y-%m-%d %H:%M:%S').isoformat()
+            except Exception:
+                return None
+        m = _re.search(r'^(\d{14})', ln)  # distill.log 格式
+        if m:
+            try:
+                return datetime.datetime.strptime(m.group(1), '%Y%m%d%H%M%S').isoformat()
+            except Exception:
+                return None
+        return None
+
+    def _tail_json(name):
+        try:
+            p = os.path.join(LOG_DIR, name)
+            if os.path.isfile(p):
+                with open(p, encoding='utf-8') as f:
+                    return json.load(f)
+        except Exception:
+            pass
+        return None
+
+    # 1) 自动同步：最后活动时间 + 最近日志
+    sync_lines = _read_tail('auto_sync.log', 10)
+    sync_last = _last_line_ts('auto_sync.log')
+    sync_ok = any('committed and pushed' in ln for ln in sync_lines) or sync_last is not None
+
+    # 2) 看门狗：状态文件 + 最近日志（watchdog 写在外层 模型/金水谣数据/log/）
+    wd_log_dir = os.path.join(BASE_DIR, '..', '金水谣数据', 'log')
+    wd_state_path = os.path.join(wd_log_dir, 'watchdog_state.json')
+    wd_log_path = os.path.join(wd_log_dir, 'watchdog.log')
+    wd_state = {}
+    try:
+        if os.path.isfile(wd_state_path):
+            with open(wd_state_path, encoding='utf-8') as f:
+                wd_state = json.load(f)
+    except Exception:
+        pass
+    wd_lines = _read_tail('watchdog.log', 10) if os.path.isfile(os.path.join(LOG_DIR, 'watchdog.log')) else []
+    try:
+        if os.path.isfile(wd_log_path):
+            with open(wd_log_path, encoding='utf-8', errors='replace') as f:
+                wd_lines = [ln.rstrip() for ln in f.readlines()[-10:] if ln.strip()]
+    except Exception:
+        pass
+    wd_last = _last_line_ts_from_lines(wd_lines)
+    wd_last_ok = any(('自动恢复' in ln) or ('[OK]' in ln) or ('巡检结束' in ln) for ln in wd_lines)
+
+    # 3) 蒸馏：最近日志 + 队列文件行数
+    dist_lines = _read_tail('distill.log', 10)
+    dist_last = _last_line_ts('distill.log')
+    queue_path = os.path.join(LOG_DIR, '待蒸馏队列.md')
+    queue_lines = 0
+    if os.path.isfile(queue_path):
+        try:
+            with open(queue_path, encoding='utf-8') as f:
+                queue_lines = sum(1 for ln in f if ln.strip().startswith('### '))
+        except Exception:
+            pass
+
+    # 4) vault 刷新：refresh.log（在 模型/obsidian-vault 目录）
+    vault_last = None
+    vault_lines = []
+    refresh_log = os.path.join(BASE_DIR, '..', 'obsidian-vault', 'refresh.log')
+    if os.path.isfile(refresh_log):
+        try:
+            with open(refresh_log, encoding='utf-8') as f:
+                vault_lines = [ln.rstrip() for ln in f.readlines()[-3:] if ln.strip()]
+            m = _re.search(r'\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]', vault_lines[-1] if vault_lines else '')
+            if m:
+                vault_last = m.group(1).replace(' ', 'T')
+        except Exception:
+            pass
+
+    # 5) 服务器进程：18888 是否存活
+    server_alive = False
+    try:
+        import socket
+        s = socket.create_connection(('127.0.0.1', 18888), timeout=2)
+        s.close()
+        server_alive = True
+    except Exception:
+        pass
+
+    # 6) 计划任务状态（无头子进程下 stdout 可能为空，用 exit code 判断）
+    def _task_ok(name):
+        try:
+            r = subprocess.run(['schtasks', '/query', '/tn', name, '/fo', 'csv'],
+                               capture_output=True, timeout=10)
+            return r.returncode == 0
+        except Exception:
+            return False
+
+    data = {
+        "updated_at": datetime.datetime.now().isoformat(),
+        "server": {"alive": server_alive, "port": 18888},
+        "auto_sync": {
+            "ok": sync_ok,
+            "last_run": sync_last,
+            "recent": sync_lines[-5:],
+            "task_ok": _task_ok("Jinshuiyao自动同步"),
+        },
+        "watchdog": {
+            "ok": wd_last_ok or bool(wd_state),
+            "last_run": wd_last,
+            "recent": wd_lines[-5:],
+            "task_ok": _task_ok("JinshuiyaoWatchdog"),
+            "state": wd_state,
+        },
+        "distill": {
+            "last_run": dist_last,
+            "recent": dist_lines[-5:],
+            "queue_count": queue_lines,
+        },
+        "vault": {
+            "last_refresh": vault_last,
+            "recent": vault_lines,
+        },
+    }
+    handler._send_json(data)
 
 
 # ---------------------------------------------------------------------------

@@ -163,6 +163,50 @@ def _ai_classify_and_extract(title, body):
         return None
 
 
+def _queue_key(qtitle):
+    """队列条目幂等键：标题 sha256（与经验条目一致）。"""
+    return sha256_hex("QUEUE:" + qtitle)
+
+
+def _load_queue_entries():
+    """读取待蒸馏队列为 [{title, body}]，空文件返回 []。"""
+    if not os.path.exists(QUEUE):
+        return []
+    with open(QUEUE, encoding="utf-8") as f:
+        qtext = f.read()
+    entries = []
+    for m in re.finditer(r"^### (.+?)\n(.*?)(?=^### |\Z)", qtext, re.M | re.S):
+        title, body = m.group(1).strip(), m.group(2).strip()
+        if not title:
+            continue
+        entries.append({"title": title, "body": body[:600]})
+    return entries
+
+
+def _prune_queue(done_keys):
+    """从队列文件移除已成功处理的条目（保留其余），返回是否变动。"""
+    if not done_keys or not os.path.exists(QUEUE):
+        return False
+    with open(QUEUE, encoding="utf-8") as f:
+        qtext = f.read()
+    if not qtext.strip():
+        return False
+    lines = qtext.split("\n")
+    out, skip, changed = [], False, False
+    for ln in lines:
+        m = re.match(r"^### (.+?)$", ln)
+        if m:
+            skip = _queue_key(m.group(1).strip()) in done_keys
+            if skip:
+                changed = True
+        if not skip:
+            out.append(ln)
+    if changed:
+        with open(QUEUE, "w", encoding="utf-8") as f:
+            f.write("\n".join(out).rstrip() + "\n")
+    return changed
+
+
 def distill_entry(e, use_ai):
     """处理单条经验，返回 (skill, points) 或 None。"""
     points = extract_rules(e["body"])
@@ -182,14 +226,11 @@ def main():
     parser.add_argument("--flush-queue", action="store_true", help="把待蒸馏队列条目重新处理一遍")
     args = parser.parse_args()
 
-    if args.flush_queue and os.path.exists(QUEUE):
-        # 把队列内容临时当素材处理（构造临时条目）
-        with open(QUEUE, encoding="utf-8") as f:
-            qtext = f.read()
-        entries = []
-        for m in re.finditer(r"^### (.+?)\n(.*?)(?=^### |\Z)", qtext, re.M | re.S):
-            title, body = m.group(1).strip(), m.group(2).strip()
-            entries.append({"title": title, "body": body[:600]})
+    if args.flush_queue:
+        entries = _load_queue_entries()
+        if not entries:
+            print("[distill] 队列为空，跳过")
+            return
         print(f"[distill] 队列重处理: {len(entries)} 条")
     else:
         if not os.path.exists(EXPBOX):
@@ -201,12 +242,17 @@ def main():
 
     seen = load_seen()
     new_count, skill_updated, ai_used = 0, [], 0
-    queue_entries = []
+    queue_entries, done_keys = [], []
     for e in entries:
-        key = sha256_hex(e["title"])
-        if key in seen and not args.flush_queue:
-            continue
-        seen.add(key)
+        if args.flush_queue:
+            key = _queue_key(e["title"])
+            if key in seen:
+                continue  # 队列条目已成功处理过，幂等防重复
+        else:
+            key = sha256_hex(e["title"])
+            if key in seen:
+                continue
+            seen.add(key)
         new_count += 1
         result = distill_entry(e, args.ai)
         if result:
@@ -217,13 +263,21 @@ def main():
             m = re.search(r"关联总索引\*\*：(.+)", e["body"])
             if m:
                 rel = m.group(1).strip()
-            if append_to_skill(skill, e["title"], points, rel):
+            appended = append_to_skill(skill, e["title"], points, rel)
+            if appended:
                 skill_updated.append(skill)
             else:
                 new_count -= 1  # 已存在，不算新
+            seen.add(key)  # 成功提炼（无论是否新写）即标记，防重复
+            if args.flush_queue:
+                done_keys.append(key)  # 提炼成功即从队列移除（内容已入 Skill 或已存在）
         else:
+            if args.flush_queue:
+                continue  # 失败保留队列，不标记 seen，下轮可重试
             queue_entries.append("### " + e["title"] + "\n\n- 归类: 待处理\n- 关联: 见下\n\n```\n" + e["body"][:600] + "\n```\n")
     save_seen(seen)
+    if args.flush_queue:
+        _prune_queue(done_keys)
 
     with open(DISTILL_LOG, "a", encoding="utf-8") as f:
         ts = re.sub(r"\D", "", str(__import__("datetime").datetime.now().isoformat()))[:14]

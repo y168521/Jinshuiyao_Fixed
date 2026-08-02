@@ -407,6 +407,11 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
             h_static.handle_audit_trail(self)
             return
 
+        # /api/automation-status — 自动化体系(自动同步/看门狗/蒸馏/vault)运行状态
+        if parsed.path == '/api/automation-status':
+            h_static.handle_automation_status(self)
+            return
+
         # 已知页面路由（批量查表）
         if h_static.handle_page(self, parsed.path):
             return
