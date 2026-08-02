@@ -29,7 +29,7 @@ PORT = 18888
 BASE = "http://127.0.0.1:{0}".format(PORT)
 ENDPOINT = "{0}/api/lottery/sources-health".format(BASE)
 
-ROOT = "C:/Users/Administrator/Nutstore/1/我的坚果云/模型"
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOG_DIR = os.path.join(ROOT, "金水谣数据", "log")
 HISTORY_FILE = os.path.join(LOG_DIR, "lottery_health_history.json")
 REPORT_FILE = os.path.join(ROOT, "金水谣数据", "lottery_datasource_health.html")

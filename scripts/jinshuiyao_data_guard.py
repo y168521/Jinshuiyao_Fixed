@@ -40,7 +40,6 @@ STRONG_DIRS = [
     "log",                 # 决策/日志根（仅守目录存在性；文件见排除清单）
     "stock",               # 股票业务域根
     "fund",                # 基金业务域根
-    "fund_data",           # 基金数据根
     "music",               # 音乐业务域根
     "creator_output",      # 创作产出根
     "secure",              # 安全/访问日志根
@@ -73,8 +72,7 @@ STRONG_FILES = [
     "free_model_status.json",
     # 彩票健康报告关键产出
     "lottery_health_report.json",
-    # 智能体记忆唯一副本
-    "agent_memory/pending_reminders.json",
+    # 智能体记忆唯一副本（pending_reminders.json 为运行时生成，见 EXCLUDE_PATTERNS）
     "agent_memory/history.json",
 ]
 
@@ -108,6 +106,8 @@ EXCLUDE_PATTERNS = [
     r"/(lot_data/log|log/err_log|secure/access_logs)(/|$)",
     # 小配置（弱校验，存在即过）
     r"/log/manifest\.json$",
+    # 智能体提醒（运行时生成物，未创建属正常）
+    r"/agent_memory/pending_reminders\.json$",
 ]
 
 _COMPILED_EXCLUDE = [re.compile(p) for p in EXCLUDE_PATTERNS]

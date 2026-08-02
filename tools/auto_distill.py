@@ -1,20 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-自动蒸馏器 auto_distill.py — 经验收集箱 → SKILL.md 全自动升级管线
-================================================================
-检测经验收集箱的新条目，按关键词自动归类到对应 Skill，并把条目的
-"规则/教训"提炼成要点追加进 SKILL.md 的「自动蒸馏区」。
+自动蒸馏器 auto_distill.py — 经验收集箱 → SKILL.md 全自动升级管线（AI 增强版）
+================================================================================
+检测经验收集箱的新条目，自动提炼进对应 Skill：
+
+  1. 启发式快速归类（零成本，命中关键词直接搬规则）
+  2. AI 语义蒸馏（未归类/归类存疑的条目，调用 DeepSeek 理解+归类+提炼规则）
+  3. AI 不可用/失败 → 退回待蒸馏队列（供 AI 会话处理）
 
 幂等：基于条目标题 sha256 标记，重复运行不重复追加。
-运行：py -3.14 tools/auto_distill.py   （计划任务"Jinshuiyao自动同步"顺带调用）
+运行：py -3.14 tools/auto_distill.py            # 纯启发式（离线安全）
+      py -3.14 tools/auto_distill.py --ai       # 启发式 + AI 语义蒸馏
+      py -3.14 tools/auto_distill.py --flush-queue   # 把待蒸馏队列当素材再跑一轮 AI
 
 输出：
   - 更新 .opencode/skills/<skill>/SKILL.md 的「自动蒸馏区」
   - 追加 金水谣数据/log/distill.log
-  - 新条目若无法归类 → 写 金水谣数据/log/待蒸馏队列.md（供 AI 会话处理）
+  - 无法处理 → 追加到 金水谣数据/log/待蒸馏队列.md
 """
 
+import argparse
 import hashlib
 import os
 import re
@@ -27,11 +33,19 @@ DISTILL_LOG = os.path.join(BASE_DIR, "金水谣数据", "log", "distill.log")
 QUEUE = os.path.join(BASE_DIR, "金水谣数据", "log", "待蒸馏队列.md")
 SKILLS_DIR = os.path.join(BASE_DIR, ".opencode", "skills")
 
+SKILL_NAMES = {
+    "jinshuiyao-encoding": "Windows 脚本编码与中文路径铁律",
+    "jinshuiyao-sync": "自动同步与多机协作规范",
+    "jinshuiyao-docs": "文档登记与交接规范（铁律0）",
+    "jinshuiyao-dev": "开发协作与代码维护规范",
+}
+
 # 关键词 → Skill 映射（标题/正文命中即归类，优先级从高到低）
 SKILL_KEYWORDS = [
     ("jinshuiyao-encoding", ["编码", "BOM", "GBK", "乱码", "bat", "ps1", "中文路径", "chcp", "剪贴板"]),
     ("jinshuiyao-sync", ["同步", "vault", "计划任务", "黑名单", "多机", "GitHub", "push", "pull", "坚果云", "冲突"]),
     ("jinshuiyao-docs", ["登记", "留痕", "交接", "编号", "铁律", "文档", "经验沉淀", "收工"]),
+    ("jinshuiyao-dev", ["代码审查", "合并", "重构", "Edit", "测试", "Lint", "防乱", "启动器", "快照", "备份", "覆盖率"]),
 ]
 
 SECTION_MARKER = "## 📥 自动蒸馏区（auto_distill 维护，勿手改）"
@@ -54,12 +68,12 @@ def save_seen(seen):
 
 
 def parse_entries(text):
-    """解析经验收集箱为 [{'title','body','block'}]"""
+    """解析经验收集箱为 [{'title','body'}]"""
     entries = []
     for m in re.finditer(r"^## (.+?)\n(.*?)(?=^## |\Z)", text, re.M | re.S):
         title, body = m.group(1).strip(), m.group(2).strip()
         if re.match(r"^\d{4}-\d{2}-\d{2}", title):
-            entries.append({"title": title, "body": body, "block": m.group(0)})
+            entries.append({"title": title, "body": body})
     return entries
 
 
@@ -91,18 +105,18 @@ def append_to_skill(skill, title, points, rel_js):
         return False
     with open(skill_file, encoding="utf-8") as f:
         text = f.read()
+    if title in text:
+        return False  # 已存在，跳过（幂等）
     entry_lines = ["- **" + title + "**"]
     for p in points:
         entry_lines.append("  - " + p)
     entry_lines.append("  - 关联: " + rel_js)
     entry_block = "\n".join(entry_lines)
     if SECTION_MARKER in text:
-        # 追加到区末尾（去重：标题已在则跳过）
-        if title in text:
-            return False
         pos = text.index(SECTION_MARKER)
-        sec_end = len(text)
-        text = text[:sec_end].rstrip() + "\n" + entry_block + "\n"
+        # 在 marker 后插入，保持区顺序
+        insert_at = pos + len(SECTION_MARKER)
+        text = text[:insert_at] + "\n" + entry_block + text[insert_at:]
     else:
         text = text.rstrip() + "\n\n" + SECTION_MARKER + "\n\n" + entry_block + "\n"
     with open(skill_file, "w", encoding="utf-8") as f:
@@ -110,43 +124,118 @@ def append_to_skill(skill, title, points, rel_js):
     return True
 
 
+def _ai_classify_and_extract(title, body):
+    """调用 DeepSeek：语义归类 + 提炼规则。失败返回 None。"""
+    try:
+        sys.path.insert(0, BASE_DIR)
+        from core.ai_service import AIService
+        ai = AIService()
+        if not ai.is_available:
+            return None
+        skill_list = "、".join(SKILL_NAMES.keys())
+        sys_prompt = (
+            "你是金水谣项目的经验蒸馏员。用户给一条经验记录，你要：\n"
+            "1. 判断它属于哪个 Skill 领域，只输出 Skill 名（可选值: " + skill_list + "），如都不匹配输出 None；\n"
+            "2. 提炼 2-4 条可执行的规则/教训，每条一句话，编号列出；\n"
+            "输出格式：第一行=Skill名（或None），第二行起=每条规则一行，不要其他内容。"
+        )
+        user_prompt = "经验标题: " + title + "\n\n经验内容:\n" + body[:1500]
+        resp = ai.chat(system_prompt=sys_prompt, user_prompt=user_prompt)
+        if not resp:
+            return None
+        text = resp.strip()
+        lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+        if not lines:
+            return None
+        # 宽松解析：第一行是 Skill 名；否则全文中找 Skill 名
+        skill = lines[0]
+        if skill not in SKILL_NAMES:
+            found = next((ln for ln in lines if ln in SKILL_NAMES), None)
+            if found:
+                skill = found
+            else:
+                return None
+        rules = [ln.lstrip("- ").strip() for ln in lines if ln.strip() and ln not in SKILL_NAMES and not ln == skill][:4]
+        if not rules:
+            return None
+        return skill, rules
+    except Exception:
+        return None
+
+
+def distill_entry(e, use_ai):
+    """处理单条经验，返回 (skill, points) 或 None。"""
+    points = extract_rules(e["body"])
+    skill = classify(e["title"], e["body"])
+    if skill and points:
+        return skill, points
+    if use_ai and (not skill or not points):
+        result = _ai_classify_and_extract(e["title"], e["body"])
+        if result:
+            return result
+    return None
+
+
 def main():
-    if not os.path.exists(EXPBOX):
-        print("[distill] 经验收集箱不存在，跳过")
-        return
-    with open(EXPBOX, encoding="utf-8") as f:
-        text = f.read()
+    parser = argparse.ArgumentParser(description="金水谣自动蒸馏器")
+    parser.add_argument("--ai", action="store_true", help="启用 AI 语义蒸馏（调用 DeepSeek）")
+    parser.add_argument("--flush-queue", action="store_true", help="把待蒸馏队列条目重新处理一遍")
+    args = parser.parse_args()
+
+    if args.flush_queue and os.path.exists(QUEUE):
+        # 把队列内容临时当素材处理（构造临时条目）
+        with open(QUEUE, encoding="utf-8") as f:
+            qtext = f.read()
+        entries = []
+        for m in re.finditer(r"^### (.+?)\n(.*?)(?=^### |\Z)", qtext, re.M | re.S):
+            title, body = m.group(1).strip(), m.group(2).strip()
+            entries.append({"title": title, "body": body[:600]})
+        print(f"[distill] 队列重处理: {len(entries)} 条")
+    else:
+        if not os.path.exists(EXPBOX):
+            print("[distill] 经验收集箱不存在，跳过")
+            return
+        with open(EXPBOX, encoding="utf-8") as f:
+            text = f.read()
+        entries = parse_entries(text)
+
     seen = load_seen()
-    entries = parse_entries(text)
-    new_count, skill_updated = 0, []
+    new_count, skill_updated, ai_used = 0, [], 0
     queue_entries = []
     for e in entries:
         key = sha256_hex(e["title"])
-        if key in seen:
+        if key in seen and not args.flush_queue:
             continue
         seen.add(key)
         new_count += 1
-        points = extract_rules(e["body"])
-        skill = classify(e["title"], e["body"])
-        rel = "JS-未知"
-        m = re.search(r"关联总索引\*\*：(.+)", e["body"])
-        if m:
-            rel = m.group(1).strip()
-        if skill and points:
+        result = distill_entry(e, args.ai)
+        if result:
+            skill, points = result
+            if args.ai:
+                ai_used += 1
+            rel = "JS-未知"
+            m = re.search(r"关联总索引\*\*：(.+)", e["body"])
+            if m:
+                rel = m.group(1).strip()
             if append_to_skill(skill, e["title"], points, rel):
                 skill_updated.append(skill)
+            else:
+                new_count -= 1  # 已存在，不算新
         else:
-            queue_entries.append("### " + e["title"] + "\n\n- 归类: " + str(skill) + "\n- 关联: " + rel + "\n\n```\n" + e["body"][:600] + "\n```\n")
+            queue_entries.append("### " + e["title"] + "\n\n- 归类: 待处理\n- 关联: 见下\n\n```\n" + e["body"][:600] + "\n```\n")
     save_seen(seen)
+
     with open(DISTILL_LOG, "a", encoding="utf-8") as f:
         ts = re.sub(r"\D", "", str(__import__("datetime").datetime.now().isoformat()))[:14]
-        f.write(f"{ts} 新条目={new_count} 已更新Skill={skill_updated or '无'} 待队列={len(queue_entries)}\n")
+        f.write(f"{ts} 处理={new_count} AI蒸馏={ai_used} 更新Skill={skill_updated or '无'} 待队列={len(queue_entries)}\n")
+
     if queue_entries:
         with open(QUEUE, "a", encoding="utf-8") as f:
-            f.write("## 自动蒸馏待处理 " + __import__("datetime").datetime.now().strftime("%Y-%m-%d %H:%M") + "\n\n")
+            f.write("\n## 自动蒸馏待处理 " + __import__("datetime").datetime.now().strftime("%Y-%m-%d %H:%M") + "\n\n")
             for q in queue_entries:
                 f.write(q + "\n")
-    print(f"[distill] 新条目={new_count} 更新Skill={skill_updated or '无'} 待队列={len(queue_entries)}")
+
+    print(f"[distill] 处理={new_count} AI蒸馏={ai_used} 更新Skill={skill_updated or '无'} 待队列={len(queue_entries)}")
 
 
 if __name__ == "__main__":

@@ -13,7 +13,12 @@ import sys
 _BASE = os.path.dirname(os.path.abspath(__file__))
 _PROJ = os.path.dirname(_BASE)
 _ROOT = os.path.dirname(_PROJ)                       # 模型/
-PY = os.path.join(_ROOT, "venv_314", "Scripts", "python.exe")
+CANDIDATES = [
+    r"D:\Project_Env\jinshuiyao_env\Scripts\python.exe",          # 项目 venv（当前在用）
+    os.path.join(os.environ.get("LOCALAPPDATA", ""), "Jinshuiyao", "venv", "Scripts", "python.exe"),  # AGENTS.md 约定的自动 venv
+    os.path.join(_ROOT, "venv_314", "Scripts", "python.exe"),     # 旧版自动化 venv（迁移期兼容）
+]
+PY = next((p for p in CANDIDATES if os.path.isfile(p)), "")
 SCRIPT = os.path.join(_PROJ, "scripts", "watchdog_service.py")
 
 
