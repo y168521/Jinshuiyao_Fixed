@@ -46,3 +46,18 @@ Set-Clipboard -Value $c
 2. bat 里有没有把中文路径传给 powershell？（有就拆成 ps1 自定位）
 3. 读文件用 `-Encoding UTF8` 显式声明（txt/md 源文件是 UTF-8 时）？
 4. 实测一次：`& cmd /c "脚本.bat > 输出文件"` 后用 GBK 解码看输出，无"锟斤拷"、无"不是内部或外部命令"。
+
+## 📥 自动蒸馏区（auto_distill 维护，勿手改）
+
+- **2026-08-02 第三条：自动同步脚本的黑名单必须覆盖所有不该入库的文件**
+  - ①任何"自动提交"机制，其黑名单必须穷举所有不该入库的文件（运行时配置、密钥文件、环境变量、其他会话的工作区）；②上线自动机制前务必用"脏工作区 + 无源码改动"和"源码改动"两种场景实测；③force push 需谨慎但这里是唯一私有仓库工作副本，安全。
+  - 黑名单加 server\config.py，reset 撤销 + force push 清理远程，验证修复生效。
+  - 关联: JS-20260802-04 / 交接中心 W63补
+- **2026-08-02 第四条：Windows 脚本编码规则（bat=GBK, ps1=UTF-8 BOM）**
+  - ①.bat 文件必须 GBK(ANSI) 编码 + 首行 chcp 936；②.ps1 文件必须 UTF-8 带 BOM；③.bat 永远不要把中文路径作为参数传给 powershell——让 ps1 用 System.Management.Automation.InvocationInfo.MyCommand.Path 自定位；④含中文文件名操作优先用 ps1，别在 bat 里内联复杂 powershell 命令（内嵌引号在 GBK 下会碎裂）。
+  - 12 个 bat 全查（8 个转 GBK+chcp936），复制启动提示词.bat 重写为 bat 调独立 ps1，protocol_handler.bat 中文注释+BASE 路径（已损坏成?）重写恢复。
+  - 关联: JS-20260802-04 / 交接中心 W63补4
+- **2026-08-02 第五条：经验三层蒸馏管线（L1原始→L2知识库→L3 Skill）**
+  - ①Skill 只留"可执行规则"，过程细节留在 L1；②每个 Skill 的 description 必须含触发关键词（否则模型不会主动调用）；③Skill 改动要重启 opencode 生效。
+  - 三层各司其职：L1 经验收集箱（日更原始记录，当天写）→ L2 ai_decisions.md/成败案例库（周更知识卡片）→ L3 .opencode/skills/*/SKILL.md（可执行规则，frontmatter 带触发词）。蒸馏工具 .opencode/command/distill.md：扫描素材→归类→升级已有/新建 Skill→验证→登记→提交。
+  - 关联: JS-20260802-04 / 交接中心 W63补5
