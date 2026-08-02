@@ -42,27 +42,31 @@ foreach ($r in $rows) {
         }
     }
 }
-if ($candidates.Count -eq 0) {
-    Log "no source changes, skip"
-    exit 0
-}
+if ($candidates.Count -gt 0) {
+    # 3) Stage candidates
+    foreach ($c in $candidates) {
+        git add -- "$c" 2>&1 | Out-Null
+    }
 
-# 3) Stage candidates
-foreach ($c in $candidates) {
-    git add -- "$c" 2>&1 | Out-Null
-}
-
-# 4) Commit + push only when something staged
-$staged = git diff --cached --name-only 2>$null | Where-Object { $_ }
-if ($staged.Count -gt 0) {
-    git commit --no-verify -m "auto-sync: automatic sync $(Get-Date -Format 'yyyy-MM-dd HH:mm')" 2>&1 | Out-Null
-    git push origin master 2>&1 | Out-Null
-    if ($LASTEXITCODE -eq 0) {
-        Log "committed and pushed ($($staged.Count) files)"
+    # 4) Commit + push only when something staged
+    $staged = git diff --cached --name-only 2>$null | Where-Object { $_ }
+    if ($staged.Count -gt 0) {
+        git commit --no-verify -m "auto-sync: automatic sync $(Get-Date -Format 'yyyy-MM-dd HH:mm')" 2>&1 | Out-Null
+        git push origin master 2>&1 | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            Log "committed and pushed ($($staged.Count) files)"
+        } else {
+            Log "commit ok but push failed (network?)"
+        }
     } else {
-        Log "commit ok but push failed (network?)"
+        Log "nothing staged, skip commit"
     }
 } else {
-    Log "nothing staged, skip commit"
+    Log "no source changes, skip"
 }
+
+# 5) 顺带刷新 Obsidian vault(金水谣活文档 -> vault 副本, 只读联动)
+& powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\Administrator\Nutstore\1\我的坚果云\模型\obsidian-vault\刷新vault.ps1" 2>&1 | Out-Null
+
 exit 0
+
