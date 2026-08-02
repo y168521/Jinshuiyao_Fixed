@@ -95,5 +95,10 @@ if (Test-Path $py) {
     }
 }
 
-exit 0
 
+# 8) 知识网关索引保鲜: 重生成知识网关索引.md(资产规模/入口), 供外部AI第一入口读
+if (Test-Path $py) {
+    & $py "$Repo\tools\gen_knowledge_index.py" 2>&1 | Out-Null
+}
+
+exit 0

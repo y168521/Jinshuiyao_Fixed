@@ -13,6 +13,7 @@
 全部本地离线、零依赖、fail-safe：任一来源失败不影响其它来源。
 评分统一用轻量 BM25（IDF 权重 + 位置加权），比子串匹配显著更准。
 """
+import json
 import math
 import os
 import re
@@ -34,6 +35,28 @@ _PROJECT_DOCS = [
 
 _lock = threading.Lock()
 _cache = {}  # 文档缓存：path -> (mtime, text)
+
+# 知识资产缓存：key = (资产名, 文件mtime)，文件一变立即失效重载
+_asset_cache = {}
+
+
+def _cached_asset(key, loader, path=None):
+    """mtime 键控资产缓存：外部文件变化后下次调用即重载，进程内不重复解析"""
+    mtime = None
+    if path:
+        try:
+            mtime = os.path.getmtime(path)
+        except Exception:
+            mtime = None
+    ckey = (key, mtime)
+    with _lock:
+        hit = _asset_cache.get(ckey)
+        if hit is not None:
+            return hit
+    data = loader()
+    with _lock:
+        _asset_cache[ckey] = data
+    return data
 
 
 # ---------------------------------------------------------------------------
@@ -96,11 +119,13 @@ def _bm25(query, docs, k1=1.5, b=0.75):
 # 各来源召回
 # ---------------------------------------------------------------------------
 def _recall_cards(query, limit):
-    """知识卡片：MiroFish 全文 + BM25 排序"""
+    """知识卡片：MiroFish 全文 + BM25 排序（资产缓存，mtime 失效）"""
     try:
         from knowledge.mirofish_db import MiroFishDB
-        db = MiroFishDB()
-        cards = db._data.get('cards', [])
+
+        def _load():
+            return MiroFishDB()._data.get('cards', [])
+        cards = _cached_asset('cards', _load)
         docs = []
         for c in cards:
             docs.append({
@@ -116,12 +141,12 @@ def _recall_cards(query, limit):
 
 
 def _recall_triples(query, limit):
-    """图谱三元组：主体/谓词/客体拼接后 BM25"""
+    """图谱三元组：主体/谓词/客体拼接后 BM25（资产缓存）"""
     try:
-        with open(TRIPLE_PATH, encoding='utf-8') as f:
-            import json
-            data = json.load(f)
-        triples = data.get('triples', [])
+        def _load():
+            with open(TRIPLE_PATH, encoding='utf-8') as f:
+                return json.load(f).get('triples', [])
+        triples = _cached_asset('triples', _load)
         docs = [{
             'id': str(i),
             'text': (t.get('subject', '') + ' ' + t.get('predicate', '') + ' ' + t.get('object', '')
@@ -153,17 +178,19 @@ def _recall_vectors(query, limit):
 
 
 def _load_expbox_entries():
-    """经验收集箱条目缓存解析：[{title, body}]"""
-    if not os.path.isfile(EXPBOX_PATH):
-        return []
-    with open(EXPBOX_PATH, encoding='utf-8') as f:
-        text = f.read()
-    entries = []
-    for m in re.finditer(r'^## (.+?)\n(.*?)(?=^## |\Z)', text, re.M | re.S):
-        title = m.group(1).strip()
-        if re.match(r'^\d{4}-\d{2}-\d{2}', title):
-            entries.append({'title': title, 'body': m.group(2).strip()})
-    return entries
+    """经验收集箱条目缓存解析：[{title, body}]（mtime 失效）"""
+    def _load():
+        if not os.path.isfile(EXPBOX_PATH):
+            return []
+        with open(EXPBOX_PATH, encoding='utf-8') as f:
+            text = f.read()
+        entries = []
+        for m in re.finditer(r'^## (.+?)\n(.*?)(?=^## |\Z)', text, re.M | re.S):
+            title = m.group(1).strip()
+            if re.match(r'^\d{4}-\d{2}-\d{2}', title):
+                entries.append({'title': title, 'body': m.group(2).strip()})
+        return entries
+    return _cached_asset('expbox', _load)
 
 
 def _recall_experiences(query, limit):
@@ -249,15 +276,20 @@ def search(query, limit=8):
     query = (query or '').strip()
     if not query:
         return {'query': '', 'total': 0, 'error': '查询为空'}
-    result = {
-        'query': query,
-        'cards': _recall_cards(query, limit),
-        'triples': _recall_triples(query, limit),
-        'vectors': _recall_vectors(query, limit),
-        'experiences': _recall_experiences(query, limit),
-        'project_docs': _recall_project_docs(query, limit),
-    }
-    result['total'] = sum(len(v) for k, v in result.items() if isinstance(v, list))
+    result = {'query': query}
+
+    def _safe(key, fn, *a, **kw):
+        try:
+            result[key] = fn(*a, **kw)
+        except Exception:
+            result[key] = []  # 单源失败不致命（fail-safe）
+
+    _safe('cards', _recall_cards, query, limit)
+    _safe('triples', _recall_triples, query, limit)
+    _safe('vectors', _recall_vectors, query, limit)
+    _safe('experiences', _recall_experiences, query, limit)
+    _safe('project_docs', _recall_project_docs, query, limit)
+    result['total'] = sum(len(v) for v in result.values() if isinstance(v, list))
     return result
 
 
@@ -267,26 +299,33 @@ _WEAK_WORDS = frozenset([
     '那个', '可以', '应该', '哪些', '有哪些', '怎么办', '告诉', '说说',
     '请问', '一下', '一些', '一点', '可能', '或者', '还是', '的话', '的', '了',
     '啊', '呢', '吗', '吧', '么', '是不是', '是否有', '不知道',
+    '随便', '聊聊', '聊天', '说说', '讲讲', '欢迎', '您好', '嗨', '哈喽',
+    # 高频口语寒暄整块（含2字滑窗产物，直接整块禁用）
+    '今天天气', '天气怎么样', '今天天气怎么样', '最近怎么样', '最近好吗',
+    '你叫什么', '你在干嘛', '你好吗', '今天好吗', '过得怎么样',
 ])
 
 
 def _relevant(items, query):
-    """相关性门槛：query 的滑窗词（与 _tokenize 一致）在条目文本中的命中情况。
-
-    虚词黑名单剔除泛化查询的假阳性（'今天天气怎么样' 不注入）；
-    非虚词命中 >=2 个，或唯一强词命中（单意图查询如'基金'）→ 视为相关。
+    """相关性门槛：查询必须先有实质 native 词（非黑名单的原文词），
+    否则视为寒暄/泛化查询一律不注入（防"文档自指"假阳性）；
+    native 词命中即相关；native 无命中时滑窗强词 >=2 个命中兜底。
     """
+    q_native = [w for w in _WORD_RE.findall(query.lower()) if len(w) >= 2 and w not in _WEAK_WORDS]
+    if not q_native:
+        return []  # 查询全是虚词/寒暄（如"今天天气怎么样"）→ 不注入
     q_tokens = set(_tokenize(query))
-    q_strong = q_tokens - _WEAK_WORDS
+    q_slide_strong = q_tokens - set(q_native) - _WEAK_WORDS
     out = []
     for it in items:
         t = it.get('text', '').lower()
-        hits = {w for w in q_tokens if w in t}
-        if not hits:
-            continue
-        strong_hits = hits - _WEAK_WORDS
-        if len(strong_hits) >= 2 or (strong_hits and len(q_strong) <= 1):
+        if any(w in t for w in q_native):
             out.append(it)
+            continue
+        if len(q_slide_strong) >= 2:
+            slide_hits = {w for w in q_slide_strong if w in t}
+            if len(slide_hits) >= 2:
+                out.append(it)
     return out
 
 

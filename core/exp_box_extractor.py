@@ -331,19 +331,18 @@ def extract_triples_from_experience_box(batch: int = _TRIPLE_BATCH) -> Dict[str,
         return {"processed": 0, "triples": 0, "saved": 0, "info": "无有效新条目"}
 
     # 检查 AIService 可用性（无 key/离线 直接降级跳过，控成本）
+    # ⚠ 降级时**不更新哈希标记**：否则 key 恢复后该批经验永远进不了图谱（真断链）。
     try:
         from core.ai_service import AIService
         _ai = AIService()
         if not getattr(_ai, "api_key", None) or getattr(_ai, "_mode", "online") == "offline":
-            logger.info("[GraphRAG] 无 API Key 或离线模式，跳过三元组抽取（降级）")
-            _write_triple_marker(current_hash)
+            logger.info("[GraphRAG] 无 API Key 或离线模式，跳过三元组抽取（降级，标记保留待 key 恢复后重提）")
             return {"processed": len(new_entries), "triples": 0,
-                    "saved": 0, "info": "降级：无key/离线"}
+                    "saved": 0, "info": "降级：无key/离线，标记未更新待重试"}
     except Exception as e:
-        logger.warning("[GraphRAG] AIService 初始化失败，跳过: %s", e)
-        _write_triple_marker(current_hash)
+        logger.warning("[GraphRAG] AIService 初始化失败，跳过（标记保留待重试）: %s", e)
         return {"processed": len(new_entries), "triples": 0,
-                "saved": 0, "info": "AIService异常"}
+                "saved": 0, "info": "AIService异常，标记未更新待重试"}
 
     # 分块调 DeepSeek，控成本
     triples_all: List[Dict[str, str]] = []

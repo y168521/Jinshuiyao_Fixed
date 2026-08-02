@@ -191,14 +191,37 @@ def handle_knowledge_stats(handler):
 
 
 def handle_knowledge_search(handler, parsed):
-    """POST /api/knowledge/search — 搜索知识（并入 GraphRAG 三元组证据）"""
+    """POST /api/knowledge/search — 搜索知识（BM25 排序 + GraphRAG 三元组 + 语义向量）
+
+    2026-08-02 升级：主检索从子串匹配升级为网关 BM25（中文滑窗+IDF），
+    返回结构保持兼容（results/triples/vectors），前端无需改动。
+    """
     query = urllib.parse.parse_qs(parsed.query).get('q', [''])[0]
     domain = urllib.parse.parse_qs(parsed.query).get('domain', [''])[0] or None
     value_level = urllib.parse.parse_qs(parsed.query).get('value_level', [''])[0] or None
     try:
         from knowledge.mirofish_db import MiroFishDB
         db = MiroFishDB()
-        results = db.search(query=query, domain=domain, value_level=value_level, limit=50)
+        cards = db._data.get('cards', [])
+        docs = []
+        for c in cards:
+            if domain and c.get('subsystem', '') not in ('', domain):
+                continue
+            if value_level and c.get('value_level', '') != value_level:
+                continue
+            docs.append({
+                'id': c.get('id', c.get('title', '')),
+                'text': (c.get('title', '') + '\n' + c.get('content', '') + '\n'
+                         + ' '.join(c.get('tags', [])))[:3000],
+                'card': c,  # 完整卡片（兼容旧接口 19 字段）
+            })
+        from core.knowledge_gateway import _bm25
+        scored = _bm25(query, docs, 50) if query.strip() else docs[:50]
+        results = []
+        for s in scored:
+            card = dict(s.get('card', {}))
+            card['score'] = s.get('score', 0)
+            results.append(card)
         # P3-1：并入 GraphRAG 三元组证据（离线、fail-safe，不影响主检索）
         triples = []
         try:

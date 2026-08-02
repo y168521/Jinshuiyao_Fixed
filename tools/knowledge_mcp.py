@@ -10,7 +10,7 @@ MCP (Model Context Protocol) 标准接入：Claude Code / Cursor / Qoder / 豆�
 接入方式（任选其一）：
   - Claude Code:   claude mcp add --scope project jinshuiyao-knowledge -- "D:\\Project_Env\\jinshuiyao_env\\Scripts\\python.exe" "Jinshuiyao_Fixed\\tools\\knowledge_mcp.py"
   - Cursor:        .cursor/mcp.json 加入 servers 配置（见 knowledge-mcp.md）
-  - 手动测试:      echo "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"search_knowledge\",\"arguments\":{\"query\":\"数据真实性\"}}}" \| python tools\knowledge_mcp.py
+  - 手动测试:      echo "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"search_knowledge\",\"arguments\":{\"query\":\"数据真实性\"}}}" pipe python knowledge_mcp.py
 
 工具清单：
   - search_knowledge(query, limit)  四源召回：知识卡片+图谱+向量+经验+项目文档

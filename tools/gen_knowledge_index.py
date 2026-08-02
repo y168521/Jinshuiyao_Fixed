@@ -56,7 +56,7 @@ def main():
     try:
         from knowledge.knowledge_graph import get_graph
         g = get_graph()
-        entities = len(g.get('nodes', []))
+        entities = len(g.get_graph_data(max_nodes=10 ** 9).get('nodes', []))
     except Exception:
         pass
 
