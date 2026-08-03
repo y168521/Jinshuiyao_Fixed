@@ -315,6 +315,28 @@ class PredictionService:
                 self._apply_brain_adjustments(lot, fg)
                 tickets = fg.gen()
 
+            # ===== 维度共识分析（吸收朋友三路系统/位置热码覆盖率/逐号码共识度） =====
+            dim_consensus = None
+            if lot in ["福彩3D", "排列三"] and tickets:
+                try:
+                    from engines.dimension_consensus import DimensionConsensus
+                    five = None
+                    for t in tickets.get("复式", []):
+                        digits = [int(x) for x in str(t).replace(" ", "").split(",") if x.strip().isdigit()]
+                        if len(digits) >= 3:
+                            five = digits[:5]
+                            break
+                    if five is None and isinstance(hot, dict) and hot:
+                        five = sorted(hot, key=hot.get, reverse=True)[:5]
+                    morph_suggest = (morph_data or {}).get("suggest", "")
+                    dim_consensus = DimensionConsensus(lot).analyze(
+                        arr, five=five, kill=kill, morph_suggest=morph_suggest)
+                    if dim_consensus.get("summary"):
+                        self.log(f"🧮 {lot} 维度共识: {dim_consensus['summary']}")
+                except Exception as e:
+                    logger.debug("维度共识分析失败(降级跳过): %s", e)
+                    dim_consensus = None
+
             # 输出
             self.log(f"===== {lot} 期{fmt_period(lot, per)} =====")
             all_nums = []
@@ -371,6 +393,7 @@ class PredictionService:
                 "error": None,
                 "confidence": confidence,
                 "ref_features": ref_features,
+                "dimension_consensus": dim_consensus,
             }
 
         except Exception as e:
