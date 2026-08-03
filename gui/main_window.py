@@ -416,6 +416,30 @@ class App:
         self._safe_copy('\n'.join(lines))
         self.log(f"已复制 {len(lines)} 行完整数据")
 
+    def _tree_select_all(self, event=None):
+        """Ctrl+A：全选预测表格行"""
+        self._select_all_rows()
+        return "break"
+
+    def _tree_copy_full(self, event=None):
+        """Ctrl+C：复制选中行完整数据"""
+        self._copy_selected_rows_full()
+        return "break"
+
+    def _log_select_all(self, event=None):
+        """Ctrl+A：全选日志内容"""
+        if not hasattr(self, 'lb'):
+            return "break"
+        size = self.lb.size()
+        if size:
+            self.lb.selection_set(0, size - 1)
+        return "break"
+
+    def _log_copy_selected(self, event=None):
+        """Ctrl+C：复制选中日志"""
+        self._copy_log_selected()
+        return "break"
+
     # ------------------------------------------------------------------
     # 右键菜单
     # ------------------------------------------------------------------
@@ -912,6 +936,12 @@ class App:
         self.tree.bind('<Double-1>', self._on_tree_double_click)
         self.tree.bind('<Button-3>', self._show_tree_context_menu)
 
+        # Treeview 不支持原生 Ctrl+A/Ctrl+C，手动绑定（JS-20260803-18）
+        self.tree.bind('<Control-a>', self._tree_select_all)
+        self.tree.bind('<Control-A>', self._tree_select_all)
+        self.tree.bind('<Control-c>', self._tree_copy_full)
+        self.tree.bind('<Control-C>', self._tree_copy_full)
+
         self.refresh_pred_panel()
 
     def _build_log_area(self):
@@ -967,6 +997,11 @@ class App:
         self.lb.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         log_scroll.pack(side=tk.RIGHT, fill=tk.Y)
         self.lb.bind('<Button-3>', self._show_log_context_menu)
+        # Listbox 不支持原生 Ctrl+A/Ctrl+C，手动绑定（JS-20260803-18）
+        self.lb.bind('<Control-a>', self._log_select_all)
+        self.lb.bind('<Control-A>', self._log_select_all)
+        self.lb.bind('<Control-c>', self._log_copy_selected)
+        self.lb.bind('<Control-C>', self._log_copy_selected)
 
     # ------------------------------------------------------------------
     # 双击查看详情
