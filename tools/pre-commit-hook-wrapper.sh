@@ -1,6 +1,10 @@
 #!/bin/sh
 # 金水谣 · pre-commit hook（shell wrapper，跨平台兼容）
-ROOT=$(cd "$(dirname "$0")/../.." && pwd)
+# 仓库根用 git 自定位，避免 Git Bash 下 pwd 返回 /c/Users 前缀被外壳误拼为 C:\c\Users 导致找不到脚本（2026-08-03 修复 JS-20260803-02）。
+ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+if [ -z "$ROOT" ]; then
+  ROOT=$(cd "$(dirname "$0")/../.." && pwd)
+fi
 PY="$LOCALAPPDATA/Jinshuiyao/venv/Scripts/python.exe"
 if [ ! -f "$PY" ]; then
   PY="$APPDATA/Jinshuiyao/venv/Scripts/python.exe"
