@@ -436,6 +436,7 @@ class App:
         """按下左键：记录起始行并单选该行"""
         if not hasattr(self, 'tree'):
             return
+        self.tree.focus_set()  # 拖拽 handler 返回 break 会跳过类级焦点绑定，需显式聚焦（JS-20260804-06）
         if getattr(self, '_tree_drag_scroll_job', None) is not None:
             self.root.after_cancel(self._tree_drag_scroll_job)
         self._tree_drag_scroll_job = None
@@ -550,11 +551,30 @@ class App:
             self.lb.selection_set(0, size - 1)
         return "break"
 
+    def _root_ctrl_a(self, event=None):
+        """根级 Ctrl+A 兜底：焦点在表格/日志时全选，否则放行（JS-20260804-06）"""
+        w = self.root.focus_get()
+        if w is self.tree:
+            return self._tree_select_all()
+        if w is self.lb:
+            return self._log_select_all()
+        return None
+
+    def _root_ctrl_c(self, event=None):
+        """根级 Ctrl+C 兜底：焦点在表格/日志时复制，否则放行（JS-20260804-06）"""
+        w = self.root.focus_get()
+        if w is self.tree:
+            return self._tree_copy_full()
+        if w is self.lb:
+            return self._log_copy_selected()
+        return None
+
     # ── 鼠标拖拽连选（Listbox 原生不支持，手动实现 JS-20260804-04） ──
     def _log_drag_start(self, event):
         """按下左键：记录起始索引"""
         if not hasattr(self, 'lb'):
             return
+        self.lb.focus_set()  # 拖拽 handler 返回 break 会跳过类级焦点绑定，需显式聚焦（JS-20260804-06）
         if getattr(self, '_log_drag_scroll_job', None) is not None:
             self.root.after_cancel(self._log_drag_scroll_job)
         self._log_drag_scroll_job = None
@@ -690,7 +710,9 @@ class App:
         if not hasattr(self, '_log_menu'):
             self._log_menu = tk.Menu(self.root, tearoff=0)
             self._log_menu.add_command(label="清空日志", command=self.clr_log)
+            self._log_menu.add_command(label="全选", command=self._log_select_all)
             self._log_menu.add_command(label="复制选中", command=self._copy_log_selected)
+            self._log_menu.add_command(label="复制全部", command=self._copy_log_all)
         try:
             self._log_menu.tk_popup(event.x_root, event.y_root)
         finally:
@@ -704,6 +726,18 @@ class App:
             selected = self.lb.curselection()
             if selected:
                 lines = [self.lb.get(i) for i in selected]
+                self._safe_copy('\n'.join(lines))
+        except Exception:
+            pass
+
+    def _copy_log_all(self):
+        """复制全部日志内容（右键菜单/兜底用，JS-20260804-06）"""
+        if not hasattr(self, 'lb'):
+            return
+        try:
+            size = self.lb.size()
+            if size:
+                lines = [self.lb.get(i) for i in range(size)]
                 self._safe_copy('\n'.join(lines))
         except Exception:
             pass
@@ -1229,6 +1263,11 @@ class App:
         self.lb.bind('<Control-A>', self._log_select_all)
         self.lb.bind('<Control-c>', self._log_copy_selected)
         self.lb.bind('<Control-C>', self._log_copy_selected)
+        # 根级兜底：焦点在表格/日志即可全选复制（JS-20260804-06）
+        self.root.bind('<Control-a>', self._root_ctrl_a, add='+')
+        self.root.bind('<Control-A>', self._root_ctrl_a, add='+')
+        self.root.bind('<Control-c>', self._root_ctrl_c, add='+')
+        self.root.bind('<Control-C>', self._root_ctrl_c, add='+')
         # 鼠标拖拽连选（JS-20260804-04）：按下/拖动/松开
         self._log_drag_anchor = None
         self._log_drag_prev = []
@@ -1391,6 +1430,11 @@ class App:
                                               insertbackground=T.TEXT_PRIMARY,
                                               bd=0, wrap=tk.WORD)
         text_area.pack(fill=tk.BOTH, expand=True, padx=12, pady=4)
+        # Text 原生不支持 Ctrl+A，手动补全选绑定（JS-20260804-06）
+        text_area.bind('<Control-a>', lambda e: (
+            text_area.tag_add('sel', '1.0', 'end-1c'), 'break'))
+        text_area.bind('<Control-A>', lambda e: (
+            text_area.tag_add('sel', '1.0', 'end-1c'), 'break'))
 
         result_label = tk.Label(top, text="", font=(T.FONT_FAMILY, 9),
                                 fg=T.TEXT_SECONDARY, bg=T.BG_DEEP)

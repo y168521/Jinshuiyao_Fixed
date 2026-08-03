@@ -597,56 +597,109 @@ class JinshuiyaoScheduler(TaskScheduler):
 
     @staticmethod
     def _task_auto_review():
-        """自动复盘任务 - 对最近的预测自动复盘
+        """自动复盘任务 - 对已开奖的预测自动复盘并喂给智能大脑
 
-        读取 predictions.json 中未复盘的记录，
-        调用 SmartBrain.learn_from_review 进行学习。
+        与 GUI 手动复盘同口径（main_window._review_job）：
+        - 只复盘"数据文件里已有开奖号码"的记录（未开奖/数据缺失的跳过，等下轮）
+        - 命中数按彩种分别计算（福彩3D/排列三 多重集、快乐8 集合、其余红+蓝）
+        - 写回 reviewed/hits/hit_type/coverage/draw_date 到 predictions.json
+        - 分组喂给 SmartBrain.learn_from_review 学习
         """
         logger.info("[自动复盘] 开始自动复盘...")
 
         try:
             from config import PRED_CACHE
+            from utils.safe_json import safe_write_json
+            from utils.locks import preds_lock
+            from models.lottery_data import Data
+            from utils.number_utils import clean_nums, parse_reds
+            from collections import Counter as _Ctr
 
             preds_data = _load_pred_cache_cached()
-            if not preds_data:
+            if not isinstance(preds_data, list) or not preds_data:
                 logger.info("[自动复盘] 无预测数据，跳过复盘")
                 return
 
-            # 提取未复盘的预测记录
-            predictions = preds_data if isinstance(preds_data, list) else []
-            if isinstance(preds_data, dict):
-                # 兼容 {predictions: {lot: [...]} } 格式
-                if "predictions" in preds_data:
-                    for lot, items in preds_data["predictions"].items():
-                        if isinstance(items, list):
-                            predictions.extend(items)
-                else:
-                    predictions = list(preds_data.values())
-
-            unreviewed = [p for p in predictions if isinstance(p, dict) and not p.get("reviewed")]
-
+            unreviewed = [p for p in preds_data if isinstance(p, dict) and not p.get("reviewed")]
             if not unreviewed:
                 logger.info("[自动复盘] 无待复盘记录")
                 return
 
             logger.info("[自动复盘] 发现 %d 条待复盘记录", len(unreviewed))
 
-            # 调用 SmartBrain 学习
-            reviewed_count = 0
+            reviewed_now = []
+            skip_no_draw = 0
+            for pred in unreviewed:
+                lot = pred.get("lot", "")
+                per = pred.get("period")
+                if not Data.has_period(lot, per):
+                    skip_no_draw += 1
+                    continue
+                act, dt = Data.result(lot, per)
+                if not act:
+                    skip_no_draw += 1
+                    continue
+
+                pn = clean_nums(pred.get("nums", ""))
+                ac = clean_nums(act)
+                hits = 0
+                if lot in ("福彩3D", "排列三"):
+                    pc = _Ctr(parse_reds(pn))
+                    ac_ctr = _Ctr(parse_reds(ac))
+                    hits = sum(min(pc[d], ac_ctr.get(d, 0)) for d in pc)
+                elif lot == "快乐8":
+                    hits = len(set(parse_reds(pn)) & set(parse_reds(ac)))
+                else:
+                    pr = pn.split("+")[0] if "+" in pn else pn
+                    ar = ac.split("+")[0] if "+" in ac else ac
+                    hits = len(set(parse_reds(pr)) & set(parse_reds(ar)))
+                    if "+" in pn and "+" in ac:
+                        hits += len(set(parse_reds(pn.split("+")[1])) & set(parse_reds(ac.split("+")[1])))
+
+                pred["draw_date"] = dt if dt else ""
+                pred["reviewed"] = True
+                pred["hits"] = hits
+                hit_type = "未中"
+                if lot in ("福彩3D", "排列三"):
+                    if pn == ac:
+                        hit_type = "直选"
+                    elif hits >= 3:
+                        hit_type = "组选"
+                else:
+                    if hits > 0:
+                        hit_type = "组选"
+                pred["hit_type"] = hit_type
+                act_num_count = len(parse_reds(ac.replace("+", ",")))
+                pred["coverage"] = round(hits / act_num_count, 3) if act_num_count else 0
+                reviewed_now.append(pred)
+
+            if reviewed_now:
+                with preds_lock:
+                    safe_write_json(PRED_CACHE, preds_data)
+                _pred_cache_cache["ts"] = 0.0  # 使 TTL 缓存失效
+                logger.info("[自动复盘] 已复盘 %d 条并写回缓存文件", len(reviewed_now))
+
+            # 智能大脑学习（按彩种分组，只学本次新复盘的最新一期）
             try:
                 from engines.smart_brain import SmartBrain
                 brain = SmartBrain()
-                for pred in unreviewed[:20]:  # 每次最多复盘20条
-                    lot = pred.get("lot", "")
-                    try:
-                        brain.learn_from_review(lot, [pred], pred.get("actual"))
-                        reviewed_count += 1
-                    except Exception as e:
-                        logger.warning("[自动复盘] 复盘记录失败 (%s): %s", lot, e)
+                reviewed_lots = {p.get("lot", "") for p in reviewed_now}
+                for lot_name in sorted(reviewed_lots):
+                    lot_preds = [p for p in reviewed_now if p.get("lot") == lot_name]
+                    if not lot_preds:
+                        continue
+                    latest_per = max(p.get("period", 0) for p in lot_preds)
+                    if Data.has_period(lot_name, latest_per):
+                        act_data, _ = Data.result(lot_name, latest_per)
+                        if act_data:
+                            act_nums = parse_reds(clean_nums(act_data))
+                            brain.learn_from_review(lot_name, lot_preds, act_nums)
+                logger.info("[自动复盘] 智能大脑学习完成")
             except Exception as e:
-                logger.error("[自动复盘] SmartBrain 加载失败: %s", e)
+                logger.error("[自动复盘] 智能大脑学习失败: %s", e)
 
-            logger.info("[自动复盘] 复盘完成 (已处理 %d/%d 条)", reviewed_count, len(unreviewed))
+            logger.info("[自动复盘] 复盘完成 (已复盘 %d 条 / 未开奖跳过 %d 条)",
+                        len(reviewed_now), skip_no_draw)
 
         except Exception as e:
             logger.error("[自动复盘] 自动复盘异常: %s", e, exc_info=True)
