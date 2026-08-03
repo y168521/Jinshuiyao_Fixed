@@ -278,9 +278,9 @@ def _self_test():
                 os.remove(_VALUE_CACHE)
         except Exception:
             pass
-        r1 = archive_value("加注释", "a=1", "a = 1  # 注释", "deepseek-chat")
-        r2 = archive_value("加注释", "a=1", "a = 1  # 注释", "deepseek-chat")  # 重复
-        r3 = archive_value("加注释", "a=1", "a=1", "deepseek-chat")            # 无变化
+        r1 = archive_value("加注释", "a=1", "a = 1  # 注释", "deepseek-v4-flash")
+        r2 = archive_value("加注释", "a=1", "a = 1  # 注释", "deepseek-v4-flash")  # 重复
+        r3 = archive_value("加注释", "a=1", "a=1", "deepseek-v4-flash")            # 无变化
         assert r1 and fake.n == 1, (r1, fake.n)
         assert r2 is None and r3 is None, (r2, r3)
         print("✓ 价值沉淀：首次写入、重复/无变化均跳过（去重生效）")

@@ -65,7 +65,7 @@ ENDPOINTS = [
     "https://api.deepseek.com/chat/completions",
     "https://api.deepseek.com/v1/chat/completions",
 ]
-MODELS = ["deepseek-chat", "deepseek-reasoner"]
+MODELS = ["deepseek-v4-flash", "deepseek-v4-pro"]
 
 SYSTEM_PROMPT = (
     "你是一位严谨的中文代码助手，负责帮助用户修改和优化代码。\n"
@@ -94,7 +94,7 @@ def load_config():
     c = _raw_config()
     c.setdefault("daily_api_budget", DEFAULT_DAILY_LIMIT)
     c.setdefault("per_call_max_chars", DEFAULT_PER_CALL_CHARS)
-    c.setdefault("default_model", "deepseek-chat")
+    c.setdefault("default_model", "deepseek-v4-flash")
     c.setdefault("enable_kb", True)
     return c
 
@@ -190,7 +190,7 @@ class DeepSeekError(Exception):
         self.status = status
 
 
-def chat(messages, api_key, model="deepseek-chat",
+def chat(messages, api_key, model="deepseek-v4-flash",
          max_retries=3, timeout=90, endpoints=None, on_attempt=None):
     """带指数退避的网络调用。on_attempt(attempt, total, status_text) 用于进度反馈。"""
     endpoints = endpoints or ENDPOINTS
@@ -226,7 +226,7 @@ def chat(messages, api_key, model="deepseek-chat",
     raise last_err or DeepSeekError("未知错误")
 
 
-def fix_code(code, instruction, api_key, model="deepseek-chat",
+def fix_code(code, instruction, api_key, model="deepseek-v4-flash",
              max_retries=3, context="", on_attempt=None):
     sys_prompt = SYSTEM_PROMPT
     if context:
@@ -252,7 +252,7 @@ QA_SYSTEM_PROMPT = (
 )
 
 
-def answer_question(question, context_code, api_key, model="deepseek-chat",
+def answer_question(question, context_code, api_key, model="deepseek-v4-flash",
                     max_retries=3, on_attempt=None):
     sys_prompt = QA_SYSTEM_PROMPT
     if context_code:
@@ -316,7 +316,7 @@ def do_qa(question, context, api_key, model=None, enable_kb=None):
     """执行一次问答（三段式），复用防浪费 + 知识闭环。返回结果字典。"""
     cfg = load_config()
     if model is None:
-        model = cfg.get("default_model", "deepseek-chat")
+        model = cfg.get("default_model", "deepseek-v4-flash")
     if enable_kb is None:
         enable_kb = cfg.get("enable_kb", True)
 
@@ -396,7 +396,7 @@ def drain_queue(api_key):
     for task in q:
         try:
             r = fix_code(task["code"], task["instruction"], api_key,
-                         model=task.get("model", "deepseek-chat"))
+                         model=task.get("model", "deepseek-v4-flash"))
             done.append(task)
             results.append({"instruction": task["instruction"], "result": r})
         except DeepSeekError as e:
@@ -416,7 +416,7 @@ def do_fix(code, instruction, api_key, model=None, enable_kb=None):
     """执行一次代码修改，返回结果字典。网络失败会抛 DeepSeekError（由调用方入队）。"""
     cfg = load_config()
     if model is None:
-        model = cfg.get("default_model", "deepseek-chat")
+        model = cfg.get("default_model", "deepseek-v4-flash")
     if enable_kb is None:
         enable_kb = cfg.get("enable_kb", True)
 
@@ -572,8 +572,8 @@ PAGE_HTML = """<!DOCTYPE html>
     <textarea id="code" placeholder="把要改的代码粘到这里，或点上面的“选择文件”加载"></textarea>
     <label>模型</label>
     <select id="model">
-      <option value="deepseek-chat">deepseek-chat（快、通用、便宜）</option>
-      <option value="deepseek-reasoner">deepseek-reasoner（慢、更会推理、较贵）</option>
+      <option value="deepseek-v4-flash">deepseek-v4-flash（快、通用、便宜）</option>
+      <option value="deepseek-v4-pro">deepseek-v4-pro（慢、更会推理、较贵）</option>
     </select>
     <label style="display:flex;align-items:center;gap:6px;margin-top:8px">
       <input type="checkbox" id="useKb" checked> 改前检索知识库/提示词（推荐：让它一次改对，少来回=省钱）
@@ -752,7 +752,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 "used": u.get("count", 0),
                 "limit": int(cfg.get("daily_api_budget", DEFAULT_DAILY_LIMIT)),
                 "enable_kb": bool(cfg.get("enable_kb", True)),
-                "default_model": cfg.get("default_model", "deepseek-chat"),
+                "default_model": cfg.get("default_model", "deepseek-v4-flash"),
             })
         else:
             self._send_json({"error": "not found"}, 404)
@@ -802,7 +802,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
         code = data.get("code", "")
         instruction = (data.get("instruction") or "").strip()
-        model = data.get("model") or load_config().get("default_model", "deepseek-chat")
+        model = data.get("model") or load_config().get("default_model", "deepseek-v4-flash")
         enable_kb = data.get("enable_kb", None)
         if not instruction:
             self._send_json({"ok": False, "error": "请填写修改要求"})
@@ -914,7 +914,7 @@ def cmd_fix(args):
         return 1
     enable_kb = not args.no_kb
     cfg = load_config()
-    model = args.model or cfg.get("default_model", "deepseek-chat")
+    model = args.model or cfg.get("default_model", "deepseek-v4-flash")
     try:
         out = do_fix(code, instruction, api_key, model=model, enable_kb=enable_kb)
     except DeepSeekError as e:
@@ -922,7 +922,7 @@ def cmd_fix(args):
             print("停止：", e)
             return 1
         n = queue_task(code, instruction, model)
-        print(f”网络不稳定，已存入待重试队列（共 {n} 个）。恢复后运行网页里的”重试待处理任务”。”)
+        print(f"网络不稳定，已存入待重试队列（共 {n} 个）。恢复后运行网页里的\"重试待处理任务\"。")
         return 2
     if not out.get("ok"):
         print("未能完成：", out.get("error", ""))
@@ -988,7 +988,7 @@ def self_test():
     orig_cfg = _raw_config()
     save_config({"api_key": "sk-test", "daily_api_budget": 2,
                  "per_call_max_chars": 100000, "enable_kb": True,
-                 "default_model": "deepseek-chat"})
+                 "default_model": "deepseek-v4-flash"})
 
     _do_request = fake_do
     build_context = fake_ctx
@@ -999,13 +999,13 @@ def self_test():
         # 1) 正常修改：调用 1 次、沉淀 1 次
         calls["n"] = 0
         calls["archive_n"] = 0
-        r = do_fix("x=1", "加注释", "sk-test", model="deepseek-chat")
+        r = do_fix("x=1", "加注释", "sk-test", model="deepseek-v4-flash")
         assert r["ok"] and calls["n"] == 1 and calls["archive_n"] == 1, (r, calls)
         print("✓ 正常修改：调用 1 次、沉淀知识库 1 次")
 
         # 2) 会话去重：相同输入不调 API
         calls["n"] = 0
-        r2 = do_fix("x=1", "加注释", "sk-test", model="deepseek-chat")
+        r2 = do_fix("x=1", "加注释", "sk-test", model="deepseek-v4-flash")
         assert r2.get("cached") and calls["n"] == 0, (r2, calls)
         print("✓ 会话去重：第二次命中缓存，未调 API")
 
