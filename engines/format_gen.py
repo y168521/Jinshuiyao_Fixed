@@ -96,6 +96,17 @@ class FormatGen:
         self.hot_window = hot_window
         # ===== V4.0 位置感知模式 =====
         self.position_aware = position_aware
+        # ===== 组选复式池大小（默认6码20注；play_plan 复式配置 digit_count=5 → 五码10注20元） =====
+        self.pool_size = 6
+        try:
+            for p in self.play_plan:
+                if p.get("type") == "复式" and isinstance(p.get("config"), dict):
+                    dc = p["config"].get("digit_count")
+                    if isinstance(dc, int) and 3 <= dc <= 8:
+                        self.pool_size = dc
+                        break
+        except Exception:
+            pass
         # 初始化智能过滤器（如果历史足够则使用七层过滤）
         if history and len(history) >= hot_window:
             self.smart_filter = SmartFilter(history, lot, hot_window=hot_window)
@@ -274,25 +285,26 @@ class FormatGen:
         warmcold_candidates.sort()
         warmcold_nums = [x for _, _, _, x in warmcold_candidates[:3]]
 
-        # ===== 4. 去重补位到6码 =====
+        # ===== 4. 去重补位到码池目标大小（默认6码，digit_count=5 → 五码） =====
         pool_set = {repeat_num}
         pool_set.update(neighbor_nums)
         pool_set.update(warmcold_nums)
 
-        if len(pool_set) < 6:
+        target_size = self.pool_size
+        if len(pool_set) < target_size:
             remaining = [x for x in range(10) if x not in pool_set and x not in kill_set]  # V3.0: 优先非杀号
             remaining.sort(key=lambda x: (-digit_freq.get(x, 0), get_missing(x)))
             for x in remaining:
                 pool_set.add(x)
-                if len(pool_set) == 6:
+                if len(pool_set) == target_size:
                     break
             # 如果非杀号不够，从杀号中释放遗漏最小的号码补位
-            if len(pool_set) < 6:
+            if len(pool_set) < target_size:
                 from_kill = [x for x in kill_set if x not in pool_set]
                 from_kill.sort(key=lambda x: (get_missing(x), -digit_freq.get(x, 0)))  # 遗漏小优先
                 for x in from_kill:
                     pool_set.add(x)
-                    if len(pool_set) == 6:
+                    if len(pool_set) == target_size:
                         break
 
         pool = sorted(pool_set)
@@ -334,7 +346,7 @@ class FormatGen:
         except Exception as e:
             logger.debug("[%s] 换血检查失败: %s", self.lot, e)
 
-        # 6码组六复式：C(6,3)=20注
+        # 组六复式：C(5,3)=10注(五码20元) / C(6,3)=20注(六码40元)
         fushi_str = ",".join(f"{x:02d}" for x in pool)
 
         # ===== L14组三防守规则 =====
@@ -413,7 +425,7 @@ class FormatGen:
                     pattern = random.choice([(pair_num, pair_num, drag), (pair_num, drag, pair_num), (drag, pair_num, pair_num)])
                     group3_tickets.append(','.join(f"{x:02d}" for x in pattern))
 
-        # 返回结果：复式为主(6码组六20注)，组三防守为辅
+        # 返回结果：复式为主(五/六码组六复式)，组三防守为辅
         result = {"单注": group3_tickets, "复式": [fushi_str], "胆拖": []}
 
         # ===== V4.0 位置感知增强 =====

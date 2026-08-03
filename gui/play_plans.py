@@ -18,12 +18,12 @@ PLAY_PLANS = {
     ],
     "福彩3D": [
         {"type": "单注", "count": 3, "cost": 6, "config": {"zu3_min": 1}},
-        {"type": "复式", "count": 1, "cost": 40, "config": {"digit_count": 6, "play": "组六"}},
+        {"type": "复式", "count": 1, "cost": 20, "config": {"digit_count": 5, "play": "组六"}},
         {"type": "胆拖", "count": 1, "cost": 2, "config": {}},
     ],
     "排列三": [
         {"type": "单注", "count": 3, "cost": 6, "config": {"zu3_min": 1}},
-        {"type": "复式", "count": 1, "cost": 40, "config": {"digit_count": 6, "play": "组六"}},
+        {"type": "复式", "count": 1, "cost": 20, "config": {"digit_count": 5, "play": "组六"}},
         {"type": "胆拖", "count": 1, "cost": 2, "config": {}},
     ],
     "七乐彩": [

@@ -317,6 +317,7 @@ class PredictionService:
 
             # ===== 维度共识分析（吸收朋友三路系统/位置热码覆盖率/逐号码共识度） =====
             dim_consensus = None
+            six_ref = None
             if lot in ["福彩3D", "排列三"] and tickets:
                 try:
                     from engines.dimension_consensus import DimensionConsensus
@@ -333,6 +334,20 @@ class PredictionService:
                         arr, five=five, kill=kill, morph_suggest=morph_suggest)
                     if dim_consensus.get("summary"):
                         self.log(f"🧮 {lot} 维度共识: {dim_consensus['summary']}")
+                    # 六码参考池：实际五码 + 共识度最高的第6码（纯数据参考，不生成40元票）
+                    if five:
+                        pool_set = set(five)
+                        rest = [c["digit"] for c in (dim_consensus.get("consensus") or [])
+                                if c["digit"] not in pool_set]
+                        if rest:
+                            add_digit = rest[0]
+                            six_ref = {
+                                "pool": sorted(pool_set | {add_digit}),
+                                "add_digit": add_digit,
+                                "note": "六码参考池：若资金允许加码，优先加共识度第6名的%d；若开奖在六码不在五码=五码池选质问题" % add_digit,
+                            }
+                            self.log(f"🧮 {lot} 六码参考池: {','.join('%02d' % x for x in six_ref['pool'])}"
+                                     f" (+第6码{add_digit:02d}, 非推荐投40元, 仅数据参考)")
                 except Exception as e:
                     logger.debug("维度共识分析失败(降级跳过): %s", e)
                     dim_consensus = None
@@ -394,6 +409,7 @@ class PredictionService:
                 "confidence": confidence,
                 "ref_features": ref_features,
                 "dimension_consensus": dim_consensus,
+                "six_ref": six_ref,
             }
 
         except Exception as e:
