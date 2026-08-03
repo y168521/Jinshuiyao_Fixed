@@ -12,8 +12,12 @@ import threading
 import shutil
 import stat
 
-# ── 双保险：禁止生成 .pyc / __pycache__（坚果云不支持忽略列表，从源头杜绝缓存文件同步） ──
-sys.dont_write_bytecode = True
+# ── pyc 缓存策略（2026-08-04 优化：秒开） ──
+# 之前双保险是"禁止生成 pyc + 每次启动清空 __pycache__"，代价是 410+ 个 .py
+# 每次全量重编译，启动明显变慢（坚果云同步 + 后台审查Pipeline 双重拖累）。
+# 现在改为：允许写字节码缓存 + 仅当源码最新 mtime 与标记不一致时才清空重编译。
+# Python 自身有 pyc 失效机制（源码 mtime/size 变化自动重编译），"源码即真理"仍成立。
+# sys.dont_write_bytecode 不再启用，缓存保留 → 启动秒开。
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 
@@ -228,13 +232,7 @@ def _on_rm_error(func, path, exc_info):
 
 
 def _purge_pycache(root):
-    """启动前清空项目下所有 __pycache__，强制下次从 .py 源码重新编译。
-
-    目的：杜绝“脏 .pyc”（旧版本字节码）在 don't_write_bytecode 模式下被直接
-    加载、跑出与当前源码不一致的旧逻辑（例如曾经绑定 0.0.0.0 的历史代码）。
-    坚果云不支持忽略列表，配合启动器顶部的 sys.dont_write_bytecode=True，
-    清空后也不会再产生新 .pyc，从源头保证“源码即真理”。
-    """
+    """清空项目下所有 __pycache__（仅在源码有改动时调用一次）。"""
     removed = 0
     for dirpath, dirnames, _ in os.walk(root):
         # 不进入第三方虚拟环境目录，避免误删其缓存导致全部重编译/变慢
@@ -249,6 +247,52 @@ def _purge_pycache(root):
                     pass
     if removed:
         print(f"[启动前哨] 已清理 {removed} 个 __pycache__ 缓存目录，将从源码重新编译。")
+
+
+_PYCACHE_MARK = ".pyc_mark"
+
+
+def _latest_py_mtime(root):
+    """项目下所有 .py 源码的最新 mtime（排除虚拟环境/缓存目录）。"""
+    latest = 0.0
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in ("venv", ".venv", "node_modules", "__pycache__")]
+        for fn in filenames:
+            if fn.endswith(".py"):
+                try:
+                    latest = max(latest, os.path.getmtime(os.path.join(dirpath, fn)))
+                except Exception:
+                    pass
+    return latest
+
+
+def _purge_pycache_if_stale(root):
+    """源码有改动 → 清一次 __pycache__ 并刷新标记；无改动 → 保留缓存（秒开）。
+
+    跨设备同步：坚果云同步会更新 .py 的 mtime，比对标记发现变化即清一次重编译，
+    杜绝"脏 pyc 跑旧代码"；日常无改动时缓存保留，不再每次全量重编译。
+    """
+    mark_path = os.path.join(root, _PYCACHE_MARK)
+    try:
+        last_mark = ""
+        if os.path.isfile(mark_path):
+            with open(mark_path, "r", encoding="utf-8") as f:
+                last_mark = f.read().strip()
+        cur = "%.3f" % _latest_py_mtime(root)
+        if last_mark and last_mark == cur and os.path.isfile(mark_path):
+            return 0
+        removed = _purge_pycache(root)
+        try:
+            with open(mark_path, "w", encoding="utf-8") as f:
+                f.write(cur)
+        except Exception:
+            pass
+        return removed
+    except Exception:
+        try:
+            return _purge_pycache(root)
+        except Exception:
+            return 0
 
 
 def main():
@@ -279,11 +323,9 @@ def main():
         print("若浏览器未自动弹出，请手动打开：http://localhost:18888/")
         print("=" * 44)
 
-        # 启动前清空 __pycache__：强制从 .py 源码重新编译，杜绝脏 pyc 加载旧代码
-        # （例如曾绑定 0.0.0.0 的历史字节码）。配合顶部 sys.dont_write_bytecode=True，
-        # 清空后也不会生成新 pyc。
+        # 启动前按需清理 __pycache__：源码有改动才清一次（否则保留字节码缓存秒开）
         try:
-            _purge_pycache(BASE)
+            _purge_pycache_if_stale(BASE)
         except Exception:
             pass
 

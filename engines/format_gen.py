@@ -307,6 +307,13 @@ class FormatGen:
                     if len(pool_set) == target_size:
                         break
 
+        # 超出目标码数时裁剪：重号 > 邻号 > 温冷号 优先保留，同层按热度降序/遗漏升序淘汰
+        if len(pool_set) > target_size:
+            priority = lambda x: (0 if x == repeat_num else
+                                  1 if x in set(neighbor_nums) else 2)
+            pool = sorted(pool_set, key=lambda x: (priority(x), -digit_freq.get(x, 0), get_missing(x)))
+            pool_set = set(pool[:target_size])
+
         pool = sorted(pool_set)
 
         # ===== V3.0 形态约束检查 =====
@@ -532,7 +539,8 @@ class FormatGen:
             blues = self._pick_blues(2 + blue_extra)
             return ",".join(f"{x:02d}" for x in sorted(reds)) + "+" + ",".join(f"{x:02d}" for x in sorted(blues))
         elif self.lot in ["福彩3D", "排列三"]:
-            nums = self._pick_reds(4)
+            digit_count = cfg.get("digit_count", 4)
+            nums = self._pick_reds(digit_count)
             return ",".join(f"{x:02d}" for x in sorted(nums))
         elif self.lot == "七乐彩":
             nums = self._pick_reds(10)

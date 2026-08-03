@@ -1,7 +1,0 @@
-===== 真实 session_coordinator 委托冒烟 =====
-  import real_sc OK
-  force-release 前置清理=True
-  acquire_for_write=False (期望 True)
-  release=False (期望 True)
-  结论: 真实 sc 委托 acquire=False release=False（均 bool，未抛异常）
-===== 真实 sc 冒烟结束 =====

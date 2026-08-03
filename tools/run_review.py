@@ -19,6 +19,15 @@ import time
 import argparse
 import traceback
 
+# ─── Windows GBK 控制台兜底（JS-20260804-03）：强制 UTF-8 输出 ───
+# 之前 --quick 在 _print_human_report 打印 ✅/❌ 时触发
+# UnicodeEncodeError: 'gbk' codec can't encode character '\u2705'，审查 Pipeline 假红灯。
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 # ─── 项目根 ───
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _PROJECT_ROOT not in sys.path:

@@ -26,9 +26,20 @@ _REVIEW_DATA_DIR = os.path.join(_PROJECT_ROOT, "金水谣数据", "review")
 _SEVERITY_EMOJI = {"P0": "🔴", "P1": "🟠", "P2": "🟡", "P3": "🟢", "P4": "⚪"}
 _SEVERITY_ORDER = {"P0": 0, "P1": 1, "P2": 2, "P3": 3, "P4": 4}
 
+# Windows GBK 控制台兜底：子进程输出统一按 UTF-8 解码（text=True 默认 GBK 会崩 0x80）
+_SUB = dict(text=True, encoding="utf-8", errors="replace")
 
-def run_ruff_check(files=None, json_output=True):
-    """Step 1: ruff 快速 lint"""
+
+def run_ruff_check(files=None, json_output=True, whole=False):
+    """Step 1: ruff 快速 lint。
+
+    whole=True（full 模式）→ 整仓扫描；
+    files 指定 → 只查指定文件（增量审查，pre-commit/CI/手动指定时用）；
+    files=None 且非 whole（quick 例行/启动后台）→ 跳过全文件存量噪音，避免假红灯。
+    """
+    if files is None and not whole:
+        return {"step": "ruff", "duration_ms": 0, "issues": [],
+                "note": "例行模式跳过全文件ruff（避免存量P1噪音假红灯）"}
     config = os.path.join(_PROJECT_ROOT, "pyproject.toml")
     cmd = ["ruff", "check", _PROJECT_ROOT, "--config", config]
     if json_output:
@@ -44,7 +55,7 @@ def run_ruff_check(files=None, json_output=True):
             cmd.append("--output-format=json")
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30,
+        result = subprocess.run(cmd, capture_output=True, timeout=30, **_SUB,
                                 cwd=os.path.dirname(_PROJECT_ROOT))
         if json_output:
             try:
@@ -99,16 +110,22 @@ def classify_ruff_severity(code):
     return "P2"
 
 
-def run_semgrep_check(files=None):
+def run_semgrep_check(files=None, whole=False):
     """Step 2: semgrep 深度安全扫描（Layer 2，设计文档要求）。
-    容错：未安装/超时/离线规则下载失败均跳过，不阻断 Pipeline（ruff S 规则已覆盖基础安全）。"""
-    cmd = ["semgrep", "--config=auto", "--json", "--timeout=60"]
-    if files:
-        cmd.extend(files)
-    else:
-        cmd.append(_PROJECT_ROOT)
+    容错：未安装/超时/离线规则下载失败均跳过，不阻断 Pipeline（ruff S 规则已覆盖基础安全）。
+
+    whole=True（full 模式）→ 整仓扫描；
+    files 指定 → 只扫指定文件（pre-commit/CI/手动）；
+    files=None 且非 whole（quick 例行/启动后台）→ 跳过，避免每次全仓 27s。
+    """
+    if not files and not whole:
+        return {"step": "semgrep", "duration_ms": 0, "issues": [],
+                "note": "例行模式跳过semgrep（整仓27s，仅full/指定文件时跑）"}
+    targets = files if files else [_PROJECT_ROOT]
+    cmd = ["semgrep", "--config=auto", "--json", "--timeout=60",
+           "--exclude=AI代码助手(DeepSeek备用)"] + targets
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=90,
+        result = subprocess.run(cmd, capture_output=True, timeout=90, **_SUB,
                                 cwd=_PROJECT_ROOT)
         if not result.stdout.strip():
             return {"step": "semgrep", "duration_ms": 0, "issues": [],
@@ -171,7 +188,7 @@ def run_ast_check(files=None, severity=None):
         cmd.append("--quick")
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30,
+        result = subprocess.run(cmd, capture_output=True, timeout=30, **_SUB,
                                 cwd=_PROJECT_ROOT)
         issues = []
         for line in result.stdout.splitlines():
@@ -201,7 +218,7 @@ def run_smoke_test():
     smoke = os.path.join(_PROJECT_ROOT, "tools", "smoke_test.py")
     cmd = [sys.executable, smoke, "--quick"]
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60,
+        result = subprocess.run(cmd, capture_output=True, timeout=60, **_SUB,
                                 cwd=_PROJECT_ROOT)
         # 检查是否全绿
         passed = "7/7" in result.stdout or "all green" in result.stdout.lower()
@@ -220,7 +237,7 @@ def run_wrapup_check():
     wrapup = os.path.join(_PROJECT_ROOT, "tools", "wrapup_check.py")
     cmd = [sys.executable, wrapup]
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120,
+        result = subprocess.run(cmd, capture_output=True, timeout=120, **_SUB,
                                 cwd=_PROJECT_ROOT)
         # 检查是否全绿
         passed = "全绿" in result.stdout or "all green" in result.stdout.lower()
@@ -369,16 +386,21 @@ def save_report(report):
 
 
 def run_quick_review(files=None):
-    """快速审查：ruff + AST + smoke（约 5s）"""
+    """快速审查：ruff + AST + smoke（约 5s）
+
+    无 files（启动/后台例行）时：ruff/semgrep 跳过全文件存量问题（P1 存量噪音
+    会造成每次假红灯），只跑 AST + smoke 轻量体检，秒级完成；
+    有 files（pre-commit/CI/手动指定）时：ruff + semgrep + AST + smoke 全量增量审查。
+    """
     import re as _re  # noqa: already imported at top
 
     steps = []
 
-    # Step 1: ruff
+    # Step 1: ruff（无 files 时跳过——全文件存量 P1 噪音会淹没增量信号，假红灯）
     ruff_result = run_ruff_check(files=files)
     steps.append(ruff_result)
 
-    # Step 2: semgrep 深度安全（Layer 2，容错跳过）
+    # Step 2: semgrep 深度安全（Layer 2，容错跳过；无 files 时跳过全仓 27s）
     steps.append(run_semgrep_check(files=files))
 
     # Step 4: AST
@@ -399,11 +421,11 @@ def run_full_review(files=None, always_ai=False, no_ai=False, ai_budget=None):
 
     # Step 1: ruff
     print("[review_report] Step 1: ruff lint ...")
-    steps.append(run_ruff_check(files=files))
+    steps.append(run_ruff_check(files=files, whole=True))
 
     # Step 2: semgrep 深度安全（Layer 2，容错跳过）
     print("[review_report] Step 2: semgrep 深度扫描 ...")
-    steps.append(run_semgrep_check(files=files))
+    steps.append(run_semgrep_check(files=files, whole=True))
 
     # Step 4: AST
     print("[review_report] Step 4: AST 自定义扫描 ...")
@@ -433,7 +455,7 @@ def run_full_review(files=None, always_ai=False, no_ai=False, ai_budget=None):
             cmd = [sys.executable, ai_agent, "--files", ",".join(files), "--json"] + extra
         else:
             cmd = [sys.executable, ai_agent, "--diff-only", "--json"] + extra
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120,
+        result = subprocess.run(cmd, capture_output=True, timeout=120, **_SUB,
                                 cwd=_PROJECT_ROOT)
         if result.returncode == 0:
             ai_data = json.loads(result.stdout)

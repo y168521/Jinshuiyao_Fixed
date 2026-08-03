@@ -354,15 +354,22 @@ class App:
     # 剪贴板操作
     # ------------------------------------------------------------------
     def _safe_copy(self, text):
-        """安全复制到剪贴板
+        """安全复制到剪贴板（大文本防卡 JS-20260804-04）
 
         优先使用 pyperclip，不可用时回退到 tkinter 剪贴板。
+        一次性复制超过 _COPY_CAP 字符时自动截断并提示（避免粘贴端卡死，
+        例如把整库 1700+ 行一次 Ctrl+A+C 粘进聊天框导致卡掉）。
 
         Args:
             text: 要复制的文本
         """
         if not text:
             return
+        cap = getattr(self, '_COPY_CAP', 200_000)
+        original_len = len(text)
+        if original_len > cap:
+            text = text[:cap]
+            self.log(f"⚠️ 复制内容过大({original_len:,}字符)，已截取前{cap:,}字符防止卡顿")
         try:
             if pyperclip:
                 pyperclip.copy(text)
@@ -421,6 +428,46 @@ class App:
         self._select_all_rows()
         return "break"
 
+    # ── 鼠标拖拽连选（Treeview 原生不支持，手动实现 JS-20260804-04） ──
+    def _tree_drag_start(self, event):
+        """按下左键：记录起始行并单选该行"""
+        if not hasattr(self, 'tree'):
+            return
+        item = self.tree.identify_row(event.y)
+        self._tree_drag_anchor = item or ""
+        if item:
+            if event.state & 0x0004:  # Ctrl：追加
+                self.tree.selection_add(item)
+            else:
+                self.tree.selection_set(item)
+        return "break"
+
+    def _tree_drag_extend(self, event):
+        """拖动：从起始行到当前行连选（范围选择）"""
+        if not hasattr(self, 'tree') or not getattr(self, '_tree_drag_anchor', ''):
+            return
+        item = self.tree.identify_row(event.y)
+        anchor = self._tree_drag_anchor
+        if not item or not anchor or item == anchor:
+            return
+        children = list(self.tree.get_children())
+        if anchor not in children or item not in children:
+            return
+        a, b = children.index(anchor), children.index(item)
+        block = children[min(a, b):max(a, b) + 1]
+        if event.state & 0x0004:  # Ctrl：追加到现有选择
+            keep = {iid for iid in self.tree.selection()}
+            keep.update(block)
+            self.tree.selection_set(list(keep))
+        else:
+            self.tree.selection_set(block)
+        return "break"
+
+    def _tree_drag_end(self, event):
+        """松开左键：清理拖拽状态"""
+        self._tree_drag_anchor = ""
+        return None
+
     def _tree_copy_full(self, event=None):
         """Ctrl+C：复制选中行完整数据"""
         self._copy_selected_rows_full()
@@ -434,6 +481,46 @@ class App:
         if size:
             self.lb.selection_set(0, size - 1)
         return "break"
+
+    # ── 鼠标拖拽连选（Listbox 原生不支持，手动实现 JS-20260804-04） ──
+    def _log_drag_start(self, event):
+        """按下左键：记录起始索引"""
+        if not hasattr(self, 'lb'):
+            return
+        idx = self.lb.nearest(event.y)
+        self._log_drag_anchor = idx
+        if event.state & 0x0004:
+            self.lb.selection_set(idx)
+        else:
+            self.lb.selection_clear(0, self.lb.size() - 1)
+            self.lb.selection_set(idx)
+        return "break"
+
+    def _log_drag_extend(self, event):
+        """拖动：从起始索引到当前索引连选"""
+        if not hasattr(self, 'lb') or getattr(self, '_log_drag_anchor', None) is None:
+            return
+        idx = self.lb.nearest(event.y)
+        size = self.lb.size()
+        if size == 0:
+            return
+        a, b = self._log_drag_anchor, idx
+        lo, hi = min(a, b), max(a, b)
+        self.lb.selection_clear(0, size - 1)
+        if event.state & 0x0004:
+            for i in self._log_drag_prev:
+                self.lb.selection_set(i)
+            self.lb.selection_set(lo, hi)
+        else:
+            self.lb.selection_set(lo, hi)
+        self._log_drag_prev = list(range(lo, hi + 1))
+        return "break"
+
+    def _log_drag_end(self, event):
+        """松开左键：清理拖拽状态"""
+        self._log_drag_anchor = None
+        self._log_drag_prev = []
+        return None
 
     def _log_copy_selected(self, event=None):
         """Ctrl+C：复制选中日志"""
@@ -941,6 +1028,10 @@ class App:
         self.tree.bind('<Control-A>', self._tree_select_all)
         self.tree.bind('<Control-c>', self._tree_copy_full)
         self.tree.bind('<Control-C>', self._tree_copy_full)
+        # 鼠标拖拽连选（JS-20260804-04）：按下/拖动/松开
+        self.tree.bind('<ButtonPress-1>', self._tree_drag_start)
+        self.tree.bind('<B1-Motion>', self._tree_drag_extend)
+        self.tree.bind('<ButtonRelease-1>', self._tree_drag_end)
 
         self.refresh_pred_panel()
 
@@ -1002,6 +1093,12 @@ class App:
         self.lb.bind('<Control-A>', self._log_select_all)
         self.lb.bind('<Control-c>', self._log_copy_selected)
         self.lb.bind('<Control-C>', self._log_copy_selected)
+        # 鼠标拖拽连选（JS-20260804-04）：按下/拖动/松开
+        self._log_drag_anchor = None
+        self._log_drag_prev = []
+        self.lb.bind('<ButtonPress-1>', self._log_drag_start)
+        self.lb.bind('<B1-Motion>', self._log_drag_extend)
+        self.lb.bind('<ButtonRelease-1>', self._log_drag_end)
 
     # ------------------------------------------------------------------
     # 双击查看详情

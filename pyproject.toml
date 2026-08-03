@@ -85,7 +85,7 @@ target-version = "py38"
 src = ["core", "engines", "domains", "controllers", "fetchers", "filters", "gui", "knowledge", "utils", "backtesting", "sync", "server"]
 extend-exclude = [
     "venv*", "_old_*", "archive", "*.pyc", "__pycache__",
-    "tests/fixtures", "金水谣数据",
+    "tests/fixtures", "金水谣数据", "AI代码助手(DeepSeek备用)",
 ]
 
 [tool.ruff.lint]
