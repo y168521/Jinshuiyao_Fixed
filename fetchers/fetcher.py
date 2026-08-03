@@ -20,6 +20,7 @@ import json
 import time
 import datetime
 import random
+import subprocess
 import requests
 import logging
 from models.lottery_data import Data
@@ -195,6 +196,18 @@ class Fetcher:
                 self.last_error = f"HTTP {r.status_code}"
             except Exception as e:
                 self.last_error = str(e)
+                # —— DNS 自愈：本机曾因 Windows DNS 缓存损坏导致整晚抓取失败 ——
+                # 症状：getaddrinfo failed / NameResolutionError，但 PowerShell/其他进程解析正常。
+                # 处理：flushdns 后继续重试循环（仅 Windows，静默失败不致命）。
+                if os.name == "nt" and ("getaddrinfo failed" in str(e) or "NameResolutionError" in str(e)):
+                    try:
+                        subprocess.run(["ipconfig", "/flushdns"],
+                                       capture_output=True, timeout=10,
+                                       creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+                        logger.warning("[Fetcher] DNS 缓存异常，已自动 flushdns，重试 %s", url)
+                    except Exception:
+                        pass
+                    time.sleep(2)
             if attempt < self.max_retries - 1:
                 time.sleep(min(1 * (2 ** attempt), 8))  # 指数退避: 1s→2s→4s, 上限8s
         return None
