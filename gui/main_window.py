@@ -428,13 +428,21 @@ class App:
         self._select_all_rows()
         return "break"
 
-    # ── 鼠标拖拽连选（Treeview 原生不支持，手动实现 JS-20260804-04） ──
+    # ── 鼠标拖拽连选（Treeview 原生不支持，手动实现 JS-20260804-04）
+    # 关键点：按住左键后 tk 会把 Motion/Release 持续派发给按下时的控件，
+    # 所以指针拖出控件边缘也不会"断链"；拖出上/下边界时自动滚动列表
+    # 并继续延伸选择范围（原生 autoscroll 被 return "break" 拦掉后需自己实现）。
     def _tree_drag_start(self, event):
         """按下左键：记录起始行并单选该行"""
         if not hasattr(self, 'tree'):
             return
+        if getattr(self, '_tree_drag_scroll_job', None) is not None:
+            self.root.after_cancel(self._tree_drag_scroll_job)
+        self._tree_drag_scroll_job = None
         item = self.tree.identify_row(event.y)
         self._tree_drag_anchor = item or ""
+        self._tree_drag_active = bool(item)
+        self._tree_drag_last_item = None
         if item:
             if event.state & 0x0004:  # Ctrl：追加
                 self.tree.selection_add(item)
@@ -442,29 +450,89 @@ class App:
                 self.tree.selection_set(item)
         return "break"
 
-    def _tree_drag_extend(self, event):
-        """拖动：从起始行到当前行连选（范围选择）"""
-        if not hasattr(self, 'tree') or not getattr(self, '_tree_drag_anchor', ''):
+    def _tree_drag_step(self, y, state):
+        """按指针在控件内的 y 更新选择范围（Motion 与自动滚动共用）"""
+        if not getattr(self, '_tree_drag_active', False):
             return
-        item = self.tree.identify_row(event.y)
         anchor = self._tree_drag_anchor
-        if not item or not anchor or item == anchor:
+        if not anchor:
             return
         children = list(self.tree.get_children())
-        if anchor not in children or item not in children:
+        if not children or anchor not in children:
+            return
+        h = self.tree.winfo_height()
+        if y < 0:
+            item = self.tree.identify_row(0)      # 越顶：第一可视行
+        elif y >= h:
+            item = self.tree.identify_row(h - 1)  # 越底：最后可视行
+        else:
+            item = self.tree.identify_row(y)
+        if not item or item not in children:
             return
         a, b = children.index(anchor), children.index(item)
         block = children[min(a, b):max(a, b) + 1]
-        if event.state & 0x0004:  # Ctrl：追加到现有选择
+        if state & 0x0004:  # Ctrl：追加到现有选择
             keep = {iid for iid in self.tree.selection()}
             keep.update(block)
             self.tree.selection_set(list(keep))
         else:
             self.tree.selection_set(block)
+        self._tree_drag_last_item = item
+
+    def _tree_drag_extend(self, event):
+        """拖动：跟随指针连选"""
+        if not getattr(self, '_tree_drag_active', False):
+            return
+        self._tree_drag_step(event.y, event.state)
         return "break"
+
+    def _tree_drag_motion(self, event):
+        """拖动：跟随指针 + 拖出边界自动滚动"""
+        if not getattr(self, '_tree_drag_active', False):
+            return
+        self._tree_drag_step(event.y, event.state)
+        self._tree_drag_maybe_scroll(event.y, event.state)
+        return "break"
+
+    def _tree_drag_maybe_scroll(self, y, state):
+        """指针越界时启动自动滚动（40ms 一格，滚动中继续延伸选择）"""
+        if not getattr(self, '_tree_drag_active', False):
+            return
+        h = self.tree.winfo_height()
+        if y < 0 or y >= h:
+            if self._tree_drag_scroll_job is None:
+                self._tree_drag_scroll_dir = -1 if y < 0 else 1
+                self._tree_drag_scroll_state = state
+                self._tree_drag_scroll_tick()
+        elif self._tree_drag_scroll_job is not None:
+            self.root.after_cancel(self._tree_drag_scroll_job)
+            self._tree_drag_scroll_job = None
+
+    def _tree_drag_scroll_tick(self):
+        """自动滚动一格，滚动后按指针位置继续延伸选择"""
+        if not getattr(self, '_tree_drag_active', False):
+            self._tree_drag_scroll_job = None
+            return
+        before = self.tree.yview()
+        self.tree.yview_scroll(self._tree_drag_scroll_dir * 3, "units")
+        if self.tree.yview() == before:  # 已滚到边界
+            self._tree_drag_scroll_job = None
+            return
+        x, y = self.tree.winfo_pointerxy()
+        ry = y - self.tree.winfo_rooty()
+        h = self.tree.winfo_height()
+        if (self._tree_drag_scroll_dir < 0 and ry >= 0) or (self._tree_drag_scroll_dir > 0 and ry < h):
+            self._tree_drag_scroll_job = None
+            return
+        self._tree_drag_step(ry, self._tree_drag_scroll_state)
+        self._tree_drag_scroll_job = self.root.after(40, self._tree_drag_scroll_tick)
 
     def _tree_drag_end(self, event):
         """松开左键：清理拖拽状态"""
+        if getattr(self, '_tree_drag_scroll_job', None) is not None:
+            self.root.after_cancel(self._tree_drag_scroll_job)
+        self._tree_drag_scroll_job = None
+        self._tree_drag_active = False
         self._tree_drag_anchor = ""
         return None
 
@@ -487,37 +555,105 @@ class App:
         """按下左键：记录起始索引"""
         if not hasattr(self, 'lb'):
             return
-        idx = self.lb.nearest(event.y)
-        self._log_drag_anchor = idx
-        if event.state & 0x0004:
-            self.lb.selection_set(idx)
-        else:
-            self.lb.selection_clear(0, self.lb.size() - 1)
-            self.lb.selection_set(idx)
-        return "break"
-
-    def _log_drag_extend(self, event):
-        """拖动：从起始索引到当前索引连选"""
-        if not hasattr(self, 'lb') or getattr(self, '_log_drag_anchor', None) is None:
-            return
-        idx = self.lb.nearest(event.y)
+        if getattr(self, '_log_drag_scroll_job', None) is not None:
+            self.root.after_cancel(self._log_drag_scroll_job)
+        self._log_drag_scroll_job = None
         size = self.lb.size()
         if size == 0:
             return
-        a, b = self._log_drag_anchor, idx
-        lo, hi = min(a, b), max(a, b)
-        self.lb.selection_clear(0, size - 1)
+        idx = max(0, min(self.lb.nearest(event.y), size - 1))
+        self._log_drag_anchor = idx
+        self._log_drag_active = True
+        self._log_drag_prev = [idx]
         if event.state & 0x0004:
-            for i in self._log_drag_prev:
-                self.lb.selection_set(i)
-            self.lb.selection_set(lo, hi)
+            self.lb.selection_set(idx)
         else:
-            self.lb.selection_set(lo, hi)
-        self._log_drag_prev = list(range(lo, hi + 1))
+            self.lb.selection_clear(0, size - 1)
+            self.lb.selection_set(idx)
         return "break"
+
+    def _log_drag_step(self, y, state):
+        """按指针在控件内的 y 更新选择范围（Motion 与自动滚动共用）"""
+        if not getattr(self, '_log_drag_active', False) or self._log_drag_anchor is None:
+            return
+        size = self.lb.size()
+        if size == 0:
+            return
+        h = self.lb.winfo_height()
+        if y < 0:
+            idx = 0            # 越顶：第一项
+        elif y >= h:
+            idx = size - 1     # 越底：最后一项
+        else:
+            idx = max(0, min(self.lb.nearest(y), size - 1))
+        lo, hi = min(self._log_drag_anchor, idx), max(self._log_drag_anchor, idx)
+        if state & 0x0004:  # Ctrl：保留既有选择再追加
+            keep = set(self._log_drag_prev)
+            keep.update(range(lo, hi + 1))
+            self.lb.selection_clear(0, size - 1)
+            for i in sorted(keep):
+                if 0 <= i < size:
+                    self.lb.selection_set(i)
+            self._log_drag_prev = sorted(keep)
+        else:
+            self.lb.selection_clear(0, size - 1)
+            self.lb.selection_set(lo, hi)
+            self._log_drag_prev = list(range(lo, hi + 1))
+
+    def _log_drag_extend(self, event):
+        """拖动：从起始索引到当前索引连选"""
+        if not getattr(self, '_log_drag_active', False):
+            return
+        self._log_drag_step(event.y, event.state)
+        return "break"
+
+    def _log_drag_motion(self, event):
+        """拖动：跟随指针 + 拖出边界自动滚动"""
+        if not getattr(self, '_log_drag_active', False):
+            return
+        self._log_drag_step(event.y, event.state)
+        self._log_drag_maybe_scroll(event.y, event.state)
+        return "break"
+
+    def _log_drag_maybe_scroll(self, y, state):
+        """指针越界时启动自动滚动"""
+        if not getattr(self, '_log_drag_active', False):
+            return
+        h = self.lb.winfo_height()
+        if y < 0 or y >= h:
+            if self._log_drag_scroll_job is None:
+                self._log_drag_scroll_dir = -1 if y < 0 else 1
+                self._log_drag_scroll_state = state
+                self._log_drag_scroll_tick()
+        elif self._log_drag_scroll_job is not None:
+            self.root.after_cancel(self._log_drag_scroll_job)
+            self._log_drag_scroll_job = None
+
+    def _log_drag_scroll_tick(self):
+        """自动滚动一格，滚动后按指针位置继续延伸选择"""
+        if not getattr(self, '_log_drag_active', False):
+            self._log_drag_scroll_job = None
+            return
+        before = self.lb.yview()
+        self.lb.yview_scroll(self._log_drag_scroll_dir * 3, "units")
+        if self.lb.yview() == before:  # 已滚到边界
+            self._log_drag_scroll_job = None
+            return
+        x, y = self.lb.winfo_pointerxy()
+        ry = y - self.lb.winfo_rooty()
+        h = self.lb.winfo_height()
+        if (self._log_drag_scroll_dir < 0 and ry >= 0) or (self._log_drag_scroll_dir > 0 and ry < h):
+            self._log_drag_scroll_job = None
+            return
+        self._log_drag_step(ry, self._log_drag_scroll_state)
+        self._log_drag_scroll_job = self.root.after(40, self._log_drag_scroll_tick)
 
     def _log_drag_end(self, event):
         """松开左键：清理拖拽状态"""
+        if getattr(self, '_log_drag_scroll_job', None) is not None:
+            self.root.after_cancel(self._log_drag_scroll_job)
+        self._log_drag_scroll_job = None
+        self._log_drag_active = False
         self._log_drag_anchor = None
         self._log_drag_prev = []
         return None
@@ -1030,7 +1166,7 @@ class App:
         self.tree.bind('<Control-C>', self._tree_copy_full)
         # 鼠标拖拽连选（JS-20260804-04）：按下/拖动/松开
         self.tree.bind('<ButtonPress-1>', self._tree_drag_start)
-        self.tree.bind('<B1-Motion>', self._tree_drag_extend)
+        self.tree.bind('<B1-Motion>', self._tree_drag_motion)
         self.tree.bind('<ButtonRelease-1>', self._tree_drag_end)
 
         self.refresh_pred_panel()
@@ -1096,8 +1232,10 @@ class App:
         # 鼠标拖拽连选（JS-20260804-04）：按下/拖动/松开
         self._log_drag_anchor = None
         self._log_drag_prev = []
+        self._log_drag_active = False
+        self._log_drag_scroll_job = None
         self.lb.bind('<ButtonPress-1>', self._log_drag_start)
-        self.lb.bind('<B1-Motion>', self._log_drag_extend)
+        self.lb.bind('<B1-Motion>', self._log_drag_motion)
         self.lb.bind('<ButtonRelease-1>', self._log_drag_end)
 
     # ------------------------------------------------------------------
