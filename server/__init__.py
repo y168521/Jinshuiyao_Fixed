@@ -54,6 +54,36 @@ def _background_startup_tasks():
     except Exception as e:
         log(f'审查Pipeline异常(不阻塞): {e}')
 
+    # === 启动AI语义审查（免费模型优先，用户约定"能用免费就用不然算了"）===
+    # 与 pre-commit 钩子互补：钩子拦"本次提交"，此处兜底"近期已入库代码"。
+    # 无硅基流动密钥/免费池不可用 → 静默跳过（绝不调用付费 DeepSeek，不阻塞启动）。
+    try:
+        import subprocess as _sp
+        import os as _os
+        _secrets = _os.path.join(_os.path.expanduser("~"), ".jinshuiyao-secrets")
+        _agent = _os.path.join(BASE_DIR, "tools", "ai_review_agent.py")
+        if _os.path.isfile(_os.path.join(_secrets, "siliconflow_key.txt")) and _os.path.isfile(_agent):
+            log('>>> [后台] AI语义审查(免费模型)开始...')
+            _env = dict(_os.environ)
+            _env["AI_REVIEW_PROVIDER"] = "siliconflow"
+            _r = _sp.run(
+                [sys.executable, _agent, "--diff-only", "--json"],
+                capture_output=True, timeout=900, env=_env, cwd=BASE_DIR,
+            )
+            _out = (_r.stdout or b"").decode("utf-8", errors="replace")
+            try:
+                import json as _json
+                _rep = _json.loads(_out)
+                _p0 = sum(1 for i in _rep.get("issues", []) if i.get("severity") == "P0")
+                _tot = len(_rep.get("files", []))
+                log(f'<<< [后台] AI语义审查完成: {_tot}文件 P0={_p0} (rc={_r.returncode})')
+            except Exception:
+                log(f'<<< [后台] AI语义审查结束(rc={_r.returncode}, 输出不可解析)')
+        else:
+            log('[后台] 无硅基流动密钥，跳过AI语义审查（免费优先约定）')
+    except Exception as e:
+        log(f'AI语义审查异常(不阻塞): {e}')
+
     # === 启动自检 ===
     try:
         from startup_selfcheck import run_startup_check_safe

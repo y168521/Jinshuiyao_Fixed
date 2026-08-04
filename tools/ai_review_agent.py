@@ -351,10 +351,13 @@ def _siliconflow_cfg():
     }
 
 
-def call_ai(cfg, system_prompt, user_prompt, max_retries=2):
+def call_ai(cfg, system_prompt, user_prompt, max_retries=2,
+            timeout=None, max_tokens=None, temperature=None):
     """通用 AI 调用（DeepSeek / SiliconFlow 共用 OpenAI 兼容格式）。
 
     cfg = {"base_url", "api_key", "model"}
+    timeout/max_tokens/temperature: 可选覆盖默认值（call_ai_failover 透传用）；
+                                    未传时沿用默认（审查场景 120s / 2048 / 0.1）。
     """
     if not cfg.get("api_key"):
         return None, "NO_API_KEY"
@@ -366,9 +369,11 @@ def call_ai(cfg, system_prompt, user_prompt, max_retries=2):
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        "temperature": 0.1,  # 低温度确保审查严谨（随机性是结构化输出之敌）
+        # 低温度确保审查严谨（随机性是结构化输出之敌）；可由外部透传覆盖
+        "temperature": 0.1 if temperature is None else temperature,
         # 免费模型生成慢，2048足够覆盖单文件审查结果；如需更详细可设环境变量覆盖
-        "max_tokens": int(os.environ.get("AI_REVIEW_MAX_TOKENS", "2048")),
+        "max_tokens": int(os.environ.get("AI_REVIEW_MAX_TOKENS", "2048"))
+        if max_tokens is None else max_tokens,
     }
     # JSON 模式：API 层强制结构化输出（免费小模型可靠性关键；DeepSeek 官方 API 不需要）
     if cfg.get("json_mode"):
@@ -384,8 +389,8 @@ def call_ai(cfg, system_prompt, user_prompt, max_retries=2):
         try:
             # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected
             req = urllib.request.Request(cfg["base_url"], data=payload, headers=headers)
-            # 免费模型响应慢，超时提到120s（可用 AI_REVIEW_TIMEOUT 覆盖）
-            _timeout = int(os.environ.get("AI_REVIEW_TIMEOUT", "120"))
+            # 免费模型响应慢，超时提到120s（可用 AI_REVIEW_TIMEOUT 覆盖，外部透传优先）
+            _timeout = timeout if timeout is not None else int(os.environ.get("AI_REVIEW_TIMEOUT", "120"))
             with urllib.request.urlopen(req, timeout=_timeout) as resp:
                 body = json.loads(resp.read().decode("utf-8"))
                 return body["choices"][0]["message"]["content"], None
@@ -533,9 +538,11 @@ def review_file(file_path, patterns, ai_cfg=None, ai_cfg_list=None, content=None
     user_prompt = build_review_prompt(file_path + note, content, patterns)
 
     if ai_cfg_list:
-        # 免费模型池故障转移（call_fn=call_ai 保证审查逻辑/重试/JSON 解析一致）
+        # 免费模型池故障转移（call_fn=call_ai 保证重试逻辑/超时/JSON 一致）
+        # allow_paid_fallback=False：审查场景遵循"能用免费就用，不然就算了"，免费全挂不烧付费
         response, error, used_cfg = call_ai_failover(
-            ai_cfg_list, system_prompt, user_prompt, call_fn=call_ai)
+            ai_cfg_list, system_prompt, user_prompt, call_fn=call_ai,
+            allow_paid_fallback=False)
     else:
         if ai_cfg is None:
             ai_cfg = _deepseek_cfg()

@@ -184,7 +184,8 @@ def _http_call(cfg, system_prompt, user_prompt, timeout=30, max_tokens=64, tempe
 
 
 def call_ai_failover(cfg_list, system_prompt, user_prompt, call_fn=None,
-                     timeout=120, max_tokens=64, temperature=0.1, force_json_mode=None):
+                     timeout=120, max_tokens=64, temperature=0.1, force_json_mode=None,
+                     allow_paid_fallback=True):
     """遍历免费模型池故障转移调用。
 
     call_fn: 注入的审查调用函数（默认用自带 _http_call）；返回 (text, error, used_cfg)
@@ -217,25 +218,29 @@ def call_ai_failover(cfg_list, system_prompt, user_prompt, call_fn=None,
         last_err = err
         _mark_unhealthy(mid, err)
     # 全挂 → 回退付费兜底（受成本闸约束，预算封顶则跳过付费，避免失控）
-    fb = get_fallback_cfg()
-    _budget_ok = True
-    try:
-        from core.llm_budget import get_guard
-        _budget_ok = get_guard().allow_paid(provider="deepseek", prompt_chars=len(user_prompt or ""))
-    except Exception:
+    # allow_paid_fallback=False（代码审查场景：用户约定"能用免费就用，不然就算了"）时彻底跳过付费
+    if allow_paid_fallback:
+        fb = get_fallback_cfg()
         _budget_ok = True
-    if fb and fb.get("api_key") and _budget_ok:
-        c = fb
-        if force_json_mode is not None:
-            c = dict(fb)
-            c["json_mode"] = bool(force_json_mode)
-        text, err = (call_fn or _http_call)(c, system_prompt, user_prompt,
-                                            timeout=timeout, max_tokens=max_tokens, temperature=temperature)
+        try:
+            from core.llm_budget import get_guard
+            _budget_ok = get_guard().allow_paid(provider="deepseek", prompt_chars=len(user_prompt or ""))
+        except Exception:
+            _budget_ok = True
+        if fb and fb.get("api_key") and _budget_ok:
+            c = fb
+            if force_json_mode is not None:
+                c = dict(fb)
+                c["json_mode"] = bool(force_json_mode)
+            text, err = (call_fn or _http_call)(c, system_prompt, user_prompt,
+                                                timeout=timeout, max_tokens=max_tokens, temperature=temperature)
         if text is not None and not err:
             return text, None, fb
         last_err = err
-    elif fb and fb.get("api_key") and not _budget_ok:
+    elif allow_paid_fallback and fb and fb.get("api_key") and not _budget_ok:
         last_err = "BUDGET_TRIPPED"
+    elif not allow_paid_fallback:
+        last_err = "PAID_FALLBACK_DISABLED"
     return None, f"ALL_FREE_DOWN+fallback_failed:{last_err}", None
 
 

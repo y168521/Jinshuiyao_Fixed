@@ -10,5 +10,6 @@
   "cross_link": 1440,
   "kg_rebuild": 1440,
   "vector_index_rebuild": 1440,
-  "kb_lint": 1440
+  "kb_lint": 1440,
+  "ai_code_review": 1440
 }

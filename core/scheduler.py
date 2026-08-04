@@ -413,6 +413,7 @@ class JinshuiyaoScheduler(TaskScheduler):
             "kg_rebuild": 24 * 60,     # 知识图谱重建：每24小时
             "kb_lint": 24 * 60,        # 知识体检(Lint)：每日触发，但仅每月1号真正执行
             "vector_index_rebuild": 24 * 60,  # 向量索引重建(P3-4)：每24小时主动重建离线VSM索引，与 mtime 失效机制互补
+            "ai_code_review": 24 * 60,  # AI代码语义审查(免费模型优先)：每日1次，0=禁用
         }
         try:
             import json as _json
@@ -506,13 +507,24 @@ class JinshuiyaoScheduler(TaskScheduler):
         )
 
         # 11. 向量索引重建(P3-4) - 主动重建离线VSM语义索引（每24小时）
-        #     与 get_vector_index 的 mtime 失效机制互补：首个语义检索无需临时构建
+        #     与 get_vector_index 的 mtime 失效机制互补，避免首个语义检索临时构建阻塞
         self.register(
             name="vector_index_rebuild",
             func=self._task_vector_index_rebuild,
             interval_minutes=_defaults["vector_index_rebuild"],
             enabled=True,
         )
+
+        # 12. AI代码语义审查 - 对最近改动的 .py 文件做模型级语义审查（免费模型优先）
+        #     与 pre-commit 钩子互补：钩子拦"本次提交"，此任务兜底"已入库代码"
+        #     免费(siliconflow)优先；免费不可用且禁用付费时跳过，绝不报错影响其他任务
+        if _defaults.get("ai_code_review", 0) > 0:
+            self.register(
+                name="ai_code_review",
+                func=self._task_ai_code_review,
+                interval_minutes=_defaults["ai_code_review"],
+                enabled=True,
+            )
 
         # 12+. 自动化镜像：把原 WorkBuddy 平台自动化（仅计时触发器）平移进金水谣调度器，
         #     用 sys.executable 调同一批本地 scripts/*.py → 免 WorkBuddy 积分（详见 core/automation_mirror.py）。
@@ -1137,6 +1149,81 @@ class JinshuiyaoScheduler(TaskScheduler):
             )
         except Exception as e:
             logger.error("[向量索引] 重建异常: %s", e, exc_info=True)
+
+    @staticmethod
+    def _task_ai_code_review():
+        """AI代码语义审查定时任务 - 对最近改动的 .py 文件做模型级审查
+
+        与 pre-commit 钩子互补：钩子拦"本次提交"，此任务兜底"已入库/已改动代码"。
+        模型策略（用户约定：能用免费模型就用，不然就算了）：
+          - 优先免费：硅基流动免费模型池（free_models.json，GLM-4-9B 等），AI_REVIEW_PROVIDER=siliconflow
+          - 免费无密钥/全部宕机 → 直接跳过（不调用付费 DeepSeek），记 WARN 日志
+        范围：最近 7 天 git 修改过的 .py 文件（git log --since），上限 20 个，避免无界耗时。
+        任何异常被隔离，不影响其他定时任务。
+        """
+        logger.info("[AI代码审查] 开始定时语义审查...")
+        try:
+            import subprocess as _sp
+            import json as _json
+
+            _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+            # 1) 收集最近7天改动的 .py 文件（git 跟踪的源码，排除测试/生成目录）
+            try:
+                out = _sp.check_output(
+                    ["git", "log", "--since=7.days", "--name-only", "--pretty=format:",
+                     "--diff-filter=ACM"],
+                    cwd=_root, text=True, timeout=30, errors="replace",
+                )
+            except Exception:
+                out = ""
+            files = []
+            for f in (out or "").splitlines():
+                f = f.strip()
+                if not f.endswith(".py"):
+                    continue
+                if f.startswith(("tests/", "test_", "scripts/", "knowledge/")):
+                    continue
+                p = os.path.join(_root, f)
+                if os.path.isfile(p):
+                    files.append(p)
+            files = list(dict.fromkeys(files))[:20]
+            if not files:
+                logger.info("[AI代码审查] 最近7天无 .py 改动，跳过")
+                return
+
+            # 2) 只走免费模型：硅基流动池；无密钥/不可用则跳过（用户约定不烧付费）
+            secrets_dir = os.path.join(os.path.expanduser("~"), ".jinshuiyao-secrets")
+            if not os.path.isfile(os.path.join(secrets_dir, "siliconflow_key.txt")):
+                logger.info("[AI代码审查] 无硅基流动密钥，跳过（免费优先约定）")
+                return
+
+            env = dict(os.environ)
+            env["AI_REVIEW_PROVIDER"] = "siliconflow"
+            script = os.path.join(_root, "tools", "ai_review_agent.py")
+            proc = _sp.run(
+                [sys.executable, script, "--files", ",".join(files), "--json"],
+                cwd=_root, capture_output=True, timeout=30 * 60, env=env,
+            )
+            stdout = proc.stdout.decode("utf-8", errors="replace") if proc.stdout else ""
+            if proc.returncode != 0 or not stdout.strip():
+                logger.warning("[AI代码审查] 无结果(rc=%s)，跳过", proc.returncode)
+                return
+            report = _json.loads(stdout)
+            issues = report.get("issues", [])
+            p0 = sum(1 for i in issues if i.get("severity") == "P0")
+            p1 = sum(1 for i in issues if i.get("severity") == "P1")
+            logger.info(
+                "[AI代码审查] 完成: 审查%d个文件, P0=%d, P1=%d, 其他=%d",
+                len(files), p0, p1, len(issues) - p0 - p1,
+            )
+            if p0:
+                logger.warning("[AI代码审查] 检出P0: %s", _json.dumps(
+                    [{"file": i.get("file"), "line": i.get("line"),
+                      "desc": i.get("description", "")[:100]} for i in issues
+                     if i.get("severity") == "P0"][:5], ensure_ascii=False))
+        except Exception as e:
+            logger.warning("[AI代码审查] 执行失败（不影响其余定时任务）: %s", e)
 
     @staticmethod
     def _task_proactive_reminder():
