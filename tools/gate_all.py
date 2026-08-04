@@ -98,6 +98,56 @@ def _check_hook():
     return False, [f'pre-commit 钩子缺失: {hook}（运行 python tools/install_hooks.py 安装）']
 
 
+_SECRET_PATTERNS = [
+    (r'["\']?sk-[A-Za-z0-9]{20,}["\']?', '疑似 API Key（sk- 前缀长串）'),
+    (r'(api[_-]?key|secret|token)\s*[:=]\s*["\']?[A-Za-z0-9_\-]{24,}["\']?', '疑似密钥键值对'),
+    (r'Bearer [A-Za-z0-9\-_.]{20,}', '疑似 Bearer 令牌'),
+    (r'AKIA[0-9A-Z]{16}', '疑似 AWS Access Key'),
+]
+_SECRET_FILE_HINTS = ('config.json', 'secret', 'token', 'key', r'\.env', 'cookie')
+_SECRET_ALLOWLIST = {'AI代码助手(DeepSeek备用)/config.json'}
+
+
+def _check_secret_leak(changed=None):
+    """密钥泄漏扫描：对 git 暂存/已跟踪的改动文件做内容扫描，绝不触碰工作区未跟踪的密钥文件"""
+    import re
+    files = changed if changed else []
+    lines = []
+    try:
+        if not files:
+            proc = subprocess.run(['git', 'diff', '--cached', '--name-only'],
+                                  capture_output=True, text=True,
+                                  encoding='utf-8', errors='replace', cwd=ROOT)
+            files = [l.strip() for l in proc.stdout.splitlines() if l.strip()]
+    except Exception:
+        pass
+    hits = []
+    for fp in files:
+        if not fp or fp in _SECRET_ALLOWLIST:
+            continue
+        abs_fp = os.path.join(ROOT, fp)
+        if not os.path.isfile(abs_fp):
+            continue
+        try:
+            raw = open(abs_fp, 'rb').read()
+            content = raw.decode('utf-8', errors='ignore')
+        except Exception:
+            continue
+        name_lower = fp.lower()
+        for pat, desc in _SECRET_PATTERNS:
+            for m in re.findall(pat, content):
+                value = m if isinstance(m, str) else m[0]
+                masked = value[:6] + '***' if len(value) > 6 else value
+                hits.append(f'  {fp}: {desc} -> {masked}')
+        if hits:
+            break
+    if hits:
+        lines = ['  发现疑似密钥泄漏（请勿提交密钥文件，改用 tools/set_secret.py 写入 ~/.jinshuiyao-secrets/）:'] + hits[:10]
+        return False, lines
+    return True, []
+
+
+
 def _check_audit_report():
     """auto_audit 上次报告：有 error 且未标记为已处理 → 拦截"""
     fp = os.path.join(ROOT, '金水谣数据', 'log', 'auto_audit_report.json')
@@ -120,6 +170,7 @@ def run_all(quick=False, changed=None):
     checks.append(('知识库体检', *_check_lint()))
     checks.append(('风险登记册', *_check_risk()))
     checks.append(('数据门禁', *_check_data_guard()))
+    checks.append(('密钥泄漏扫描', *_check_secret_leak(changed)))
     checks.append(('pre-commit钩子', *_check_hook()))
     if not quick:
         checks.append(('auto_audit报告', *_check_audit_report()))

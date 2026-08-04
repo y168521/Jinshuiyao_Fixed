@@ -105,6 +105,15 @@ def save_config(cfg):
 
 
 def get_api_key():
+    secret_dir = os.path.join(os.path.expanduser("~"), ".jinshuiyao-secrets")
+    secret_file = os.path.join(secret_dir, "deepseek_key.txt")
+    try:
+        with open(secret_file, "r", encoding="utf-8") as f:
+            key = f.read().strip()
+        if key:
+            return key
+    except Exception:
+        pass
     return _raw_config().get("api_key", "").strip()
 
 
@@ -787,8 +796,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return
             self._send_json({"ok": False, "error": "空密钥"})
             return
+        # 密钥写入统一安全目录 ~/.jinshuiyao-secrets/，不落 config.json（防坚果云同步泄漏）
+        secret_dir = os.path.join(os.path.expanduser("~"), ".jinshuiyao-secrets")
+        try:
+            os.makedirs(secret_dir, exist_ok=True)
+            with open(os.path.join(secret_dir, "deepseek_key.txt"), "w", encoding="utf-8") as f:
+                f.write(key)
+        except Exception as e:
+            self._send_json({"ok": False, "error": f"密钥写入安全目录失败: {e}"})
+            return
         cfg = _raw_config()
-        cfg["api_key"] = key
+        cfg["api_key"] = ""
         for k in ("daily_api_budget", "default_model", "enable_kb", "per_call_max_chars"):
             if k in data:
                 cfg[k] = data[k]

@@ -42,7 +42,6 @@ STRONG_DIRS = [
     "fund",                # 基金业务域根
     "music",               # 音乐业务域根
     "creator_output",      # 创作产出根
-    "secure",              # 安全/访问日志根
     "users",               # 用户数据根
     "review",              # 评审数据根
 ]
@@ -103,7 +102,7 @@ EXCLUDE_PATTERNS = [
     # 测试产物（临时产出）
     r"/(test_creator_output|test_creator_review)(/|$)",
     # 审计 / 日志子目录（弱校验，仅目录存在）
-    r"/(lot_data/log|log/err_log|secure/access_logs)(/|$)",
+    r"/(lot_data/log|log/err_log)(/|$)",
     # 小配置（弱校验，存在即过）
     r"/log/manifest\.json$",
     # 智能体提醒（运行时生成物，未创建属正常）

@@ -1,25 +1,22 @@
 {
-  "ts": "2026-08-02T17:52:16+08:00",
+  "ts": "2026-08-04T08:34:05+08:00",
   "checked": [
     {
       "id": "THUDM/GLM-4-9B-0414",
       "provider": "siliconflow",
-      "healthy": false,
-      "error": "HTTP_ERROR: <urlopen error [Errno 11001] getaddrinfo failed>",
-      "ts": "2026-08-02T17:52:16+08:00"
+      "healthy": true,
+      "error": "",
+      "ts": "2026-08-04T08:34:07+08:00"
     },
     {
       "id": "Qwen/Qwen2.5-7B-Instruct",
       "provider": "siliconflow",
-      "healthy": false,
-      "error": "HTTP_ERROR: <urlopen error [Errno 11001] getaddrinfo failed>",
-      "ts": "2026-08-02T17:52:16+08:00"
+      "healthy": true,
+      "error": "",
+      "ts": "2026-08-04T08:34:08+08:00"
     }
   ],
-  "down": [
-    "THUDM/GLM-4-9B-0414",
-    "Qwen/Qwen2.5-7B-Instruct"
-  ],
+  "down": [],
   "degraded": [],
-  "all_down": true
+  "all_down": false
 }

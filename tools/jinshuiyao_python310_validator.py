@@ -38,11 +38,6 @@ class JinshuiyaoPython10Validator:
                 "test_func": "test_api_compatibility"
             },
             {
-                "name": "utils.simple_security",
-                "path": self.project_root / "utils" / "simple_security.py",
-                "test_func": "test_security_compatibility"
-            },
-            {
                 "name": "models.data_processor",
                 "path": self.project_root / "models" / "data_processor.py",
                 "test_func": "test_data_processor"

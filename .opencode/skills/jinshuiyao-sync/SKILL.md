@@ -30,7 +30,9 @@ description: 金水谣自动同步与多机协作规范。Use when working with 
 | 文件/目录 | 原因 |
 |------|------|
 | `server/config.py` | 运行环境配置，可能含其他会话改动/敏感信息，永不自动提交 |
-| `金水谣数据/secure/encrypted_keys.dat` | **加密密钥，绝对禁止入库**（曾泄漏至 GitHub，JS-2026-08-04 清出） |
+| `金水谣数据/secure/encrypted_keys.dat` | **加密密钥，绝对禁止入库**（曾泄漏至 GitHub，JS-2026-08-04 清出；JS-20260804-11 已连空壳目录一并删除） |
+| `~/.jinshuiyao-secrets/*.txt` | **全项目唯一密钥存放处**（用户目录、非坚果云、ACL 收紧），永不入库 |
+| `AI代码助手(DeepSeek备用)/config.json` | 本地运行配置，可能含密钥，永不入库（密钥已改走 ~/.jinshuiyao-secrets） |
 | `knowledge/*-冲突-*` / `knowledge/*(冲突)*` | 坚果云多机同步冲突残留，禁止入库 |
 | `金水谣数据/correlation_matrix.json` / `predictions.json` | 运行时数据 |
 | `金水谣数据/engines.json` / `schemes.json` / `risk_state.json` | 运行时状态/方案 |
@@ -49,7 +51,7 @@ description: 金水谣自动同步与多机协作规范。Use when working with 
 ## 铁律 A2：提交门禁（2026-08-04 加入）
 
 - `自动同步.ps1` **禁止 `--no-verify`**：提交必须过 pre-commit（check_consistency.py 7+1 项检查），失败则 reset 并退出，绝不硬推。
-- pre-commit 已覆盖：GITSYNC **双向**检查（根目录比 repo 新 = 未拷入；repo 比根目录新 = 未拷回，两者都拦）+ **表格管道数一致性**（防 `补23||补24` 拼接破损行复发，`\|` 转义不误报）。
+- pre-commit 已覆盖：GITSYNC **双向**检查（根目录比 repo 新 = 未拷入；repo 比根目录新 = 未拷回，两者都拦）+ **表格管道数一致性**（防 `补23||补24` 拼接破损行复发，`\|` 转义不误报）+ **密钥泄漏扫描**（gate_all `_check_secret_leak`，拦截 sk- 长串/密钥键值对/Bearer/AWS AKIA，JS-20260804-11）。
 - 提交后自动同步脚本会把 8 个关键活文档拷回根目录并校准 mtime，防"repo 领先根目录"卡死后续提交。
 
 ## 铁律 B：Obsidian vault 是只读副本
