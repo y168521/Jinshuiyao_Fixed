@@ -8,11 +8,11 @@
       "models": [
         {
           "id": "THUDM/GLM-4-32B-0414",
-          "priority": 1,
+          "priority": 99,
           "quality": 95,
           "json_mode": true,
-          "enabled": true,
-          "note": "智谱GLM-4-32B(2026实测): 质量最高, 审查检出注入P0/USER P0/零除P0/KeyError P1 全命中, 支持JSON模式, 首选"
+          "enabled": false,
+          "note": "⚠️付费模型(实测2026-08-05账单: ¥1.89/百万tokens双向计费, 非免费!): 已禁用。曾priority=1首选导致每天烧钱, 改由真免费模型接管"
         },
         {
           "id": "zai-org/GLM-4.5-Air",
