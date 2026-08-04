@@ -674,7 +674,18 @@ def run_review(files=None, diff_only=False, json_output=False, no_cache=False,
         file_list = file_list[:10]  # 最多10个文件
 
     if not file_list:
-        print("[ai_review_agent] 无审查文件")
+        # JSON 模式契约（JS-20260805-01）：调用方（server 后台 / scheduler 定时）
+        # 都用 json.loads 解析 stdout —— 必须输出合法 JSON，不能打印纯文本提示，
+        # 否则 rc=0 但"输出不可解析"（启动日志噪音）。空报告结构保持一致。
+        if json_output:
+            print(json.dumps({"review_id": review_id, "files": [], "issues": [],
+                              "p0_count": 0, "p1_count": 0, "p2_count": 0,
+                              "p3_count": 0, "duration_ms": 0,
+                              "ai_call_stats": {"calls": 0, "skipped": 0, "reasons": {}},
+                              "note": "无审查文件（--diff-only 无变更 或 24h内无改动）"},
+                             ensure_ascii=False, indent=2))
+        else:
+            print("[ai_review_agent] 无审查文件")
         return {"review_id": review_id, "files": [], "issues": [], "duration_ms": 0}
 
     # 2. 加载模式库

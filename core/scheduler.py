@@ -52,6 +52,11 @@ def _load_pred_cache_cached():
 # TaskScheduler - 通用定时任务调度器
 # ================================================================
 
+# run_now=True 任务的启动后首跑延迟（秒）：
+# 避免开机瞬间所有"启动即补"任务 + 后台审查同时抢占 CPU/网络，
+# 统一延后 60 秒错峰，同时保证"开机 1 分钟内即可自动补给"。
+_FIRST_RUN_DELAY = 60
+
 class TaskScheduler:
     """基于 threading.Timer 的通用定时任务调度器
 
@@ -78,7 +83,7 @@ class TaskScheduler:
     # 任务注册/注销
     # ------------------------------------------------------------------
 
-    def register(self, name, func, interval_minutes, enabled=True):
+    def register(self, name, func, interval_minutes, enabled=True, run_now=False):
         """注册定时任务
 
         Args:
@@ -86,6 +91,9 @@ class TaskScheduler:
             func: 要执行的函数（无参）
             interval_minutes: 执行间隔（分钟）
             enabled: 是否启用，默认 True
+            run_now: 是否在调度器启动后立即首跑（默认延迟 _FIRST_RUN_DELAY 秒，
+                后续循环仍按 interval_minutes）。用于"开机即补"型任务
+                （自动复盘/数据抓取/探活），避免要等一个完整间隔才第一次执行。
         """
         with self._lock:
             if name in self._tasks:
@@ -95,14 +103,16 @@ class TaskScheduler:
                 "func": func,
                 "interval_minutes": interval_minutes,
                 "enabled": enabled,
+                "run_now": run_now,
                 "last_run": None,
                 "next_run": None,
                 "run_count": 0,
                 "last_error": None,
             }
             logger.info(
-                "已注册任务 '%s' (间隔: %d分钟, 启用: %s)",
+                "已注册任务 '%s' (间隔: %d分钟, 启用: %s%s)",
                 name, interval_minutes, enabled,
+                ", 启动立即首跑" if run_now else "",
             )
 
             # 如果调度器已启动且任务启用，立即开始调度
@@ -132,6 +142,9 @@ class TaskScheduler:
     def start(self):
         """启动所有已注册且已启用的任务
 
+        run_now=True 的任务在启动后延迟 _FIRST_RUN_DELAY 秒优先首跑一次，
+        之后循环按各自 interval_minutes 走。
+
         可重入：多次调用不会创建重复的定时器。
         """
         with self._lock:
@@ -142,7 +155,8 @@ class TaskScheduler:
             self._started = True
             for name, task in self._tasks.items():
                 if task["enabled"]:
-                    self._schedule_task(name)
+                    first_delay = _FIRST_RUN_DELAY if task.get("run_now") else None
+                    self._schedule_task(name, delay=first_delay)
 
             enabled_count = sum(1 for t in self._tasks.values() if t["enabled"])
             logger.info(
@@ -230,13 +244,14 @@ class TaskScheduler:
     # 内部实现
     # ------------------------------------------------------------------
 
-    def _schedule_task(self, name):
+    def _schedule_task(self, name, delay=None):
         """为指定任务创建并启动 Timer
 
         必须在持有 _lock 的情况下调用。
 
         Args:
             name: 任务名称
+            delay: 首次延迟（秒）；None=用任务自身 interval_minutes
         """
         task = self._tasks.get(name)
         if task is None or not task["enabled"]:
@@ -246,11 +261,13 @@ class TaskScheduler:
         self._cancel_timer(name)
 
         interval_seconds = task["interval_minutes"] * 60
-        next_run = datetime.now().timestamp() + interval_seconds
+        if delay is None:
+            delay = interval_seconds
+        next_run = datetime.now().timestamp() + delay
         task["next_run"] = datetime.fromtimestamp(next_run).isoformat()
 
         timer = threading.Timer(
-            interval_seconds,
+            delay,
             self._timer_callback,
             args=(name,),
         )
@@ -429,20 +446,24 @@ class JinshuiyaoScheduler(TaskScheduler):
         except Exception:
             pass  # 配置文件不存在或格式错误时用默认值
 
-        # 1. 数据刷新 - 抓取最新彩票/股票/足彩数据
+        # 1. 数据刷新 - 抓取最新彩票/股票/足彩数据（run_now: 开机即抓一次，
+        #    避免等一个完整间隔才补上开奖数据 → 自动复盘跟着有米下锅）
         self.register(
             name="data_refresh",
             func=self._task_data_refresh,
             interval_minutes=_defaults["data_refresh"],
             enabled=True,
+            run_now=True,
         )
 
-        # 2. 自动复盘 - 对最近的预测自动复盘
+        # 2. 自动复盘 - 对最近的预测自动复盘（run_now: 开机立即补复盘，
+        #    已开奖未复盘的记录（如昨晚开奖今早开机）马上被处理，不用等 2 小时）
         self.register(
             name="auto_review",
             func=self._task_auto_review,
             interval_minutes=_defaults["auto_review"],
             enabled=True,
+            run_now=True,
         )
 
         # 3. 知识提取 - 从复盘中自动提取知识卡片
@@ -550,6 +571,7 @@ class JinshuiyaoScheduler(TaskScheduler):
                 func=self._task_free_model_health,
                 interval_minutes=_defaults["free_model_health"],
                 enabled=True,
+                run_now=True,
             )
 
         # 12+. 自动化镜像：把原 WorkBuddy 平台自动化（仅计时触发器）平移进金水谣调度器，
