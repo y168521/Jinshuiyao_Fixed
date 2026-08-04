@@ -309,30 +309,36 @@ class Fetcher:
                 if name == "七乐彩":
                     return self._parse_500_qlc(r.text, name)
                 return self._parse_500_row(r.text, name)
-            periods = re.findall(r'<td[^>]*>(\d{5,7})<\/td>', r.text)
-            nums_all = re.findall(r'<td[^>]*class="[^"]*\d[^"]*"[^>]*>(.*?)<\/td>', r.text, re.DOTALL)
-            if not periods or not nums_all:
-                return []
+            # 福彩3D/排列三/快乐8：按行解析（每行=期号+多号码+日期）。
+            # 修复历史bug：原 zip(periods, nums_all) 索引错位（每行多个号码td被拍平）
+            # 且引用未定义变量 row → NameError，导致500源对这三彩种从未成功过。
             out = []
-            for i in range(min(len(periods), len(nums_all))):
+            rows = re.findall(r'<tr[^>]*>(.*?)</tr>', r.text, re.DOTALL)
+            for row in rows:
+                period_match = re.search(r'<td[^>]*>\s*(\d{5,7})\s*</td>', row)
+                if not period_match:
+                    continue
                 try:
-                    period_int = int(periods[i])
+                    period_int = int(period_match.group(1))
                 except Exception as e:
                     logger.debug("_fetch_500: 单条解析失败跳过: %s", e)
                     continue
-                raw = re.sub(r'\s+', '', nums_all[i])
-                # 剥离HTML标签
-                raw = re.sub(r'<[^>]+>', '', raw)
-                if name in ["双色球", "大乐透"] and '+' not in raw and ',' not in raw:
-                    digits = [raw[i:i + 2] for i in range(0, len(raw), 2) if i + 1 < len(raw) and raw[i:i + 2].isdigit()]
-                    if name == "双色球" and len(digits) >= 7:
-                        raw = ",".join(digits[:6]) + "+" + ",".join(digits[6:7])
-                    elif name == "大乐透" and len(digits) >= 7:
-                        raw = ",".join(digits[:5]) + "+" + ",".join(digits[5:7])
+                num_tds = re.findall(r'<td[^>]*class="[^"]*\d[^"]*"[^>]*>(.*?)</td>', row, re.DOTALL)
+                if not num_tds:
+                    num_tds = re.findall(r'<td[^>]*class="cfont[24]"[^>]*>(.*?)</td>', row, re.DOTALL)
+                nums = []
+                for t in num_tds:
+                    v = re.sub(r'<[^>]+>', '', re.sub(r'\s+', '', t))
+                    if v and v != period_match.group(1):
+                        nums.append(v)
+                if not nums:
+                    continue
+                raw = ",".join(nums)
                 result = PeriodNormalizer.normalize(period_int, name)
                 if result is not None:
                     period_int = result
                 out.append({"period": period_int, "lottery": name, "nums": raw, "time": _norm_draw_date(row)})
+            return out
             return out
         except Exception as e:
             print(f"🔍 [诊断500] {name}: 异常 - {e}")
