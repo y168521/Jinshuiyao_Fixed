@@ -54,13 +54,41 @@ if ($candidates.Count -gt 0) {
         git add -- "$c" 2>&1 | Out-Null
     }
 
-    # 4) Commit + push only when something staged
+    # 4) Commit + push only when something staged (带门禁, 不再 --no-verify:
+    #    防止坏代码/未验证改动绕过 pre-commit 直接入库, W63补32 修复)
     $staged = git diff --cached --name-only 2>$null | Where-Object { $_ }
     if ($staged.Count -gt 0) {
-        git commit --no-verify -m "auto-sync: automatic sync $(Get-Date -Format 'yyyy-MM-dd HH:mm')" 2>&1 | Out-Null
+        $commitOut = git commit -m "auto-sync: automatic sync $(Get-Date -Format 'yyyy-MM-dd HH:mm')" 2>&1 | Out-String
+        $commitOk = $LASTEXITCODE -eq 0
+        if (-not $commitOk) {
+            $commitOut | Out-File -FilePath $Log -Append -Encoding utf8
+            git reset --mixed 2>&1 | Out-Null
+            Log "commit blocked by pre-commit gate, staged files reset (see above)"
+            exit 1
+        }
         git push origin master 2>&1 | Out-Null
         if ($LASTEXITCODE -eq 0) {
             Log "committed and pushed ($($staged.Count) files)"
+            # 4.1) 提交后把关键活文档拷回根目录并校准 mtime
+            #     （GITSYNC 双向检查要求 repo 不领先根目录，JS-20260804-XX 校准）
+            $keyFiles = @(
+                "启动提示词.txt", "复制启动提示词.bat",
+                "金水谣_纲.md", "金水谣_契.md", "金水谣_录.md",
+                "AI协作交接中心.md", "工作留痕总索引.md",
+                "金水谣助手门户.html"
+            )
+            $RootDir = Split-Path -Parent $Repo
+            foreach ($kf in $keyFiles) {
+                $repoPath = Join-Path $Repo $kf
+                $rootPath = Join-Path $RootDir $kf
+                if ((Test-Path -LiteralPath $repoPath) -and (Test-Path -LiteralPath $rootPath)) {
+                    Copy-Item -LiteralPath $repoPath -Destination $rootPath -Force
+                    $src = Get-Item -LiteralPath $repoPath
+                    $dst = Get-Item -LiteralPath $rootPath
+                    $dst.LastWriteTime = $src.LastWriteTime
+                }
+            }
+            Log "key docs mirrored back to root dir"
         } else {
             Log "commit ok but push failed (network?)"
             Notify "代码已提交但推送到 GitHub 失败（网络问题）。改动保留在本地，网络恢复后会自动补推。"

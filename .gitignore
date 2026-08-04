@@ -165,3 +165,25 @@ knowledge/file_knowledge_index.json
 金水谣数据/stock/cache_meta*.json
 
 金水谣数据/brain_state.json
+
+# ==========================================
+# 运行时状态/引擎/方案缓存（2026-08-04 全量校准清出，均已 git rm --cached）
+# ==========================================
+金水谣数据/engines.json
+金水谣数据/evolution_patterns.json
+金水谣数据/evolution_rules.json
+金水谣数据/reference_pool.json
+金水谣数据/risk_state.json
+金水谣数据/schemes.json
+金水谣数据/lottery_health_report.json
+金水谣数据/backups/
+金水谣数据/cache/
+金水谣数据/log/_kb_backup_before_sync_*.json
+金水谣数据/log/lottery_health_history.json
+.pyc_mark
+
+# ==========================================
+# 坚果云多机同步冲突残留文件（自动生成，禁止入库 · 2026-08-04 校准）
+# ==========================================
+**/*-冲突-*
+**/*(冲突)*

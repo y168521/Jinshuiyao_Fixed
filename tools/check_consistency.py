@@ -185,14 +185,20 @@ def check_html_assets():
 
 
 def check_git_sync():
-    """③ 仓外文件修改后仓内是否同步：检查根目录关键文件与 repo 副本是否一致"""
+    """③ 仓外文件修改后仓内是否同步：双向检查关键文件与 repo 副本是否一致
+    mtime 只做方向提示，最终以内容哈希为准（坚果云同步会改写 mtime，
+    2026-08-04 实测 mtime 差 102s 但内容一致，mtime 单判会误拦提交）"""
     errors = []
     key_files = [
         '启动提示词.txt', '复制启动提示词.bat',
         '金水谣_纲.md', '金水谣_契.md', '金水谣_录.md',
         'AI协作交接中心.md',
         '金水谣助手门户.html',
+        # 2026-08-04 校准：总索引/经验箱是高频更新文档，补入双向检查（此前漏检）
+        '工作留痕总索引.md',
+        '金水谣数据/log/经验收集箱.md',
     ]
+    import hashlib
     for fname in key_files:
         root_fp = os.path.join(ROOT_DIR, fname)
         repo_fp = os.path.join(BASE_DIR, fname)
@@ -203,8 +209,23 @@ def check_git_sync():
         elif root_exists and repo_exists:
             root_mtime = os.path.getmtime(root_fp)
             repo_mtime = os.path.getmtime(repo_fp)
+            if root_mtime == repo_mtime:
+                continue
+            def md5(p):
+                h = hashlib.md5()
+                with open(p, 'rb') as f:
+                    for chunk in iter(lambda: f.read(65536), b''):
+                        h.update(chunk)
+                return h.hexdigest()
+            try:
+                if md5(root_fp) == md5(repo_fp):
+                    continue  # 内容一致，仅 mtime 因坚果云/拷贝漂移
+            except OSError:
+                continue
             if root_mtime > repo_mtime:
                 errors.append(f"  GITSYNC: {fname} 根目录比 repo 新（{root_mtime} > {repo_mtime}），未同步！")
+            elif repo_mtime > root_mtime:
+                errors.append(f"  GITSYNC: {fname} repo 比根目录新（{repo_mtime} > {root_mtime}），未拷回根目录！")
     return errors
 
 
@@ -474,6 +495,47 @@ def check_css_classes(changed_files=None):
     return uniq
 
 
+def check_doc_tables():
+    """⑥ 交接中心/总索引/经验箱表格管道数一致性：防 AI 拼接破损行复发
+    （W63补23||补24 拼接行事件后加入 · 2026-08-04 校准）
+    注：\\| 转义管道不计数（说明列内嵌代码如 vars\\|\\|{} 属合法）"""
+    errors = []
+    targets = [
+        os.path.join(BASE_DIR, 'AI协作交接中心.md'),
+        os.path.join(BASE_DIR, '工作留痕总索引.md'),
+        os.path.join(BASE_DIR, '金水谣数据/log/经验收集箱.md'),
+    ]
+    for fp in targets:
+        if not os.path.isfile(fp):
+            continue
+        with open(fp, 'r', encoding='utf-8', errors='replace') as f:
+            lines = f.read().splitlines()
+
+        def pipes(line):
+            """去掉 \\| 转义后再数管道数"""
+            return line.replace('\\|', '').count('|')
+
+        bad = []
+        i = 0
+        while i < len(lines):
+            s = lines[i].strip()
+            if s.startswith('|'):
+                n = pipes(lines[i])
+                j = i
+                while j < len(lines) and lines[j].strip().startswith('|'):
+                    c = pipes(lines[j])
+                    if '---' not in lines[j] and c != n:
+                        bad.append(f"{os.path.basename(fp)}:L{j+1} 管道数 {c} != {n} :: {lines[j].strip()[:60]}")
+                    j += 1
+                i = j
+            else:
+                i += 1
+        if bad:
+            errors.append(f"  DOC-TABLE: {os.path.basename(fp)} 表格管道数不一致（{len(bad)} 行）")
+            errors.extend('    ' + b for b in bad[:8])
+    return errors
+
+
 def run_all(changed_files=None):
     """运行全部检查。changed_files: pre-commit 增量模式的变更文件列表（相对 BASE_DIR）"""
     css_fn = check_css_classes
@@ -485,6 +547,7 @@ def run_all(changed_files=None):
         '共享资源完整性': check_shared_resources,
         'HTML结构平衡': check_html_structure,
         'CSS类定义完整': lambda: css_fn(changed_files),
+        '文档表格管道数': check_doc_tables,
     }
     all_ok = True
     report = []
