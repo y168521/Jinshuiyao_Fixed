@@ -27,6 +27,16 @@ if [ $rc -ne 0 ]; then
 fi
 echo "[pre-commit] OK 一致性通过"
 
+echo "[pre-commit] 2/4 AI 语义审查（暂存 .py，P0 阻断）..."
+"$PY" "$ROOT/tools/precommit_ai_review.py"
+rc=$?
+if [ $rc -ne 0 ]; then
+  echo "[pre-commit] FAIL AI 语义审查未通过（P0 问题），已阻止提交。"
+  echo "[pre-commit] 若确认为误报，可跳过: git -c ai.review=0 commit 或 AI_REVIEW_SKIP=1 git commit"
+  exit 1
+fi
+echo "[pre-commit] OK AI 审查通过"
+
 echo "[pre-commit] ========================================"
 echo "[pre-commit] 全部检查通过，可以提交！"
 echo "[pre-commit] ========================================"

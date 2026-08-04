@@ -64,8 +64,9 @@ def check_precommit_hook():
         return True, "非 git 仓库，跳过"
 
     hook_path = os.path.join(git_dir, "hooks", "pre-commit")
+    # 当前部署蓝本为 wrapper（install_hooks.py 与 2026-08-03 JS-20260803-02 起统一用 wrapper.sh）
     is_win = sys.platform == "win32"
-    src_name = "pre-commit-hook.bat" if is_win else "pre-commit-hook.sh"
+    src_name = "pre-commit-hook-wrapper.sh"
     src_path = os.path.join(BASE_DIR, "tools", src_name)
 
     if not os.path.isfile(src_path):
@@ -78,7 +79,7 @@ def check_precommit_hook():
     if os.path.isfile(hook_path):
         with open(hook_path, "r", encoding="utf-8") as f:
             hook_content = f.read()
-        if "closeout_gate" in hook_content and "--audit" in hook_content:
+        if "check_consistency" in hook_content and "precommit_ai_review" in hook_content:
             return True, f"已存活 ({src_name})"
 
     # 缺失 → 自动安装
