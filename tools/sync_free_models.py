@@ -67,17 +67,16 @@ _JSON_MODE_SUPPORT = {
     "Qwen/Qwen2.5-7B-Instruct": True,
 }
 
-# ── 免费/低费用额度白名单 ──
-# 硅基流动对开源模型普遍提供免费额度(每月限量)；旗舰付费模型(GLM-5.2/V4-Pro/Kimi-K2.7等)不进入免费池。
-# 只同步这些家族；--include-all 时才全量纳入（不推荐，会把付费模型当免费用）。
-_FREE_HINT_PREFIXES = (
-    "THUDM/GLM-4-", "THUDM/GLM-Z1-", "zai-org/GLM-4.5", "zai-org/GLM-4.7",
-    "deepseek-ai/DeepSeek-V3", "deepseek-ai/DeepSeek-R1-0528",
-    "Qwen/Qwen2.5-", "Qwen/Qwen3-", "Qwen/Qwen3.5-", "Qwen/Qwen3.6-",
-    "tencent/Hunyuan-A13B", "tencent/Hunyuan-MT",
-    "inclusionAI/Ling-", "stepfun-ai/Step-3.5-Flash",
-    "moonshotai/Kimi-K2.7-Code", "meituan-longcat/LongCat-",
-)
+# ── 已验证免费模型白名单（精确 ID）──
+# 2026-08-05 暴力实测 + 账单核对: 这 4 个模型调用计费项为 free-text-model.online(单价=0), 真免费。
+# 其余家族(GLM-4.5/DeepSeek-V3/Qwen3.5/Kimi-K2.7/Hunyuan/Ling 等)实测均按量收费, 严禁再纳入。
+# 若需更新, 必须暴力测试 + 导出账单逐项核对计费项单价=0 后才能加入。
+_FREE_VERIFIED_IDS = {
+    "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+    "THUDM/GLM-Z1-9B-0414",
+    "THUDM/GLM-4-9B-0414",
+    "Qwen/Qwen2.5-7B-Instruct",
+}
 
 # 非 LLM 模型（图像/视频/语音/嵌入/重排）直接跳过
 _NON_LLM_HINTS = ("Image", "VL-", "Embedding", "Reranker", "ASR", "T2V", "I2V",
@@ -107,7 +106,7 @@ def _is_llm(mid):
 
 
 def _in_free_hint(mid):
-    return any(mid.startswith(p) for p in _FREE_HINT_PREFIXES)
+    return mid in _FREE_VERIFIED_IDS
 
 
 def _probe(mid, api_key, base_url, json_mode, timeout=20):
