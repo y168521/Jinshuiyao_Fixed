@@ -25,6 +25,30 @@ from unittest.mock import MagicMock, patch, PropertyMock
 from core.ai_service import AIService, PROVIDERS, _SUBSYSTEM_PROMPTS
 
 
+def setUpModule():
+    """测试环境全局禁用免费模型池（W63补38 free_first 引入后，避免测试打到真实硅基流动 API）。
+
+    chat() 的 free-first 分支在函数体内 from core.free_model_pool import ...，
+    调用时会实时读取模块属性，因此 patch 模块属性即可拦截。
+    需验证免费优先行为的测试在方法内显式覆盖此 patch。
+    """
+    _patches = [
+        patch("core.free_model_pool.get_free_provider_cfgs", return_value=[]),
+    ]
+    for p in _patches:
+        p.start()
+    global _MODULE_PATCHES
+    _MODULE_PATCHES = _patches
+
+
+def tearDownModule():
+    for p in _MODULE_PATCHES:
+        p.stop()
+
+
+_MODULE_PATCHES = []
+
+
 def _make_mock_response(content="ok", status_code=200, usage=None):
     """构造模拟的 requests.Response 对象"""
     resp = MagicMock()
@@ -371,3 +395,44 @@ class TestAIServiceProviderSwitch(unittest.TestCase):
         self.svc.switch_provider("deepseek-reasoner")
 
         self.assertEqual(self.svc.stats["total_calls"], 1)
+
+
+class TestAIServiceFreeFirst(unittest.TestCase):
+    """免费优先（W63补38）：chat() 先走免费池，失败才走本供应商（付费DeepSeek）"""
+
+    def setUp(self):
+        self.svc = _create_test_svc()
+
+    def test_free_first_uses_free_pool_when_available(self):
+        """免费池可用时优先使用免费模型，不再调用付费供应商"""
+        _cfg = [{"_provider": "siliconflow", "_model_id": "THUDM/GLM-4-32B-0414"}]
+        with patch("core.free_model_pool.get_free_provider_cfgs", return_value=_cfg), \
+             patch("core.free_model_pool.call_ai_failover",
+                   return_value=("免费模型回复", None, _cfg[0])) as mock_failover, \
+             patch.object(self.svc._session, 'post') as mock_post:
+            result = self.svc.chat("sys", "usr")
+            self.assertEqual(result, "免费模型回复")
+            mock_failover.assert_called_once()
+            mock_post.assert_not_called()
+
+    def test_free_first_falls_back_to_paid_when_free_down(self):
+        """免费池全挂时回退到本供应商（付费DeepSeek）"""
+        with patch("core.free_model_pool.get_free_provider_cfgs",
+                   return_value=[{"_provider": "siliconflow", "_model_id": "m1"}]), \
+             patch("core.free_model_pool.call_ai_failover",
+                   return_value=(None, "ALL_FREE_DOWN", None)), \
+             patch.object(self.svc._session, 'post',
+                          return_value=_make_mock_response("付费回复")):
+            result = self.svc.chat("sys", "usr")
+            self.assertEqual(result, "付费回复")
+
+    def test_free_first_disabled_explicitly(self):
+        """free_first=False 时跳过免费池，直接走本供应商"""
+        _cfg = [{"_provider": "siliconflow", "_model_id": "m1"}]
+        with patch("core.free_model_pool.get_free_provider_cfgs", return_value=_cfg), \
+             patch("core.free_model_pool.call_ai_failover") as mock_failover, \
+             patch.object(self.svc._session, 'post',
+                          return_value=_make_mock_response("直接付费回复")):
+            result = self.svc.chat("sys", "usr", free_first=False)
+            self.assertEqual(result, "直接付费回复")
+            mock_failover.assert_not_called()

@@ -414,6 +414,9 @@ class JinshuiyaoScheduler(TaskScheduler):
             "kb_lint": 24 * 60,        # 知识体检(Lint)：每日触发，但仅每月1号真正执行
             "vector_index_rebuild": 24 * 60,  # 向量索引重建(P3-4)：每24小时主动重建离线VSM索引，与 mtime 失效机制互补
             "ai_code_review": 24 * 60,  # AI代码语义审查(免费模型优先)：每日1次，0=禁用
+            # 免费模型自动化（W63补38）：配置自动更新+健康自动探活，零手动
+            "free_model_sync": 24 * 60,   # 免费模型清单自动同步：每日拉取→探活→质量排序写回配置，0=禁用
+            "free_model_health": 120,     # 免费模型健康探活：每2小时，0=禁用
         }
         try:
             import json as _json
@@ -523,6 +526,29 @@ class JinshuiyaoScheduler(TaskScheduler):
                 name="ai_code_review",
                 func=self._task_ai_code_review,
                 interval_minutes=_defaults["ai_code_review"],
+                enabled=True,
+            )
+
+        # 13. 免费模型自动同步 - 每日自动拉取硅基流动模型清单→探活→质量排序→写回配置
+        #     免费额度/模型随时可能下线或新增（如 GLM-4-9B 官方免费下线），
+        #     手动 sync 容易忘 → 配置僵化 → 免费池失效。此任务让配置永远新鲜。
+        #     若运行环境无硅基流动密钥则跳过，不影响其他任务。
+        if _defaults.get("free_model_sync", 0) > 0:
+            self.register(
+                name="free_model_sync",
+                func=self._task_free_model_sync,
+                interval_minutes=_defaults["free_model_sync"],
+                enabled=True,
+            )
+
+        # 14. 免费模型健康探活 - 每2小时对池内模型发探活请求更新健康状态
+        #     与 scripts/free_model_health_check.py（WorkBuddy 外部）互补，
+        #     本任务内置于调度器，无需外部平台也能自动发现免费模型宕机并告警。
+        if _defaults.get("free_model_health", 0) > 0:
+            self.register(
+                name="free_model_health",
+                func=self._task_free_model_health,
+                interval_minutes=_defaults["free_model_health"],
                 enabled=True,
             )
 
@@ -1224,6 +1250,64 @@ class JinshuiyaoScheduler(TaskScheduler):
                      if i.get("severity") == "P0"][:5], ensure_ascii=False))
         except Exception as e:
             logger.warning("[AI代码审查] 执行失败（不影响其余定时任务）: %s", e)
+
+    @staticmethod
+    def _task_free_model_sync():
+        """免费模型清单自动同步 - 每日拉取→探活→质量排序→写回 free_models.json
+
+        调 tools/sync_free_models.py（子进程隔离，任何失败仅告警）。
+        免费模型是"活"资源：官方免费额度随时下线（如 GLM-4-9B 免费档已 403），
+        新模型随时出现。每日自动同步让免费池永远保持新鲜、精准。
+        """
+        logger.info("[免费模型] 开始每日自动同步...")
+        try:
+            import subprocess as _sp
+            _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            secrets_dir = os.path.join(os.path.expanduser("~"), ".jinshuiyao-secrets")
+            if not os.path.isfile(os.path.join(secrets_dir, "siliconflow_key.txt")):
+                logger.info("[免费模型] 无硅基流动密钥，跳过同步（免费优先约定）")
+                return
+            script = os.path.join(_root, "tools", "sync_free_models.py")
+            proc = _sp.run(
+                [sys.executable, script],
+                cwd=_root, capture_output=True, timeout=20 * 60,
+            )
+            stdout = (proc.stdout or b"").decode("utf-8", errors="replace")
+            stderr = (proc.stderr or b"").decode("utf-8", errors="replace")
+            tail = (stdout or stderr).strip().splitlines()[-3:]
+            if proc.returncode == 0:
+                logger.info("[免费模型] 同步完成: %s", " | ".join(tail))
+            else:
+                logger.warning("[免费模型] 同步退出码=%s: %s", proc.returncode, " | ".join(tail))
+        except Exception as e:
+            logger.warning("[免费模型] 自动同步失败（不影响其余定时任务）: %s", e)
+
+    @staticmethod
+    def _task_free_model_health():
+        """免费模型健康探活 - 每2小时对池内模型发探活请求更新健康状态
+
+        与外部 WorkBuddy 定时（scripts/free_model_health_check.py）互补：
+        本任务内置于调度器，即使外部平台不跑，也能自动发现免费模型宕机。
+        全池宕机时写告警（金水谣数据/free_model_status.json），供界面/日志预警。
+        """
+        logger.info("[免费模型] 开始健康探活...")
+        try:
+            import json as _json
+            from core.free_model_pool import health_check_all
+            res = health_check_all()
+            checked = res.get("checked", [])
+            down = res.get("down", [])
+            degraded = res.get("degraded", [])
+            logger.info(
+                "[免费模型] 探活完成: 检查%d 宕机%d 降级%d",
+                len(checked), len(down), len(degraded),
+            )
+            if down:
+                logger.warning("[免费模型] 宕机模型: %s", _json.dumps(down, ensure_ascii=False)[:300])
+            if res.get("all_down"):
+                logger.error("[免费模型] ⚠ 免费模型全池宕机！检查硅基流动额度/密钥")
+        except Exception as e:
+            logger.warning("[免费模型] 健康探活失败（不影响其余定时任务）: %s", e)
 
     @staticmethod
     def _task_proactive_reminder():

@@ -200,10 +200,37 @@ class DeepSeekError(Exception):
 
 
 def chat(messages, api_key, model="deepseek-v4-flash",
-         max_retries=3, timeout=90, endpoints=None, on_attempt=None):
-    """带指数退避的网络调用。on_attempt(attempt, total, status_text) 用于进度反馈。"""
+         max_retries=3, timeout=90, endpoints=None, on_attempt=None,
+         free_first=None):
+    """带指数退避的网络调用。on_attempt(attempt, total, status_text) 用于进度反馈。
+
+    free_first（W63补38）：None=按环境变量 DEEPSEEK_CODER_FREE_FIRST 决定；
+      True=先用硅基流动免费池（GLM-4-32B 等），全挂再走本工具（DeepSeek）。
+      仅对 messages 最后一条 user 内容做免费尝试，不改变原有逻辑契约。
+    """
     endpoints = endpoints or ENDPOINTS
     last_err = None
+    if free_first is None:
+        free_first = os.environ.get("DEEPSEEK_CODER_FREE_FIRST", "").strip() in ("1", "true", "on")
+    if free_first:
+        try:
+            import sys as _sys
+            _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            if _root not in _sys.path:
+                _sys.path.insert(0, _root)
+            from core.free_model_pool import get_free_provider_cfgs, call_ai_failover
+            _cfgs = get_free_provider_cfgs()
+            if _cfgs:
+                _user = messages[-1]["content"] if messages else ""
+                _sys_p = messages[0]["content"] if messages else ""
+                _text, _err, _used = call_ai_failover(
+                    _cfgs, _sys_p, _user,
+                    timeout=min(timeout, 60), max_tokens=2048, temperature=0.2,
+                    force_json_mode=False, allow_paid_fallback=False)
+                if _text:
+                    return _text
+        except Exception:
+            pass  # 免费池异常 → 走原 DeepSeek 路径
     for attempt in range(max_retries):
         ep = endpoints[attempt % len(endpoints)]
         try:

@@ -746,7 +746,7 @@ class AIService:
 
     def chat(self, system_prompt: str, user_prompt: str,
              temperature: float = None, max_tokens: int = None,
-             _fallback_depth: int = 0) -> str:
+             _fallback_depth: int = 0, free_first: bool = None) -> str:
         """通用AI对话
 
         Args:
@@ -755,10 +755,40 @@ class AIService:
             temperature: 温度参数，None使用供应商默认值
             max_tokens: 最大token数，None使用供应商默认值
             _fallback_depth: 内部使用，fallback递归深度
+            free_first: 免费优先（W63补38）。None=自动开启：硅基流动免费池可用时
+                先用免费模型（GLM-4-32B 等），免费池全部失败才走本供应商(付费DeepSeek)，
+                符合用户约定"能用免费就用，免费不行才付费"；False=跳过免费直走原路径。
 
         Returns:
             AI回复文本，失败返回空字符串
         """
+        # 免费优先（W63补38）：离线模式保持本地 Ollama 优先，不混入
+        if self._mode != "offline" and free_first is not False:
+            try:
+                from core.free_model_pool import get_free_provider_cfgs, call_ai_failover
+                _cfgs = get_free_provider_cfgs()
+                if _cfgs:
+                    _t = temperature if temperature is not None else 0.7
+                    _m = max_tokens if max_tokens is not None else 800
+                    _text, _err, _used = call_ai_failover(
+                        _cfgs, system_prompt, user_prompt,
+                        timeout=60, max_tokens=_m, temperature=_t,
+                        force_json_mode=False, allow_paid_fallback=False)
+                    if _text:
+                        _log_conv(
+                            system_prompt=system_prompt,
+                            user_prompt=user_prompt,
+                            reply=_text,
+                            provider=(_used or {}).get("_provider", "siliconflow"),
+                            model=(_used or {}).get("_model_id", "free"),
+                            token_usage={},
+                            duration_ms=0,
+                            success=True,
+                        )
+                        return _text
+            except Exception:
+                pass  # 免费池异常不影响原有付费路径
+
         # 本地模式：尝试使用Ollama
         if self._mode == "offline":
             if self._ollama_available:
