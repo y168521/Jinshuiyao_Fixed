@@ -539,10 +539,10 @@ def review_file(file_path, patterns, ai_cfg=None, ai_cfg_list=None, content=None
 
     if ai_cfg_list:
         # 免费模型池故障转移（call_fn=call_ai 保证重试逻辑/超时/JSON 一致）
-        # allow_paid_fallback=False：审查场景遵循"能用免费就用，不然就算了"，免费全挂不烧付费
+        # 免费池全挂时允许退付费兜底（受 llm_budget 成本闸约束）：用户约定"优先免费，实在不行才付费"
         response, error, used_cfg = call_ai_failover(
             ai_cfg_list, system_prompt, user_prompt, call_fn=call_ai,
-            allow_paid_fallback=False)
+            allow_paid_fallback=True)
     else:
         if ai_cfg is None:
             ai_cfg = _deepseek_cfg()
@@ -724,8 +724,23 @@ def run_review(files=None, diff_only=False, json_output=False, no_cache=False,
                     _use_cfg, _use_prov = _fallback_cfg, "deepseek(fallback:serious)"
                     ai_issues = review_file(abs_path, patterns, ai_cfg=_use_cfg)
                 elif _primary_name == "siliconflow" and _primary_cfgs:
-                    _use_prov = "siliconflow-pool(failover)"
-                    ai_issues = review_file(abs_path, patterns, ai_cfg_list=_primary_cfgs)
+                    # 精准匹配：按文件复杂度选质量合适的免费模型（light/medium/heavy），
+                    # 复杂推理文件强制高质量模型，免费不够格则退付费兜底
+                    from core.free_model_pool import pick_cfg_for_task
+                    if _has_serious_tokens(content):
+                        _pick = pick_cfg_for_task(_primary_cfgs, complexity="heavy")
+                        if _pick:
+                            _use_prov = f"siliconflow-pick(heavy:{_pick.get('model')})"
+                            ai_issues = review_file(abs_path, patterns, ai_cfg=_pick)
+                        elif _fallback_cfg.get("api_key"):
+                            _use_prov = "deepseek(fallback:heavy)"
+                            ai_issues = review_file(abs_path, patterns, ai_cfg=_fallback_cfg)
+                        else:
+                            _use_prov = "siliconflow-pool(failover)"
+                            ai_issues = review_file(abs_path, patterns, ai_cfg_list=_primary_cfgs)
+                    else:
+                        _use_prov = "siliconflow-pool(failover)"
+                        ai_issues = review_file(abs_path, patterns, ai_cfg_list=_primary_cfgs)
                 else:
                     _use_cfg, _use_prov = _primary_cfg, _primary_name
                     ai_issues = review_file(abs_path, patterns, ai_cfg=_use_cfg)

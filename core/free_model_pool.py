@@ -125,6 +125,44 @@ def get_free_provider_cfgs(config_path=_CONFIG_PATH, respect_env=True):
     return [c for _, c in models]
 
 
+def pick_cfg_for_task(cfg_list, complexity="medium", config_path=_CONFIG_PATH):
+    """自动精准匹配：按任务复杂度从免费池挑质量合适的模型。
+
+    核心理念（用户约定）：不需要高级推理的任务优先免费；实在不行才付费。
+    复杂度分级：
+      - "light"    → 简单/机械任务（闲聊、字段提取、格式化）：用质量分 50-75 的轻量模型，快且省
+      - "medium"   → 常规任务（日常审查、总结）：用质量分最高且健康的首选模型（默认行为）
+      - "heavy"    → 复杂推理（深层代码审查、跨文件分析）：必须质量分 ≥85，否则退化到付费兜底
+
+    实现：按质量分阈值取第一个健康（非 down）模型；找不到符合的返回 None（调用方退付费兜底）。"""
+    cfg = load_pool_config(config_path)
+    if not cfg_list:
+        return None
+    # 从配置读取 quality，fallback：cfg 内嵌或按需默认
+    quality_by_id = {}
+    for prov, pdata in cfg.get("providers", {}).items():
+        for m in pdata.get("models", []):
+            quality_by_id[m.get("id")] = int(m.get("quality", 0))
+    down, _ = _load_health_exclusions(_STATUS_PATH)
+    if complexity == "heavy":
+        need = 85
+    elif complexity == "light":
+        # 轻量任务选第一个质量 ≤70 的健康模型（省时间），无则降级选最低质量可用
+        light = [c for c in cfg_list if c.get("_model_id") not in down
+                 and quality_by_id.get(c.get("_model_id"), 100) <= 70]
+        if light:
+            return light[0]
+        return cfg_list[0] if cfg_list and cfg_list[0].get("_model_id") not in down else None
+    else:
+        need = 0
+    for c in cfg_list:
+        if c.get("_model_id") in down:
+            continue
+        if quality_by_id.get(c.get("_model_id"), 0) >= need:
+            return c
+    return None
+
+
 def get_fallback_cfg(config_path=_CONFIG_PATH):
     """付费兜底配置（DeepSeek），仅在免费池全挂时启用"""
     cfg = load_pool_config(config_path)

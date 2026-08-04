@@ -1,4 +1,5 @@
 {
+  "_说明": "免费模型池配置。priority 升序=优先使用。quality 用于自动精准匹配(score 越高越优先处理复杂任务)。id 与硅基流动官方一致。修改后重启系统生效。",
   "providers": {
     "siliconflow": {
       "base_url": "https://api.siliconflow.cn/v1/chat/completions",
@@ -6,22 +7,188 @@
       "json_mode": true,
       "models": [
         {
-          "id": "THUDM/GLM-4-9B-0414",
+          "id": "THUDM/GLM-4-32B-0414",
           "priority": 1,
+          "quality": 95,
+          "json_mode": true,
           "enabled": true,
-          "note": "默认免费最优（实测 8661 字符 prompt 3 秒返回、JSON 模式结构干净、抓 P0 准）"
+          "note": "智谱GLM-4-32B(2026实测): 质量最高, 审查检出注入P0/USER P0/零除P0/KeyError P1 全命中, 支持JSON模式, 首选"
+        },
+        {
+          "id": "zai-org/GLM-4.5-Air",
+          "priority": 2,
+          "quality": 92,
+          "json_mode": false,
+          "enabled": true,
+          "note": "GLM-4.5 Air(实测): 质量高检出3条含注入P0, 但不支持JSON模式(400), 靠解析兜底"
+        },
+        {
+          "id": "moonshotai/Kimi-K2.7-Code",
+          "priority": 3,
+          "quality": 91,
+          "json_mode": true,
+          "enabled": true,
+          "note": "自动发现(2026-08-04) quality=91"
+        },
+        {
+          "id": "deepseek-ai/DeepSeek-V3",
+          "priority": 4,
+          "quality": 90,
+          "json_mode": true,
+          "enabled": true,
+          "note": "自动发现(2026-08-04) quality=90"
+        },
+        {
+          "id": "deepseek-ai/DeepSeek-V3.1-Terminus",
+          "priority": 5,
+          "quality": 90,
+          "json_mode": true,
+          "enabled": true,
+          "note": "自动发现(2026-08-04) quality=90"
+        },
+        {
+          "id": "deepseek-ai/DeepSeek-V3.2",
+          "priority": 6,
+          "quality": 90,
+          "json_mode": true,
+          "enabled": true,
+          "note": "自动发现(2026-08-04) quality=90"
+        },
+        {
+          "id": "Qwen/Qwen2.5-72B-Instruct",
+          "priority": 7,
+          "quality": 89,
+          "json_mode": true,
+          "enabled": true,
+          "note": "自动发现(2026-08-04) quality=89"
+        },
+        {
+          "id": "Qwen/Qwen2.5-72B-Instruct-128K",
+          "priority": 8,
+          "quality": 89,
+          "json_mode": true,
+          "enabled": true,
+          "note": "自动发现(2026-08-04) quality=89"
+        },
+        {
+          "id": "Qwen/Qwen3.5-27B",
+          "priority": 9,
+          "quality": 85,
+          "json_mode": true,
+          "enabled": true,
+          "note": "自动发现(2026-08-04) quality=85"
+        },
+        {
+          "id": "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+          "priority": 3,
+          "quality": 80,
+          "json_mode": true,
+          "enabled": true,
+          "note": "DeepSeek-R1蒸馏Qwen3-8B(实测): 检出4条但严重度偏保守(P2多), 支持JSON模式"
+        },
+        {
+          "id": "Qwen/Qwen3.5-9B",
+          "priority": 11,
+          "quality": 78,
+          "json_mode": true,
+          "enabled": true,
+          "note": "自动发现(2026-08-04) quality=78"
+        },
+        {
+          "id": "tencent/Hunyuan-A13B-Instruct",
+          "priority": 12,
+          "quality": 77,
+          "json_mode": true,
+          "enabled": true,
+          "note": "自动发现(2026-08-04) quality=77"
+        },
+        {
+          "id": "THUDM/GLM-Z1-9B-0414",
+          "priority": 13,
+          "quality": 76,
+          "json_mode": true,
+          "enabled": true,
+          "note": "自动发现(2026-08-04) quality=76"
+        },
+        {
+          "id": "THUDM/GLM-4-9B-0414",
+          "priority": 4,
+          "quality": 75,
+          "json_mode": true,
+          "enabled": true,
+          "note": "原默认: 质量中等检出3条, 支持JSON模式, 稳定可用"
+        },
+        {
+          "id": "inclusionAI/Ling-flash-2.0",
+          "priority": 15,
+          "quality": 72,
+          "json_mode": true,
+          "enabled": true,
+          "note": "自动发现(2026-08-04) quality=72"
+        },
+        {
+          "id": "inclusionAI/Ling-mini-2.0",
+          "priority": 16,
+          "quality": 62,
+          "json_mode": true,
+          "enabled": true,
+          "note": "自动发现(2026-08-04) quality=62"
         },
         {
           "id": "Qwen/Qwen2.5-7B-Instruct",
-          "priority": 2,
+          "priority": 5,
+          "quality": 60,
+          "json_mode": true,
           "enabled": true,
-          "note": "备用：慢（~55s）且 JSON 模式质量易崩，仅主模型挂时顶上"
+          "note": "备用: 响应慢~55s, 检出能力弱, 最后兜底"
         },
         {
-          "id": "在此填写新接的免费模型 id",
-          "priority": 3,
-          "enabled": false,
-          "note": "预留位：用户接新免费模型时改这里（enabled=true + 填真实模型 id），不动代码"
+          "id": "Qwen/Qwen2.5-14B-Instruct",
+          "priority": 18,
+          "quality": 40,
+          "json_mode": true,
+          "enabled": true,
+          "note": "自动发现(2026-08-04) quality=40"
+        },
+        {
+          "id": "Qwen/Qwen2.5-32B-Instruct",
+          "priority": 19,
+          "quality": 40,
+          "json_mode": true,
+          "enabled": true,
+          "note": "自动发现(2026-08-04) quality=40"
+        },
+        {
+          "id": "Qwen/Qwen3-14B",
+          "priority": 20,
+          "quality": 40,
+          "json_mode": true,
+          "enabled": true,
+          "note": "自动发现(2026-08-04) quality=40"
+        },
+        {
+          "id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+          "priority": 21,
+          "quality": 40,
+          "json_mode": true,
+          "enabled": true,
+          "note": "自动发现(2026-08-04) quality=40"
+        },
+        {
+          "id": "Qwen/Qwen3-32B",
+          "priority": 22,
+          "quality": 40,
+          "json_mode": true,
+          "enabled": true,
+          "note": "自动发现(2026-08-04) quality=40"
+        },
+        {
+          "id": "Qwen/Qwen3-8B",
+          "priority": 23,
+          "quality": 40,
+          "json_mode": true,
+          "enabled": true,
+          "note": "自动发现(2026-08-04) quality=40"
         }
       ]
     }
