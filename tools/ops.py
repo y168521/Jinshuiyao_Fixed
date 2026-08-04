@@ -330,6 +330,25 @@ def _do_start(args, extra):
     print(f"  1. 阅读 模型/AI协作交接中心.md 了解当前上下文")
     print(f"  2. 改文件前: ops.py --status <文件路径>")
     print(f"  3. 收工前:  ops.py --digest → ops.py --close")
+    # 6. 防再犯铁律（强制注入）
+    guard_path = os.path.join(BASE, "ai_guard_rules.md")
+    if os.path.isfile(guard_path):
+        print(f"\n[start]  ⚠️ 防再犯铁律清单（开工必读）:")
+        print(f"[start]  {'─'*40}")
+        with open(guard_path, "r", encoding="utf-8") as f:
+            guard_content = f.read()
+        in_table = False
+        for line in guard_content.split("\n"):
+            if line.startswith("| # "):
+                in_table = True
+                continue
+            if in_table and line.startswith("|") and line.strip() != "|---|" and not line.strip().startswith("|---"):
+                cells = [c.strip() for c in line.strip().strip("|").split("|")]
+                if len(cells) >= 3 and cells[0] and cells[1] and cells[2] and not cells[1].startswith("---"):
+                    print(f"  [{cells[0]}] {cells[1]}: {cells[2][:60]}{'...' if len(cells[2])>60 else ''}")
+            if line.startswith("## "):
+                in_table = False
+        print(f"\n  完整清单: {guard_path}")
     print()
     return 0
 
