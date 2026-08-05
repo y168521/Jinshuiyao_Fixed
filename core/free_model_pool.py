@@ -364,7 +364,9 @@ def health_check_all(config_path=_CONFIG_PATH, status_path=_STATUS_PATH, call_fn
                 _status_cache[mid] = {k: entry[k] for k in ("id", "provider", "healthy", "error", "ts")}
                 _status_cache[mid]["degraded"] = entry.get("degraded", False)
                 _status_cache[mid]["failures"] = _status_cache.get(mid, {}).get("failures", 0)
-    summary["all_down"] = bool(summary["down"]) and len(summary["down"]) == len(summary["checked"])
+    # 修正(JS-20260805): 原只认 down 不认 degraded → 全模型被限流(429)时告警不响(监控盲区)。
+    # 现 all_down = 所有已检模型均不可用(down 或 degraded)。degraded 仍可被路由降权尝试, 但告警会响, 避免"免费池全限流偷偷烧付费"无提醒。
+    summary["all_down"] = (bool(summary["down"]) or bool(summary["degraded"])) and (len(summary["down"]) + len(summary["degraded"])) == len(summary["checked"])
     # 写状态文件 + 全挂告警
     try:
         os.makedirs(os.path.dirname(status_path), exist_ok=True)

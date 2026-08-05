@@ -354,7 +354,6 @@ def main():
         "health_check": old_cfg.get("health_check", {
             "enabled": True, "interval_minutes": 60,
             "timeout_seconds": 15, "probe_prompt": "ping",
-            "max_failures_before_down": 2,
         }),
         "notify": old_cfg.get("notify", {
             "on_all_free_down": True, "channel": "log",

@@ -1,5 +1,5 @@
 {
-  "_说明": "免费模型池配置。priority 升序=优先使用。quality 用于自动精准匹配(score 越高越优先处理复杂任务)。id 与硅基流动官方一致。修改后重启系统生效。2026-08-05 暴测账单审计后重写: 仅4个模型走 free-text-model.online 免费计费项(单价=0), 其余18个全部按量收费, 一律禁用。",
+  "_说明": "免费模型池配置。priority 升序=优先使用。quality 用于自动精准匹配(score 越高越优先处理复杂任务)。id 与硅基流动官方一致。修改后重启系统生效。2026-08-05 暴测账单审计结论: 4个模型经账单核验真免费(free-text-model计费项单价0, 实测); 另3个模型(见各自note)为官方价格表标注免费、待暴测账单核验, 未实测前不视为已验证; 其余18个按量收费已禁用。",
   "providers": {
     "siliconflow": {
       "base_url": "https://api.siliconflow.cn/v1/chat/completions",
@@ -36,7 +36,7 @@
           "quality": 70,
           "json_mode": true,
           "enabled": true,
-          "note": "✅官方免费(价格表入¥0.0/出¥0.0/M, ctx=262144.0, json=True)"
+          "note": "🟡官方价格表标注免费(待账单核验: 暴测账单中零出现, 未实测确认, 不视为已验证)"
         },
         {
           "id": "Qwen/Qwen2.5-7B-Instruct",
@@ -52,7 +52,7 @@
           "quality": 55,
           "json_mode": true,
           "enabled": true,
-          "note": "✅官方免费(价格表入¥0.0/出¥0.0/M, ctx=32768.0, json=True)"
+          "note": "🟡官方价格表标注免费(待账单核验: 暴测账单中零出现, 未实测确认, 不视为已验证)"
         },
         {
           "id": "Qwen/Qwen3-8B",
@@ -60,7 +60,7 @@
           "quality": 40,
           "json_mode": true,
           "enabled": true,
-          "note": "✅官方免费(价格表入¥0.0/出¥0.0/M, ctx=131072.0, json=True), 2026-08-05 重探活OK, 已恢复启用"
+          "note": "🟡官方价格表标注免费(待账单核验: 暴测账单中零出现, 未实测确认, 不视为已验证), 2026-08-05 重探活OK"
         }
       ]
     }
@@ -76,8 +76,7 @@
     "enabled": true,
     "interval_minutes": 60,
     "timeout_seconds": 15,
-    "probe_prompt": "ping",
-    "max_failures_before_down": 2
+    "probe_prompt": "ping"
   },
   "notify": {
     "on_all_free_down": true,

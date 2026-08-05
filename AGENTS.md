@@ -12,7 +12,7 @@
 
 **最易犯的 5 条**（改码前对照）：
 1. **A1/A2**：提交前必看 `git status`，gitignore 对已跟踪文件无效（要 `git rm --cached`）
-2. **B2**：改完代码必跑 pytest 903 项 + GUI 手动验证
+2. **B2**：改完代码必跑全量 pytest（约 900 项，以实际输出为准） + GUI 手动验证
 3. **C1/C3**：tkinter 事件 `break` 会连 class 默认行为一起关；同类交互一处改全处同步改
 4. **E1/E4**：活文档提交后拷回根目录+校准 mtime；判断历史泄漏先实测内容
 5. **D1/D2**：后台任务必须真写盘；"待复盘 0"先分未开奖占位 vs 真实没中
@@ -106,7 +106,7 @@
 
 - Python: `%LOCALAPPDATA%\Jinshuiyao\venv\Scripts\python.exe`（自动建，**跑测试必须用这个**）
 - 启动: 双击 `启动金水谣助手.bat`（端口18888）
-- 测试: 使用 venv python 跑 `-m pytest tests/ -q`（约814项）
+- 测试: 使用 venv python 跑 `-m pytest tests/ -q`（约 900 项，以实际 pytest 输出为准）
 - 收工: `py -3.14 tools/gate.py --check`
 
 ## 知识网关（2026-08-02 加入）
