@@ -32,6 +32,23 @@ class TestNumberUtils(unittest.TestCase):
     def test_parse_reds_no_comma(self):
         self.assertEqual(parse_reds("010512"), [1, 5, 12])
 
+    def test_parse_reds_ssq_full(self):
+        """双色球: 6红完整解析, 蓝球不混入 (JS-20260805-06 修复)"""
+        self.assertEqual(parse_reds("05,18,23,24,27,33+03"), [5, 18, 23, 24, 27, 33])
+
+    def test_parse_reds_dlt_full(self):
+        """大乐透: 5红完整, 后区蓝球不混入"""
+        self.assertEqual(parse_reds("03,06,09,14,19,28+05,07"), [3, 6, 9, 14, 19, 28])
+
+    def test_parse_reds_qxc_full(self):
+        """七星彩: 前6位完整"""
+        self.assertEqual(parse_reds("09,07,09,04,07,04+02"), [9, 7, 9, 4, 7, 4])
+
+    def test_parse_reds_no_plus_unchanged(self):
+        """无+号码行为不变"""
+        self.assertEqual(parse_reds("01,02,15"), [1, 2, 15])
+        self.assertEqual(parse_reds("08,00,06"), [8, 0, 6])
+
     def test_fmt_period(self):
         self.assertEqual(fmt_period("双色球", 2026066), "2026066")
 

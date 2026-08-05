@@ -197,7 +197,7 @@ class PredictionVerifier:
                     nums = entry.get("nums", "")
                     if nums:
                         from utils.number_utils import parse_reds
-                        numbers = parse_reds(nums, lot_type)
+                        numbers = parse_reds(nums)
                         # 存入缓存（长期）
                         cache.set(cache_key, numbers, ttl=86400 * 30, persist=True)
                         return numbers

@@ -32,6 +32,9 @@ def clean_nums(s):
 
 def parse_reds(s):
     s = clean_nums(s)
+    # 只取红球部分（+ 之前）。修复：原实现 split(",") 后 "33+03" 整段被
+    # isdigit() 过滤，导致最后一个红球和蓝球全部丢失（命中统计/学习数据残缺）。
+    s = s.split("+")[0]
     if ',' in s:
         return [int(x) for x in s.split(",") if x.strip().isdigit()]
     nums = []
