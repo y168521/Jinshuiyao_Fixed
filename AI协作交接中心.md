@@ -638,3 +638,5 @@
 
 > 下列主题为经验收集箱条目标题原文，供知识复用率统计精确命中（主题含冒号/加号，拆分关键词无法匹配）：
 > 换电脑"打不开"根治：运行环境解耦坚果云 · 全面代码审查：TRAE+WorkBuddy改动审计 · 代码优化框架升四维+彩票三维架构正反推导 · 彩票抓取 Layer1 S5+S6 实施 + 正反推导方法论补齐 · 多AI审查差异整合：全视角清单+速查卡+联动门禁 · 彩票命中率口径校正：杀假象+统一口径 · 彩票命中率口径统一延伸至 GUI：双栏直选 · STALE彩种诚实回测补全+复式覆盖度指标
+| W63补47 | OpenAI官方技能落地: define-goal+security-best-practices 2026-08-05 | opencode | 已完成 | 用户确认安装2个OpenAI官方技能(其余否决): ①define-goal(目标定义技能, 99行SKILL.md, 把模糊意图改写成可量化可验证目标, 治"用户说一句AI就乱跑"); ②security-best-practices(安全审查技能, 86行SKILL.md+12个语言框架安全参考文件python-flask/fastapi/django/javascript-react/vue/nextjs/golang等, 补现有密钥扫描盲区). 安装方式: git浅克隆openai/skills官方仓库→拷贝.curated/define-goal和security-best-practices整目录到.opencode/skills/→重新生成知识网关索引. 验证: 22个SKILL.md frontmatter全部合法(name+description); 知识网关索引Skill=22全收录; 知识网关+质量门禁测试99 passed 1 failed(唯一失败仍为坚果云锁lot_data环境问题与本次无关). ⚠️注意: 安装外部技能只挑有真实价值的, 不搞技能包大杂烩; security-best-practices的references含语言框架细则, 用该技能时须先读references再行动 | JS-20260805-13 |
+
