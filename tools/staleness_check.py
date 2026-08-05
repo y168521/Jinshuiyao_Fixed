@@ -28,6 +28,7 @@ ASSETS = [
     ('向量索引', os.path.join(BASE_DIR, 'knowledge', 'vector_index.json'), '经验收集箱|AI决策'),
     ('知识图谱', os.path.join(BASE_DIR, 'knowledge', 'knowledge_graph.json'), '经验收集箱|AI决策|卡片'),
     ('Skill蒸馏区', os.path.join(BASE_DIR, '.opencode', 'skills'), '经验收集箱'),
+    ('Skill备用区(兼容)', os.path.join(BASE_DIR, 'skills'), '经验收集箱'),
     ('知识网关索引', os.path.join(BASE_DIR, '知识网关索引.md'), '全部'),
 ]
 

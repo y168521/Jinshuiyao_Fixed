@@ -62,11 +62,17 @@ def main():
 
     # Skill
     skills = []
-    skills_dir = os.path.join(BASE_DIR, '.opencode', 'skills')
-    if os.path.isdir(skills_dir):
-        for d in sorted(os.listdir(skills_dir)):
-            if os.path.isfile(os.path.join(skills_dir, d, 'SKILL.md')):
-                skills.append(d)
+    skills_dirs = [
+        os.path.join(BASE_DIR, '.opencode', 'skills'),
+        os.path.join(BASE_DIR, 'skills'),  # 兼容旧位置（双保险）
+    ]
+    for skills_dir in skills_dirs:
+        if os.path.isdir(skills_dir):
+            for d in sorted(os.listdir(skills_dir)):
+                if d.startswith('.'):
+                    continue
+                if os.path.isfile(os.path.join(skills_dir, d, 'SKILL.md')) and d not in skills:
+                    skills.append(d)
 
     # 知识库卡片数（用户知识库）
     user_kb = []
