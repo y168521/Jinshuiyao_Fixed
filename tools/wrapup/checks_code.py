@@ -194,9 +194,28 @@ def _count_today_changes(today_str):
                 file_count += len(files)
 
     # 估算行数：经验收集箱里提到的"新增XX行""修改XX行"之类的关键词
+    # 只统计今日段落（JS 编号所在行 + 今日经验段），避免历史条目文本被误抓
     line_count = 0
-    all_text = (trace_text or "") + "\n" + (exp_text or "")
-    for m in re.finditer(r"(\d+)\s*行", all_text):
+    today_lines = []
+    date_num = today_str.replace("-", "")
+    if trace_text:
+        for line in trace_text.splitlines():
+            if f"JS-{date_num}-" in line:
+                today_lines.append(line)
+    if exp_text:
+        # 经验箱今日段：### YYYY-MM-DD 标题行起，到下一个 ###/## 标题前
+        in_today = False
+        for line in exp_text.splitlines():
+            if line.startswith("###") and today_str in line:
+                in_today = True
+                today_lines.append(line)
+                continue
+            if in_today and (line.startswith("###") or line.startswith("## ")):
+                in_today = False
+            if in_today:
+                today_lines.append(line)
+    today_text = "\n".join(today_lines)
+    for m in re.finditer(r"(\d+)\s*行", today_text):
         try:
             line_count = max(line_count, int(m.group(1)))
         except Exception:
