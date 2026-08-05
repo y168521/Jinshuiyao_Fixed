@@ -5,8 +5,9 @@
 实在不行才退而求其次用付费。硅基流动免费模型多，应自动精准匹配质量高的。
 
 功能：
-  1. 调用硅基流动 /v1/models 拉取全部可用模型清单
-  2. 对候选 LLM 逐个发极轻探活请求（max_tokens=5），剔除不可用/超时/无 key
+  1. 抓取硅基流动官方模型广场页面(https://siliconflow.cn/models) 内嵌实时价格表
+     (inputPrice/outputPrice/jsonModeSupport/contextLen) —— 价格=0 即真免费, 无需账单
+  2. 对免费候选 LLM 逐个发极轻探活请求（max_tokens=5），剔除不可用/超时/无 key
   3. 内置质量评分表（按模型家族/参数量/实测审查能力），自动排序写入 config/free_models.json
   4. 保留人工 enabled/priority 覆盖（手动配置优先于自动排序）
   5. 探活结果写入 金水谣数据/free_model_status.json（健康闭环复用）
@@ -18,9 +19,14 @@
   py -3.14 tools/sync_free_models.py --include-all  # 全量纳入所有探活成功的模型(不推荐, 会把付费当免费)
 
 安全：探活只发 5 token 的极小请求，不产生实质费用；只写 config/ 与 金水谣数据/ 非 git 敏感区。
+免费判定依据（2026-08-05 建立）：
+  - 主：官方模型广场价格表 inputPrice==0 且 outputPrice==0 → 免费（平台实时权威源）
+  - 备：官方页抓取失败时回退 _FREE_VERIFIED_IDS（暴测+账单对账过的精确 ID 集合）
+  - 禁：家族前缀/名称特征推断（曾被 GLM-4-32B 冒充免费烧掉 ¥0.72）
 """
 
 import os
+import re
 import sys
 import json
 import time
@@ -54,6 +60,7 @@ _QUALITY_TABLE = [
     ("THUDM/GLM-4-9B", 75),
     ("THUDM/GLM-Z1-9B", 76),
     ("tencent/Hunyuan-A13B", 77),
+    ("tencent/Hunyuan-MT-7B", 55),
     ("moonshotai/Kimi-K2.7", 91),
     ("stepfun-ai/Step-3.5-Flash", 79),
     ("inclusionAI/Ling-flash-2.0", 72),
@@ -67,10 +74,9 @@ _JSON_MODE_SUPPORT = {
     "Qwen/Qwen2.5-7B-Instruct": True,
 }
 
-# ── 已验证免费模型白名单（精确 ID）──
+# ── 兜底白名单（官方价格页抓取失败时用）──
 # 2026-08-05 暴力实测 + 账单核对: 这 4 个模型调用计费项为 free-text-model.online(单价=0), 真免费。
-# 其余家族(GLM-4.5/DeepSeek-V3/Qwen3.5/Kimi-K2.7/Hunyuan/Ling 等)实测均按量收费, 严禁再纳入。
-# 若需更新, 必须暴力测试 + 导出账单逐项核对计费项单价=0 后才能加入。
+# 官方价格表验证一致(入=出=0)。若官方页抓取可用, 以价格表为准自动扩展。
 _FREE_VERIFIED_IDS = {
     "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
     "THUDM/GLM-Z1-9B-0414",
@@ -81,6 +87,71 @@ _FREE_VERIFIED_IDS = {
 # 非 LLM 模型（图像/视频/语音/嵌入/重排）直接跳过
 _NON_LLM_HINTS = ("Image", "VL-", "Embedding", "Reranker", "ASR", "T2V", "I2V",
                   "OCR", "Whisper", "Text2Audio", "TTS", "SD-", "FLUX")
+
+# 官方模型广场页（内嵌实时价格 RSC 流）
+_MODEL_HUB_URL = "https://siliconflow.cn/models"
+
+
+def _fetch_official_prices():
+    """抓官方模型广场页, 提取 {model_id: {input, output, json_mode, context_len}}。
+
+    页面为 Next.js RSC: self.__next_f.push([1,"<双重转义JSON字符串>"]);
+    模型对象含 modelName/inputPrice/outputPrice/jsonModeSupport/contextLen/subType/type。
+    抓取失败返回 {}（调用方回退 _FREE_VERIFIED_IDS）。
+    """
+    try:
+        req = urllib.request.Request(_MODEL_HUB_URL, headers={"User-Agent": "Mozilla/5.0"})
+        html = urllib.request.urlopen(req, timeout=30).read().decode("utf-8", "replace")
+        out = {}
+        for sm in re.finditer(r"<script>self\.__next_f\.push", html):
+            seg = html[sm.start():html.find("</script>", sm.start())]
+            if "modelId" not in seg:
+                continue
+            k = seg.find('[1,"')
+            if k < 0:
+                continue
+            i, n = k + 3, len(seg)
+            while i < n:
+                c = seg[i]
+                if c == "\\":
+                    i += 2
+                    continue
+                if c == '"' and seg[i + 1:i + 3] == '])':
+                    payload = seg[k + 3:i + 1]
+                    try:
+                        inner = json.loads(payload)
+                    except Exception:
+                        break
+                    di = inner.find('"data"')
+                    if di < 0:
+                        break
+                    for obj in re.finditer(r'\{"modelId":"\d+"(.*?)(?=\},\{"modelId"|\Z)', inner[di:]):
+                        blk = obj.group(0)
+                        try:
+                            d = json.loads(blk)
+                        except Exception:
+                            continue
+                        name = d.get("modelName")
+                        if not name:
+                            continue
+                        def fnum(v):
+                            try:
+                                return float(v)
+                            except Exception:
+                                return None
+                        out[name] = {
+                            "input": fnum(d.get("inputPrice")),
+                            "output": fnum(d.get("outputPrice")),
+                            "json_mode": bool(d.get("jsonModeSupport")),
+                            "context_len": fnum(d.get("contextLen")),
+                            "sub_type": d.get("subType"),
+                            "mtype": d.get("type"),
+                        }
+                    return out
+                i += 1
+    except Exception as e:
+        print(f"[sync_free_models] 抓取官方价格页失败: {e}，回退已验证白名单")
+    return {}
 
 
 def _read_secret(fname):
@@ -105,7 +176,15 @@ def _is_llm(mid):
     return not any(h in low for h in _NON_LLM_HINTS)
 
 
+# 官方价格表（全局，由 main 填入）；为空时 _in_free_hint 回退已验证白名单
+_OFFICIAL_PRICES = {}
+
+
 def _in_free_hint(mid):
+    """免费判定：官方价格表 input==0 且 output==0 → 免费；无价格表数据时回退白名单。"""
+    info = _OFFICIAL_PRICES.get(mid)
+    if info is not None:
+        return info.get("input") == 0 and info.get("output") == 0
     return mid in _FREE_VERIFIED_IDS
 
 
@@ -161,6 +240,14 @@ def main():
         print("[sync_free_models] 无硅基流动密钥(~/.jinshuiyao-secrets/siliconflow_key.txt)，退出")
         return 1
 
+    # 0) 抓官方价格表（免费判定权威源；失败回退已验证白名单）
+    global _OFFICIAL_PRICES
+    _OFFICIAL_PRICES = _fetch_official_prices()
+    if _OFFICIAL_PRICES:
+        free_cnt = sum(1 for v in _OFFICIAL_PRICES.values()
+                       if v.get("input") == 0 and v.get("output") == 0 and v.get("sub_type") == "chat")
+        print(f"[sync_free_models] 官方价格表: {len(_OFFICIAL_PRICES)} 个模型, 其中免费对话 {free_cnt} 个 (inputPrice=outputPrice=0)")
+
     # 1) 拉模型清单
     try:
         req = urllib.request.Request(
@@ -204,13 +291,19 @@ def main():
     models = []
     for idx, (q, mid) in enumerate(live, start=1):
         old = old_models.get(mid, {})
+        pinfo = _OFFICIAL_PRICES.get(mid)
+        if pinfo is not None:
+            note = (f"✅官方免费(价格表入¥{pinfo['input']}/出¥{pinfo['output']}/M, "
+                    f"ctx={pinfo['context_len']}, json={pinfo['json_mode']})")
+        else:
+            note = f"✅免费(白名单) 自动发现({time.strftime('%Y-%m-%d')}) quality={q}"
         models.append({
             "id": mid,
             "priority": old.get("priority", idx),
             "quality": old.get("quality", q),
             "json_mode": old.get("json_mode", _JSON_MODE_SUPPORT.get(mid, True)),
             "enabled": old.get("enabled", True),
-            "note": old.get("note", f"自动发现({time.strftime('%Y-%m-%d')}) quality={q}"),
+            "note": old.get("note", note),
         })
     # 保留手动配置但探活失败的（--keep 时）
     if keep_manual:
