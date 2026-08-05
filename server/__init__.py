@@ -198,7 +198,10 @@ def main(port=None):
     # 获取局域网IP（手机端访问用）
     local_ip = get_local_ip()
     log(f'本机局域网IP: {local_ip}')
-    log(f'手机端访问（同WiFi）: http://{local_ip}:{_actual_port}/')
+    if os.environ.get("JINSHUIYAO_BIND_HOST", "127.0.0.1") in ("127.0.0.1", "localhost"):
+        log(f'[提示] 当前仅本机回环访问（http://localhost:{_actual_port}/）。手机访问需设置 JINSHUIYAO_ALLOW_LAN=1 后重启（有安全前提，见下）')
+    else:
+        log(f'手机端访问（同WiFi）: http://{local_ip}:{_actual_port}/')
 
     log(f'[DEBUG] 启动HTTP服务器，端口: {_actual_port}')
 
@@ -274,7 +277,8 @@ def main(port=None):
             log(f'导航地址: {url}')
         if actual_port != _actual_port:
             log(f'注意：默认端口 {_actual_port} 被占用，已改用 {actual_port}，访问地址同步更新。')
-            log(f'手机端访问（同WiFi）: http://{local_ip}:{actual_port}/')
+            if _bind_host not in ("127.0.0.1", "localhost"):
+                log(f'手机端访问（同WiFi）: http://{local_ip}:{actual_port}/')
         log('浏览器已打开，等待操作...')
 
         try:

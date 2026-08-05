@@ -109,7 +109,9 @@ class Data:
                     clean.append(d)
             data = clean
             diag["final"] = len(data)
-            if diag["from_file"] > 0:
+            # 仅在丢弃了脏数据时打印诊断（正常加载零噪音，异常时可定位）
+            if diag["from_file"] > 0 and (diag["no_num"] + diag["none_null"] + diag["no_digit"]
+                                          + diag["no_plus_comma"] + diag["red_range"] + diag["blue_range"]) > 0:
                 print(f"[DIAG-Data.load] {name}: 文件={diag['from_file']} 期号过滤后={diag['after_period_filter']} 空号码={diag['no_num']} NoneNull={diag['none_null']} 无数字={diag['no_digit']} 缺+,={diag['no_plus_comma']} 红球异常={diag['red_range']} 蓝球异常={diag['blue_range']} 最终={diag['final']}")
         with Data._cache_lock:
             Data._cache[name] = data
