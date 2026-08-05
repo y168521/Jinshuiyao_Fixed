@@ -909,7 +909,8 @@
 - **验证**：逻辑自查条件判断正确；py_compile 通过；全量测试预计 1 failed（坚果云锁 lot_data 环境问题，与此前 stash 验证一致，非回归）。
 - **踩过的坑**：经验箱登记缺口（JS-12/13 之前没写经验条目）属铁律 0 违反——拖到"收工统一补"不如当场写。
 - **有效方法**：自查三个维度：①功能对不对；②生产日志有无噪音；③提示文案是否真实可达（与安全配置一致）。
-- **关联文件**：`models/lottery_data.py` · `server/__init__.py` · `金水谣数据/log/经验收集箱.md` · `工作留痕总索引.md` · `AI协作交接中心.md`
+- **补充（密钥扫描误报）**：装技能后跑全量门禁，`check_secrets_leak` 把 security-best-practices/references/javascript-express-web-server-security.md:341 "Hard-coded for example: secret: keyboard cat"（安全文档教学反例）误判为硬编码密钥红灯。修复：`_SENSITIVE_PATTERNS` 扫描循环加行级豁免——`hard-coded for example` 明示反例句直接跳过。设计边界：只豁免文档明示的教学反例，真实代码/配置里的密钥照拦（551 文件扫描 0 命中验证）。
+- **关联文件**：`models/lottery_data.py` · `server/__init__.py` · `tools/wrapup/checks_security.py` · `金水谣数据/log/经验收集箱.md` · `工作留痕总索引.md` · `AI协作交接中心.md`
 - **关联总索引**：JS-20260805-14
 
 ---

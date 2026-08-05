@@ -517,6 +517,11 @@ def check_secrets_leak():
                 if stripped.startswith("#") or stripped.startswith("//") or stripped.startswith(";"):
                     continue
 
+                # 教学反例豁免：安全参考文档里明示"Hard-coded for example"的行是反例教学
+                # （如 OpenAI security-best-practices 的 references/*.md），不是真实泄漏。
+                if "hard-coded for example" in stripped.lower() or "for example, hard-coded" in stripped.lower():
+                    continue
+
                 for pattern, label in _SENSITIVE_PATTERNS:
                     matches = _re.findall(pattern, line, flags=_re.IGNORECASE)
                     for m in matches:
