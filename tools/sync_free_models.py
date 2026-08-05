@@ -122,23 +122,41 @@ def _fetch_official_prices():
                         inner = json.loads(payload)
                     except Exception:
                         break
-                    di = inner.find('"data"')
+                    di = inner.find('"data":[')
                     if di < 0:
                         break
-                    for obj in re.finditer(r'\{"modelId":"\d+"(.*?)(?=\},\{"modelId"|\Z)', inner[di:]):
-                        blk = obj.group(0)
+                    arr, j, depth, in_str = [], di + len('"data":'), 0, False
+                    while j < len(inner):
+                        ch = inner[j]
+                        if in_str:
+                            if ch == "\\":
+                                j += 1
+                            elif ch == '"':
+                                in_str = False
+                        elif ch == '"':
+                            in_str = True
+                        elif ch == "[":
+                            depth += 1
+                        elif ch == "]":
+                            depth -= 1
+                            if depth == 0:
+                                break
+                        j += 1
+                    if depth != 0:
+                        break
+                    try:
+                        models = json.loads(inner[di + len('"data":'):j + 1])
+                    except Exception:
+                        break
+                    def fnum(v):
                         try:
-                            d = json.loads(blk)
+                            return float(v)
                         except Exception:
-                            continue
+                            return None
+                    for d in models:
                         name = d.get("modelName")
                         if not name:
                             continue
-                        def fnum(v):
-                            try:
-                                return float(v)
-                            except Exception:
-                                return None
                         out[name] = {
                             "input": fnum(d.get("inputPrice")),
                             "output": fnum(d.get("outputPrice")),
@@ -181,10 +199,11 @@ _OFFICIAL_PRICES = {}
 
 
 def _in_free_hint(mid):
-    """免费判定：官方价格表 input==0 且 output==0 → 免费；无价格表数据时回退白名单。"""
+    """免费判定：官方价格表 sub_type=chat 且 input==0 且 output==0 → 免费；无价格表数据时回退白名单。"""
     info = _OFFICIAL_PRICES.get(mid)
     if info is not None:
-        return info.get("input") == 0 and info.get("output") == 0
+        return (info.get("sub_type") == "chat"
+                and info.get("input") == 0 and info.get("output") == 0)
     return mid in _FREE_VERIFIED_IDS
 
 

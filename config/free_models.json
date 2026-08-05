@@ -31,164 +31,36 @@
           "note": "✅真免费(账单free-text-model计费项, 单价0, 实测2026-08-05): 原默认, 质量中等检出3条, 稳定可用"
         },
         {
-          "id": "Qwen/Qwen2.5-7B-Instruct",
+          "id": "Qwen/Qwen3.5-4B",
           "priority": 4,
+          "quality": 70,
+          "json_mode": true,
+          "enabled": true,
+          "note": "✅官方免费(价格表入¥0.0/出¥0.0/M, ctx=262144.0, json=True)"
+        },
+        {
+          "id": "Qwen/Qwen2.5-7B-Instruct",
+          "priority": 5,
           "quality": 60,
           "json_mode": true,
           "enabled": true,
           "note": "✅真免费(账单free-text-model计费项, 单价0, 实测2026-08-05): 检出能力弱, 最后兜底"
         },
         {
+          "id": "tencent/Hunyuan-MT-7B",
+          "priority": 6,
+          "quality": 55,
+          "json_mode": true,
+          "enabled": true,
+          "note": "✅官方免费(价格表入¥0.0/出¥0.0/M, ctx=32768.0, json=True)"
+        },
+        {
           "id": "Qwen/Qwen3-8B",
-          "priority": 5,
+          "priority": 7,
           "quality": 40,
           "json_mode": true,
-          "enabled": false,
-          "note": "暴测60s超时不可用(2026-08-05), 已禁用"
-        },
-        {
-          "id": "THUDM/GLM-4-32B-0414",
-          "priority": 99,
-          "quality": 95,
-          "json_mode": true,
-          "enabled": false,
-          "note": "❌实测收费(账单¥1.89/K双向, 2026-08-05暴测实扣¥0.7199): 已禁用"
-        },
-        {
-          "id": "zai-org/GLM-4.5-Air",
-          "priority": 99,
-          "quality": 92,
-          "json_mode": false,
-          "enabled": false,
-          "note": "❌实测收费(账单¥1/K入¥6/K出, 2026-08-05暴测实扣¥0.0013): 已禁用。质量高但不支持JSON模式(400)"
-        },
-        {
-          "id": "moonshotai/Kimi-K2.7-Code",
-          "priority": 99,
-          "quality": 91,
-          "json_mode": true,
-          "enabled": false,
-          "note": "❌实测收费(账单¥6.5/K入¥27/K出, 2026-08-05暴测实扣¥0.0137): 已禁用"
-        },
-        {
-          "id": "deepseek-ai/DeepSeek-V3",
-          "priority": 99,
-          "quality": 90,
-          "json_mode": true,
-          "enabled": false,
-          "note": "❌实测收费(账单¥2/K入¥8/K出, 2026-08-05暴测实扣¥0.0008): 已禁用"
-        },
-        {
-          "id": "deepseek-ai/DeepSeek-V3.1-Terminus",
-          "priority": 99,
-          "quality": 90,
-          "json_mode": true,
-          "enabled": false,
-          "note": "❌实测收费(账单¥4/K入¥12/K出, 2026-08-05暴测实扣¥0.0019): 已禁用"
-        },
-        {
-          "id": "deepseek-ai/DeepSeek-V3.2",
-          "priority": 99,
-          "quality": 90,
-          "json_mode": true,
-          "enabled": false,
-          "note": "❌实测收费(账单¥4/K入¥6/K出, 2026-08-05暴测实扣¥0.0020): 已禁用"
-        },
-        {
-          "id": "Qwen/Qwen2.5-72B-Instruct",
-          "priority": 99,
-          "quality": 89,
-          "json_mode": true,
-          "enabled": false,
-          "note": "❌实测收费(账单¥4.13/K双向, 2026-08-05暴测实扣¥0.0019): 已禁用"
-        },
-        {
-          "id": "Qwen/Qwen2.5-72B-Instruct-128K",
-          "priority": 99,
-          "quality": 89,
-          "json_mode": true,
-          "enabled": false,
-          "note": "❌实测收费(账单¥4.13/K双向, 2026-08-05暴测实扣¥0.0019): 已禁用"
-        },
-        {
-          "id": "Qwen/Qwen3.5-27B",
-          "priority": 99,
-          "quality": 85,
-          "json_mode": true,
-          "enabled": false,
-          "note": "❌实测收费(账单¥0.6/K入¥4.8/K出, 2026-08-05暴测实扣¥0.0030): 已禁用"
-        },
-        {
-          "id": "Qwen/Qwen3.5-9B",
-          "priority": 99,
-          "quality": 78,
-          "json_mode": true,
-          "enabled": false,
-          "note": "❌实测收费(账单¥0.5/K入¥4/K出, 2026-08-05暴测实扣¥0.0025): 已禁用"
-        },
-        {
-          "id": "tencent/Hunyuan-A13B-Instruct",
-          "priority": 99,
-          "quality": 77,
-          "json_mode": true,
-          "enabled": false,
-          "note": "❌实测收费(账单¥1/K入¥4/K出, 2026-08-05暴测实扣¥0.0019): 已禁用"
-        },
-        {
-          "id": "inclusionAI/Ling-flash-2.0",
-          "priority": 99,
-          "quality": 72,
-          "json_mode": true,
-          "enabled": false,
-          "note": "❌实测收费(账单¥1/K入¥4/K出, 2026-08-05暴测实扣¥0.0007): 已禁用"
-        },
-        {
-          "id": "inclusionAI/Ling-mini-2.0",
-          "priority": 99,
-          "quality": 62,
-          "json_mode": true,
-          "enabled": false,
-          "note": "❌实测收费(账单¥0.5/K入¥2/K出, 2026-08-05暴测实扣¥0.0004): 已禁用"
-        },
-        {
-          "id": "Qwen/Qwen2.5-14B-Instruct",
-          "priority": 99,
-          "quality": 40,
-          "json_mode": true,
-          "enabled": false,
-          "note": "❌实测收费(账单¥0.7/K双向, 2026-08-05暴测实扣¥0.0003): 已禁用"
-        },
-        {
-          "id": "Qwen/Qwen2.5-32B-Instruct",
-          "priority": 99,
-          "quality": 40,
-          "json_mode": true,
-          "enabled": false,
-          "note": "❌实测收费(账单¥1.26/K双向, 2026-08-05暴测实扣¥0.0005): 已禁用"
-        },
-        {
-          "id": "Qwen/Qwen3-14B",
-          "priority": 99,
-          "quality": 40,
-          "json_mode": true,
-          "enabled": false,
-          "note": "❌实测收费(账单¥0.5/K入¥2/K出, 2026-08-05暴测实扣¥0.0004): 已禁用"
-        },
-        {
-          "id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
-          "priority": 99,
-          "quality": 40,
-          "json_mode": true,
-          "enabled": false,
-          "note": "❌实测收费(账单¥0.7/K入¥2.8/K出, 2026-08-05暴测实扣¥0.0005): 已禁用"
-        },
-        {
-          "id": "Qwen/Qwen3-32B",
-          "priority": 99,
-          "quality": 40,
-          "json_mode": true,
-          "enabled": false,
-          "note": "❌实测收费(账单¥1/K入¥4/K出, 2026-08-05暴测实扣¥0.0049): 已禁用"
+          "enabled": true,
+          "note": "✅官方免费(价格表入¥0.0/出¥0.0/M, ctx=131072.0, json=True), 2026-08-05 重探活OK, 已恢复启用"
         }
       ]
     }
