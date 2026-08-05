@@ -124,6 +124,20 @@
 
 **使用规则**：遇到报错/异常先查经验箱（90% 的坑有记录）；问题相关时 AI 助手会自动注入网关上下文（`core/ai_agent.py` 纯聊天路径），无需手动。
 
+## 核心模块地图（core/ 新增文件登记）
+
+| 模块 | 职责 |
+|------|------|
+| `core/agent_hub.py` | 统一 Agent 注册中心（W63补38）：15 个 agent 按 5 类注册，定时/手动同入口 |
+| `core/agent_orchestrator.py` | Agent 编排调度（agent_hub 依赖） |
+| `core/agent_tools.py` | Agent 工具集（agent_hub 依赖） |
+| `core/agent_vector_memory.py` | Agent 向量记忆（agent_hub 依赖） |
+| `core/gui_registry.py` | GUI 组件注册表（核心 GUI 模块） |
+| `core/tk_style.py` | ModernTheme 七色视觉主题（tkinter 统一样式） |
+| `engines/dimension_consensus.py` | 多维度共识引擎（预测融合） |
+
+> 新增 core/knowledge/server/engines 下的 .py 文件后，必须在本表登记（tools/wrapup/checks_infra.py 基线检查会拦）。
+
 ## 用户沟通
 
 - 全中文回复，通俗解释，不甩代码不甩英文
