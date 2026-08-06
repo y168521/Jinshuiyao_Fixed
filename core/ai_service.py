@@ -887,7 +887,7 @@ class AIService:
             if attempt < self._retry_count:
                 time.sleep(1)
 
-        # 所有重试都失败 → 记录失败日志 → 尝试 fallback 模型
+        # 所有重试都失败 → 记录失败日志 → 模型自适应 → 尝试 fallback 模型
         self._record_failure()
         _log_conv(
             system_prompt=system_prompt,
@@ -899,6 +899,41 @@ class AIService:
             success=False,
             error_msg=f"连续{self._retry_count + 1}次调用失败",
         )
+
+        # 模型自适应（W63补52/53）：dashscope 等长尾平台额度耗尽(403)时
+        # 自动探测账号下可用的免费模型并切换重试，无需人工手动切换
+        _ssp, _usp = system_prompt, user_prompt
+        if self.provider in ("dashscope",) and self.api_key:
+            try:
+                from core.adaptive_models import find_working_model
+                best = find_working_model(
+                    self.provider, self.api_key,
+                    preferred=self._config.get("model", ""))
+                if best and best != self._config.get("model", ""):
+                    logger.info("[ai_service] 额度自适应: %s → %s",
+                                self._config.get("model", ""), best)
+                    with self._state_lock:
+                        self._config["model"] = best
+                    data = self._call_api(self._build_payload(
+                        _ssp, _usp, temperature, max_tokens))
+                    if data is not None:
+                        try:
+                            result = data["choices"][0]["message"]["content"]
+                            self._record_success()
+                            _log_conv(
+                                system_prompt=_ssp, user_prompt=_usp,
+                                reply=result, provider=self.provider,
+                                model=best,
+                                token_usage={"prompt": 0, "completion": 0,
+                                             "total": 0},
+                                duration_ms=(time.time() - _call_start) * 1000,
+                                success=True,
+                            )
+                            return result
+                        except (KeyError, IndexError):
+                            pass
+            except Exception:
+                pass
         if _fallback_depth < len(FALLBACK_CHAIN):
             fallback_provider = FALLBACK_CHAIN[_fallback_depth]
             if fallback_provider != self.provider:
@@ -1005,6 +1040,16 @@ class AIService:
                     else:
                         # 其他平台严格绑定本平台密钥文件，缺失视为不可用
                         self.api_key = get_api_key(_kf) if os.path.isfile(_kf) else ""
+                # 读取持久化的可用模型（自适应切换后的选择，如百炼额度耗尽自动替换）
+                if provider == "dashscope" and "dashscope" in PROVIDERS:
+                    try:
+                        from core.adaptive_models import current_model
+                        _m = current_model(
+                            provider, self._config.get("model", ""))
+                        if _m:
+                            self._config["model"] = _m
+                    except Exception:
+                        pass
                 logger.info("[ai_service] 已切换到供应商: %s", provider)
             else:
                 logger.warning("[ai_service] 不支持的供应商: %s", provider)

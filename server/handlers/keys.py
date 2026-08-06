@@ -207,8 +207,37 @@ def handle_keys_save(handler):
     handler._send_json({"ok": True, "masked": _mask(value), "path": p})
 
 
+def _auto_match_dashscope(key, info):
+    """百炼智能匹配：当前测试模型不可用(额度耗尽)时自动探测可用模型
+
+    找到可用模型则：更新本槽位测试模型 + 同步 ai_service PROVIDERS 默认模型，
+    返回 (ok, detail)；全部不可用返回 (False, None)。
+    """
+    try:
+        from core.adaptive_models import find_working_model
+        best = find_working_model(
+            "dashscope", key,
+            preferred=info["test_body"].get("model", ""))
+        if not best:
+            return False, None
+        info["test_body"]["model"] = best
+        try:
+            from core.ai_service import PROVIDERS
+            if "dashscope" in PROVIDERS:
+                PROVIDERS["dashscope"]["model"] = best
+        except Exception:
+            pass
+        ok, detail = _http_test(key, info)
+        return ok, detail
+    except Exception:
+        return False, None
+
+
 def handle_keys_test(handler):
-    """POST /api/keys/test — 测试密钥连通性（带 value 只测不存）"""
+    """POST /api/keys/test — 测试密钥连通性（带 value 只测不存）
+
+    百炼槽位：默认模型额度耗尽(403)时自动智能匹配可用模型并切换。
+    """
     try:
         body = json.loads(handler._read_body() or "{}")
     except Exception:
@@ -227,6 +256,19 @@ def handle_keys_test(handler):
     if ok is None:
         handler._send_json({"ok": True, "note": detail})
         return
+    if not ok and slot == "dashscope_key":
+        # 智能匹配：默认模型不可用 → 自动探测可用模型并切换
+        m_ok, m_detail = _auto_match_dashscope(key, info)
+        if m_ok:
+            handler._send_json({
+                "ok": True,
+                "detail": "当前模型额度不可用，已自动切换为可用模型 %s，测试通过（HTTP 200）"
+                          % info["test_body"]["model"],
+                "switched_model": info["test_body"]["model"],
+            })
+            return
+        if m_detail is not None:
+            ok, detail = m_ok, m_detail
     handler._send_json({"ok": ok, "detail": detail})
 
 
@@ -251,6 +293,11 @@ def handle_keys_identify(handler):
     for slot in llm_slots:
         info = KEY_SLOTS[slot]
         ok, detail = _http_test(value, info)
+        # 百炼：默认模型额度耗尽时自动探测可用模型，能命中说明 key 属于百炼
+        if not ok and slot == "dashscope_key":
+            m_ok, m_detail = _auto_match_dashscope(value, info)
+            if m_ok:
+                ok, detail = True, "HTTP 200 (model=%s)" % info["test_body"]["model"]
         results.append({"slot": slot, "name": info["name"], "ok": ok, "detail": detail})
     hits = [r for r in results if r["ok"]]
     manual = [{"slot": s, "name": KEY_SLOTS[s]["name"]} for s in llm_slots]

@@ -546,3 +546,76 @@ class TestAIServiceDashscopeWiring(unittest.TestCase):
         finally:
             m._SECRETS_DIR = old_secrets
             shutil.rmtree(tmpdir, ignore_errors=True)
+
+    def test_switch_dashscope_reads_persisted_model(self):
+        """切换到百炼时读取持久化的可用模型（自适应切换后的选择）"""
+        import tempfile, shutil
+        from core import ai_service as m
+        from core import adaptive_models as am
+        tmpdir = tempfile.mkdtemp()
+        old_secrets = m._SECRETS_DIR
+        old_am = am._SECRETS_DIR
+        m._SECRETS_DIR = tmpdir
+        am._SECRETS_DIR = tmpdir
+        svc = _create_test_svc()
+        try:
+            with open(os.path.join(tmpdir, "dashscope_key.txt"), "w",
+                      encoding="utf-8") as f:
+                f.write("sk-dash-abc")
+            am.remember_model("dashscope", "qwen3.7-flash")
+            svc.switch_provider("dashscope")
+            self.assertEqual(svc._config["model"], "qwen3.7-flash")
+        finally:
+            m._SECRETS_DIR = old_secrets
+            am._SECRETS_DIR = old_am
+            shutil.rmtree(tmpdir, ignore_errors=True)
+
+    def test_chat_dashscope_adaptive_model_switch(self):
+        """百炼调用连续失败(额度耗尽) → 自适应切换可用模型重试成功"""
+        import tempfile, shutil
+        from core import ai_service as m
+        from core import adaptive_models as am
+        tmpdir = tempfile.mkdtemp()
+        old_secrets = m._SECRETS_DIR
+        old_am = am._SECRETS_DIR
+        m._SECRETS_DIR = tmpdir
+        am._SECRETS_DIR = tmpdir
+        try:
+            with open(os.path.join(tmpdir, "dashscope_key.txt"), "w",
+                      encoding="utf-8") as f:
+                f.write("sk-dash-abc")
+            # 配置模型设为额度耗尽的模型（先保存原值供恢复）
+            orig_model = m.PROVIDERS["dashscope"]["model"]
+            m.PROVIDERS["dashscope"]["model"] = "qwen-plus"
+            am.clear_cache("dashscope")
+            svc = _create_test_svc()
+            svc.switch_provider("dashscope")
+            svc._retry_count = 0  # 确保重试耗尽后进入自适应路径
+
+            real_call = svc._call_api
+            call_count = [0]
+
+            def flaky_call(payload):
+                # 第一次调用（qwen-plus）失败；自适应切模型后成功
+                call_count[0] += 1
+                if call_count[0] <= 1:
+                    return None
+                return {"choices": [{"message": {"content": "自适应成功回复"}}],
+                        "usage": {}}
+
+            try:
+                with patch.object(svc, "_call_api", side_effect=flaky_call), \
+                     patch("core.adaptive_models.find_working_model",
+                           return_value="qwen3.7-flash"):
+                    result = svc.chat("sys", "usr", free_first=False,
+                                      _fallback_depth=len(m.FALLBACK_CHAIN))
+                self.assertEqual(result, "自适应成功回复")
+                self.assertEqual(svc._config["model"], "qwen3.7-flash")
+                self.assertGreater(call_count[0], 1)
+            finally:
+                m.PROVIDERS["dashscope"]["model"] = orig_model
+        finally:
+            m._SECRETS_DIR = old_secrets
+            am._SECRETS_DIR = old_am
+            am.clear_cache("dashscope")
+            shutil.rmtree(tmpdir, ignore_errors=True)

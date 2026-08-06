@@ -315,6 +315,84 @@ class TestGuideServer(unittest.TestCase):
             shutil.rmtree(tmp, ignore_errors=True)
             h_keys._SECRETS_DIR = old_dir
 
+    def test_keys_test_dashscope_auto_match(self):
+        """百炼测试：默认模型额度耗尽(403)时自动智能匹配可用模型并切换"""
+        from server.handlers import keys as h_keys
+        import tempfile, shutil, json
+        tmp = tempfile.mkdtemp(prefix="keys_ut4_")
+        old_dir = h_keys._SECRETS_DIR
+        h_keys._SECRETS_DIR = tmp
+        try:
+            h_keys._write_secret("dashscope_key", "sk-dash-abc")
+            # 模拟当前配置模型已耗尽（403）
+            h_keys.KEY_SLOTS["dashscope_key"]["test_body"]["model"] = "qwen-plus"
+
+            calls = []
+
+            def fake_http(key, info, timeout=10):
+                model = info["test_body"].get("model", "")
+                calls.append(model)
+                # qwen-plus 额度耗尽 403；其他模型 200
+                if model == "qwen-plus":
+                    return False, "HTTP 403: Free quota exhausted"
+                return True, "HTTP 200"
+
+            class FakeHandler:
+                def _read_body(self):
+                    return json.dumps({"slot": "dashscope_key"})
+
+                def _send_json(self, payload):
+                    self.payload = payload
+
+            h = FakeHandler()
+            with unittest.mock.patch.object(h_keys, "_http_test",
+                                            side_effect=fake_http), \
+                 unittest.mock.patch(
+                     "core.adaptive_models.find_working_model",
+                     return_value="qwen3.7-flash"):
+                h_keys.handle_keys_test(h)
+            self.assertTrue(h.payload["ok"])
+            self.assertEqual(h.payload["switched_model"], "qwen3.7-flash")
+            # 先测了 403 模型，再测匹配后的可用模型
+            self.assertEqual(calls, ["qwen-plus", "qwen3.7-flash"])
+            self.assertEqual(
+                h_keys.KEY_SLOTS["dashscope_key"]["test_body"]["model"],
+                "qwen3.7-flash")
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+            h_keys._SECRETS_DIR = old_dir
+
+    def test_keys_identify_dashscope_auto_match(self):
+        """百炼识别：默认模型 403 时靠智能匹配命中，不误判为无效密钥"""
+        from server.handlers import keys as h_keys
+        import json
+
+        class FakeHandler:
+            def _read_body(self):
+                return json.dumps({"value": "sk-probe-bailian"})
+
+            def _send_json(self, payload):
+                self.payload = payload
+
+        def fake_http(key, info, timeout=10):
+            if info.get("test_method") == "GET":
+                return False, "HTTP 401"  # 非百炼平台均不命中
+            model = info.get("test_body", {}).get("model", "")
+            # 当前配置模型(qwen-plus)额度耗尽；智能匹配后的模型可通
+            if model == "qwen-plus":
+                return False, "HTTP 403: Free quota exhausted"
+            return True, "HTTP 200"
+
+        h = FakeHandler()
+        with unittest.mock.patch.object(h_keys, "_http_test",
+                                        side_effect=fake_http), \
+             unittest.mock.patch(
+                 "core.adaptive_models.find_working_model",
+                 return_value="qwen3.7-flash"):
+            h_keys.handle_keys_identify(h)
+        self.assertTrue(h.payload["ok"])
+        self.assertEqual(h.payload["hits"][0]["slot"], "dashscope_key")
+
 
 if __name__ == "__main__":
     unittest.main()
