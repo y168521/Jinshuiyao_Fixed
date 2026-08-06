@@ -149,6 +149,41 @@ class TestGuideServer(unittest.TestCase):
         self.assertTrue(callable(open_local_file),
                         "server.utils.open_local_file 应可调用")
 
+    def test_fund_report_fallback(self):
+        """基金日报回退：当天报告不存在→回退最新一期；存在→不回退；非报告→不动"""
+        import os
+        import tempfile
+        import unittest.mock as mock
+        from server import utils
+        with tempfile.TemporaryDirectory() as td:
+            reports_dir = os.path.join(td, "金水谣数据", "fund_reports")
+            os.makedirs(reports_dir, exist_ok=True)
+            for d in ("2026-08-04", "2026-08-05"):
+                with open(os.path.join(reports_dir, f"fund_report_{d}.html"), "w", encoding="utf-8") as f:
+                    f.write("<html></html>")
+            base = mock.patch.object(utils, "BASE_DIR", td)
+            with base:
+                # 1. 当天不存在 → 回退最新一期
+                rel, date, hint = utils._fund_report_fallback(
+                    os.path.join("金水谣数据", "fund_reports", "fund_report_2026-08-06.html").replace(os.sep, "/"))
+                self.assertEqual(date, "2026-08-05")
+                self.assertTrue(rel.endswith("fund_report_2026-08-05.html"))
+                self.assertIn("2026-08-05", hint)
+                # 2. 已存在 → 不回退
+                rel2, date2, _ = utils._fund_report_fallback(
+                    os.path.join("金水谣数据", "fund_reports", "fund_report_2026-08-05.html").replace(os.sep, "/"))
+                self.assertIsNone(date2)
+                self.assertTrue(rel2.endswith("fund_report_2026-08-05.html"))
+                # 3. 非基金报告 → 不动
+                rel3, date3, _ = utils._fund_report_fallback("金水谣数据/log/经验收集箱.md")
+                self.assertIsNone(date3)
+                # 4. 目录无任何报告 → 不回退
+                os.remove(os.path.join(reports_dir, "fund_report_2026-08-04.html"))
+                os.remove(os.path.join(reports_dir, "fund_report_2026-08-05.html"))
+                rel4, date4, _ = utils._fund_report_fallback(
+                    os.path.join("金水谣数据", "fund_reports", "fund_report_2026-08-06.html").replace(os.sep, "/"))
+                self.assertIsNone(date4)
+
 
 if __name__ == "__main__":
     unittest.main()

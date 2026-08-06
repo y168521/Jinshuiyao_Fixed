@@ -127,11 +127,71 @@ def run_external(fn, timeout_key):
 # ---------------------------------------------------------------------------
 # 文件打开工具
 # ---------------------------------------------------------------------------
+_FUND_REPORT_RE = None  # 延迟导入（避免顶层依赖问题）
+
+
+def _fund_report_fallback(rel_path: str):
+    """基金日报回退：请求当天 fund_report_YYYY-MM-DD.html 不存在时，
+    自动定位 fund_reports/ 下最新一期报告。
+
+    Returns:
+        (实际可打开的 rel_path, fallback_date 或 None, 提示语) 。
+        非基金报告或不需回退时，fallback_date=None 且提示语为空。
+    设计依据：基金日报每天 18:00 才生成（数据取自当日收盘后的净值），
+    用户白天提前打开当天报告必然不存在——此处静默回退到最近一期，
+    由前端通过 fallback_date 给出友好提示（参考 Superset 报告状态中性呈现、
+    AI 报告系统"latest 恒可读"的通用模式）。
+    """
+    try:
+        norm = rel_path.replace('/', os.sep)
+        # 只对 fund_report_YYYY-MM-DD.html 这类路径做回退
+        parts = norm.split(os.sep)
+        filename = parts[-1] if parts else ''
+        if not filename.lower().endswith('.html'):
+            return rel_path, None, ''
+        if not filename.startswith('fund_report_'):
+            return rel_path, None, ''
+        # 找到 fund_reports 目录
+        idx = -1
+        for i, p in enumerate(parts):
+            if p == 'fund_reports':
+                idx = i
+                break
+        if idx == -1:
+            return rel_path, None, ''
+        report_dir_rel = os.sep.join(parts[:idx + 1])
+        report_dir_full = os.path.normpath(os.path.abspath(os.path.join(BASE_DIR, report_dir_rel)))
+        if not os.path.isdir(report_dir_full):
+            return rel_path, None, ''
+        if os.path.isfile(os.path.normpath(os.path.abspath(os.path.join(BASE_DIR, norm)))):
+            return rel_path, None, ''
+        # 目录里找最新一期 fund_report_*.html
+        import re
+        _pat = re.compile(r'^fund_report_(\d{4}-\d{2}-\d{2})\.html$')
+        candidates = []
+        try:
+            for name in os.listdir(report_dir_full):
+                m = _pat.match(name)
+                if m:
+                    candidates.append((m.group(1), name))
+        except OSError:
+            return rel_path, None, ''
+        if not candidates:
+            return rel_path, None, ''
+        candidates.sort(key=lambda x: x[0], reverse=True)
+        latest_date, latest_name = candidates[0]
+        new_rel = os.path.join(report_dir_rel, latest_name)
+        log(f'=> [基金日报回退] {rel_path} 尚未生成，打开最新一期: {latest_date}')
+        return new_rel, latest_date, f'今日报告 18:00 后生成，已打开最近一期 {latest_date}'
+    except Exception:
+        return rel_path, None, ''
+
+
 def open_local_file(rel_path, mode='auto'):
     """根据文件类型和模式打开
     mode:
       auto - 根据扩展名自动判断(.py运行, .html浏览器, 其他记事本)
-      run  - 强制运行(.py/.bat直接执行)
+      run - 强制运行(.py/.bat直接执行)
       view - 强制查看(记事本打开任何文件)
     """
     # 统一路径分隔符

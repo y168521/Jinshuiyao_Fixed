@@ -225,6 +225,16 @@ def handle_open(handler, parsed):
     rel_path = params.get('file', [''])[0]
     mode = params.get('mode', ['auto'])[0]  # auto/run/view
     if rel_path:
+        # 基金日报回退：当天报告未生成时自动打开最新一期（前端据此给友好提示）
+        fallback_date = None
+        fallback_hint = ""
+        try:
+            from server.utils import _fund_report_fallback
+            rel_path2, fallback_date, fallback_hint = _fund_report_fallback(rel_path)
+            if rel_path2 != rel_path.replace('/', os.sep):
+                rel_path = rel_path2
+        except Exception:
+            pass
         success = open_local_file(rel_path, mode)
         # 审计日志记录（成功或失败都记录，失败不影响主流程）
         try:
@@ -258,6 +268,8 @@ def handle_open(handler, parsed):
         handler.end_headers()
         if success:
             result = {"ok": True, "file": rel_path, "mode": mode}
+            if fallback_date:
+                result.update({"fallback_date": fallback_date, "hint": fallback_hint})
         else:
             result = {"ok": False, "error": f"文件不存在或打开失败: {rel_path}"}
         handler.wfile.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))

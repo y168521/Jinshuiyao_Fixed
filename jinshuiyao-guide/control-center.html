@@ -1079,7 +1079,11 @@
         .then(function(r) { return r.json(); })
         .then(function(data) {
           if (data.ok) {
-            showToast('已打开基金日报: ' + dateStr, 'success');
+            if (data.fallback_date) {
+              showToast(data.hint || ('今日日报 18:00 后才生成，已打开最近一期: ' + data.fallback_date), 'success');
+            } else {
+              showToast('已打开基金日报: ' + dateStr, 'success');
+            }
           } else {
             showToast('日报未生成，请先运行监控脚本', 'error');
           }
