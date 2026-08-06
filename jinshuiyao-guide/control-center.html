@@ -638,6 +638,71 @@
         align-items: center;
       }
     }
+
+    /* ===== API密钥管理面板 ===== */
+    .keys-overlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 9998;
+      background: rgba(8, 12, 20, 0.72);
+      backdrop-filter: blur(4px);
+      justify-content: center; align-items: flex-start;
+      padding: 8vh 16px 20px; overflow: auto;
+    }
+    .keys-overlay.show { display: flex; }
+    .keys-panel {
+      width: 620px; max-width: 96vw;
+      background: var(--card-bg);
+      border: 1px solid var(--gold-border);
+      border-radius: 14px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.55);
+      overflow: hidden;
+    }
+    .keys-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--gold-border);
+      background: linear-gradient(135deg, rgba(201,169,110,.10), rgba(201,169,110,.03));
+    }
+    .keys-close {
+      border: none; background: none; color: var(--ink-dim);
+      font-size: 22px; cursor: pointer; line-height: 1; padding: 2px 6px;
+    }
+    .keys-close:hover { color: var(--gold); }
+    .keys-smart { padding: 12px 18px; border-bottom: 1px dashed var(--gold-border); }
+    .keys-smart-title { font-size: 12px; color: var(--ink-mid); margin-bottom: 8px; }
+    .keys-smart-row { display: flex; gap: 8px; }
+    .keys-smart-row input {
+      background: var(--bg); border: 1px solid var(--gold-border);
+      border-radius: 8px; padding: 8px 12px; color: var(--ink);
+      font-size: 12.5px; font-family: Consolas, monospace;
+    }
+    .keys-smart-status { font-size: 12px; margin-top: 8px; min-height: 16px; color: var(--ink-mid); }
+    .keys-smart-status.ok { color: var(--ok); }
+    .keys-smart-status.err { color: var(--warn); }
+    .keys-list { padding: 6px 18px; max-height: 46vh; overflow: auto; }
+    .keys-item {
+      padding: 10px 2px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .keys-item:last-child { border-bottom: none; }
+    .keys-item-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .keys-item-name { font-size: 13px; font-weight: 700; color: var(--ink); }
+    .keys-item-pill {
+      font-size: 11px; padding: 2px 9px; border-radius: 999px; white-space: nowrap;
+    }
+    .keys-item-pill.on { background: rgba(45,139,126,.16); color: #2D8B7E; }
+    .keys-item-pill.off { background: rgba(200,117,90,.14); color: #C8755A; }
+    .keys-item-desc { font-size: 11.5px; color: var(--ink-dim); margin: 3px 0 8px; }
+    .keys-item-row { display: flex; gap: 8px; align-items: center; }
+    .keys-item-row input {
+      flex: 1; background: var(--bg); border: 1px solid var(--gold-border);
+      border-radius: 8px; padding: 7px 11px; color: var(--ink);
+      font-size: 12px; font-family: Consolas, monospace;
+    }
+    .keys-item-row .btn { font-size: 11.5px; padding: 7px 13px; white-space: nowrap; }
+    .keys-item-msg { font-size: 11px; margin-top: 6px; min-height: 14px; color: var(--ink-dim); }
+    .keys-item-msg.ok { color: var(--ok); }
+    .keys-item-msg.err { color: var(--warn); }
   </style>
 </head>
 <body>
@@ -646,6 +711,38 @@
   <!-- 汉堡菜单按钮（移动端） -->
   <button class="hamburger" id="hamburgerBtn" onclick="toggleSidebar()">&#9776;</button>
   <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+  <!-- ===== API密钥管理面板（统一入口，密钥只存本机 ~/.jinshuiyao-secrets/）===== -->
+  <div class="keys-overlay" id="keysOverlay" onclick="closeKeysPanel(event)">
+    <div class="keys-panel">
+      <div class="keys-header">
+        <div>
+          <h3 style="margin:0;font-size:15px;font-weight:700;color:var(--gold)">&#128273; API 密钥管理</h3>
+          <div style="font-size:11px;color:var(--ink-dim);margin-top:2px">密钥只保存在本机 ~/.jinshuiyao-secrets/，不会上传或同步</div>
+        </div>
+        <button class="keys-close" onclick="closeKeysPanel()">&times;</button>
+      </div>
+
+      <div class="keys-smart" id="keysSmartBox">
+        <div class="keys-smart-title">&#129302; 智能识别（粘贴任意平台密钥，自动识别并填入对应槽位）</div>
+        <div class="keys-smart-row">
+          <input type="password" id="keysIdentifyInput" placeholder="把 sk-... 开头的密钥粘贴到这里" style="flex:1" />
+          <button class="btn btn-ghost" onclick="identifyKey()">&#128269; 识别</button>
+        </div>
+        <div class="keys-smart-status" id="keysIdentifyStatus"></div>
+        <div class="keys-smart-row" id="keysManualRow" style="display:none;margin-top:8px">
+          <select id="keysManualSlot" style="flex:1;padding:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.14);border-radius:6px;color:inherit"></select>
+          <button class="btn btn-ghost" onclick="manualSaveFromIdentify()">&#9989; 验证并保存</button>
+        </div>
+      </div>
+
+      <div class="keys-list" id="keysList">加载中…</div>
+      <div style="font-size:11px;color:var(--ink-dim);padding:10px 16px 4px">
+        提示：DeepSeek=付费兜底；硅基流动=免费模型池；阿里云百炼=通义千问；Tavily=联网搜索；抖音Cookie=视频提取。
+        填写后可点「测试」验证密钥是否有效。
+      </div>
+    </div>
+  </div>
 
   <div class="layout">
     <!-- ===== 左侧边栏 ===== -->
@@ -688,6 +785,9 @@
         </a>
         <button class="nav-item" onclick="openFundReport()">
           <span class="nav-icon">&#128176;</span> 基金日报
+        </button>
+        <button class="nav-item" onclick="openKeysPanel()" title="统一管理各平台API密钥">
+          <span class="nav-icon">&#128273;</span> API密钥
         </button>
       </nav>
 
@@ -1308,6 +1408,195 @@
         .catch(function(e) {
           showToast('触发失败: ' + e.message, 'error');
         });
+    }
+
+    // ===== API密钥管理面板 =====
+    var keySlots = [];
+
+    function openKeysPanel() {
+      document.getElementById('keysOverlay').classList.add('show');
+      loadKeysList();
+    }
+    function closeKeysPanel(ev) {
+      if (ev && ev.target !== document.getElementById('keysOverlay')) return;
+      document.getElementById('keysOverlay').classList.remove('show');
+    }
+    function loadKeysList() {
+      var box = document.getElementById('keysList');
+      box.textContent = '加载中…';
+      fetch('/api/keys')
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (!d.ok) { box.textContent = '读取失败: ' + (d.error || ''); return; }
+          keySlots = d.keys;
+          renderKeys();
+        })
+        .catch(function() { box.textContent = '请求失败，请确认服务器已启动'; });
+    }
+    function renderKeys() {
+      var box = document.getElementById('keysList');
+      var html = '';
+      keySlots.forEach(function(k) {
+        var pill = k.configured
+          ? '<span class="keys-item-pill on">已配置 ' + k.masked + '</span>'
+          : '<span class="keys-item-pill off">未配置</span>';
+        html += '<div class="keys-item">'
+          + '<div class="keys-item-top"><span class="keys-item-name">' + k.name + '</span>' + pill + '</div>'
+          + '<div class="keys-item-desc">' + k.desc + '</div>'
+          + '<div class="keys-item-row">'
+          +   '<input type="password" id="keyInput_' + k.slot + '" placeholder="粘贴 ' + k.slot + '（留空=仅测试已保存的）" />'
+          +   '<button class="btn btn-ghost" onclick="saveKey(' + "'" + k.slot + "'" + ')">保存</button>'
+          +   '<button class="btn btn-ghost" onclick="testKey(' + "'" + k.slot + "'" + ')">测试</button>'
+          + '</div>'
+          + '<div class="keys-item-msg" id="keyMsg_' + k.slot + '"></div>'
+          + '</div>';
+      });
+      box.innerHTML = html;
+    }
+    function keyMsg(slot, text, type) {
+      var el = document.getElementById('keyMsg_' + slot);
+      if (el) { el.textContent = text; el.className = 'keys-item-msg' + (type ? ' ' + type : ''); }
+    }
+    function saveKey(slot) {
+      var input = document.getElementById('keyInput_' + slot);
+      var value = input ? input.value.trim() : '';
+      if (!value) { keyMsg(slot, '请先粘贴密钥再保存', 'err'); return; }
+      fetch('/api/keys/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slot: slot, value: value })
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (d.ok) {
+            keyMsg(slot, '已保存 ' + d.masked, 'ok');
+            if (input) input.value = '';
+            loadKeysList();
+          } else {
+            keyMsg(slot, '保存失败: ' + d.error, 'err');
+          }
+        })
+        .catch(function() { keyMsg(slot, '请求失败', 'err'); });
+    }
+    function testKey(slot) {
+      var input = document.getElementById('keyInput_' + slot);
+      var value = input ? input.value.trim() : '';
+      keyMsg(slot, '测试中…');
+      fetch('/api/keys/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slot: slot, value: value })
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (d.ok) {
+            keyMsg(slot, '测试通过：' + (d.detail || (d.note || '')), 'ok');
+            if (d.note) keyMsg(slot, d.note, 'ok');
+          } else {
+            keyMsg(slot, '测试失败：' + (d.error || d.detail || ''), 'err');
+          }
+        })
+        .catch(function() { keyMsg(slot, '请求失败', 'err'); });
+    }
+    function identifyKey() {
+      var input = document.getElementById('keysIdentifyInput');
+      var status = document.getElementById('keysIdentifyStatus');
+      var value = input ? input.value.trim() : '';
+      if (!value) { status.textContent = '请先粘贴密钥'; status.className = 'keys-smart-status err'; return; }
+      status.textContent = '识别中（依次探测 DeepSeek / 硅基流动 / 阿里云百炼 / 智谱 / 月之暗面）…';
+      status.className = 'keys-smart-status';
+      fetch('/api/keys/identify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: value })
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (d.ok && d.hits && d.hits.length) {
+            var names = d.hits.map(function(h) { return h.name; }).join('、');
+            status.textContent = '识别成功：' + names + '（已自动填入对应输入框，点「保存」完成配置）';
+            status.className = 'keys-smart-status ok';
+            d.hits.forEach(function(h) {
+              var el = document.getElementById('keyInput_' + h.slot);
+              if (el) el.value = value;
+            });
+            hideManualRow();
+          } else {
+            showManualRow(d.manual_slots);
+            status.textContent = '自动识别未命中（密钥无效或网络异常），请手动选择平台后点「验证并保存」';
+            status.className = 'keys-smart-status err';
+          }
+        })
+        .catch(function() {
+          showManualRow(null);
+          status.textContent = '识别请求失败，请手动选择平台后点「验证并保存」';
+          status.className = 'keys-smart-status err';
+        });
+    }
+    function showManualRow(slots) {
+      var sel = document.getElementById('keysManualSlot');
+      var list = slots && slots.length ? slots
+        : keySlots.filter(function(k) { return k.slot !== 'douyin_cookie'; })
+            .map(function(k) { return { slot: k.slot, name: k.name }; });
+      var html = '';
+      list.forEach(function(s) {
+        html += '<option value="' + s.slot + '">' + s.name + '</option>';
+      });
+      sel.innerHTML = html;
+      document.getElementById('keysManualRow').style.display = 'flex';
+    }
+    function hideManualRow() {
+      document.getElementById('keysManualRow').style.display = 'none';
+    }
+    function manualSaveFromIdentify() {
+      var input = document.getElementById('keysIdentifyInput');
+      var sel = document.getElementById('keysManualSlot');
+      var status = document.getElementById('keysIdentifyStatus');
+      var value = input ? input.value.trim() : '';
+      var slot = sel ? sel.value : '';
+      if (!value) { status.textContent = '请先粘贴密钥'; status.className = 'keys-smart-status err'; return; }
+      if (!slot) { status.textContent = '请先选择平台'; status.className = 'keys-smart-status err'; return; }
+      status.textContent = '正在验证 ' + slot + ' …';
+      status.className = 'keys-smart-status';
+      fetch('/api/keys/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slot: slot, value: value })
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (d.ok) {
+            return fetch('/api/keys/save', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ slot: slot, value: value })
+            }).then(function(r) { return r.json(); })
+              .then(function(d2) {
+                if (d2.ok) {
+                  status.textContent = '验证通过，已保存到「' + slot + '」(' + d2.masked + ')';
+                  status.className = 'keys-smart-status ok';
+                  if (input) input.value = '';
+                  hideManualRow();
+                  loadKeysList();
+                } else {
+                  status.textContent = '保存失败：' + d2.error;
+                  status.className = 'keys-smart-status err';
+                }
+              });
+          } else {
+            status.textContent = '验证失败：' + (d.detail || d.error || '密钥无效') + '（可能密钥不属于该平台）';
+            status.className = 'keys-smart-status err';
+          }
+        })
+        .catch(function() {
+          status.textContent = '验证请求失败，请重试';
+          status.className = 'keys-smart-status err';
+        });
+    }
+    function refreshAllKeysStatus() {
+      fetch('/api/keys').then(function(r) { return r.json(); }).then(function(d) {
+        if (d.ok) keySlots = d.keys;
+      }).catch(function() {});
     }
 
     if (Notification && Notification.permission === 'default') {

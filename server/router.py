@@ -36,6 +36,7 @@ from .handlers import football as h_football
 from .handlers import stock as h_stock
 from .handlers import filter as h_filter
 from .handlers import quant as h_quant
+from .handlers import keys as h_keys
 
 
 class GuideHandler(http.server.SimpleHTTPRequestHandler):
@@ -148,6 +149,11 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
         # /api/ai/status — 获取AI服务详细状态
         if parsed.path == '/api/ai/status':
             h_health.handle_ai_status(self)
+            return
+
+        # /api/keys — 密钥槽位状态列表（统一API密钥管理）
+        if parsed.path == '/api/keys':
+            h_keys.handle_keys_list(self)
             return
 
         # /api/status — AI服务状态（GET兼容，前端ai-agent.html用GET探测）
@@ -518,6 +524,21 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
         # /api/theme — 主题分层读写（GET 取当前主题+预设；POST 存用户自选）
         if parsed.path == '/api/theme':
             h_ai.handle_theme(self, parsed)
+            return
+
+        # /api/keys/save — 保存密钥到安全目录
+        if parsed.path == '/api/keys/save':
+            h_keys.handle_keys_save(self)
+            return
+
+        # /api/keys/test — 测试密钥连通性
+        if parsed.path == '/api/keys/test':
+            h_keys.handle_keys_test(self)
+            return
+
+        # /api/keys/identify — 智能识别粘贴密钥所属平台
+        if parsed.path == '/api/keys/identify':
+            h_keys.handle_keys_identify(self)
             return
 
         # /api/ai/mode/set — 切换AI运行模式（POST，JSON body）

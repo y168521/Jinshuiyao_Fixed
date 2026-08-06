@@ -20,6 +20,7 @@
 import unittest
 import json
 import time
+import os
 from unittest.mock import MagicMock, patch, PropertyMock
 
 from core.ai_service import AIService, PROVIDERS, _SUBSYSTEM_PROMPTS
@@ -436,3 +437,112 @@ class TestAIServiceFreeFirst(unittest.TestCase):
             result = self.svc.chat("sys", "usr", free_first=False)
             self.assertEqual(result, "直接付费回复")
             mock_failover.assert_not_called()
+
+
+class TestAIServiceDashscopeWiring(unittest.TestCase):
+    """百炼(dashscope)接线测试：切换供应商按平台密钥文件读取（JS-20260806 W63补49）"""
+
+    def _patched_keydir(self, tmpdir, content=None):
+        """临时密钥目录，返回 (daemon_path, orig) 供 with 使用"""
+        from core import ai_service as m
+        orig = m._SECRETS_DIR
+        if content is not None:
+            with open(os.path.join(tmpdir, "dashscope_key.txt"), "w",
+                      encoding="utf-8") as f:
+                f.write(content)
+        m._SECRETS_DIR = tmpdir
+        return orig
+
+    def test_dashscope_provider_configured(self):
+        """PROVIDERS 已注册 dashscope，端点为百炼 OpenAI兼容模式"""
+        from core import ai_service as m
+        self.assertIn("dashscope", m.PROVIDERS)
+        self.assertTrue(
+            m.PROVIDERS["dashscope"]["api_url"].startswith(
+                "https://dashscope.aliyuncs.com/compatible-mode"))
+        self.assertEqual(m.PROVIDERS["dashscope"]["model"], "qwen-plus")
+
+    def test_fallback_chain_includes_dashscope(self):
+        """fallback链包含百炼，完整顺序见 test_fallback_chain_order"""
+        from core import ai_service as m
+        self.assertIn("dashscope", m.FALLBACK_CHAIN)
+        self.assertLess(m.FALLBACK_CHAIN.index("dashscope"),
+                        m.FALLBACK_CHAIN.index("ollama"))
+
+    def test_switch_dashscope_without_key_stays_empty(self):
+        """未配置百炼密钥时切换 api_key 为空，不回退 deepseek 密钥"""
+        import tempfile, shutil
+        from core import ai_service as m
+        tmpdir = tempfile.mkdtemp()
+        old_secrets = m._SECRETS_DIR
+        m._SECRETS_DIR = tmpdir
+        svc = _create_test_svc()
+        try:
+            svc.switch_provider("dashscope")
+            self.assertEqual(svc.provider, "dashscope")
+            self.assertEqual(svc.api_key, "")
+        finally:
+            m._SECRETS_DIR = old_secrets
+            shutil.rmtree(tmpdir, ignore_errors=True)
+
+    def test_switch_dashscope_reads_own_key_file(self):
+        """百炼密钥文件存在时切换到 dashscope 读入该平台密钥"""
+        import tempfile, shutil
+        from core import ai_service as m
+        tmpdir = tempfile.mkdtemp()
+        old_secrets = m._SECRETS_DIR
+        m._SECRETS_DIR = tmpdir
+        svc = _create_test_svc()
+        try:
+            with open(os.path.join(tmpdir, "dashscope_key.txt"), "w",
+                      encoding="utf-8") as f:
+                f.write("sk-dashscope-secret")
+            svc.switch_provider("dashscope")
+            self.assertEqual(svc.api_key, "sk-dashscope-secret")
+        finally:
+            m._SECRETS_DIR = old_secrets
+            shutil.rmtree(tmpdir, ignore_errors=True)
+
+    def test_zhipu_moonshot_providers_configured(self):
+        """智谱/月之暗面已注册进 PROVIDERS，端点为官方 OpenAI兼容地址"""
+        from core import ai_service as m
+        self.assertIn("zhipu", m.PROVIDERS)
+        self.assertEqual(
+            m.PROVIDERS["zhipu"]["api_url"],
+            "https://open.bigmodel.cn/api/paas/v4/chat/completions")
+        self.assertTrue(m.PROVIDERS["zhipu"]["model"])
+        self.assertIn("moonshot", m.PROVIDERS)
+        self.assertEqual(
+            m.PROVIDERS["moonshot"]["api_url"],
+            "https://api.moonshot.cn/v1/chat/completions")
+        self.assertTrue(m.PROVIDERS["moonshot"]["model"])
+
+    def test_fallback_chain_order(self):
+        """fallback链顺序：deepseek→reasoner→智谱→百炼→ollama"""
+        from core import ai_service as m
+        self.assertEqual(
+            m.FALLBACK_CHAIN,
+            ["deepseek", "deepseek-reasoner", "zhipu", "dashscope", "ollama"])
+
+    def test_switch_zhipu_moonshot_key_isolation(self):
+        """智谱/月之暗面密钥文件不存在时切换 api_key 为空（不回退）"""
+        import tempfile, shutil
+        from core import ai_service as m
+        tmpdir = tempfile.mkdtemp()
+        old_secrets = m._SECRETS_DIR
+        m._SECRETS_DIR = tmpdir
+        svc = _create_test_svc()
+        try:
+            svc.switch_provider("zhipu")
+            self.assertEqual(svc.api_key, "")
+            svc.switch_provider("moonshot")
+            self.assertEqual(svc.api_key, "")
+            # 写入后能读回
+            with open(os.path.join(tmpdir, "zhipu_key.txt"), "w",
+                      encoding="utf-8") as f:
+                f.write("sk-zhipu-secret")
+            svc.switch_provider("zhipu")
+            self.assertEqual(svc.api_key, "sk-zhipu-secret")
+        finally:
+            m._SECRETS_DIR = old_secrets
+            shutil.rmtree(tmpdir, ignore_errors=True)

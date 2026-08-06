@@ -12,6 +12,8 @@
     py -3.14 tools/set_secret.py --name deepseek_key
     py -3.14 tools/set_secret.py --name douyin_cookie
     py -3.14 tools/set_secret.py --name siliconflow_key   # 硅基流动（免费模型用）
+    py -3.14 tools/set_secret.py --name dashscope_key     # 阿里云百炼（通义千问）
+    py -3.14 tools/set_secret.py --name tavily_key        # Tavily（联网搜索）
 
 最简流程：复制密钥 → 跑命令 → 看到预览按回车确认。全程无需在终端内粘贴。
 """
@@ -19,14 +21,17 @@ import argparse
 import os
 import sys
 
+# 密钥槽位表统一来自 server/handlers/keys.py（唯一真相源，避免两处维护冲突）
+_PROJ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _PROJ not in sys.path:
+    sys.path.insert(0, _PROJ)
+from server.handlers.keys import KEY_SLOTS
+
 # 与 core/ai_service.py / tools/ai_review_agent.py 读取路径保持一致
 SECRETS_DIR = os.path.join(os.path.expanduser("~"), ".jinshuiyao-secrets")
 
-KNOWN = {
-    "deepseek_key": "deepseek_key.txt",
-    "douyin_cookie": "douyin_cookie.txt",
-    "siliconflow_key": "siliconflow_key.txt",
-}
+# 槽位名 → 密钥文件名（由 keys.py 的 KEY_SLOTS 派生）
+KNOWN = {slot: info["file"] for slot, info in KEY_SLOTS.items()}
 
 
 def write_secret(secrets_dir: str, name: str, value: str) -> str:
@@ -86,7 +91,7 @@ def clear_clipboard_windows() -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(description="交互式安全写入密钥到 ~/.jinshuiyao-secrets/")
     ap.add_argument("--name", required=True, choices=list(KNOWN.keys()),
-                    help="要设置的密钥名（deepseek_key / douyin_cookie / siliconflow_key）")
+                    help="要设置的密钥名（deepseek_key / douyin_cookie / siliconflow_key / dashscope_key / tavily_key）")
     ap.add_argument("--yes", "-y", action="store_true",
                     help="自动确认（用于脚本/非交互式调用，仍需剪贴板或 stdin 有内容）")
     args = ap.parse_args()

@@ -307,6 +307,27 @@ PROVIDERS = {
         "temperature": 0.3,
         "provider_type": "remote",
     },
+    "dashscope": {
+        "api_url": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+        "model": "qwen-plus",
+        "max_tokens": 2000,
+        "temperature": 0.7,
+        "provider_type": "remote",
+    },
+    "zhipu": {
+        "api_url": "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+        "model": "glm-4.5-air",
+        "max_tokens": 2000,
+        "temperature": 0.7,
+        "provider_type": "remote",
+    },
+    "moonshot": {
+        "api_url": "https://api.moonshot.cn/v1/chat/completions",
+        "model": "kimi-k2.6",
+        "max_tokens": 2000,
+        "temperature": 0.7,
+        "provider_type": "remote",
+    },
     "ollama": {
         "api_url": "http://localhost:11434/v1/chat/completions",
         "model": "llama3.2",
@@ -316,10 +337,22 @@ PROVIDERS = {
     },
 }
 
+# 供应商 → 密钥文件名（统一密钥槽位，与 server/handlers/keys.py 一致）
+PROVIDER_KEY_FILES = {
+    "deepseek": "deepseek_key.txt",
+    "deepseek-reasoner": "deepseek_key.txt",
+    "dashscope": "dashscope_key.txt",
+    "zhipu": "zhipu_key.txt",
+    "moonshot": "moonshot_key.txt",
+    "ollama": "",  # 本地模型无需密钥
+}
+
 # 模型 fallback 链：当首选模型失败时按序尝试备选
 FALLBACK_CHAIN = [
     "deepseek",
     "deepseek-reasoner",
+    "zhipu",
+    "dashscope",
     "ollama",
 ]
 
@@ -868,6 +901,14 @@ class AIService:
         if _fallback_depth < len(FALLBACK_CHAIN):
             fallback_provider = FALLBACK_CHAIN[_fallback_depth]
             if fallback_provider != self.provider:
+                # 跳过未配置密钥的远程供应商（避免在它处断链空手返回；
+                # deepseek 系保留环境变量回退，不受此限制）
+                _kf = PROVIDER_KEY_FILES.get(fallback_provider, "")
+                if _kf and _kf != "deepseek_key.txt" and not os.path.isfile(
+                        os.path.join(_SECRETS_DIR, _kf)):
+                    return self.chat(
+                        system_prompt, user_prompt, temperature, max_tokens,
+                        _fallback_depth=_fallback_depth + 1)
                 logger.info("[ai_service] 尝试fallback到: %s", fallback_provider)
                 old_provider = self.provider
                 self.switch_provider(fallback_provider)
@@ -944,11 +985,25 @@ class AIService:
                             max_tokens=200, temperature=0.3)
 
     def switch_provider(self, provider: str):
-        """切换AI供应商（持锁，保证 provider/_config 原子切换）"""
+        """切换AI供应商（持锁，保证 provider/_config 原子切换）
+
+        切换时按 PROVIDER_KEY_FILES 读取对应平台的密钥文件
+        （如切到 dashscope 读 dashscope_key.txt）；该平台密钥文件不存在则
+        api_key 置空（视为不可用，绝不回退用别的平台密钥）。
+        """
         with self._state_lock:
             if provider in PROVIDERS:
                 self.provider = provider
                 self._config = PROVIDERS[provider]
+                key_file = PROVIDER_KEY_FILES.get(provider, "")
+                if key_file:
+                    _kf = os.path.join(_SECRETS_DIR, key_file)
+                    if key_file == "deepseek_key.txt":
+                        # deepseek 保留历史兼容回退（默认路径+环境变量）
+                        self.api_key = get_api_key(_kf)
+                    else:
+                        # 其他平台严格绑定本平台密钥文件，缺失视为不可用
+                        self.api_key = get_api_key(_kf) if os.path.isfile(_kf) else ""
                 logger.info("[ai_service] 已切换到供应商: %s", provider)
             else:
                 logger.warning("[ai_service] 不支持的供应商: %s", provider)
