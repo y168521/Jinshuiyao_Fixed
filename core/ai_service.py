@@ -309,7 +309,8 @@ PROVIDERS = {
     },
     "dashscope": {
         "api_url": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
-        "model": "qwen-plus",
+        # 默认模型 qwen3.6-flash：百炼免费额度可用（qwen-plus 免费额度易耗尽）
+        "model": "qwen3.6-flash",
         "max_tokens": 2000,
         "temperature": 0.7,
         "provider_type": "remote",

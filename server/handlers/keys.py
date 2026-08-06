@@ -48,13 +48,13 @@ KEY_SLOTS = {
     "dashscope_key": {
         "file": "dashscope_key.txt",
         "name": "阿里云百炼（通义千问）",
-        "desc": "阿里云百炼 OpenAI兼容接口（qwen-plus / qwen-max 等）",
+        "desc": "阿里云百炼 OpenAI兼容接口（qwen3.6-flash / qwen-max 等，默认用免费额度模型）",
         # 百炼未保证 /models 端点（实测常 404），用官方明确的 chat/completions
-        # 最小请求测试（约 10 token 消耗）
+        # 最小请求测试（约 10 token 消耗）；模型用 qwen3.6-flash 免费额度
         "test_url": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
         "test_headers": {"Authorization": "Bearer {key}"},
         "test_method": "POST",
-        "test_body": {"model": "qwen-plus",
+        "test_body": {"model": "qwen3.6-flash",
                       "messages": [{"role": "user", "content": "hi"}],
                       "max_tokens": 1},
         "test_expected": 200,

@@ -460,7 +460,7 @@ class TestAIServiceDashscopeWiring(unittest.TestCase):
         self.assertTrue(
             m.PROVIDERS["dashscope"]["api_url"].startswith(
                 "https://dashscope.aliyuncs.com/compatible-mode"))
-        self.assertEqual(m.PROVIDERS["dashscope"]["model"], "qwen-plus")
+        self.assertEqual(m.PROVIDERS["dashscope"]["model"], "qwen3.6-flash")
 
     def test_fallback_chain_includes_dashscope(self):
         """fallback链包含百炼，完整顺序见 test_fallback_chain_order"""
