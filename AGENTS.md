@@ -135,6 +135,7 @@
 | `core/gui_registry.py` | GUI 组件注册表（核心 GUI 模块） |
 | `core/tk_style.py` | ModernTheme 七色视觉主题（tkinter 统一样式） |
 | `engines/dimension_consensus.py` | 多维度共识引擎（预测融合） |
+| `core/adaptive_models.py` | 平台模型智能自动匹配（额度耗尽探测切换，含 list/probe/find_working_model，持久化到 secrets） |
 
 > 新增 core/knowledge/server/engines 下的 .py 文件后，必须在本表登记（tools/wrapup/checks_infra.py 基线检查会拦）。
 

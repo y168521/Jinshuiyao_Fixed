@@ -914,3 +914,13 @@
 - **关联总索引**：JS-20260805-14
 
 ---
+
+### 2026-08-06 百炼模型额度耗尽智能自动匹配（W63补53 / JS-20260806-08）
+
+- 来源：opencode
+- 做了什么：新建 core/adaptive_models.py（list_llm_models 拉百炼 /models 实测可用 236 模型过滤 153 LLM + probe_model 最小 chat 探测 200=可用/403=额度尽 + find_working_model 缓存 TTL300s→preferred 单测→白名单 8 并发→全量限 24，结果持久化 ~/.jinshuiyao-secrets/dashscope_model.txt，全败缓存 60s）；server/handlers/keys.py 测试/识别 403 时自动匹配（返回 switched_model，识别不误判无效）；core/ai_service.py chat 连续失败后自适应切换模型重试，switch_provider 读持久化模型。
+- 为什么：百炼 100+ 免费模型各 100 万独立额度，用户"用完要自动切换、不能一个个手动换"；业界"百炼不支持 /models"是过时信息（真实密钥实测 200）；403 语义要细分（Free quota exhausted=额度尽≠401 密钥无效），自动匹配只在额度场景触发。
+- 验证：真实密钥实测列表 153 LLM，白名单 qwen3.6-flash/qwen3.7-flash/qwen-max/qwen-mt-flash 可用、qwen3-32b 不可用，preferred=qwen-plus(403)→自动匹配 qwen3.6-flash 并持久化；E2E /api/keys/test 200 + identify 命中 dashscope_key；相关 51 单测 passed；全量 931 passed 1 failed(坚果云锁 lot_data 环境) 9 skipped 零回归。
+- 坑：①单测污染——PROVIDERS["dashscope"]["model"] 改动未在 finally 恢复导致后续用例失败，原值须在改动前保存；②mock 设计——flaky _call_api 第 3 次成功恰落在默认重试循环内，自适应分支从未执行，断言仍过（伪绿），须把 svc._retry_count 设 0 逼出自适应路径；③HTTP 403 三种语义（额度/密钥/权限）要在识别与测试流程里分开处理。
+- 涉及文件：core/adaptive_models.py(新建) / core/ai_service.py / server/handlers/keys.py / tests/unit/test_ai_service.py / tests/unit/test_server_package.py
+- 登记编号：JS-20260806-08
