@@ -16,6 +16,7 @@ import re
 import json
 import threading
 from datetime import datetime
+from utils.safe_json import safe_write_json
 
 # 系统级提醒规则（time 为 HH:MM；调度器每30分钟扫一次，±窗口内触发）
 SYSTEM_REMINDERS = [
@@ -131,8 +132,7 @@ def render_due(mem_dir, now=None):
         new_count += 1
     try:
         os.makedirs(mem_dir, exist_ok=True)
-        with open(pending_path, "w", encoding="utf-8") as f:
-            json.dump({"pending": pending, "fired_log": fired}, f, ensure_ascii=False, indent=1)
+        safe_write_json(pending_path, {"pending": pending, "fired_log": fired})
     except Exception:
         pass
     return new_count
@@ -148,8 +148,7 @@ def pop_pending(mem_dir):
             data = json.load(f)
         pending = data.get("pending", []) or []
         if pending:
-            with open(pending_path, "w", encoding="utf-8") as f:
-                json.dump({"pending": [], "fired_log": data.get("fired_log", {})}, f, ensure_ascii=False, indent=1)
+            safe_write_json(pending_path, {"pending": [], "fired_log": data.get("fired_log", {})})
         return [p.get("text", "") for p in pending if p.get("text")]
     except Exception:
         return []

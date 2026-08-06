@@ -28,29 +28,29 @@ MODEL_DIR = os.path.dirname(ROOT_DIR)
 
 sys.path.insert(0, ROOT_DIR)
 from tools.audit_trail import compliance_report, write_replay, log_event
+from utils.shared_write import protected_rmw_text
 
 
 def _append_report_to_jiaojie(report, date_str):
-    """把合规报告追加到交接中心"""
+    """把合规报告追加到交接中心（受全局写锁保护，防多AI互覆盖）"""
     path = os.path.join(MODEL_DIR, "AI协作交接中心.md")
     if not os.path.isfile(path):
         print("[compliance] 交接中心不存在，跳过追加")
         return
-    with open(path, "r", encoding="utf-8") as f:
-        content = f.read()
     marker = "## 合规督察"
     section = f"\n\n{marker}\n\n{report}\n"
-    if marker in content:
-        # 替换已有
-        idx = content.index(marker)
-        end = content.find("\n## ", idx + 1)
-        if end == -1:
-            end = len(content)
-        content = content[:idx] + section + content[end:]
-    else:
-        content += section
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(content)
+
+    def _transform(content):
+        if marker in content:
+            # 替换已有
+            idx = content.index(marker)
+            end = content.find("\n## ", idx + 1)
+            if end == -1:
+                end = len(content)
+            return content[:idx] + section + content[end:]
+        return content + section
+
+    protected_rmw_text(path, _transform, intent="合规报告写入交接中心")
     print(f"[compliance] 报告已追加到 AI协作交接中心.md")
 
 

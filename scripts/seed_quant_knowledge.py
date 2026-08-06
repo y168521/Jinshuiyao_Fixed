@@ -17,6 +17,7 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from knowledge.mirofish_db import MiroFishDB  # noqa: E402
+from utils.shared_write import protected_write_json
 
 DB = MiroFishDB()
 NOW = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -183,8 +184,7 @@ def seed_triples():
                                     source="quant_case_studies_seed", extracted_at=NOW))
         existing.add((s, p, o))
         added += 1
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    protected_write_json(path, data, intent="注入量化知识三元组")
     print("  + triples added:", added, "/ total:", len(data["triples"]))
 
 

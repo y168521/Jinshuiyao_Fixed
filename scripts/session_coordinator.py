@@ -40,9 +40,13 @@ STALE_TAKEOVER_SECS = 600
 DEFAULT_HOLDER = f"{platform.node()}@{os.getpid()}"
 
 # 受保护的共享知识文件：改前必须占锁共识（知止）
+# JS-20260806-02 补全：纳入 经验收集箱/AI协作交接中心/金水谣_契（与 closeout_gate 三件套 + 契 对齐）
 PROTECTED_REL = [
     "工作留痕总索引.md",
     "Jinshuiyao_Fixed/金水谣数据/log/ai_decisions.md",
+    "Jinshuiyao_Fixed/金水谣数据/log/经验收集箱.md",
+    "AI协作交接中心.md",
+    "金水谣_契.md",
     ".workbuddy/memory/MEMORY.md",
 ]
 

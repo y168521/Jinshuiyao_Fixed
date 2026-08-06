@@ -23,6 +23,7 @@ import threading
 import traceback
 from datetime import datetime
 from typing import Optional, Dict, List, Tuple
+from utils.safe_json import safe_write_json
 
 logger = logging.getLogger(__name__)
 
@@ -735,13 +736,12 @@ class JinshuiyaoAgent:
             self._history = []
 
     def _save_history(self):
-        """对话历史落盘（加锁，异常不影响主流程）。"""
+        """对话历史落盘（原子写 + 进程内锁，异常不影响主流程）。"""
         with self._mem_lock:
             try:
                 self._ensure_mem_dir()
                 hist = self._history[-self._max_history * 2:]
-                with open(self._history_file, "w", encoding="utf-8") as f:
-                    json.dump(hist, f, ensure_ascii=False, indent=1)
+                safe_write_json(self._history_file, hist)
             except Exception as e:
                 logger.warning("[agent] 保存对话历史失败: %s", e)
 
@@ -758,20 +758,18 @@ class JinshuiyaoAgent:
             self._profile = {}
 
     def _save_profile(self, locked=False):
-        """用户画像落盘（加锁）。locked=True 表示调用方已持锁，避免重复 acquire 导致死锁。"""
+        """用户画像落盘（原子写 + 进程内锁）。locked=True 表示调用方已持锁，避免重复 acquire 导致死锁。"""
         if locked:
             try:
                 self._ensure_mem_dir()
-                with open(self._profile_file, "w", encoding="utf-8") as f:
-                    json.dump(self._profile, f, ensure_ascii=False, indent=1)
+                safe_write_json(self._profile_file, self._profile)
             except Exception as e:
                 logger.warning("[agent] 保存用户画像失败: %s", e)
         else:
             with self._mem_lock:
                 try:
                     self._ensure_mem_dir()
-                    with open(self._profile_file, "w", encoding="utf-8") as f:
-                        json.dump(self._profile, f, ensure_ascii=False, indent=1)
+                    safe_write_json(self._profile_file, self._profile)
                 except Exception as e:
                     logger.warning("[agent] 保存用户画像失败: %s", e)
 

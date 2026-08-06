@@ -10,6 +10,7 @@ import hashlib
 import numpy as np
 from datetime import datetime
 from typing import List, Dict, Optional
+from utils.safe_json import safe_write_json
 
 
 class VectorMemory:
@@ -41,8 +42,7 @@ class VectorMemory:
                 self._entries = []
 
     def _save(self):
-        with open(self._index_file, "w", encoding="utf-8") as f:
-            json.dump({"entries": self._entries[-200:]}, f, ensure_ascii=False, indent=2)
+        safe_write_json(self._index_file, {"entries": self._entries[-200:]})
 
     def _compute_embedding(self, text: str) -> np.ndarray:
         """基于字词共现的轻量embedding（无需AI模型，纯本地）

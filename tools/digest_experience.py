@@ -32,6 +32,8 @@ JSON 格式：
 """
 import os, sys, json, argparse
 from datetime import date
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.shared_write import protected_write_text
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(BASE)
@@ -132,8 +134,7 @@ def _prompt_interactive():
 
 def _append_to_experience(entry):
     text = TEMPLATE.format(**entry)
-    with open(EXP_PATH, "a", encoding="utf-8") as f:
-        f.write(text)
+    protected_write_text(EXP_PATH, text, mode="a", intent="追加经验收集箱")
     print(f"\n[digest] 已追加到: {EXP_PATH}")
     print(text)
 

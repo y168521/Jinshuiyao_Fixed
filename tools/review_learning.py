@@ -8,12 +8,17 @@ ReviewLearning 类：从审查反馈中学习，持续优化模式置信度/阈�
 """
 import json
 import os
+import sys
 import time
 import threading
 import copy
 
-# ─── 项目根 ───
+# ─── 项目根（让 utils 在 standalone 运行时可 import）───
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
+
+from utils.shared_write import protected_write_text
 
 # ─── 数据路径 ───
 _REVIEW_DATA_DIR = os.path.join(_PROJECT_ROOT, "金水谣数据", "review")
@@ -168,12 +173,11 @@ class ReviewLearning:
 ---
 """
         if os.path.isfile(_DECISIONS_FILE):
-            with open(_DECISIONS_FILE, "a", encoding="utf-8") as f:
-                f.write(card)
+            protected_write_text(_DECISIONS_FILE, card, mode="a", intent="记录决策卡")
         else:
             os.makedirs(os.path.dirname(_DECISIONS_FILE), exist_ok=True)
-            with open(_DECISIONS_FILE, "w", encoding="utf-8") as f:
-                f.write("# AI 决策记录\n\n" + card)
+            protected_write_text(_DECISIONS_FILE, "# AI 决策记录\n\n" + card,
+                                 mode="w", intent="新建决策卡")
 
     def get_review_metrics(self, period_days=7):
         """计算审查效果指标"""

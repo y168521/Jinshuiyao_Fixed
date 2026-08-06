@@ -295,7 +295,7 @@ def _validate_schema(data: Any, required_keys: Optional[list] = None) -> bool:
 def safe_write_json(
     filepath: str,
     data: Any,
-    embed_checksum: bool = True,
+    embed_checksum: bool = False,
     backup: bool = True,
 ) -> bool:
     """
@@ -312,7 +312,7 @@ def safe_write_json(
     参数:
         filepath:         目标文件路径
         data:             要写入的Python对象（字典、列表等）
-        embed_checksum:   是否嵌入SHA256校验和，默认True
+        embed_checksum:   是否嵌入SHA256校验和，默认False（契/交接中心铁律：业务数据禁注入 _metadata）
         backup:           是否在写入前自动备份，默认True
 
     返回:

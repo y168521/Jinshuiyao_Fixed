@@ -28,6 +28,8 @@ import logging
 import time
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
+import tempfile
+from utils.safe_json import safe_write_json
 
 logger = logging.getLogger("jinshuiyao.data_maintenance")
 
@@ -141,15 +143,7 @@ class DataMaintainer:
             bool: 写入是否成功
         """
         try:
-            parent = os.path.dirname(filepath)
-            if parent:
-                os.makedirs(parent, exist_ok=True)
-            with open(filepath, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2, sort_keys=False)
-                f.flush()
-                os.fsync(f.fileno())
-            logger.debug("JSON 写入成功: %s", filepath)
-            return True
+            return safe_write_json(filepath, data)
         except (OSError, TypeError) as e:
             logger.error("写入 JSON 失败: %s (%s)", filepath, e)
             return False
@@ -194,8 +188,7 @@ class DataMaintainer:
                     data = json.load(f)
                 # 验证 JSON 至少是有效的
                 if isinstance(data, (dict, list)):
-                    with open(filepath, "w", encoding="utf-8") as f:
-                        json.dump(data, f, ensure_ascii=False, indent=2)
+                    safe_write_json(filepath, data, backup=False)
                     logger.info("从备份恢复成功: %s -> %s", bp, filepath)
                     return True
             except (json.JSONDecodeError, OSError) as e:
@@ -620,11 +613,27 @@ class DataMaintainer:
         trimmed_lines = lines[-keep_count:]
 
         try:
-            with open(filepath, "w", encoding="utf-8") as f:
+            parent = os.path.dirname(filepath) or "."
+            fd, tmp = tempfile.mkstemp(suffix=".tmp", prefix=".dm_", dir=parent)
+        except OSError as e:
+            logger.error("创建 JSONL 临时文件失败: %s (%s)", filepath, e)
+            return 0.0
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
                 f.writelines(trimmed_lines)
                 f.flush()
                 os.fsync(f.fileno())
+            os.replace(tmp, filepath)
         except OSError as e:
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+            if os.path.exists(tmp):
+                try:
+                    os.remove(tmp)
+                except OSError:
+                    pass
             logger.error("写入 JSONL 文件失败: %s (%s)", filepath, e)
             return 0.0
 
