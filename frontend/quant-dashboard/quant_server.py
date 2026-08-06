@@ -192,6 +192,31 @@ def build_stock_payload(sym):
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
+    def _is_same_origin(self, origin):
+        """判断请求 Origin 是否与本服务同源（同主机 + 同端口）。
+        用于 CORS 反射，挡住本机浏览器中的恶意跨域网页（JS-20260806-09）。"""
+        try:
+            p = urlparse(origin)
+            if p.scheme not in ('http', 'https'):
+                return False
+            host = (p.hostname or '').lower()
+            if host in ('127.0.0.1', 'localhost', '::1', '[::1]'):
+                try:
+                    op = p.port
+                except Exception:
+                    op = 80 if p.scheme == 'http' else 443
+                # 端口须与当前服务一致，避免其他本机服务伪造
+                return op == getattr(self.server, 'server_port', None)
+            return False
+        except Exception:
+            return False
+
+    def _set_cors(self):
+        """CORS 仅当请求 Origin 与本服务同源时才回显，去掉全局 '*'。"""
+        origin = self.headers.get('Origin')
+        if origin and self._is_same_origin(origin):
+            self.send_header('Access-Control-Allow-Origin', origin)
+
     def _send(self, code, body, ctype="application/json; charset=utf-8"):
         if isinstance(body, (dict, list)):
             body = json.dumps(body, ensure_ascii=False)
@@ -200,7 +225,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self._set_cors()
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(body)
@@ -268,7 +293,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.send_response(204)
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self._set_cors()
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()

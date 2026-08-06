@@ -81,7 +81,7 @@ def handle_status(handler):
         status[name] = {"exists": os.path.isfile(fp), "path": rel}
     handler.send_response(200)
     handler.send_header('Content-Type', 'application/json; charset=utf-8')
-    handler.send_header('Access-Control-Allow-Origin', '*')
+    handler._set_cors()  # P0-① 同源反射(JS-20260806-09)：去掉全局 '*'
     handler.end_headers()
     handler.wfile.write(json.dumps(status, ensure_ascii=False).encode('utf-8'))
 

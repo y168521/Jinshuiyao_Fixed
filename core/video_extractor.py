@@ -237,6 +237,10 @@ class VideoExtractor:
         _is_safe_host 校验，最多 5 跳，避免跳转到内网/云元数据地址。
         """
         kwargs['allow_redirects'] = False  # 强制关闭自动跟随，改由下方受控跟随
+        # 入口 URL 校验（SSRF 纵深，JS-20260806-09）：初始用户 URL 也须过 _is_safe_host
+        if not self._is_safe_host(url):
+            logger.warning("[video_extractor] 入口URL被拒(SSRF): %s", url)
+            return None
         session = self._get_session()
         self._apply_cookie()  # 确保本次请求带最新 cookie
         last_error = None
@@ -282,7 +286,10 @@ class VideoExtractor:
     def _post_with_retry(self, url: str, data: dict = None, json_data: dict = None,
                           timeout: int = _DEFAULT_TIMEOUT,
                           retries: int = _MAX_RETRIES, **kwargs) -> Optional['requests.Response']:
-        """带超时和重试机制的HTTP POST请求"""
+        """带超时和重试机制的HTTP POST请求（入口同样过 SSRF 校验，JS-20260806-09）"""
+        if not self._is_safe_host(url):
+            logger.warning("[video_extractor] POST入口URL被拒(SSRF): %s", url)
+            return None
         session = self._get_session()
         self._apply_cookie()
         last_error = None

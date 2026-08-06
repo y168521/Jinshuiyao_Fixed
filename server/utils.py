@@ -209,7 +209,7 @@ def open_local_file(rel_path, mode='auto'):
     # 检查路径是否存在
     if os.path.isdir(full_path):
         log(f'→ 打开文件夹: {full_path}')
-        subprocess.Popen(f'explorer "{full_path}"')
+        subprocess.Popen(['explorer.exe', full_path])  # JS-20260806-09：参数列表，消除引号注入歧义
         return True
 
     if not os.path.isfile(full_path):
