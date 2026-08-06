@@ -551,11 +551,15 @@ class SyncManager:
             return False
 
         try:
-            logger.info("正在上报分析数据...")
-            # TODO: 实现具体的数据上报逻辑
+            logger.info("分析数据上报：预留接口，未实现，安全跳过（诚实标记 JS-20260806-10）")
+            # TODO: 实现具体的数据上报逻辑（联网端点就绪后实现）
             #   1. 将 analytics_data 序列化
             #   2. POST 到远程统计端点
-            self._record_sync("report_analytics", True, "分析数据上报完成（预留接口）")
+            # 诚实标记：本接口未实际执行 → record reserved=True + success=False；
+            # 返回 True 仅表「队列已 ack/已处理」（避免离线队列误判失败），非「同步成功」。
+            self._record_sync("report_analytics", False,
+                              "reserved: 预留接口未实现，已安全跳过（非成功、非失败）",
+                              reserved=True)
             return True
         except Exception as e:
             logger.error("分析数据上报失败: %s", e)
@@ -583,9 +587,13 @@ class SyncManager:
             return False
 
         try:
-            logger.info("正在同步引擎参数...")
-            # TODO: 实现具体的参数同步逻辑
-            self._record_sync("sync_engine_params", True, "引擎参数同步完成（预留接口）")
+            logger.info("引擎参数同步：预留接口，未实现，安全跳过（诚实标记 JS-20260806-10）")
+            # TODO: 实现具体的参数同步逻辑（联网端点就绪后实现）
+            # 诚实标记：本接口未实际执行 → record reserved=True + success=False；
+            # 返回 True 仅表「队列已 ack/已处理」，非「同步成功」。
+            self._record_sync("sync_engine_params", False,
+                              "reserved: 预留接口未实现，已安全跳过（非成功、非失败）",
+                              reserved=True)
             return True
         except Exception as e:
             logger.error("引擎参数同步失败: %s", e)
@@ -609,9 +617,13 @@ class SyncManager:
             return False
 
         try:
-            logger.info("正在检查模型更新...")
-            # TODO: 实现具体的模型更新检查逻辑
-            self._record_sync("sync_model_updates", True, "模型更新检查完成（预留接口）")
+            logger.info("模型更新检查：预留接口，未实现，安全跳过（诚实标记 JS-20260806-10）")
+            # TODO: 实现具体的模型更新检查逻辑（联网端点就绪后实现）
+            # 诚实标记：本接口未实际执行 → record reserved=True + success=False；
+            # 返回 True 仅表「队列已 ack/已处理」，非「同步成功」。
+            self._record_sync("sync_model_updates", False,
+                              "reserved: 预留接口未实现，已安全跳过（非成功、非失败）",
+                              reserved=True)
             return True
         except Exception as e:
             logger.error("模型更新检查失败: %s", e)
@@ -639,9 +651,13 @@ class SyncManager:
             return False
 
         try:
-            logger.info("正在上报健康状态...")
-            # TODO: 实现具体的健康上报逻辑
-            self._record_sync("report_health", True, "健康状态上报完成（预留接口）")
+            logger.info("健康状态上报：预留接口，未实现，安全跳过（诚实标记 JS-20260806-10）")
+            # TODO: 实现具体的健康上报逻辑（联网端点就绪后实现）
+            # 诚实标记：本接口未实际执行 → record reserved=True + success=False；
+            # 返回 True 仅表「队列已 ack/已处理」，非「同步成功」。
+            self._record_sync("report_health", False,
+                              "reserved: 预留接口未实现，已安全跳过（非成功、非失败）",
+                              reserved=True)
             return True
         except Exception as e:
             logger.error("健康状态上报失败: %s", e)
@@ -1311,18 +1327,23 @@ class SyncManager:
         """
         self.queue.enqueue(operation, data)
 
-    def _record_sync(self, operation: str, success: bool, detail: str = ""):
+    def _record_sync(self, operation: str, success: bool, detail: str = "",
+                     reserved: bool = False):
         """记录一条同步历史
 
         Args:
             operation: 操作类型
-            success: 是否成功
+            success: 是否成功（真实执行并成功才为 True）
             detail: 详细信息或错误消息
+            reserved: 是否为「预留接口/未实现」的 no-op。True 时 success 应为
+                False，表示「未实际执行、非成功也非失败」，用于诚实标记，
+                避免对外谎称同步成功（JS-20260806-10）。
         """
         record = {
             "operation": operation,
             "success": success,
             "detail": detail,
+            "reserved": reserved,
             "time": datetime.now().isoformat(timespec="seconds"),
         }
         with self._lock:

@@ -124,7 +124,7 @@
 
 **使用规则**：遇到报错/异常先查经验箱（90% 的坑有记录）；问题相关时 AI 助手会自动注入网关上下文（`core/ai_agent.py` 纯聊天路径），无需手动。
 
-## 核心模块地图（core/ 新增文件登记）
+## 核心模块重点登记（core/ 新增文件强制登记，非全量地图）
 
 | 模块 | 职责 |
 |------|------|
@@ -137,6 +137,7 @@
 | `engines/dimension_consensus.py` | 多维度共识引擎（预测融合） |
 | `core/adaptive_models.py` | 平台模型智能自动匹配（额度耗尽探测切换，含 list/probe/find_working_model，持久化到 secrets） |
 
+> ⚠️ 本表是「新增文件强制登记」清单，**不是** core/ 全量模块地图（core/ 共约 59 个 .py，本表仅登记重点新增项）。完整模块导航请以 `知识网关索引.md` 或代码搜索为准（JS-20260806-10 校正）。
 > 新增 core/knowledge/server/engines 下的 .py 文件后，必须在本表登记（tools/wrapup/checks_infra.py 基线检查会拦）。
 
 ## 用户沟通

@@ -37,6 +37,7 @@
 | **🟢 视觉L2禁用色根治收尾** | 生成器模板正文漏改(rgba紫/红) + 前端14页内联禁止色 + 4份基金日报清零 + closeout_gate 重新加回禁用色合规门禁（覆盖 .html/.css/.py 防复发，JS-20260806-01） |
 | **🟢 会话租约接线+非原子写改造** | 补全 PROTECTED_REL(经验箱/交接中心/契) + 新增 shared_write 受保护写助手(锁失败仍直写不丢数据) + 6处 open('w') 改 safe_write_json + safe_write_json 默认 embed_checksum=False 契约对齐（JS-20260806-07） |
 | **🟢 CORS 与 SSRF 纵深加固** | health.py `/status` 删 `*` 改委托 router._set_cors 同源反射 + quant_server 两处 `*` 改同源反射 + video_extractor 入口 URL 加 `_is_safe_host` 校验(残差SSRF入口拦截) + utils.py explorer 改参数列表(引号注入)（JS-20260806-09） |
+| **🟢 契约欺骗与文档漂移修正** | sync_manager 4个预留接口诚实标记(reserved=True+success=False, 返回True仅表队列ack) + 契§3.4整表重写为15真实任务 + AGENTS模块地图澄清非全量 + scheduler注释10/11项→15项（JS-20260806-10） |
 
 **⚠️ 如果是第一天上手的 AI：请完整读完下方【给主人的超简单使用说明】和【一、项目基本情况】，不要只看速查。**
 
@@ -150,6 +151,7 @@
 - [x] **视觉L2禁用色根治收尾（JS-20260806-01）**：生成器 `daily_fund_monitor.py` 模板正文漏网(rgba紫/红) + `frontend/`+`jinshuiyao-guide/` 共14页内联禁止色 + 4份基金日报清零 + `tools/closeout_gate.py` 重新加回「禁用色合规」门禁（覆盖 .html/.css/.py 防复发）
 - [x] **会话租约接线+非原子写改造（JS-20260806-07）**：`scripts/session_coordinator.py` 补全 PROTECTED_REL 三条(经验箱/交接中心/契) + 新增 `utils/shared_write.py`(`protected_write_text/rmw/json`，锁失败仍直写不丢数据) + `tools/digest_experience.py`/`compliance.py`/`review_learning.py` 接租约 + `core/ai_agent.py`/`agent_reminder.py`/`data_maintenance.py`(6处 `open('w')` 非原子)/`scripts/seed_quant_knowledge.py`/`core/agent_vector_memory.py` 改 `safe_write_json` + `utils/safe_json.py` 默认 `embed_checksum=False` 契约对齐 + 新增 `tests/test_session_coordinator.py`
 - [x] **CORS 与 SSRF 纵深加固（JS-20260806-09）**：`server/handlers/health.py` `/status` 删硬编码 `Access-Control-Allow-Origin: *`、改调 `router._set_cors()` 同源反射；`frontend/quant-dashboard/quant_server.py` 新增 `_is_same_origin`/`_set_cors` 替换两处 `*`；`core/video_extractor.py` `_request_with_retry`/`_post_with_retry` 入口 URL 加 `_is_safe_host` 校验(SSRF 入口残差拦截，重定向链路早已受控)；`server/utils.py` `open_local_file` 的 `explorer` 由 f-string 改参数列表(消引号注入)；新增 `tests/test_cors_ssrf_hardening.py`(11 passed)
+- [x] **契约欺骗与文档漂移修正（JS-20260806-10）**：`engines/sync_manager.py` 给 `_record_sync` 加 `reserved` 形参，`report_analytics`/`sync_engine_params`/`sync_model_updates`/`report_health` 四个预留接口从"谎报 `success=True`"改为诚实标记(`reserved=True`+`success=False`，返回 `True` 仅表队列 ack，避免离线队列误判失败)；`core/scheduler.py` 注释"10项/11项原生"校正为"15项/14项原生"；`金水谣_契.md` §3.4 整段过期任务表按 `_register_default_tasks()` 真实 `register()` 重写为 15 项；`AGENTS.md`「核心模块地图」澄清为"重点登记（非全量地图）"；新增 `tests/test_sync_manager_honest.py`(7 passed)。现状核实纠偏：审计⑭/⑮ stale（`backups/gui/main_window.py` 不存在、`corr_lock` 在 `utils/locks.py:13` 存活且被测）
 
 ---
 

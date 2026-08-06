@@ -415,7 +415,7 @@ class JinshuiyaoScheduler(TaskScheduler):
             logger.warning("[AI决策监听] 启动失败（不影响其余定时任务）: %s", e)
 
     def _register_default_tasks(self):
-        """注册金水谣系统的10项默认定时任务（间隔可从 config/scheduler.json 覆盖）"""
+        """注册金水谣系统的15项默认定时任务（间隔可从 config/scheduler.json 覆盖；实际注册数随条件开关浮动，以 register() 调用为准，详见下方）"""
         # 加载用户自定义间隔配置（可选）
         _defaults = {
             "data_refresh": 60,
@@ -576,7 +576,7 @@ class JinshuiyaoScheduler(TaskScheduler):
 
         # 12+. 自动化镜像：把原 WorkBuddy 平台自动化（仅计时触发器）平移进金水谣调度器，
         #     用 sys.executable 调同一批本地 scripts/*.py → 免 WorkBuddy 积分（详见 core/automation_mirror.py）。
-        #     任何失败仅告警，不影响上述 11 项原生任务（地：隔离）。
+        #     任何失败仅告警，不影响上述 14 项原生任务（地：隔离）。
         try:
             from core.automation_mirror import register_mirrors
             register_mirrors(self)
