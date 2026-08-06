@@ -34,6 +34,7 @@
 | AI智能体升级 | 新增 `agent_orchestrator.py` / `agent_vector_memory.py` / `agent_tools.py` |
 | Git+GitHub | 仓库 `y168521/Jinshuiyao_Fixed`，SSH 已配，632文件已入库 |
 | 一键同步 | `同步代码.bat` 双向 pull+push，笔记本已设每小时自动运行 |
+| **🟢 视觉L2禁用色根治收尾** | 生成器模板正文漏改(rgba紫/红) + 前端14页内联禁止色 + 4份基金日报清零 + closeout_gate 重新加回禁用色合规门禁（覆盖 .html/.css/.py 防复发，JS-20260806-01） |
 
 **⚠️ 如果是第一天上手的 AI：请完整读完下方【给主人的超简单使用说明】和【一、项目基本情况】，不要只看速查。**
 
@@ -144,6 +145,7 @@
 - [x] **AI 智能体升级**：新建 `agent_vector_memory.py`（n-gram 语义记忆/无外部依赖）、`agent_tools.py`（@tool 装饰器注册）、`agent_orchestrator.py`（Route→Worker→Review 多智能体管线）；`JinshuiyaoAgent` 增强：自动对话记忆 + `reason()` 入口
 - [x] **Git 初始化 + GitHub 远程仓库**：Git v2.55.0 安装至 `E:\Git`；SSH 密钥生成；GitHub 远程 `y168521/Jinshuiyao_Fixed` 配置；632 文件首次提交 `3d74e13`
 - [x] **一键同步脚本 + 定时自动同步**：`同步代码.bat`（双向 pull+push，自动检测 git 路径）；笔记本已设每小时定时任务；`README-台式机设置.txt` 供台式机 WorkBuddy 部署
+- [x] **视觉L2禁用色根治收尾（JS-20260806-01）**：生成器 `daily_fund_monitor.py` 模板正文漏网(rgba紫/红) + `frontend/`+`jinshuiyao-guide/` 共14页内联禁止色 + 4份基金日报清零 + `tools/closeout_gate.py` 重新加回「禁用色合规」门禁（覆盖 .html/.css/.py 防复发）
 
 ---
 

@@ -650,7 +650,7 @@ class ReportGenerator:
             font-size: 12px;
             padding: 4px 12px;
             border-radius: 999px;
-            background: rgba(139, 92, 246, 0.15);
+            background: rgba(201, 169, 110, 0.15);
             color: var(--brand-light);
         }}
         .metric-row {{
@@ -688,7 +688,7 @@ class ReportGenerator:
             border-radius: 6px;
             margin-top: 6px;
         }}
-        .signal.alert {{ background: rgba(239, 68, 68, 0.1); color: var(--alert); }}
+        .signal.alert {{ background: rgba(200, 117, 90, 0.1); color: var(--alert); }}
         .signal.warning {{ background: rgba(245, 158, 11, 0.1); color: var(--warning); }}
         .signal.info {{ background: rgba(59, 130, 246, 0.1); color: var(--info); }}
         
@@ -722,7 +722,7 @@ class ReportGenerator:
         .legend {{
             margin-top: 20px;
             padding: 16px;
-            background: rgba(139, 92, 246, 0.05);
+            background: rgba(201, 169, 110, 0.05);
             border-radius: var(--radius);
             font-size: 12px;
             color: var(--text-secondary);

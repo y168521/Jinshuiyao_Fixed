@@ -22,9 +22,9 @@
   th,td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--border); }
   th { color:var(--muted); font-weight:600; font-size:12px; }
   .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; font-weight:600; }
-  .b-buy { background:rgba(34,197,94,.15); color:var(--c-ok); }
+  .b-buy { background:rgba(45, 139, 126, .15); color:var(--c-ok); }
   .b-hold { background:rgba(59,130,246,.15); color:var(--half); }
-  .b-watch { background:rgba(239,68,68,.15); color:var(--bad); }
+  .b-watch { background:rgba(200, 117, 90, .15); color:var(--bad); }
   .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
   .pulse { width:9px; height:9px; border-radius:50%; background:var(--c-ok); animation:p 1.6s infinite; }
   @keyframes p { 0%,100%{opacity:1} 50%{opacity:.3} }
@@ -239,7 +239,7 @@ async function runStrategyCompare() {
       h += `<table><thead><tr><th>策略</th><th>收益率</th><th>最大回撤</th><th>夏普</th><th>说明</th></tr></thead><tbody>`;
       for (const c of data.comparisons || []) {
         const best = c.strategy === data.best_by_return;
-        h += `<tr style="${best ? 'background:rgba(34,197,94,.08)' : ''}">
+        h += `<tr style="${best ? 'background:rgba(45, 139, 126, .08)' : ''}">
           <td><strong>${c.strategy}</strong>${best ? ' ★' : ''}</td>
           <td class="num">${c.total_return_pct || '—'}</td>
           <td class="num">${c.max_drawdown_pct || '—'}</td>

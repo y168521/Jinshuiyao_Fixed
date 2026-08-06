@@ -39,8 +39,12 @@ def check_file_updated(path, name):
 
     today = today_str()
     if name == "工作留痕总索引":
-        short_date = today[5:]  # "07-29"
-        pattern = re.compile(rf"^###\s+JS-\d{{8}}-\d{{2}}\s*\|\s*{re.escape(short_date)}\s*\|", re.MULTILINE)
+        short_date = today[5:]  # "08-06"
+        # 兼容两种登记写法：详细式 `### JS-编号 | 日期 |` 与紧凑表格式 `| JS-编号 | 日期 |`
+        # 日期支持短日期(08-06)或全日期(2026-08-06)，避免格式漂移导致门禁误判"未登记"
+        pattern = re.compile(
+            rf"^(?:###\s*)?\|?\s*JS-\d{{8}}-\d{{2}}\s*\|\s*(?:\d{{4}}-)?{re.escape(short_date)}\s*\|",
+            re.MULTILINE)
     else:
         pattern = re.compile(re.escape(today))
 
@@ -91,6 +95,63 @@ def check_precommit_hook():
         return False, f"自动安装失败: {e}"
 
 
+# ---------------------------------------------------------------------------
+# 禁用色合规门禁（JS-20260806-01 重新加回）
+# 背景：原 [F] 禁用色门禁在 2026-08-03 重构（scripts→tools）时丢失，导致生成器
+#       模板正文漏改的禁止色无人拦截。本门禁覆盖 .html/.css/.py，做到"改完即被守"。
+# ---------------------------------------------------------------------------
+FORBIDDEN_COLOR_RE = re.compile(
+    r"#(?:ef4444|22c55e|eab308|8b5cf6|f97316)[0-9a-fA-F]{0,2}"
+    r"|rgba\(\s*(?:239\s*,\s*68\s*,\s*68"
+    r"|34\s*,\s*197\s*,\s*94"
+    r"|234\s*,\s*179\s*,\s*8"
+    r"|139\s*,\s*92\s*,\s*246"
+    r"|249\s*,\s*115\s*,\s*22)\s*,",
+    re.IGNORECASE,
+)
+COLOR_SKIP = [
+    "agent_theme.py",      # 合法映射表（用于转换禁止色）
+    "/knowledge/",         # 知识库数据字段
+    "/log/",               # 经验箱/决策记录（文本说明）
+    "docs/旧版资料",        # 归档遗留
+    "/backups/",           # 备份副本
+    "_old_backups",
+    "/node_modules/",
+    "/.workbuddy/",
+    "/.git/",
+    "mirofish_db",         # json 数据
+]
+
+def _check_forbidden_colors():
+    """扫描 Jinshuiyao_Fixed 下 .html/.css/.py 是否含 L2 禁用色。命中即 FAIL。"""
+    hits = []
+    for root, dirs, files in os.walk(BASE_DIR):
+        dirs[:] = [d for d in dirs
+                   if not any(s in os.path.join(root, d).replace(os.sep, "/") for s in COLOR_SKIP)]
+        for fn in files:
+            ext = os.path.splitext(fn)[1].lower()
+            if ext not in (".html", ".css", ".py"):
+                continue
+            fp = os.path.join(root, fn).replace(os.sep, "/")
+            if any(s in fp for s in COLOR_SKIP):
+                continue
+            try:
+                with open(fp, "r", encoding="utf-8") as f:
+                    lines = f.readlines()
+            except Exception:
+                continue
+            for i, line in enumerate(lines, 1):
+                if FORBIDDEN_COLOR_RE.search(line):
+                    rel = fp
+                    if BASE_DIR.replace(os.sep, "/") in rel:
+                        rel = rel[len(BASE_DIR.replace(os.sep, "/")) + 1:]
+                    hits.append("%s:%d" % (rel, i))
+    if hits:
+        return False, "发现 %d 处禁用色: %s%s" % (
+            len(hits), "; ".join(hits[:20]),
+            " ..." if len(hits) > 20 else "")
+    return True, "未检出禁用色"
+
 def main():
     override = "--override" in sys.argv
 
@@ -113,6 +174,13 @@ def main():
     ok, msg = check_precommit_hook()
     status = "OK" if ok else "MISS"
     print(f"  [{status}] pre-commit 钩子: {msg}")
+    if not ok:
+        all_ok = False
+
+    # 5: 禁用色合规（JS-20260806-01 重新加回，防复发）
+    ok, msg = _check_forbidden_colors()
+    status = "OK" if ok else "FAIL"
+    print(f"  [{status}] 禁用色合规: {msg}")
     if not ok:
         all_ok = False
 
