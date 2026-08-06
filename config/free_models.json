@@ -70,7 +70,7 @@
     "api_key_file": "deepseek_key.txt",
     "api_key_env": "DEEPSEEK_API_KEY",
     "model_env": "DEEPSEEK_MODEL",
-    "default_model": "deepseek-v4-pro"
+    "default_model": "deepseek-chat"
   },
   "health_check": {
     "enabled": true,

@@ -865,6 +865,7 @@
           <div class="card-actions">
             <button class="btn btn-amber" onclick="openSubsystem('domains/fund/fund_gui.py','run')">&#9654; 启动分析</button>
             <button class="btn btn-ghost" onclick="openFundReport()">&#128176; 日报</button>
+            <button class="btn btn-ghost" onclick="openAiFundReport()">&#129504; AI深度版</button>
             <button class="btn btn-ghost" onclick="viewSource('domains/fund/fund_gui.py')">&#128065; 源码</button>
           </div>
           <div class="web-tools" style="margin-top:auto;padding-top:10px;border-top:1px dashed var(--border);">
@@ -1076,6 +1077,32 @@
             }
           } else {
             showToast('日报未生成，请先运行监控脚本', 'error');
+          }
+        })
+        .catch(function(err) {
+          showToast('请求失败', 'error');
+        });
+    }
+
+    // ===== 打开 AI 深度版基金日报（先尝试当天，不存在回退最近一期）=====
+    function openAiFundReport() {
+      var today = new Date();
+      var yyyy = today.getFullYear();
+      var mm = String(today.getMonth() + 1).padStart(2, '0');
+      var dd = String(today.getDate()).padStart(2, '0');
+      var dateStr = yyyy + '-' + mm + '-' + dd;
+      var reportPath = '金水谣数据/fund_reports/ai_fund_report_' + dateStr + '.html';
+      fetch('/open?file=' + encodeURIComponent(reportPath) + '&mode=auto')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.ok) {
+            if (data.fallback_date) {
+              showToast(data.hint || ('AI版报告未生成（08:30 定时生成），已打开最近一期: ' + data.fallback_date), 'success');
+            } else {
+              showToast('已打开 AI 深度版基金日报: ' + dateStr, 'success');
+            }
+          } else {
+            showToast('AI版日报尚未生成，等待 08:30 定时任务', 'error');
           }
         })
         .catch(function(err) {
