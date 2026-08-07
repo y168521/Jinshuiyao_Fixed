@@ -924,3 +924,16 @@
 - 坑：①单测污染——PROVIDERS["dashscope"]["model"] 改动未在 finally 恢复导致后续用例失败，原值须在改动前保存；②mock 设计——flaky _call_api 第 3 次成功恰落在默认重试循环内，自适应分支从未执行，断言仍过（伪绿），须把 svc._retry_count 设 0 逼出自适应路径；③HTTP 403 三种语义（额度/密钥/权限）要在识别与测试流程里分开处理。
 - 涉及文件：core/adaptive_models.py(新建) / core/ai_service.py / server/handlers/keys.py / tests/unit/test_ai_service.py / tests/unit/test_server_package.py
 - 登记编号：JS-20260806-08
+
+---
+
+### 2026-08-07 智能链路全线联通（W63补54 / JS-20260807-03）
+
+- **属主**：opencode
+- **做了什么**：修复 `engines/prediction_service.py::_consult_knowledge` 的 `db.cards` AttributeError 被 except 吞掉的隐藏 bug（改 `db._data.get("cards")`），知识库咨询首次真正影响选号；接线智能大脑（置信度日志/低置信<0.5 时热号权重收敛 0.8/策略权重预算建议/冷号断裂加成，落盘）；新建 `engines/strategy_cards.py`（复盘→7彩种×3类引擎挂钩卡 weight_calibration/kill_strategy/miss_breakthrough，窗口40/最小10样本，effectiveness 全真实统计 46~90，refresh 幂等+on_log）；4 处复盘入口（gui main_window/scheduler/domain/evolution）接 refresh；`knowledge/mirofish_db.py::add_card` 加 `effectiveness` 形参；新建 `tools/verify_chain.py`（5链路24检查项一键自检，exit 1=FAIL）；`utils/safe_json.py` embed_checksum=False 写时主动剥离残留 `_metadata.checksum`；清理 brain_state.json/mirofish_db.json 存量残留 checksum。
+- **为什么根因**：①"所有链路从未真正联通"= 知识库咨询第一天起就在 except 里空转（`db.cards` 属性不存在）+ 大脑两能力零调用 + add_card 硬编码 effectiveness 首建即 50；②brain_state 置信度记录被吞 = JS-20260806-07 改契约默认 embed_checksum=False 后旧 checksum 残留 → safe_load 校验失败 → 静默恢复旧备份（校验和残留事故，须写时剥残留+存量清理+回归测试三件套）。
+- **验证**：verify_chain 24/24 PASS(exit=0)；全量 pytest 973 passed 1 failed(lot_data 坚果云占用环境问题, 非回归) 9 skipped；新增 21 单测（test_strategy_cards 13 + test_safe_json 回归 2 + 相关回归 55）零回归；21 张策略卡全部真实统计值。
+- **坑**：①`MiroFishDB` 无 `cards` 属性（真身是 `_data["cards"]`），except 吞错让功能静默失效数月；②残留 checksum 让每次 safe_load 回滚备份（数据被吞但文件"健康"）；③add_card 硬编码初始值吃掉外部算好的值；④并发会话规划文档抢先占 JS-20260807-02，本刀让位改 03。
+- **有效方法**：全链路验收一键化 = `py -3.14 tools/verify_chain.py`（exit=0 全通）；"功能无感"先 grep except 块看吞了什么；契约默认值变更必带存量迁移清单。
+- **关联文件**：`engines/prediction_service.py` · `engines/strategy_cards.py`(新建) · `knowledge/mirofish_db.py` · `utils/safe_json.py` · `tools/verify_chain.py`(新建) · `gui/main_window.py` · `core/scheduler.py` · `domains/lottery/domain.py` · `engines/evolution.py` · `tests/unit/test_strategy_cards.py`(新建) · `tests/test_safe_json.py`
+- **关联总索引**：JS-20260807-03

@@ -136,6 +136,8 @@
 | `core/tk_style.py` | ModernTheme 七色视觉主题（tkinter 统一样式） |
 | `engines/dimension_consensus.py` | 多维度共识引擎（预测融合） |
 | `core/adaptive_models.py` | 平台模型智能自动匹配（额度耗尽探测切换，含 list/probe/find_working_model，持久化到 secrets） |
+| `engines/strategy_cards.py` | 策略知识卡提炼引擎：复盘→7彩种×3类引擎挂钩卡（weight_calibration/kill_strategy/miss_breakthrough），refresh/ensure 幂等（W63补54 / JS-20260807-03） |
+| `core/security.py` | 安全校验单一真源：is_safe_http_url 供 router/video_extractor SSRF 校验委托（JS-20260807-01） |
 
 > ⚠️ 本表是「新增文件强制登记」清单，**不是** core/ 全量模块地图（core/ 共约 59 个 .py，本表仅登记重点新增项）。完整模块导航请以 `知识网关索引.md` 或代码搜索为准（JS-20260806-10 校正）。
 > 新增 core/knowledge/server/engines 下的 .py 文件后，必须在本表登记（tools/wrapup/checks_infra.py 基线检查会拦）。
