@@ -925,6 +925,12 @@ class AdaptiveFeedback:
                     self.brain.learn_from_review(lot, predictions, actual_nums)
                 except Exception as e:
                     logger.error("SmartBrain学习更新失败 [%s]: %s", lot, e)
+            # 策略卡提炼: 复盘统计 → 引擎挂钩知识卡（幂等, 失败降级不影响学习）
+            try:
+                from engines.strategy_cards import refresh_strategy_cards
+                refresh_strategy_cards()
+            except Exception as e:
+                logger.warning("策略卡提炼失败(降级跳过): %s", e)
 
             # 2. CUSUM统计
             hit_rate = self._calc_hit_rate(predictions, hits)

@@ -330,6 +330,13 @@ class LotteryDomain(DomainBase):
                 except Exception as e:
                     logger.warning("SmartBrain学习失败: %s", e)
 
+            # 策略卡提炼: 复盘统计 → 引擎挂钩知识卡（幂等, 失败降级不影响复盘）
+            try:
+                from engines.strategy_cards import refresh_strategy_cards
+                refresh_strategy_cards()
+            except Exception as e:
+                logger.warning("策略卡提炼失败(降级跳过): %s", e)
+
             # 回写 predictions.json —— 标记已复盘的记录
             try:
                 from utils.safe_json import safe_load_json, safe_write_json

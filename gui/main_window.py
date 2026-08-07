@@ -2188,6 +2188,12 @@ class App:
                                 act_nums = parse_reds(clean_nums(act_data))
                                 self.brain.learn_from_review(lot_name, lot_preds, act_nums)
                     self.log("智能大脑学习更新完成")
+                    # 策略卡提炼: 复盘统计 → 引擎挂钩知识卡（幂等, 失败降级不影响复盘）
+                    try:
+                        from engines.strategy_cards import refresh_strategy_cards
+                        refresh_strategy_cards(on_log=self.log)
+                    except Exception as e:
+                        self.log(f"策略卡提炼失败(降级跳过): {e}", "DEBUG")
                 except Exception as e:
                     self.log(f"智能大脑学习失败: {e}", "WARNING")
         except Exception as e:

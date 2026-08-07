@@ -755,6 +755,12 @@ class JinshuiyaoScheduler(TaskScheduler):
                             act_nums = parse_reds(clean_nums(act_data))
                             brain.learn_from_review(lot_name, lot_preds, act_nums)
                 logger.info("[自动复盘] 智能大脑学习完成")
+                # 策略卡提炼: 复盘统计 → 引擎挂钩知识卡（幂等, 失败降级不影响复盘）
+                try:
+                    from engines.strategy_cards import refresh_strategy_cards
+                    refresh_strategy_cards()
+                except Exception as e:
+                    logger.warning("[自动复盘] 策略卡提炼失败(降级跳过): %s", e)
             except Exception as e:
                 logger.error("[自动复盘] 智能大脑学习失败: %s", e)
 

@@ -269,6 +269,55 @@ class PredictionService:
                         # list模式：重复top热号增加被选中概率
                         hot = list(hot) + list(hot)[:boost_count]
                     self.log(f"📚 知识库增强热号权重(+{boost_count})")
+                # cold_factor > 1.05 → 增强冷号突破权重（联动遗漏预警）
+                cf = kb_adjustments["cold_factor"]
+                if cf > 1.05 and cold_tunnel and isinstance(hot, dict) and hot:
+                    try:
+                        alerts = []
+                        if isinstance(miss_data, dict):
+                            alerts = miss_data.get("cold_alerts") or []
+                        if alerts:
+                            boosted = 0
+                            for num, _ in alerts[:3]:
+                                if isinstance(num, int) and num in hot:
+                                    hot[num] = max(1, int(hot[num] * (1 + (cf - 1.0) * 1.5)))
+                                    boosted += 1
+                            if boosted:
+                                alert_nums = [f"{n:02d}" for n, _ in alerts[:3]]
+                                self.log(f"📚 知识库增强冷号突破(+{boosted}个: {','.join(alert_nums)})")
+                    except Exception:
+                        pass
+
+            # ===== 智能大脑: 置信度 + 策略权重（学习成果反哺预测） =====
+            if self.brain is not None:
+                try:
+                    brain_confidence = self.brain.assess_confidence(lot, hot_weights=hot, final_hot=hot)
+                    conf_pct = brain_confidence * 100
+                    self.log(f"🧠 {lot} 大脑置信度: {conf_pct:.1f}%")
+                    # 低置信度 → 热号权重收敛（保守，防过度追热）
+                    if brain_confidence < 0.5 and isinstance(hot, dict) and hot:
+                        for k in hot:
+                            hot[k] = max(1, int(hot[k] * 0.8))
+                        self.log(f"🧠 {lot} 低置信度: 热号权重收敛至80% (保守)")
+                    # 置信度记录落盘（学习成果持久化，重启不丢）
+                    try:
+                        self.brain._save_state()
+                    except Exception:
+                        pass
+                except Exception:
+                    pass
+                try:
+                    brain_weights = self.brain.get_strategy_weights(lot)
+                    if brain_weights:
+                        w_str = ", ".join(f"{k}={v:.2f}" for k, v in
+                                          sorted(brain_weights.items(), key=lambda x: -x[1]))
+                        self.log(f"🧠 {lot} 大脑策略权重: {w_str}")
+                        budget = self.brain.recommend_budget_split(lot)
+                        if budget:
+                            b_str = ", ".join(f"{k} {v}元" for k, v in budget.items())
+                            self.log(f"🧠 {lot} 预算建议: {b_str}")
+                except Exception:
+                    pass
 
             if lot in ["福彩3D", "排列三"] and play_plan and sum(p['count'] for p in play_plan if p['type'] == '单注') >= 2:
                 fg = FormatGen(lot, kill, hot, play=play, recent_stats=recent_stats, morph_data=morph_data,
@@ -592,7 +641,8 @@ class PredictionService:
         try:
             from knowledge.mirofish_db import MiroFishDB
             db = MiroFishDB()
-            if not db.cards:
+            # 注意: MiroFishDB 无 cards 属性, 必须走 _data["cards"] (历史 bug: 用 db.cards 抛异常被吞, 导致知识库从未生效)
+            if not db._data.get("cards"):
                 return adjustments
 
             # 映射彩种到知识库domain
