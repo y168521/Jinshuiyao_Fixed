@@ -197,6 +197,7 @@ def refresh_strategy_cards(on_log=None):
                         domain=domain, tags=["策略", lot, label],
                         source="复盘数据自动提炼", engine_hook=hook,
                         priority=7, subsystem="lottery", value_level="知识",
+                        effectiveness=effectiveness,
                     )
                     result["created"].append(title)
                     logger.info("策略卡新建: %s eff=%d", title, effectiveness)

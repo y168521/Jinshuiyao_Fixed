@@ -237,3 +237,63 @@ def test_default_value_on_missing():
         assert loaded == default, "文件不存在时应返回默认值"
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+def test_stale_checksum_removed_on_write():
+    """回归: embed_checksum=False 写覆盖旧 checksum 残留（历史事故修复）
+
+    事故背景: 契约改为"业务数据禁注入 _metadata"（embed_checksum 默认 False）后，
+    旧版本写入的 _metadata.checksum 残留文件中；新内容写入不更新 checksum，
+    导致 safe_load_json 校验永远失败 → 误判"文件损坏" → 从备份恢复旧数据
+    （曾吞掉 brain_state.json 的置信度记录与 mirofish_db 的卡片更新）。
+    """
+    tmpdir = tempfile.mkdtemp(prefix="jinshuiyao_test_")
+    try:
+        filepath = os.path.join(tmpdir, "test_data.json")
+
+        # 旧契约: 带 checksum 写入
+        ok = safe_write_json(filepath, {"version": 1, "conf": 0}, embed_checksum=True)
+        assert ok is True
+
+        # 新契约: 默认 embed_checksum=False 覆盖写入（内容更新）
+        ok = safe_write_json(filepath, {"version": 2, "conf": 1})
+        assert ok is True
+
+        with open(filepath, "r", encoding="utf-8") as f:
+            loaded = json.load(f)
+        assert "_metadata" not in loaded, "残留 checksum 应被移除（含空 _metadata）"
+        assert loaded["version"] == 2 and loaded["conf"] == 1, "新内容应完整保留"
+
+        # 关键: 之后 safe_load_json 不再误判损坏、不再静默恢复备份
+        assert verify_checksum(loaded) is True, "无 checksum 应视为通过"
+        assert check_file_health(filepath)["status"] == "healthy", "文件应保持健康"
+        reloaded = safe_load_json(filepath, default={})
+        assert reloaded == loaded, "safe_load 应返回写入的最新内容而非备份"
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+def test_stale_checksum_no_restore_from_backup():
+    """回归: 带残留旧 checksum 的文件用默认契约重写后，不再触发备份恢复"""
+    tmpdir = tempfile.mkdtemp(prefix="jinshuiyao_test_")
+    try:
+        filepath = os.path.join(tmpdir, "test_data.json")
+
+        # 先写旧版（带 checksum），再造一个备份，确保有可恢复的旧数据
+        safe_write_json(filepath, {"version": 1}, embed_checksum=True)
+        safe_write_json(filepath, {"version": 2}, embed_checksum=True, backup=True)
+
+        # 模拟事故现场: 文件内容已被新契约覆盖但 checksum 残留旧值
+        raw = json.load(open(filepath, "r", encoding="utf-8"))
+        raw["conf"] = 9  # 新业务字段
+        json.dump(raw, open(filepath, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+
+        # 旧行为: 校验失败 → 恢复备份（version=1, conf 丢失）
+        # 新行为: 重写时移除残留 checksum → 干净加载
+        ok = safe_write_json(filepath, {"version": 3, "conf": 9})
+        assert ok is True
+
+        loaded = safe_load_json(filepath, default={})
+        assert loaded == {"version": 3, "conf": 9}, "应加载最新内容，不应回滚到备份"
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)

@@ -118,7 +118,8 @@ class MiroFishDB:
 
     def add_card(self, title, content, category="inspiration", domain="general",
                  tags=None, source="用户输入", engine_hook=None, priority=5,
-                 subsystem=None, value_level=None, source_url=None, extracted_at=None):
+                 subsystem=None, value_level=None, source_url=None, extracted_at=None,
+                 effectiveness=50):
         """添加一张知识卡片。
 
         Parameters
@@ -149,6 +150,8 @@ class MiroFishDB:
             来源URL（如果从URL提取）
         extracted_at : str | None
             提取时间（如果从URL提取）
+        effectiveness : int
+            初始效果分 10-90（默认50=中性，供引擎挂钩卡/复盘提炼使用）
 
         Returns
         -------
@@ -195,7 +198,7 @@ class MiroFishDB:
                 "extracted_at": extracted_at or now,
                 "engine_hook": engine_hook or "",
                 "priority": min(10, max(1, priority)),
-                "effectiveness": 50,  # 初始50分，使用后调整
+                "effectiveness": min(90, max(10, effectiveness)),  # 初始50分（可指定），使用后调整
                 "use_count": 0,
                 "last_used": None,
                 "created": now,

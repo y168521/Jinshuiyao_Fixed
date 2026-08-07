@@ -339,6 +339,17 @@ def safe_write_json(
                 logger.debug("已嵌入校验和: %s", write_data["_metadata"]["checksum"][:16])
             else:
                 logger.debug("数据非字典类型，跳过校验和嵌入")
+        elif isinstance(data, dict) and isinstance(data.get("_metadata"), dict) \
+                and "checksum" in data["_metadata"]:
+            # 契约: 业务数据禁注入 checksum。embed_checksum=False 时必须移除残留的
+            # 旧 checksum，否则下次 safe_load_json 校验旧值与新内容不匹配，
+            # 误判"文件损坏"并从备份恢复旧数据（历史事故: brain_state 置信度记录被吞）
+            write_data = dict(data)
+            write_data["_metadata"] = {k: v for k, v in data["_metadata"].items()
+                                       if k != "checksum"}
+            if not write_data["_metadata"]:
+                write_data.pop("_metadata")
+            logger.debug("已移除残留 checksum（契约: 业务数据不注入 _metadata）")
 
         # 写入临时文件（同目录，确保同一文件系统以支持原子替换）
         parent = os.path.dirname(filepath) or "."
