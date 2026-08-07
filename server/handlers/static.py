@@ -49,6 +49,7 @@ _PAGE_ROUTES = {
     '/compare-tech':        'compare-tech.html',
     '/math-model':          'math-model.html',
     '/prediction-reference':'prediction-reference.html',
+    '/chain-map':          'chain-map.html',
 }
 
 # 外部页面路由（不在 HTML_DIR 内的独立仪表板页面）

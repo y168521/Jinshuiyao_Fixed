@@ -36,6 +36,7 @@ from .handlers import stock as h_stock
 from .handlers import filter as h_filter
 from .handlers import quant as h_quant
 from .handlers import keys as h_keys
+from .handlers import chainmap as h_chainmap
 
 
 class GuideHandler(http.server.SimpleHTTPRequestHandler):
@@ -169,6 +170,10 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
                 self._send_json({"ok": True, "summary": summary(), "events": recent(200)})
             except Exception as e:
                 self._send_json({"ok": False, "error": str(e)}, 500)
+            return
+        # /api/chain-map — 智能探路（链路地图，跑一次探路约 10~30 秒）
+        if parsed.path == '/api/chain-map':
+            h_chainmap.handle_chain_map(self)
             return
         # /api/theme — 主题分层读写（GET 取当前主题+预设；POST 存用户自选）
         if parsed.path == '/api/theme':

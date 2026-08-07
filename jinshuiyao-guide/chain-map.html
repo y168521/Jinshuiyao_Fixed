@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>金水谣系统 - 智能链路地图</title>
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+  <style>
+    :root {
+      --bg: var(--deep);
+      --bg2: var(--card-bg);
+      --dim: var(--ink-mid);
+      --accent2: var(--ice);
+      --rule: var(--gold-border);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background:
+        radial-gradient(ellipse 900px 700px at 12% 15%, rgba(91,192,222,0.08), transparent),
+        radial-gradient(ellipse 700px 600px at 88% 75%, rgba(91,192,222,0.06), transparent);
+      pointer-events: none; z-index: 0;
+    }
+    .container { position: relative; z-index: 1; max-width: 1280px; margin: 0 auto; padding: 1.5rem 1.5rem 3rem; }
+
+    .back-link { display: inline-block; color: var(--dim); text-decoration: none; font-size: 0.85rem; margin-bottom: 1rem; }
+    .back-link:hover { color: var(--accent); }
+
+    .hero {
+      display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap;
+      background: linear-gradient(135deg, var(--ice-soft), rgba(91,192,222,0.05));
+      border: 1px solid var(--rule); border-radius: 20px; padding: 1.6rem 2rem; margin-bottom: 1.5rem;
+    }
+    .hero h1 { font-size: 1.6rem; font-weight: 800; }
+    .hero p { color: var(--dim); font-size: 0.9rem; margin-top: 0.3rem; }
+    .hero-actions { display: flex; align-items: center; gap: 1rem; }
+    .btn {
+      background: var(--ice-soft); color: var(--accent);
+      border: 1px solid rgba(91,192,222,.4); border-radius: 10px;
+      padding: 0.6rem 1.4rem; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+      transition: all .2s;
+    }
+    .btn:hover { background: var(--accent); color: var(--deep); }
+    .btn:disabled { opacity: .5; cursor: wait; }
+    .hint { font-size: 0.78rem; color: var(--dim); }
+
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .s-card {
+      background: var(--bg2); border: 1px solid var(--rule); border-radius: 14px;
+      padding: 1rem 1.2rem; text-align: center;
+    }
+    .s-card .num { font-size: 1.8rem; font-weight: 900; line-height: 1.2; }
+    .s-card .lab { font-size: 0.78rem; color: var(--dim); }
+    .s-card.ok .num { color: #35d07f; }
+    .s-card.bad .num { color: #ff6b6b; }
+    .s-card.warn .num { color: #ffc85a; }
+
+    .chain {
+      background: var(--bg2); border: 1px solid var(--rule); border-radius: 16px;
+      margin-bottom: 1.2rem; overflow: hidden;
+    }
+    .chain-head {
+      display: flex; align-items: center; gap: 1rem;
+      padding: 0.9rem 1.4rem; cursor: pointer; user-select: none;
+      border-left: 5px solid #35d07f;
+    }
+    .chain-head.fail { border-left-color: #ff6b6b; }
+    .chain-head.blocked { border-left-color: #ffc85a; }
+    .chain-head .cid {
+      font-weight: 900; font-size: 1.15rem; color: var(--accent);
+      background: var(--ice-soft); border-radius: 8px; padding: 0.1rem 0.7rem;
+    }
+    .chain-head .cname { font-weight: 700; font-size: 1.02rem; }
+    .chain-head .cmode { font-size: 0.72rem; color: var(--dim); border: 1px solid var(--rule); border-radius: 10px; padding: 0.05rem 0.6rem; }
+    .chain-head .verdict { margin-left: auto; font-size: 0.85rem; font-weight: 700; }
+    .chain-head .verdict.ok { color: #35d07f; }
+    .chain-head .verdict.fail { color: #ff6b6b; }
+    .chain-head .verdict.blocked { color: #ffc85a; }
+
+    .chain-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 0.7rem; padding: 1rem 1.4rem 1.3rem; }
+    .node {
+      background: rgba(91,192,222,0.05); border: 1px solid var(--rule); border-radius: 10px;
+      padding: 0.7rem 0.9rem; font-size: 0.85rem;
+    }
+    .node .n-head { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; }
+    .node .n-id { font-size: 0.7rem; color: var(--accent); background: var(--ice-soft); border-radius: 6px; padding: 0.02rem 0.45rem; }
+    .node .n-ms { margin-left: auto; font-size: 0.68rem; color: var(--dim); }
+    .node .n-detail { margin-top: 0.35rem; color: var(--ink-mid); font-size: 0.8rem; word-break: break-all; }
+    .node .n-tip { margin-top: 0.35rem; color: #ffc85a; font-size: 0.76rem; }
+    .node.ok .n-head::before { content: '✓'; color: #35d07f; font-weight: 900; }
+    .node.fail .n-head::before { content: '✕'; color: #ff6b6b; font-weight: 900; }
+    .node.blocked { opacity: 0.6; }
+    .node.blocked .n-head::before { content: '·'; color: #ffc85a; font-weight: 900; }
+    .node.fail { border-color: rgba(255,107,107,.5); }
+
+    .empty { text-align: center; color: var(--dim); padding: 3rem 0; }
+    .err-box { background: rgba(255,107,107,.08); border: 1px solid rgba(255,107,107,.4); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <a class="back-link" href="/control-center">← 返回控制中心</a>
+  <div class="hero">
+    <div>
+      <h1>智能链路地图</h1>
+      <p>导航式探路：自动探测 6 条功能链路是否连通，失败节点给出修复提示</p>
+    </div>
+    <div class="hero-actions">
+      <span class="hint" id="genTime"></span>
+      <button class="btn" id="btnRun" onclick="runProbe()">重新探路</button>
+    </div>
+  </div>
+
+  <div id="errBox" class="err-box" style="display:none"></div>
+  <div id="summaryGrid" class="summary-grid" style="display:none"></div>
+  <div id="chains"></div>
+  <div id="loading" class="empty">正在探路中…（约 10~30 秒，含一次真实预测）</div>
+
+  <div id="map"></div>
+</div>
+
+<script>
+async function runProbe() {
+  const btn = document.getElementById('btnRun');
+  const loading = document.getElementById('loading');
+  const errBox = document.getElementById('errBox');
+  btn.disabled = true;
+  loading.style.display = 'block';
+  loading.textContent = '正在探路中…（约 10~30 秒，含一次真实预测）';
+  errBox.style.display = 'none';
+  document.getElementById('chains').innerHTML = '';
+  document.getElementById('summaryGrid').style.display = 'none';
+  try {
+    const resp = await fetch('/api/chain-map', { cache: 'no-store' });
+    const data = await resp.json();
+    if (!resp.ok || data.ok === false) {
+      throw new Error(data.error || ('HTTP ' + resp.status));
+    }
+    render(data);
+  } catch (e) {
+    loading.style.display = 'none';
+    errBox.style.display = 'block';
+    errBox.textContent = '探路失败：' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function render(p) {
+  const loading = document.getElementById('loading');
+  loading.style.display = 'none';
+  document.getElementById('genTime').textContent = '生成时间 ' + (p.generated_at || '') + (p.exit_code === 0 ? '' : '  · 存在断点');
+  const s = p.summary || {};
+  const grid = document.getElementById('summaryGrid');
+  grid.style.display = 'grid';
+  grid.innerHTML = '';
+  const items = [
+    { lab: '链路', num: s.chains, cls: 'ok' },
+    { lab: '畅通', num: s.ok, cls: 'ok' },
+    { lab: '断链', num: s.broken, cls: s.broken ? 'bad' : 'ok' },
+    { lab: '节点', num: s.nodes, cls: 'ok' },
+    { lab: '失败', num: s.fail_nodes, cls: s.fail_nodes ? 'bad' : 'ok' },
+    { lab: '不可达', num: s.blocked_nodes, cls: s.blocked_nodes ? 'warn' : 'ok' },
+  ];
+  items.forEach(it => {
+    const d = document.createElement('div');
+    d.className = 's-card ' + it.cls;
+    d.innerHTML = '<div class="num">' + (it.num ?? '-') + '</div><div class="lab">' + it.lab + '</div>';
+    grid.appendChild(d);
+  });
+
+  const wrap = document.getElementById('chains');
+  wrap.innerHTML = '';
+  (p.chains || []).forEach(ch => {
+    const card = document.createElement('div');
+    card.className = 'chain';
+    const bad = ch.verdict === 'fail';
+    const blocked = !!ch.blocks_at;
+    const vText = bad ? '断链' + (ch.blocks_at ? ' @ ' + ch.blocks_at : '') : (blocked ? '前方断点' : '畅通');
+    card.innerHTML =
+      '<div class="chain-head ' + (bad ? 'fail' : blocked ? 'blocked' : '') + '" onclick="this.nextElementSibling.style.display=\'grid\'===this.nextElementSibling.style.display?this.nextElementSibling.style.display=\'none\':this.nextElementSibling.style.display=\'grid\'">' +
+        '<span class="cid">' + ch.id + '</span>' +
+        '<span class="cname">' + (ch.name || '') + '</span>' +
+        '<span class="cmode">' + (ch.mode === 'sequential' ? '串行' : '并行') + '</span>' +
+        '<span class="verdict ' + (bad ? 'fail' : blocked ? 'blocked' : 'ok') + '">' + vText + '</span>' +
+      '</div>' +
+      '<div class="chain-body">' +
+        (ch.nodes || []).map(n => {
+          const cls = n.status || 'ok';
+          return '<div class="node ' + cls + '">' +
+            '<div class="n-head"><span class="n-id">' + n.id + '</span><span>' + (n.name || '') + '</span>' +
+            '<span class="n-ms">' + (n.latency_ms ? n.latency_ms + 'ms' : '') + '</span></div>' +
+            (n.detail ? '<div class="n-detail">' + n.detail + '</div>' : '') +
+            (n.tip && cls !== 'ok' ? '<div class="n-tip">💡 ' + n.tip + '</div>' : '') +
+          '</div>';
+        }).join('') +
+      '</div>';
+    wrap.appendChild(card);
+  });
+}
+
+runProbe();
+</script>
+</body>
+</html>
