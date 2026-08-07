@@ -16,6 +16,7 @@ import json
 import time
 import random
 import threading
+from utils.safe_json import safe_write_json, safe_load_json
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _EVAL_PATH = os.path.join(_PROJECT_ROOT, "金水谣数据", "shadow_eval.jsonl")
@@ -164,16 +165,20 @@ def shadow_promote_if_ready():
     try:
         from core.free_model_pool import _PROJECT_ROOT as PR
         cfg_path = os.path.join(PR, "config", "free_models.json")
-        with open(cfg_path, "r", encoding="utf-8") as f:
-            cfg = json.load(f)
+        # 刀⑥(JS-20260807-02): safe_load_json 原子读+损坏恢复
+        cfg = safe_load_json(cfg_path, default={})
+        if not isinstance(cfg, dict):
+            cfg = {}
         cand = s.get("candidate")
         for prov, pdata in cfg.get("providers", {}).items():
             for m in pdata.get("models", []):
                 if m.get("id") == cand:
                     m["priority"] = 1
                     m["enabled"] = True
-        with open(cfg_path, "w", encoding="utf-8") as f:
-            json.dump(cfg, f, ensure_ascii=False, indent=2)
+        # 刀⑥: safe_write_json 原子写+备份，含 makedirs；写失败标 promoted=False
+        if not safe_write_json(cfg_path, cfg, backup=True):
+            s["promoted"] = False
+            return s
         s["promoted"] = True
     except Exception:
         s["promoted"] = False

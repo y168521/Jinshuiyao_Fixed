@@ -117,13 +117,10 @@ def get_mode() -> str:
     Returns:
         str: 'online' 或 'offline'
     """
-    try:
-        if os.path.isfile(_MODE_CONFIG_PATH):
-            with open(_MODE_CONFIG_PATH, "r", encoding="utf-8") as f:
-                cfg = json.load(f)
-                return cfg.get("mode", "online")
-    except Exception as e:
-        logger.debug("[ai_service] 读取模式配置失败: %s", e)
+    # 刀⑥(JS-20260807-02): safe_load_json 原子读+损坏恢复，避免裸 open+json.load 半读/崩
+    cfg = safe_load_json(_MODE_CONFIG_PATH, default={})
+    if isinstance(cfg, dict):
+        return cfg.get("mode", "online")
     return "online"
 
 
@@ -141,22 +138,21 @@ def set_mode(mode: str) -> bool:
         return False
 
     try:
-        # 读取现有配置
-        cfg = {"mode": "online", "description": "", "modes": {}, "last_updated": ""}
-        if os.path.isfile(_MODE_CONFIG_PATH):
-            with open(_MODE_CONFIG_PATH, "r", encoding="utf-8") as f:
-                cfg = json.load(f)
+        # 读取现有配置（刀⑥: safe_load_json 原子读+损坏恢复）
+        cfg = safe_load_json(_MODE_CONFIG_PATH, default={
+            "mode": "online", "description": "", "modes": {}, "last_updated": "",
+        })
+        if not isinstance(cfg, dict):
+            cfg = {"mode": "online", "description": "", "modes": {}, "last_updated": ""}
 
         # 更新模式
         cfg["mode"] = mode
         cfg["last_updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # 确保目录存在
-        os.makedirs(os.path.dirname(_MODE_CONFIG_PATH), exist_ok=True)
-
-        # 写入
-        with open(_MODE_CONFIG_PATH, "w", encoding="utf-8") as f:
-            json.dump(cfg, f, ensure_ascii=False, indent=2)
+        # 写入（刀⑥: safe_write_json 原子写+备份，含 makedirs，移除冗余 makedirs）
+        if not safe_write_json(_MODE_CONFIG_PATH, cfg, backup=True):
+            logger.error("[ai_service] 模式配置写入失败: %s", _MODE_CONFIG_PATH)
+            return False
 
         logger.info("[ai_service] 模式已切换为: %s", mode)
 
@@ -185,18 +181,15 @@ def get_mode_info() -> Dict:
             "offline": {"name": "本地模式", "description": "不调用API，纯本地运行"}
         }
     }
-    try:
-        if os.path.isfile(_MODE_CONFIG_PATH):
-            with open(_MODE_CONFIG_PATH, "r", encoding="utf-8") as f:
-                cfg = json.load(f)
-                return {
-                    "mode": cfg.get("mode", "online"),
-                    "description": cfg.get("description", ""),
-                    "modes": cfg.get("modes", default_info["modes"]),
-                    "last_updated": cfg.get("last_updated", "")
-                }
-    except Exception:
-        pass
+    # 刀⑥: safe_load_json 原子读+损坏恢复
+    cfg = safe_load_json(_MODE_CONFIG_PATH, default={})
+    if isinstance(cfg, dict):
+        return {
+            "mode": cfg.get("mode", "online"),
+            "description": cfg.get("description", ""),
+            "modes": cfg.get("modes", default_info["modes"]),
+            "last_updated": cfg.get("last_updated", "")
+        }
     return default_info
 
 

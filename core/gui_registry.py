@@ -7,10 +7,10 @@ GUI 启动时 register() 写入心跳（pid/标题/时间），进程退出自�
 （register 时以当前 pid 为准，check 时校验 pid 存活）。
 """
 import atexit
-import json
 import os
 import sys
 import threading
+from utils.safe_json import safe_write_json, safe_load_json
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _STATUS_FILE = os.path.join(_PROJECT_ROOT, '金水谣数据', 'log', 'gui_status.json')
@@ -109,20 +109,15 @@ def _pid_alive_windows(pid):
 
 
 def _read():
-    try:
-        with open(_STATUS_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception:
-        return {}
+    # 刀⑥(JS-20260807-02): safe_load_json 原子读+损坏恢复
+    data = safe_load_json(_STATUS_FILE, default={})
+    return data if isinstance(data, dict) else {}
 
 
 def _write(data):
-    try:
-        os.makedirs(os.path.dirname(_STATUS_FILE), exist_ok=True)
-        with open(_STATUS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-    except Exception:
-        pass
+    # 刀⑥: safe_write_json 原子写+备份，含 makedirs；原 except:pass 静默吞错改为 stderr 告警
+    if not safe_write_json(_STATUS_FILE, data, backup=True):
+        print(f"[gui_registry] 状态文件写入失败: {_STATUS_FILE}", file=sys.stderr)
 
 
 def _now_iso():

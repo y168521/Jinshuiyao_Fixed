@@ -13,6 +13,7 @@
 import json
 import os
 import re
+from utils.safe_json import safe_write_json, safe_load_json
 import threading
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -97,17 +98,14 @@ def theme_to_css_vars(vars_dict, var_order=None):
 
 
 def _load_user_themes():
-    try:
-        with open(_USER_THEMES_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {}
+    # 刀⑥(JS-20260807-02): safe_load_json 原子读+损坏恢复，避免裸 open+json.load 半读/崩
+    data = safe_load_json(_USER_THEMES_PATH, default={})
+    return data if isinstance(data, dict) else {}
 
 
 def _save_user_themes(data):
-    os.makedirs(os.path.dirname(_USER_THEMES_PATH), exist_ok=True)
-    with open(_USER_THEMES_PATH, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    # 刀⑥: safe_write_json 原子写+备份，含 makedirs，避免半写撕裂
+    safe_write_json(_USER_THEMES_PATH, data, backup=True)
 
 
 def get_user_theme(user_id):

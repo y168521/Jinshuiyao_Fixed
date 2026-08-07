@@ -25,6 +25,7 @@ import os
 import sys
 import time
 import threading
+from utils.safe_json import safe_write_json
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _CONFIG_PATH = os.path.join(_PROJECT_ROOT, "config", "free_models.json")
@@ -369,17 +370,18 @@ def health_check_all(config_path=_CONFIG_PATH, status_path=_STATUS_PATH, call_fn
     summary["all_down"] = (bool(summary["down"]) or bool(summary["degraded"])) and (len(summary["down"]) + len(summary["degraded"])) == len(summary["checked"])
     # 写状态文件 + 全挂告警
     try:
-        os.makedirs(os.path.dirname(status_path), exist_ok=True)
         out = {"ts": summary["ts"], "checked": summary["checked"],
                "down": summary["down"], "degraded": summary["degraded"],
                "all_down": summary["all_down"]}
-        with open(status_path, "w", encoding="utf-8") as f:
-            json.dump(out, f, ensure_ascii=False, indent=2)
+        # 刀⑥(JS-20260807-02): 原子写，避免状态文件半写撕裂；safe_write_json 已含 makedirs+备份
+        if not safe_write_json(status_path, out, backup=True):
+            print(f"[free_model_pool] 状态文件写入失败: {status_path}", file=sys.stderr)
         if summary["all_down"] and cfg.get("notify", {}).get("on_all_free_down", True):
             print(f"[free_model_pool] [ALERT] 所有免费模型不可用，已回退付费兜底。状态见 {status_path}",
                   file=sys.stderr)
-    except Exception:
-        pass
+    except Exception as e:
+        # 刀⑥: 原 except:pass 静默吞错，改为 stderr 告警（与全挂告警同通道），不丢故障信号
+        print(f"[free_model_pool] 状态文件写入异常: {status_path} ({e})", file=sys.stderr)
     return summary
 
 
