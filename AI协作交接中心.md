@@ -38,6 +38,7 @@
 | **🟢 会话租约接线+非原子写改造** | 补全 PROTECTED_REL(经验箱/交接中心/契) + 新增 shared_write 受保护写助手(锁失败仍直写不丢数据) + 6处 open('w') 改 safe_write_json + safe_write_json 默认 embed_checksum=False 契约对齐（JS-20260806-07） |
 | **🟢 CORS 与 SSRF 纵深加固** | health.py `/status` 删 `*` 改委托 router._set_cors 同源反射 + quant_server 两处 `*` 改同源反射 + video_extractor 入口 URL 加 `_is_safe_host` 校验(残差SSRF入口拦截) + utils.py explorer 改参数列表(引号注入)（JS-20260806-09） |
 | **🟢 契约欺骗与文档漂移修正** | sync_manager 4个预留接口诚实标记(reserved=True+success=False, 返回True仅表队列ack) + 契§3.4整表重写为15真实任务 + AGENTS模块地图澄清非全量 + scheduler注释10/11项→15项（JS-20260806-10） |
+| **🟢 SSRF 校验单一真源统一** | 新建 core/security.py::is_safe_http_url 单一真源, router 与 video_extractor 两处 SSRF 判断委托复用(接口/行为不变), 消除重复实现漂移隐患（JS-20260807-01 · 2026-08-07） |
 
 **⚠️ 如果是第一天上手的 AI：请完整读完下方【给主人的超简单使用说明】和【一、项目基本情况】，不要只看速查。**
 
@@ -152,6 +153,7 @@
 - [x] **会话租约接线+非原子写改造（JS-20260806-07）**：`scripts/session_coordinator.py` 补全 PROTECTED_REL 三条(经验箱/交接中心/契) + 新增 `utils/shared_write.py`(`protected_write_text/rmw/json`，锁失败仍直写不丢数据) + `tools/digest_experience.py`/`compliance.py`/`review_learning.py` 接租约 + `core/ai_agent.py`/`agent_reminder.py`/`data_maintenance.py`(6处 `open('w')` 非原子)/`scripts/seed_quant_knowledge.py`/`core/agent_vector_memory.py` 改 `safe_write_json` + `utils/safe_json.py` 默认 `embed_checksum=False` 契约对齐 + 新增 `tests/test_session_coordinator.py`
 - [x] **CORS 与 SSRF 纵深加固（JS-20260806-09）**：`server/handlers/health.py` `/status` 删硬编码 `Access-Control-Allow-Origin: *`、改调 `router._set_cors()` 同源反射；`frontend/quant-dashboard/quant_server.py` 新增 `_is_same_origin`/`_set_cors` 替换两处 `*`；`core/video_extractor.py` `_request_with_retry`/`_post_with_retry` 入口 URL 加 `_is_safe_host` 校验(SSRF 入口残差拦截，重定向链路早已受控)；`server/utils.py` `open_local_file` 的 `explorer` 由 f-string 改参数列表(消引号注入)；新增 `tests/test_cors_ssrf_hardening.py`(11 passed)
 - [x] **契约欺骗与文档漂移修正（JS-20260806-10）**：`engines/sync_manager.py` 给 `_record_sync` 加 `reserved` 形参，`report_analytics`/`sync_engine_params`/`sync_model_updates`/`report_health` 四个预留接口从"谎报 `success=True`"改为诚实标记(`reserved=True`+`success=False`，返回 `True` 仅表队列 ack，避免离线队列误判失败)；`core/scheduler.py` 注释"10项/11项原生"校正为"15项/14项原生"；`金水谣_契.md` §3.4 整段过期任务表按 `_register_default_tasks()` 真实 `register()` 重写为 15 项；`AGENTS.md`「核心模块地图」澄清为"重点登记（非全量地图）"；新增 `tests/test_sync_manager_honest.py`(7 passed)。现状核实纠偏：审计⑭/⑮ stale（`backups/gui/main_window.py` 不存在、`corr_lock` 在 `utils/locks.py:13` 存活且被测）
+- [x] **SSRF 校验单一真源统一（JS-20260807-01）**：新建 `core/security.py::is_safe_http_url(url)` 单一真源（返回 `(bool, str)`，逻辑对齐原 router 实现）；`server/router.py` 的 `_is_safe_http_url` 委托它（仍返回元组）、`core/video_extractor.py` 的 `_is_safe_host` 委托它（仍返回 bool），两处接口/行为逐字节不变；清理两文件冗余 `socket`/`ipaddress` import；新增 `tests/test_security_ssrf.py`(11 passed)。现状核实：两处旧实现逻辑 100% 一致；`keys.py` 的 `test_url` 全部硬编码官方域名（无 SSRF 风险，证伪）、用户可控 URL 入口（ai/knowledge/video）已全部防护 → SSRF 这块已查完，本次只做去重
 
 ---
 

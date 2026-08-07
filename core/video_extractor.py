@@ -35,8 +35,7 @@ import shutil
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse, parse_qs
-import socket
-import ipaddress
+from core.security import is_safe_http_url  # JS-20260807-01：SSRF 校验单一真源
 
 logger = logging.getLogger(__name__)
 
@@ -210,23 +209,10 @@ class VideoExtractor:
 
     def _is_safe_host(self, url: str) -> bool:
         """校验 URL 的 host 解析后的 IP 不得为环回/私网/链路本地/保留/组播地址
-        （防 SSRF 访问内网或云元数据 169.254.169.254）。仅 http/https 且解析安全才放行。"""
-        try:
-            p = urlparse(url)
-            if p.scheme not in ('http', 'https'):
-                return False
-            host = (p.hostname or '').strip().lower()
-            if not host:
-                return False
-            infos = socket.getaddrinfo(host, None)
-            for info in infos:
-                ip = info[4][0]
-                net = ipaddress.ip_address(ip)
-                if net.is_loopback or net.is_private or net.is_link_local or net.is_reserved or net.is_multicast:
-                    return False
-            return True
-        except Exception:
-            return False
+        （防 SSRF 访问内网或云元数据 169.254.169.254）。仅 http/https 且解析安全才放行。
+        JS-20260807-01：委托 core/security.is_safe_http_url 单一真源，取布尔部分，行为不变。"""
+        ok, _ = is_safe_http_url(url)
+        return ok
 
     def _request_with_retry(self, url: str, timeout: int = _DEFAULT_TIMEOUT,
                              retries: int = _MAX_RETRIES, **kwargs) -> Optional['requests.Response']:
