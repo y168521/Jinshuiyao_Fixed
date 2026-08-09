@@ -42,6 +42,7 @@
 | **🟢 核心配置状态JSON原子写收口** | 刀② safe_write_json/shared_write 就位后残差: free_model_pool状态写+ai_service模式配置+theme_manager用户主题+model_shadow写free_models.json+gui_registry状态 共5处裸 open('w')+json.dump 迁 safe_write_json/safe_load_json; 修 free_model_pool/gui_registry/model_shadow 三处 except:pass 静默吞错→显式查返回值+stderr告警; gui_registry 删冗余 import json（JS-20260807-02 · 2026-08-07） |
 | **🟢 智能链路全线联通** | 知识库实测从未生效(bug: `db.cards` 属性不存在被 except 吞) + 大脑置信度/策略权重从未接入预测 + 策略卡首次创建 effectiveness 永远 50; 修复预测接线+新建策略卡提炼引擎(复盘→3类引擎挂钩卡)+一键验证 verify_chain 24/24 + 修 safe_json 校验和残留历史事故（JS-20260807-03 · 2026-08-07） |
 | **🟢 智能探路引擎（链路地图）** | 新建 tools/route_probe.py 导航式探路: 6条链路31节点(串行A预测/B复盘/C大脑/D知识库, 并行E子系统/F审查保障), 逐节点真实探测(文件/数据/真实generate), 失败给修复tip+串行前节点失败则后续标"不可达"; --json 导出地图; 接 GET /api/chain-map(独立进程防阻塞) + 页面 /chain-map + 控制中心侧边栏"链路地图"入口(双副本 jinshuiyao-guide/ 与 frontend/guide/ 均已加) + 单测 tests/unit/test_route_probe.py 6项(结构/串行阻断传播/并行独立/异常兜底/字段可序列化/exit语义); 验证: CLI 与 API 均 6链路5通1断(E6足彩数据未接入, 如实标注) exit=1 正确, 23+6 单测全绿（JS-20260807-04 · 2026-08-07） |
+| **🟢 网络抖动弹窗+链路地图API加固** | 本机 DNS 间歇性瘫痪(11001 getaddrinfo failed) 导致①同步代码.bat pull 失败即退出②链路地图 API 偶发 500; 加固: 同步脚本 pull 失败自动重试3次(间隔5秒) + ~/.ssh/config 连接重试6次 + chainmap.py stderr 无保护切片修复 + 探路异常完整 traceback 进日志; 验证: 重启服务器后 /api/chain-map 200(6链路5通1断) 页面/控制中心入口正常, git push 连通（JS-20260809-01 · 2026-08-09） |
 
 **⚠️ 如果是第一天上手的 AI：请完整读完下方【给主人的超简单使用说明】和【一、项目基本情况】，不要只看速查。**
 

@@ -38,7 +38,7 @@ def _run_probe(timeout=180):
             except OSError:
                 pass
             return payload
-        log(f"chain-map 探路无输出: rc={r.returncode} stderr={r.stderr[-500:]}")
+        log(f"chain-map 探路无输出: rc={r.returncode} stderr={(r.stderr or '')[-500:]}")
         return {
             "generated_at": "", "error": "探路器未产出结果",
             "exit_code": r.returncode,
@@ -47,6 +47,8 @@ def _run_probe(timeout=180):
     except subprocess.TimeoutExpired:
         return {"generated_at": "", "error": f"探路超时（>{timeout}s）", "exit_code": 124}
     except Exception as e:
+        import traceback
+        log(f"chain-map 探路异常: {e}\n{traceback.format_exc()}")
         return {"generated_at": "", "error": f"探路异常: {e}", "exit_code": 1}
 
 
