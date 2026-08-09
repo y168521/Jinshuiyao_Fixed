@@ -37,6 +37,7 @@ from .handlers import filter as h_filter
 from .handlers import quant as h_quant
 from .handlers import keys as h_keys
 from .handlers import chainmap as h_chainmap
+from .handlers import pipeline as h_pipeline
 
 
 class GuideHandler(http.server.SimpleHTTPRequestHandler):
@@ -170,6 +171,10 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
                 self._send_json({"ok": True, "summary": summary(), "events": recent(200)})
             except Exception as e:
                 self._send_json({"ok": False, "error": str(e)}, 500)
+            return
+        # /api/pipeline/status — 多 Agent 流水线实时状态（前端轮询 / 连接探测）
+        if parsed.path == '/api/pipeline/status':
+            h_pipeline.handle_pipeline_status(self)
             return
         # /api/chain-map — 智能探路（链路地图，跑一次探路约 10~30 秒）
         if parsed.path == '/api/chain-map':
@@ -524,6 +529,10 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
             return
         if parsed.path == '/api/model_status':
             h_ai.handle_model_status(self)
+            return
+        # /api/pipeline/run — 触发流水线运行（仅本机；阶段二替换为真实 Agent）
+        if parsed.path == '/api/pipeline/run':
+            h_pipeline.handle_pipeline_run(self)
             return
         # /api/theme — 主题分层读写（GET 取当前主题+预设；POST 存用户自选）
         if parsed.path == '/api/theme':
