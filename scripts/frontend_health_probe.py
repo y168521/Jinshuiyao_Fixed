@@ -39,7 +39,7 @@ GET_ENDPOINTS = [
     ("/api/user-kb/stats", "", "知识库统计"),
     ("/api/knowledge/crosslinks/stats", "", "交叉链接统计"),
     ("/api/knowledge/crosslinks/all", "", "全部交叉链接"),
-    ("/api/knowledge/crosslinks", "?lib=core&id=probe", "跨库链接查询"),
+    ("/api/knowledge/crosslinks", "?lib=mirofish&id=probe", "跨库链接查询"),
     ("/api/knowledge/graph", "", "知识图谱数据"),
     ("/api/knowledge/graph/neighbors", "?entity=probe", "实体关联查询"),
     ("/api/knowledge/graph/top", "", "最重要实体"),
