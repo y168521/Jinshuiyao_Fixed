@@ -348,7 +348,9 @@ def health_check_all(config_path=_CONFIG_PATH, status_path=_STATUS_PATH, call_fn
                 continue
             mid = m.get("id")
             single = build_single_cfg(prov, pdata, m)
-            text, err = fn(single, "你是健康检查器，只回复 pong", probe, timeout)
+            # 2026-08-10 智谱接入后: thinking 模型(如 glm-4.5-air) 64 token 会被思考过程吃光,
+            # 探活给足 200 token 才能探到真实输出能力(否则只探到"能连上", 探不到"能回答")
+            text, err = fn(single, "你是健康检查器，只回复 pong", probe, timeout, max_tokens=200)
             entry = {"id": mid, "provider": prov, "healthy": err is None,
                      "error": str(err) if err else "", "ts": time.strftime("%Y-%m-%dT%H:%M:%S+08:00")}
             summary["checked"].append(entry)

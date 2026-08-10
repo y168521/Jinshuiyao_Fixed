@@ -130,7 +130,7 @@
 |------|------|
 | `core/agent_hub.py` | 统一 Agent 注册中心（W63补38）：15 个 agent 按 5 类注册，定时/手动同入口 |
 | `core/agent_orchestrator.py` | Agent 编排调度（agent_hub 依赖） |
-| `core/agent_tools.py` | Agent 工具集（agent_hub 依赖） |
+| `core/agent_tools.py` | ~~Agent 工具集~~ 已删除（2026-08-10 架构体检：全库 0 引用孤儿） |
 | `core/agent_vector_memory.py` | Agent 向量记忆（agent_hub 依赖） |
 | `core/gui_registry.py` | GUI 组件注册表（核心 GUI 模块） |
 | `core/tk_style.py` | ModernTheme 七色视觉主题（tkinter 统一样式） |
