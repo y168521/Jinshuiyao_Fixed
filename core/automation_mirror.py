@@ -136,7 +136,8 @@ def _make_func(task):
                 return
             r = subprocess.run(
                 [sys.executable, script],
-                cwd=_proj, capture_output=True, text=True, timeout=900,
+                cwd=_proj, capture_output=True, text=True,
+                encoding='utf-8', errors='replace', timeout=900,
             )
             _write_log(name, desc, r.returncode, r.stdout, r.stderr)
         except Exception as e:
