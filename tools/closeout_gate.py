@@ -184,6 +184,19 @@ def main():
     if not ok:
         all_ok = False
 
+    # 6: 金水谣数据完整性（盲区告警 · JS-20260810-13 还原 T04 集成断言）
+    # 仅告警(WARN)不阻断：数据缺失可能只是未开奖/未生成，不应拦收工
+    try:
+        sys.path.insert(0, os.path.join(BASE_DIR, "scripts"))
+        from jinshuiyao_data_guard import check_jinshuiyao_data
+        ok_data = check_jinshuiyao_data()
+        if ok_data:
+            print("  [OK] 金水谣数据完整性: 无盲区")
+        else:
+            print("  [WARN] ❌ 金水谣数据盲区: 数据文件缺失，请运行 scripts/quality_gate.py 查看详情")
+    except Exception as e:
+        print(f"  [WARN] 金水谣数据完整性: 检查不可用 ({e})")
+
     # 记录门禁结果
     try:
         from tools.audit_trail import log_event

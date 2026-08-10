@@ -121,8 +121,19 @@ def test_quality_gate_reports_data_alert():
 
 
 def test_closeout_reports_data_issue():
-    """closeout_gate 不输出 [G] 标签，本测试标记跳过后等待重构。"""
-    pytest.skip("closeout_gate 输出 [OK]/[MISS] 而非 [G]，待统一标签后还原")
+    """closeout_gate 集成输出金水谣数据完整性标记（T04 断言 · JS-20260810-13 还原）。
+
+    原测试因 closeout 未实现盲区集成而 skip；现已集成第 6 项检查，
+    数据完好时应输出 [OK] 金水谣数据完整性。
+    """
+    closeout = os.path.join(_project_root, "tools", "closeout_gate.py")
+    r = subprocess.run(
+        [sys.executable, closeout, "--check"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+        timeout=180)
+    out = r.stdout
+    assert "金水谣数据完整性" in out, "closeout_gate 应输出数据完整性检查行；实际输出:\n" + out
+    assert "[OK] 金水谣数据完整性" in out, "数据完好时数据完整性应为 [OK]；实际输出:\n" + out
 
 
 if __name__ == "__main__":
