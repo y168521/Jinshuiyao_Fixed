@@ -71,6 +71,10 @@ _EXTERNAL_PAGE_ROUTES = {
     '/automation-dashboard': os.path.join(HTML_DIR, 'automation-dashboard.html'),
     '/head-tail-analysis': os.path.join(HTML_DIR, 'head-tail-analysis.html'),
     '/lottery-sources-health': os.path.join(HTML_DIR, 'lottery-sources-health.html'),
+    # 轻量入口：A股每日情绪日报（独立脚本每日生成，最新一份始终覆盖此文件）
+    '/daily-sentiment': os.path.join(ROOT_DIR, 'deliverables', 'A股情绪日报_最新.html'),
+    # 股票系统同名入口（同一份独立日报，仅路由路径不同，便于从股票中心进入）
+    '/stock/daily-sentiment': os.path.join(ROOT_DIR, 'deliverables', 'A股情绪日报_最新.html'),
 }
 
 # 彩票子系统路由（/lottery/xxx → lottery/xxx.html）
