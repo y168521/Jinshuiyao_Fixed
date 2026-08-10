@@ -164,6 +164,7 @@
 
 - [x] **多Agent流水线实时状态接口(阶段一·实时基建, JS-20260810-01)**：`core/pipeline_state.py` 进程内6节点状态机 + daemon线程脚本化运行；`server/handlers/pipeline.py` 新增 GET /api/pipeline/status（实时状态）+ POST /api/pipeline/run（仅本机127.0.0.1触发防越权，CORS兼容同源+file://）；`server/router.py` 注册两路由未动既有逻辑；`agent-pipeline-visualizer.html` 加载即探测连接、右上角显示「已连接金水谣实时状态/演示模式」、已连接时POST触发并轮询驱动节点、未连接回退本地剧本；git commit 9163d32
 - [x] **金水谣一键重启.bat(JS-20260810-02)**：桌面 + 模型目录各一份（GBK编码），先 taskkill 清理 18888 旧进程再启动，根治「旧进程占端口→新路由不生效→接口403」的坑；页面经此重启后实测变绿灯「已连接金水谣实时状态」
+- [x] **多Agent流水线接入真实AI(阶段二, JS-20260810-03)**：把阶段一的脚本化六步换成真实干活。`core/pipeline_state.py` 改为协调者/采集/分析/撰写/审核/交付各步真实调用 `get_ai_service().chat()`（免费模型优先→付费兜底）；审核不通过回退重写≤2次；无密钥/离线优雅降级为脚本文本并标记 `degraded`；`report` 落盘 `金水谣数据/pipeline_reports/`；`stats` 真实累计 tokens/quality/elapsed；RLock 线程安全。`server/handlers/pipeline.py` POST /api/pipeline/run 支持传入研报主题 topic。`agent-pipeline-visualizer.html` 加研报主题输入框、已连接时 POST 携带主题、轮询同步真实 stats、详情面板新增「实时产出」展示各节点 AI 真实文本。验证：桩AI快进测试回退环(loop_count=1)/report落盘/re-entrancy防护/真实stats正常；py_compile三文件过；JS语法校验过；git commit 88298b1
 
 ---
 
