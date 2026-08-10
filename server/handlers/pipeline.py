@@ -39,15 +39,27 @@ def handle_pipeline_status(handler):
 
 
 def handle_pipeline_run(handler):
-    """POST /api/pipeline/run — 触发一次运行（仅本机）。"""
+    """POST /api/pipeline/run — 触发一次运行（仅本机）。
+
+    请求体可选 JSON：{"topic": "研报主题"}；缺省则使用默认主题。
+    """
     if not handler._is_local():
         _send_json(handler, {"ok": False, "error": "仅允许本机触发"}, 403)
         return
     try:
+        topic = ""
+        try:
+            cl = int(handler.headers.get('Content-Length', 0) or 0)
+            if cl:
+                raw = handler.rfile.read(cl).decode('utf-8', errors='replace')
+                topic = (json.loads(raw) or {}).get('topic', '') or ""
+        except Exception:
+            topic = ""
         from core.pipeline_state import start_run
-        ok = start_run()
+        ok = start_run(topic)
         if ok:
-            _send_json(handler, {"ok": True, "message": "流水线已启动（服务端实时推进）"})
+            _send_json(handler, {"ok": True, "message": "流水线已启动（服务端实时推进）",
+                                 "topic": topic or "默认主题"})
         else:
             _send_json(handler, {"ok": False, "message": "流水线正在运行中，请稍候"})
     except Exception as e:
