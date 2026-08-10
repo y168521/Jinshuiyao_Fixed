@@ -1,6 +1,37 @@
 {
-  "_说明": "免费模型池配置。priority 升序=优先使用。quality 用于自动精准匹配(score 越高越优先处理复杂任务)。id 与硅基流动官方一致。修改后重启系统生效。2026-08-05 暴测账单审计结论: 4个模型经账单核验真免费(free-text-model计费项单价0, 实测); 另3个模型(见各自note)为官方价格表标注免费、待暴测账单核验, 未实测前不视为已验证; 其余18个按量收费已禁用。",
+  "_说明": "模型池配置。priority 升序=优先使用。quality 用于自动精准匹配(score 越高越优先处理复杂任务)。id 与官方一致。修改后即时生效(每次调用重读)。2026-08-05 暴测账单审计结论: 4个模型经账单核验真免费(free-text-model计费项单价0, 实测); 另3个模型(见各自note)为官方价格表标注免费、待暴测账单核验, 未实测前不视为已验证; 其余18个按量收费已禁用。2026-08-10 新增智谱(zhipu) provider: 用户已购付费+赠送额度(glm-4.5-air 约2200万tokens、glm-4.1v-thinking-flashx 1000万、glm-4.6v 600万, 有效期至2026-09/11月), 密钥 zhipu_key.txt 连通实测OK(2026-08-10), priority 0-2 最优先使用, 硅基免费池做故障转移, deepseek 兜底。",
   "providers": {
+    "zhipu": {
+      "base_url": "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+      "api_key_file": "zhipu_key.txt",
+      "json_mode": true,
+      "models": [
+        {
+          "id": "glm-4.5-air",
+          "priority": 0,
+          "quality": 88,
+          "json_mode": true,
+          "enabled": true,
+          "note": "智谱付费1000万+赠送1200万tokens(2026-08-05~2026-09-05), 连通实测OK 2026-08-10, 日常主力, 快且准"
+        },
+        {
+          "id": "glm-4.1v-thinking-flashx",
+          "priority": 1,
+          "quality": 95,
+          "json_mode": true,
+          "enabled": true,
+          "note": "智谱付费1000万tokens(2026-08-05~2026-09-05), thinking深度推理, 复杂任务优先匹配, 响应较慢"
+        },
+        {
+          "id": "glm-4.6v",
+          "priority": 2,
+          "quality": 90,
+          "json_mode": true,
+          "enabled": true,
+          "note": "智谱赠送600万tokens(2026-08-05~2026-11-05), 多模态, 备用"
+        }
+      ]
+    },
     "siliconflow": {
       "base_url": "https://api.siliconflow.cn/v1/chat/completions",
       "api_key_file": "siliconflow_key.txt",
