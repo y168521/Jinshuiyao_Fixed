@@ -51,7 +51,7 @@ GET_ENDPOINTS = [
     ("/api/lottery/sources-health", "", "彩票数据源健康"),
     ("/api/lottery/reference", "?type=3d", "彩票多维参考"),
     ("/api/lottery/math-model", "?type=3d", "彩票数学模型"),
-    ("/api/trend/data", "", "走势图数据"),
+    ("/api/trend/data", "?lot=%E7%A6%8F%E5%BD%A93D", "走势图数据"),
     ("/api/trend/freshness", "", "走势图新鲜度"),
     ("/api/review/dashboard", "", "审查仪表盘"),
     ("/api/review/patterns", "", "审查模式库"),
@@ -64,34 +64,15 @@ GET_ENDPOINTS = [
 ]
 
 # POST 端点：(路径, JSON body, 说明)
+# 注意：只保留真正的只读端点（探测端点连通性）。
+# 写型/重负载端点（AI对话、知识库写入、视频提取、回测、审查触发等）会真实执行
+# 副作用（写库/烧token/跑长回测）且与探针 15s 超时冲突（服务端 60s 处理 → 500 噪音），
+# 故不列入探针清单，连通性由真实使用验证。
 POST_ENDPOINTS = [
-    ("/api/route", {"task": "probe"}, "任务智能路由(POST)"),
-    ("/api/ask", {"question": "probe"}, "智能问答"),
-    ("/api/chat", {"message": "probe"}, "AI对话"),
-    ("/api/prediction/record", {"domain": "probe"}, "预测记录"),
-    ("/api/prediction/list", {"domain": "probe"}, "预测列表"),
-    ("/api/prediction/outcome", {"id": "probe"}, "预测结果录入"),
     ("/api/status", {}, "AI状态(POST)"),
-    ("/api/ai/mode/set", {"mode": "online"}, "切换AI模式"),
-    ("/api/review/trigger", {"files": ["probe.py"]}, "触发代码审查"),
-    ("/api/review/feedback", {"review_id": "probe"}, "审查反馈"),
-    ("/api/backtest", {"type": "fund"}, "统一回测(POST)"),
-    ("/api/fund-backtest", {"code": "000001"}, "基金回测(POST)"),
-    ("/api/fund-compare", {"codes": ["000001"]}, "基金对比(POST)"),
-    ("/api/extract", {"url": "http://example.com"}, "视频文案提取"),
-    ("/api/refine", {"content": "probe"}, "内容提炼"),
     ("/api/knowledge/stats", {}, "知识库统计(POST)"),
     ("/api/knowledge/search", {"q": "probe"}, "知识搜索"),
     ("/api/knowledge/list", {"limit": 1}, "知识列表"),
-    ("/api/knowledge/add", {"title": "probe"}, "添加知识卡片"),
-    ("/api/user-kb/add", {"title": "probe"}, "新增个人知识卡片"),
-    ("/api/knowledge/extract-archive", {"url": "http://example.com"}, "URL提取归档"),
-    ("/api/knowledge/crosslinks/discover", {}, "交叉链接自动发现"),
-    ("/api/knowledge/graph/build", {}, "重建知识图谱"),
-    ("/api/video/ingest", {"url": "http://example.com"}, "视频文案归档"),
-    ("/api/memory", {"action": "probe"}, "AI记忆(POST)"),
-    ("/api/run-tests", {"suite": "quick"}, "运行测试"),
-    ("/api/error-report", {"error": "probe"}, "错误上报"),
 ]
 
 
