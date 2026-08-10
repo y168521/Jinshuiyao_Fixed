@@ -151,9 +151,9 @@ tools/.file_hash_baseline.json
 金水谣数据/agent_memory/
 
 # 知识图谱运行时生成物（可重建、不入库 · 2026-07-31 补充）
+# 注意: pattern_library.json 是人工种子数据(22模式), 已移出忽略重新跟踪(JS-20260810-13)
 knowledge/crosslinks.json
 knowledge/graph_triples.json
-knowledge/pattern_library.json
 knowledge/kb_index.db
 knowledge/file_knowledge_index.json
 
