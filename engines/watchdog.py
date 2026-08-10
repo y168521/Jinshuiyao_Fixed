@@ -22,7 +22,7 @@ import threading
 from collections import defaultdict
 from datetime import datetime
 
-from core.log_rotation import rotate_log
+from utils.log_rotation import rotate_log
 from utils.safe_json import safe_load_json
 
 logger = logging.getLogger(__name__)

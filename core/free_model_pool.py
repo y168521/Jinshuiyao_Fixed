@@ -36,15 +36,9 @@ _status_cache = {}  # model_id -> {healthy, degraded, error, ts, failures, provi
 
 
 def _read_secret(fname):
-    """从安全目录读取密钥（与 ai_review_agent 同约定：仅 ~/.jinshuiyao-secrets）"""
-    d = os.path.join(os.path.expanduser("~"), ".jinshuiyao-secrets")
-    p = os.path.join(d, fname)
-    if os.path.isfile(p):
-        try:
-            return open(p, "r").read().strip()
-        except Exception:
-            pass
-    return ""
+    """从安全目录读取密钥（统一委托 core.security.get_secret 单一真源）"""
+    from core.security import get_secret
+    return get_secret(fname)
 
 
 def load_pool_config(path=_CONFIG_PATH):

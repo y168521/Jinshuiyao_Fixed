@@ -1,19 +1,23 @@
 # -*- coding: utf-8 -*-
 """金水谣系统 - JSONL 日志文件轮转工具
 
-在写入 JSONL 日志前调用 check_and_rotate()，当文件超过阈值时自动轮转：
-  当前文件 -> xxx.jsonl.1（覆盖已有备份），然后创建新的空文件。
-最多保留 1 个备份，防止日志文件无限增长。
+统一日志轮转模块（2026-08-10 架构体检合并：原 core/log_rotation.py 并入此处）。
+
+两个轮转风格并存：
+  - check_and_rotate()：覆盖式，最多保留 1 个备份（写入前调用，轻量）
+  - rotate_log()：递进式，保留 N 个备份（原 core 版，watchdog 等场景使用）
 
 用法：
-    from utils.log_rotation import check_and_rotate
+    from utils.log_rotation import check_and_rotate, rotate_log
     check_and_rotate("/path/to/xxx.jsonl", max_size_mb=5)
+    rotate_log("/path/to/xxx.log", max_size_mb=5, keep_backups=3)
 
 线程安全：使用 utils.locks.log_rotate_lock 保护轮转操作。
 """
 import os
 import sys
 import logging
+from typing import Optional
 
 from .locks import log_rotate_lock
 
@@ -84,3 +88,67 @@ def check_and_rotate(filepath, max_size_mb=5):
         # 轮转失败不应阻断主流程，仅记录警告
         logger.warning("[log_rotation] 轮转检查异常 (%s): %s", filepath, e)
         return False
+
+
+def rotate_log(log_path: str, max_size_mb: float = 5, keep_backups: int = 3) -> bool:
+    """递进式日志轮转：文件超限时重命名 .bak.1，旧备份递进，保留最近 N 个。
+
+    （2026-08-10 由 core/log_rotation.py 并入，API 兼容：log_path/max_size_mb/keep_backups）
+
+    Args:
+        log_path: 日志文件路径
+        max_size_mb: 最大文件大小（MB），超过此值触发轮转，默认 5
+        keep_backups: 保留的备份文件数量，默认 3
+
+    Returns:
+        bool: 是否执行了轮转操作
+    """
+    try:
+        if not log_path or max_size_mb <= 0:
+            return False
+        if keep_backups < 1:
+            keep_backups = 1
+        if not os.path.isfile(log_path):
+            return False
+        max_size_bytes = max_size_mb * 1024 * 1024
+        file_size = os.path.getsize(log_path)
+        if file_size < max_size_bytes:
+            return False
+
+        with log_rotate_lock:
+            # 双重检查：拿到锁后再确认（其他线程可能已轮转）
+            if not os.path.isfile(log_path):
+                return False
+            if os.path.getsize(log_path) < max_size_bytes:
+                return False
+            oldest_path = "{}.bak.{}".format(log_path, keep_backups)
+            if os.path.isfile(oldest_path):
+                try:
+                    os.remove(oldest_path)
+                except OSError:
+                    pass
+            for i in range(keep_backups - 1, 0, -1):
+                src = "{}.bak.{}".format(log_path, i)
+                dst = "{}.bak.{}".format(log_path, i + 1)
+                if os.path.isfile(src):
+                    try:
+                        os.rename(src, dst)
+                    except OSError:
+                        pass
+            backup_path = "{}.bak.1".format(log_path)
+            os.rename(log_path, backup_path)
+            logger.info("日志轮转完成: %s -> %s (%.2f MB)", log_path, backup_path, file_size / (1024 * 1024))
+        return True
+    except Exception as e:
+        logger.warning("[log_rotation] 递进轮转异常 (%s): %s", log_path, e)
+        return False
+
+
+def get_log_size_mb(log_path: str) -> Optional[float]:
+    """获取日志文件大小（MB），文件不存在或异常时返回 None。"""
+    try:
+        if not os.path.isfile(log_path):
+            return None
+        return os.path.getsize(log_path) / (1024 * 1024)
+    except Exception:
+        return None

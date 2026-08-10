@@ -70,7 +70,7 @@ def _resolve_deepseek_key_file():
 
 
 def get_api_key(key_file: str = "") -> str:
-    """统一的API密钥读取入口（全项目唯一真相源）。
+    """统一的API密钥读取入口（全项目唯一真相源，内部委托 core.security.get_secret）。
 
     读取顺序：指定文件 → 密钥目录(~/.jinshuiyao-secrets/) → 环境变量 DEEPSEEK_API_KEY
     （项目根目录/CWD 明文回退已于 JS-20260724 移除：同步盘外泄风险）
@@ -81,34 +81,16 @@ def get_api_key(key_file: str = "") -> str:
     Returns:
         str: API密钥字符串，未找到则返回空字符串
     """
-    if key_file and os.path.isfile(key_file):
-        try:
-            with open(key_file, "r", encoding="utf-8") as f:
-                key = f.read().strip()
-            if key:
-                return key
-        except Exception:
-            pass
-
+    from core.security import get_secret
+    if key_file:
+        v = get_secret(key_file)
+        if v:
+            return v
     # 安全铁律（JS-20260724）：仅安全目录，禁止项目根/CWD 明文回退（同步盘外泄风险）
-    default_paths = [
-        os.path.join(_SECRETS_DIR, "deepseek_key.txt"),
-    ]
-    for path in default_paths:
-        if os.path.isfile(path):
-            try:
-                with open(path, "r", encoding="utf-8") as f:
-                    key = f.read().strip()
-                if key:
-                    return key
-            except Exception:
-                pass
-
-    key = os.environ.get("DEEPSEEK_API_KEY", "")
-    if key:
-        return key
-
-    return ""
+    v = get_secret("deepseek_key.txt")
+    if v:
+        return v
+    return os.environ.get("DEEPSEEK_API_KEY", "")
 
 
 def get_mode() -> str:
