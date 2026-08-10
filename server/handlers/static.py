@@ -50,6 +50,7 @@ _PAGE_ROUTES = {
     '/math-model':          'math-model.html',
     '/prediction-reference':'prediction-reference.html',
     '/chain-map':          'chain-map.html',
+    '/agent-pipeline':     'agent-pipeline-visualizer.html',
 }
 
 # 外部页面路由（不在 HTML_DIR 内的独立仪表板页面）
@@ -226,6 +227,13 @@ def handle_open(handler, parsed):
     rel_path = params.get('file', [''])[0]
     mode = params.get('mode', ['auto'])[0]  # auto/run/view
     if rel_path:
+        # 路径消毒（纵深防御，与 open_local_file 内部防护一致）：仅允许项目目录内相对路径
+        cand = os.path.normpath(os.path.abspath(os.path.join(BASE_DIR, rel_path.replace('/', os.sep))))
+        base_norm = os.path.normpath(os.path.abspath(BASE_DIR))
+        if cand != base_norm and not cand.startswith(base_norm + os.sep):
+            log(f'× /open 路径穿越被拒绝: {rel_path}')
+            handler._send_json({"ok": False, "error": "安全限制：路径必须在项目目录内。"}, 403)
+            return
         # 基金日报回退：当天报告未生成时自动打开最新一期（前端据此给友好提示）
         fallback_date = None
         fallback_hint = ""
