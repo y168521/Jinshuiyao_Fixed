@@ -746,6 +746,37 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
         self._send_json({"error": "未知接口"}, 404)
 
     # ------------------------------------------------------------------
+    # OPTIONS 预检（CORS preflight）
+    # ------------------------------------------------------------------
+    def do_OPTIONS(self):
+        """处理 CORS 预检请求。
+
+        浏览器在跨源 POST 或带非简单头（如 Content-Type: application/json）
+        时会先发 OPTIONS 预检；原 SimpleHTTPRequestHandler 未实现该方法，
+        返回 501，导致前端 fetch 拿不到真实响应（pipeline/run 即此坑）。
+
+        仅对 /api/ 路径、且来源为本机同源或 file://(null) 时放行，
+        与全局 CORS 策略保持一致（同源反射 + 允许 null）；
+        其余来源拒绝预检，不泄露 CORS 头。
+        """
+        _p = (self.path or "").split("?", 1)[0]
+        if not _p.startswith('/api/'):
+            self.send_response(405)
+            self.end_headers()
+            return
+        origin = self.headers.get('Origin')
+        if origin and (self._is_same_origin(origin) or origin == 'null'):
+            self.send_response(204)
+            self.send_header('Access-Control-Allow-Origin', origin)
+            self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+            self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+            self.send_header('Access-Control-Max-Age', '86400')
+            self.end_headers()
+        else:
+            self.send_response(403)
+            self.end_headers()
+
+    # ------------------------------------------------------------------
     # 工具方法（被 handler 函数调用，保留在类上以访问 self）
     # ------------------------------------------------------------------
     def _is_local(self):
