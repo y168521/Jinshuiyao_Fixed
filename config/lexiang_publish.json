@@ -1,0 +1,59 @@
+{
+  "_说明": "乐享（云知）单向发布白名单。本地是唯一真源，乐享只做只读镜像，禁止反向回写。",
+  "_规则": "文档增减只改本文件，不动 tools/publish_lexiang.py 代码。",
+  "version": 1,
+
+  "target": {
+    "_填法": "在乐享打开目标知识库，把地址栏链接整条贴进 space_url 即可，其余字段脚本自动补。",
+    "space_url": "",
+    "space_id": "",
+    "root_entry_id": "",
+    "root_folder_name": "金水谣项目文档（自动发布）"
+  },
+
+  "groups": [
+    { "key": "spec", "name": "01 规范铁律", "desc": "开工前必读的纲契录三层规范" },
+    { "key": "collab", "name": "02 协作流程", "desc": "多 AI 接力、交接与留痕机制" },
+    { "key": "arch", "name": "03 架构与资产", "desc": "知识体系、视觉体系、部署边界" }
+  ],
+
+  "whitelist": [
+    { "path": "金水谣_纲.md", "title": "金水谣·纲 — 五铁律与审查 Pipeline", "group": "spec", "order": 10 },
+    { "path": "金水谣_契.md", "title": "金水谣·契 — 编码规范与模块边界", "group": "spec", "order": 20 },
+    { "path": "金水谣_录.md", "title": "金水谣·录 — 接手 SOP 与质量保障", "group": "spec", "order": 30 },
+    { "path": "金水谣_编码规范.md", "title": "编码规范细则", "group": "spec", "order": 40 },
+
+    { "path": "AGENTS.md", "title": "AI 工作规范（薄参考版）", "group": "collab", "order": 10 },
+    { "path": "AI协作交接中心.md", "title": "AI 协作交接中心", "group": "collab", "order": 20 },
+    { "path": "金水谣_全视角审查清单.md", "title": "全视角审查清单", "group": "collab", "order": 30 },
+
+    { "path": "知识网关索引.md", "title": "知识网关索引 — 外部 AI 接入第一入口", "group": "arch", "order": 10 },
+    { "path": "金水谣视觉决策体系.md", "title": "视觉决策体系（七色三层主题）", "group": "arch", "order": 20 },
+    { "path": "金水谣_模块契约.md", "title": "模块契约", "group": "arch", "order": 30 },
+    { "path": "金水谣_多机部署与同步边界.md", "title": "多机部署与同步边界", "group": "arch", "order": 40 }
+  ],
+
+  "blacklist_patterns": [
+    "金水谣数据/log/经验收集箱.md",
+    "金水谣数据/log/ai_decisions.md",
+    "knowledge/*.json",
+    "**/secrets*",
+    "**/.env*",
+    "**/*密钥*",
+    "**/*token*"
+  ],
+
+  "options": {
+    "skip_unchanged": true,
+    "max_bytes": 300000,
+    "secret_scan": true,
+    "footer_note": "本页由金水谣项目自动发布，本地为唯一真源，请勿在乐享直接编辑。"
+  },
+
+  "secret_patterns": [
+    "lxmcp_[A-Za-z0-9]{8,}",
+    "sk-[A-Za-z0-9]{16,}",
+    "Bearer\\s+[A-Za-z0-9._-]{20,}",
+    "(?i)(api[_-]?key|secret|password)\\s*[:=]\\s*[\"']?[A-Za-z0-9._-]{12,}"
+  ]
+}
