@@ -274,6 +274,17 @@ class JinshuiyaoScheduler(TaskScheduler):
         except Exception as e:
             logger.warning("[主动提醒] 注册失败（不影响其余定时任务）: %s", e)
 
+        # 14. 大脑日报：每天1次AI复盘总结+生成《大脑日报》（第2步·长脑子，免费模型，失败静默）
+        try:
+            self.register(
+                name="brain_daily",
+                func=self._task_brain_daily,
+                interval_minutes=1440,
+                enabled=True,
+            )
+        except Exception as e:
+            logger.warning("[大脑日报] 注册失败（不影响其余定时任务）: %s", e)
+
     # ------------------------------------------------------------------
     # 任务实现
     # ------------------------------------------------------------------
@@ -1035,6 +1046,17 @@ class JinshuiyaoScheduler(TaskScheduler):
                 logger.info("[主动提醒] 写入 %d 条待提醒", n)
         except Exception as e:
             logger.warning("[主动提醒] 执行失败（不影响其余定时任务）: %s", e)
+
+    @staticmethod
+    def _task_brain_daily():
+        """大脑日报：每天1次AI复盘总结 + 生成《大脑日报》（人话版，免费模型优先，失败静默）"""
+        try:
+            from engines.brain_daily import run_daily
+            ok = run_daily()
+            if ok:
+                logger.info("[大脑日报] 已生成（AI复盘总结+玩法健康度日报）")
+        except Exception as e:
+            logger.warning("[大脑日报] 执行失败（不影响其余定时任务）: %s", e)
 
 
 def _write_kb_lint_log(rd):

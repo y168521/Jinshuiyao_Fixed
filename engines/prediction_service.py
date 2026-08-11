@@ -409,6 +409,19 @@ class PredictionService:
                 hot = {k: 1.0 for k in hot}
                 self.log(f"🧠 {lot} 实测命中率低于随机基准, 大脑热号权重均匀化(回归随机采样)")
 
+            # ===== 🧠 AI简报注入（第2步·长脑子）：当天AI建议号码加权（每天每彩种≤1次） =====
+            ai_extra = {}
+            try:
+                from engines.brain_daily import ensure_daily_brief
+                brief = ensure_daily_brief(lot, arr)
+                if brief and brief.get("hot"):
+                    for d in brief["hot"]:
+                        ai_extra[d] = 0.5
+                    self.log(f"🧠 {lot} AI简报注入: hot={brief['hot']}"
+                             + (f" 理由:{brief['reason']}" if brief.get("reason") else ""))
+            except Exception:
+                pass
+
             if lot in ["福彩3D", "排列三"] and play_plan and sum(p['count'] for p in play_plan if p['type'] == '单注') >= 2:
                 consensus_order = self._brain_consensus_order(lot, arr, kill, morph_data)
                 fg = FormatGen(lot, kill, hot, play=play, recent_stats=recent_stats, morph_data=morph_data,
@@ -416,7 +429,7 @@ class PredictionService:
                                smart_kill_scorer=smart_killer, play_plan=play_plan,
                                corr_matrix=corr, cold_tunnel_enabled=cold_tunnel, vote_mode=vote,
                                hot_window=hw, miss_data=miss_data, position_aware=True,
-                               consensus_order=consensus_order)
+                               consensus_order=consensus_order, extra_hot=ai_extra)
                 # 智能大脑修正
                 self._apply_brain_adjustments(lot, fg)
                 tickets = fg._gen_3d_hot_freq()
@@ -456,7 +469,7 @@ class PredictionService:
                                kill_check=self.engine_states.get("killcheck", False), history=arr,
                                smart_kill_scorer=smart_killer, play_plan=play_plan,
                                corr_matrix=corr, cold_tunnel_enabled=cold_tunnel, vote_mode=vote,
-                               hot_window=hw, miss_data=miss_data)
+                               hot_window=hw, miss_data=miss_data, extra_hot=ai_extra)
                 self._apply_brain_adjustments(lot, fg)
                 tickets = fg.gen()
 
