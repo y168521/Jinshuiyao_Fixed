@@ -136,14 +136,17 @@ class JinshuiyaoScheduler(TaskScheduler):
             run_now=True,
         )
 
-        # 2. 自动复盘 - 对最近的预测自动复盘（run_now: 开机立即补复盘，
-        #    已开奖未复盘的记录（如昨晚开奖今早开机）马上被处理，不用等 2 小时）
+        # 2. 自动复盘 - 对最近的预测自动复盘（run_now: 开机后补复盘，
+        #    已开奖未复盘的记录（如昨晚开奖今早开机）马上被处理，不用等 2 小时；
+        #    first_delay=420: 首跑延迟到数据刷新（约150s，最坏5分钟）完成之后再跑，
+        #    避免与 data_refresh 同时启动导致开奖结果未入库而整批"未开奖跳过"）
         self.register(
             name="auto_review",
             func=self._task_auto_review,
             interval_minutes=_defaults["auto_review"],
             enabled=True,
             run_now=True,
+            first_delay=420,
         )
 
         # 3. 知识提取 - 从复盘中自动提取知识卡片

@@ -57,7 +57,7 @@ class TaskScheduler:
     # 任务注册/注销
     # ------------------------------------------------------------------
 
-    def register(self, name, func, interval_minutes, enabled=True, run_now=False):
+    def register(self, name, func, interval_minutes, enabled=True, run_now=False, first_delay=None):
         """注册定时任务
 
         Args:
@@ -68,6 +68,9 @@ class TaskScheduler:
             run_now: 是否在调度器启动后立即首跑（默认延迟 _FIRST_RUN_DELAY 秒，
                 后续循环仍按 interval_minutes）。用于"开机即补"型任务
                 （自动复盘/数据抓取/探活），避免要等一个完整间隔才第一次执行。
+            first_delay: 首跑延迟（秒），仅 run_now=True 时生效；
+                覆盖默认 _FIRST_RUN_DELAY。用于依赖型任务错峰，
+                如 auto_review 须等 data_refresh 完成后首跑。
         """
         with self._lock:
             if name in self._tasks:
@@ -78,6 +81,7 @@ class TaskScheduler:
                 "interval_minutes": interval_minutes,
                 "enabled": enabled,
                 "run_now": run_now,
+                "first_delay": first_delay,
                 "last_run": None,
                 "next_run": None,
                 "run_count": 0,
@@ -129,7 +133,10 @@ class TaskScheduler:
             self._started = True
             for name, task in self._tasks.items():
                 if task["enabled"]:
-                    first_delay = _FIRST_RUN_DELAY if task.get("run_now") else None
+                    if task.get("run_now"):
+                        first_delay = task.get("first_delay") or _FIRST_RUN_DELAY
+                    else:
+                        first_delay = None
                     self._schedule_task(name, delay=first_delay)
 
             enabled_count = sum(1 for t in self._tasks.values() if t["enabled"])
