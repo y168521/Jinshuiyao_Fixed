@@ -44,6 +44,8 @@ MIRROR_TASKS = [
      "guard": "daily@06:00", "desc": "诚实回测刷新"},
     {"name": "mirror_fund_daily", "script": "scripts/daily_fund_monitor.py",
      "guard": "daily@18:00", "desc": "基金监控日报"},
+    {"name": "mirror_fund_nav", "script": "scripts/fund_nav_daily_refresh.py",
+     "guard": "daily@18:45", "desc": "基金净值每日刷新(持仓池,重试3次)"},
     {"name": "mirror_ai_fund_daily", "script": "scripts/ai_fund_daily_report.py",
      "guard": "daily@08:30", "desc": "AI深度版基金日报(付费DeepSeek+免费兜底)"},
     # ── Batch 2：纯文件脚本 + 免费模型（接硅基流动，0 积分）──

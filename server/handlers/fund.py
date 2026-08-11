@@ -105,7 +105,7 @@ def handle_backtest(handler, parsed):
 
     try:
         if force_refresh or not domain._data_cache:
-            domain.fetch(codes or domain.DEFAULT_FUNDS)
+            domain.fetch(codes or domain.active_funds())
 
         if strategy == "定投":
             amount = _to_float(params.get("amount_per_period"), 1000.0)
@@ -233,7 +233,7 @@ def handle_compare_strategies(handler, parsed):
 
     try:
         if force_refresh or not domain._data_cache:
-            domain.fetch(codes or domain.DEFAULT_FUNDS)
+            domain.fetch(codes or domain.active_funds())
 
         target = (codes or list(domain._data_cache.keys()))[:3]
         results = {}

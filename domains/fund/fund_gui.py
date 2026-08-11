@@ -67,6 +67,7 @@ class FundAnalysisWindow:
 
         # 业务层
         self._domain = None
+        self._mgr = None
         self._current_fund = None
         self._data_cache = {}        # {fund_code: {nav, info, holdings}}
         self._analysis_cache = {}    # {fund_code: analysis_result}
@@ -204,29 +205,78 @@ class FundAnalysisWindow:
                  font=(Theme.FONT_FAMILY, 12, "bold"),
                  fg=Theme.TEXT_PRIMARY, bg=Theme.BG_CARD).pack(anchor="w", pady=(0, 10))
 
-        # 关注基金滚动列表
-        list_wrap = tk.Frame(list_frame, bg=Theme.BG_CARD)
-        list_wrap.pack(fill="both", expand=True)
+        # 关注基金滚动列表（列表 = 用户持仓，唯一真源；空则引导添加）
+        self._list_wrap = tk.Frame(list_frame, bg=Theme.BG_CARD)
+        self._list_wrap.pack(fill="both", expand=True)
 
         self._fund_buttons = {}
-        # 默认基金池来自 FundDomain（若不可用则使用内置）
+        self._empty_hint = tk.Label(self._list_wrap, text="还没有关注基金\n输入代码点\"查询\"即可加入",
+                                    font=(Theme.FONT_FAMILY, 10),
+                                    fg=Theme.TEXT_MUTED, bg=Theme.BG_CARD, justify="left")
+        watch_codes = []
         try:
-            from domains.fund.domain import FundDomain
-            default_funds = FundDomain.DEFAULT_FUNDS
-        except Exception:
-            default_funds = ["000001", "110011", "161725", "005827",
-                             "519674", "003096", "260108"]
+            from domains.fund.fund_data_manager import FundDataManager
+            self._mgr = FundDataManager()
+            watch_codes = [h.get("code") for h in self._mgr.get_holdings() if h.get("code")]
+        except Exception as e:
+            print(f"[WARN] 读取关注列表失败: {e}")
+            self._mgr = None
 
-        for code in default_funds:
-            btn = tk.Button(list_wrap, text=f"{code}",
-                            font=(Theme.FONT_FAMILY, 10),
-                            fg=Theme.TEXT_SECONDARY, bg=Theme.BG_HOVER,
-                            activebackground=Theme.COLOR_PRIMARY,
-                            activeforeground=Theme.BG_DEEP,
-                            relief="flat", cursor="hand2",
-                            command=lambda c=code: self._on_select_fund(c))
-            btn.pack(fill="x", pady=(0, 6))
-            self._fund_buttons[code] = btn
+        if watch_codes:
+            for code in watch_codes:
+                self._ensure_fund_row(code, persist=False)
+        else:
+            self._empty_hint.pack(fill="x", pady=(0, 6))
+
+    def _ensure_fund_row(self, code, persist=True):
+        """在关注列表创建该基金的按钮行；首次出现时持久化到持仓"""
+        if code in self._fund_buttons:
+            return
+        if persist and self._mgr is not None:
+            try:
+                if code not in [h.get("code") for h in self._mgr.get_holdings()]:
+                    self._mgr.add_holding({"code": code, "name": ""})
+            except Exception as e:
+                print(f"[WARN] 添加关注基金失败: {e}")
+        self._empty_hint.pack_forget()
+        row = tk.Frame(self._list_wrap, bg=Theme.BG_CARD)
+        btn = tk.Button(row, text=f"{code}",
+                        font=(Theme.FONT_FAMILY, 10),
+                        fg=Theme.TEXT_SECONDARY, bg=Theme.BG_HOVER,
+                        activebackground=Theme.COLOR_PRIMARY,
+                        activeforeground=Theme.BG_DEEP,
+                        relief="flat", cursor="hand2",
+                        command=lambda c=code: self._on_select_fund(c))
+        btn.pack(side="left", fill="x", expand=True)
+        del_btn = tk.Button(row, text="×",
+                            font=(Theme.FONT_FAMILY, 10, "bold"),
+                            fg=Theme.COLOR_RED, bg=Theme.BG_CARD,
+                            activebackground=Theme.BG_HOVER,
+                            activeforeground=Theme.COLOR_RED,
+                            relief="flat", cursor="hand2", width=2,
+                            command=lambda c=code: self._on_remove_fund(c))
+        del_btn.pack(side="right", padx=(4, 0))
+        row.pack(fill="x", pady=(0, 6))
+        self._fund_buttons[code] = btn
+
+    def _on_remove_fund(self, code):
+        """从关注列表删除基金（同时从持仓持久化删除）"""
+        if self._mgr is not None:
+            try:
+                if not self._mgr.remove_holding(code):
+                    messagebox.showwarning("提示", f"删除 {code} 失败：不在持仓中")
+                    return
+            except Exception as e:
+                messagebox.showerror("错误", f"删除失败: {e}")
+                return
+        btn = self._fund_buttons.pop(code, None)
+        if btn is not None:
+            btn.master.destroy()
+        if self._current_fund == code:
+            self._current_fund = None
+            self._chart_title.config(text="请选择基金")
+        if not self._fund_buttons:
+            self._empty_hint.pack(fill="x", pady=(0, 6))
 
     def _build_chart_panel(self, parent):
         """中栏：净值走势图"""
@@ -413,18 +463,9 @@ class FundAnalysisWindow:
         """选择基金"""
         self._current_fund = code
 
-        # 如果不在关注列表中，则动态添加一个按钮
+        # 如果不在关注列表中，则动态添加（并持久化到持仓）
         if code not in self._fund_buttons:
-            list_wrap = self._fund_buttons[list(self._fund_buttons.keys())[0]].master
-            btn = tk.Button(list_wrap, text=f"{code}",
-                            font=(Theme.FONT_FAMILY, 10),
-                            fg=Theme.TEXT_SECONDARY, bg=Theme.BG_HOVER,
-                            activebackground=Theme.COLOR_PRIMARY,
-                            activeforeground=Theme.BG_DEEP,
-                            relief="flat", cursor="hand2",
-                            command=lambda c=code: self._on_select_fund(c))
-            btn.pack(fill="x", pady=(0, 6))
-            self._fund_buttons[code] = btn
+            self._ensure_fund_row(code, persist=True)
 
         # 更新按钮高亮
         for c, btn in self._fund_buttons.items():

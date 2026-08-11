@@ -160,7 +160,7 @@ class FundDomain(DomainBase):
                 "mode": "real" | "mock",
             }
         """
-        target = funds or self.DEFAULT_FUNDS
+        target = funds or self.active_funds()
         results = {}
         mock_fallback = False
         success_count = 0
@@ -614,7 +614,7 @@ class FundDomain(DomainBase):
             dict: {"success", "comparison":[{...}], "count", "status", "mode"}
         """
         try:
-            target = codes or self.DEFAULT_FUNDS
+            target = codes or self.active_funds()
 
             # 确保有数据
             need_fetch = kwargs.get("force_refresh", False) or not self._data_cache
@@ -683,6 +683,26 @@ class FundDomain(DomainBase):
             return {"success": False, "message": str(e), "status": "error"}
 
     # ------------------------------------------------------------------
+    # 分析基金池（用户持仓优先）
+    # ------------------------------------------------------------------
+
+    def active_funds(self):
+        """当前分析基金池：优先取用户持仓列表，为空时回退内置池。
+
+        用户持仓（FundDataManager）即"关注列表"的唯一真源：
+        持仓管理页 / 桌面基金 GUI / 分析引擎共用同一份名单。
+        """
+        try:
+            from domains.fund.fund_data_manager import FundDataManager
+            mgr = FundDataManager()
+            codes = [h.get("code") for h in mgr.get_holdings() if h.get("code")]
+            if codes:
+                return codes
+        except Exception as e:
+            logger.warning("读取用户持仓失败，回退内置基金池: %s", e)
+        return self.DEFAULT_FUNDS
+
+    # ------------------------------------------------------------------
     # 状态查询
     # ------------------------------------------------------------------
 
@@ -706,6 +726,7 @@ class FundDomain(DomainBase):
             "last_run": self._last_run,
             "review_count": self._review_count,
             "default_funds": len(self.DEFAULT_FUNDS),
+            "active_funds": len(self.active_funds()) or len(self.DEFAULT_FUNDS),
             "errors": [],
         }
 

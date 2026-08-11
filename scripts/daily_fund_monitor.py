@@ -158,14 +158,24 @@ class FundDataFetcher:
         self._load_daily_data()
 
     def _load_daily_data(self):
-        """加载当日全部开放式基金数据（用于快速查询）"""
-        try:
-            import akshare as ak
-            self.daily_df = ak.fund_open_fund_daily_em()
-            logger.info("已加载当日基金数据，共 %d 条", len(self.daily_df))
-        except Exception as e:
-            logger.error("加载当日基金数据失败: %s", e)
-            self.daily_df = None
+        """加载当日全部开放式基金数据（用于快速查询），失败自动重试 3 次"""
+        import time as _time
+        last_err = "未知原因"
+        for attempt in range(1, 4):
+            try:
+                import akshare as ak
+                self.daily_df = ak.fund_open_fund_daily_em()
+                if self.daily_df is not None and len(self.daily_df) > 0:
+                    logger.info("已加载当日基金数据，共 %d 行", len(self.daily_df))
+                    return
+                last_err = "接口返回空数据"
+            except Exception as e:
+                last_err = str(e)
+            logger.warning("加载当日基金数据第 %d/3 次失败: %s", attempt, last_err)
+            if attempt < 3:
+                _time.sleep(10 * attempt)
+        logger.error("加载当日基金数据 3 次均失败，本次快照将缺少净值: %s", last_err)
+        self.daily_df = None
 
     def get_fund_snapshot(self, code: str) -> Optional[Dict]:
         """获取基金当日快照（净值、涨跌幅、申购状态等）

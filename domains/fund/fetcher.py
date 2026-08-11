@@ -662,10 +662,11 @@ class FundFetcher:
         try:
             data = safe_load_json(path, default=None)
 
-            # 检查缓存是否过期（超过1天）
+            # 检查缓存是否过期（超过1天视为过期，需重新抓取）
             mtime = os.path.getmtime(path)
             if datetime.now().timestamp() - mtime > 86400:
                 logger.debug("缓存过期: %s", key)
+                return None
 
             if as_dataframe:
                 if isinstance(data, list):

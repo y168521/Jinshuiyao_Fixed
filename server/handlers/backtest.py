@@ -101,7 +101,7 @@ def _parse_codes(val):
 def _ensure_fund_data(domain, codes, force_refresh):
     """确保基金缓存有数据：空缓存或强制刷新时先抓取（避免每次请求重抓）。"""
     if force_refresh or not domain._data_cache:
-        domain.fetch(codes or domain.DEFAULT_FUNDS)
+        domain.fetch(codes or domain.active_funds())
 
 
 # ─── 基金回测（核心实现，供 /api/fund-backtest 与 /api/backtest?type=fund 复用）───

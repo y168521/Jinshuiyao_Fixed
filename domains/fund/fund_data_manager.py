@@ -177,26 +177,14 @@ class FundDataManager:
             }
             _safe_write(self.config_file, config)
         
-        # 如果没有数据，初始化默认持仓（11只基金，脱敏数据）
+        # 如果没有数据，初始化空持仓（首次使用由用户自行添加）
         if not os.path.isfile(self.public_file):
             self._init_default_data()
 
     def _init_default_data(self):
-        """初始化默认数据（脱敏模式）"""
-        # 公开数据（明文）
-        public_data = {
-            "009051": {"code": "009051", "name": "易方达中证红利ETF联接A", "category": "指数型-红利", "manager": "林伟斌", "company": "易方达基金", "risk_level": "中", "current_price": 1.2235, "last_update": ""},
-            "015942": {"code": "015942", "name": "上银慧享利30天滚动持有", "category": "债券型", "manager": "蔡唯峰", "company": "上银基金", "risk_level": "低", "current_price": 1.1275, "last_update": ""},
-            "011369": {"code": "011369", "name": "华商均衡成长混合A", "category": "混合型", "manager": "张明昕", "company": "华商基金", "risk_level": "中高", "current_price": 4.2117, "last_update": ""},
-            "013308": {"code": "013308", "name": "易方达恒生科技ETF联接", "category": "QDII-港股科技", "manager": "成曦", "company": "易方达基金", "risk_level": "高", "current_price": 1.1282, "last_update": ""},
-            "217022": {"code": "217022", "name": "招商产业债券A", "category": "债券型", "manager": "刘万锋", "company": "招商基金", "risk_level": "低", "current_price": 1.8625, "last_update": ""},
-            "110020": {"code": "110020", "name": "易方达沪深300ETF联接", "category": "指数型-宽基", "manager": "余海燕", "company": "易方达基金", "risk_level": "中", "current_price": 1.9451, "last_update": ""},
-            "023638": {"code": "023638", "name": "国泰恒生A股电网设备ETF", "category": "指数型-行业", "manager": "朱碧莹", "company": "国泰基金", "risk_level": "高", "current_price": 1.7612, "last_update": ""},
-            "000216": {"code": "000216", "name": "华安黄金易(ETF联接)A", "category": "商品-黄金", "manager": "许之彦", "company": "华安基金", "risk_level": "中", "current_price": 3.0420, "last_update": ""},
-            "017641": {"code": "017641", "name": "摩根标普500指数(QDII)", "category": "QDII-宽基", "manager": "张军", "company": "摩根资管", "risk_level": "中高", "current_price": 1.6808, "last_update": ""},
-            "270042": {"code": "270042", "name": "广发纳斯达克100指数A(QDII)", "category": "QDII-科技", "manager": "刘杰", "company": "广发基金", "risk_level": "高", "current_price": 8.2410, "last_update": ""},
-            "005698": {"code": "005698", "name": "华夏全球科技先锋混合(QDII)", "category": "QDII-科技", "manager": "李湘杰", "company": "华夏基金", "risk_level": "高", "current_price": 3.2807, "last_update": ""},
-        }
+        """初始化空持仓（不再预置示例基金，首次使用引导用户添加）"""
+        # 公开数据（明文，初始为空：用户的关注列表只来自用户自己添加）
+        public_data = {}
         
         # 敏感数据（加密存储，初始为空）
         private_data = {}
@@ -207,7 +195,7 @@ class FundDataManager:
         
         os.chmod(self.private_file, 0o600)
         
-        logger.info("初始化默认基金数据（脱敏模式）")
+        logger.info("初始化基金数据（空持仓，等待用户添加）")
 
     # ================================================================
     # 持仓管理
@@ -308,8 +296,8 @@ class FundDataManager:
             try:
                 with open(self.public_file, "r", encoding="utf-8") as f:
                     return json.load(f)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("读取公开持仓数据失败（按空处理）: %s", e)
         return {}
 
     def _update_public_data(self, code: str, data: Dict):

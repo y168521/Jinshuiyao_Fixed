@@ -50,13 +50,13 @@ class TestFundDataManagerInit(unittest.TestCase):
         self.assertIsNotNone(self.manager._key)
         self.assertTrue(os.path.isfile(self.manager.key_file))
 
-    def test_init_has_11_holdings(self):
-        """测试初始化有11只基金"""
+    def test_init_empty_holdings(self):
+        """测试初始化持仓为空（不再预置示例基金，由用户自行添加）"""
         holdings = self.manager.get_holdings()
-        self.assertEqual(len(holdings), 11)
+        self.assertEqual(len(holdings), 0)
 
     def test_init_holdings_have_codes(self):
-        """测试所有基金都有代码"""
+        """测试持仓基金都有代码"""
         holdings = self.manager.get_holdings()
         for h in holdings:
             self.assertIn("code", h)
@@ -85,6 +85,7 @@ class TestFundDataManagerEncryption(unittest.TestCase):
 
     def test_update_sensitive_data_stored_encrypted(self):
         """测试敏感数据存为加密格式"""
+        self.manager.add_holding({"code": "009051", "name": "测试基金"})
         self.manager.update_holding("009051", amount=228.58, profit=8.58)
         with open(self.manager.private_file, "r", encoding="utf-8") as f:
             content = f.read()
@@ -94,12 +95,15 @@ class TestFundDataManagerEncryption(unittest.TestCase):
         self.assertNotIn("228.58", content)
 
     def test_update_without_sensitive_not_in_private(self):
-        """测试只更新公开字段时不影响加密文件"""
+        """测试只更新公开字段时不新增加密内容"""
+        self.manager.add_holding({"code": "009051", "name": "测试基金"})
+        with open(self.manager.private_file, "r", encoding="utf-8") as f:
+            before = f.read()
         self.manager.update_holding("009051", current_price=2.0)
         with open(self.manager.private_file, "r", encoding="utf-8") as f:
-            content = f.read()
-        # 应该仍然是空的
-        self.assertEqual(content.strip(), "{}")
+            after = f.read()
+        # 更新公开字段不应改变加密文件（不新增敏感字段）
+        self.assertEqual(after.strip(), before.strip())
 
     def test_sensitive_fields_protected(self):
         """测试敏感字段列表完整性"""
@@ -121,6 +125,7 @@ class TestFundDataManagerSecurity(unittest.TestCase):
 
     def test_anonymize_holdings(self):
         """测试脱敏功能"""
+        self.manager.add_holding({"code": "009051", "name": "测试基金"})
         self.manager.update_holding("009051", amount=228.58, profit=8.58)
         anonymized = self.manager.anonymize_holdings()
         for h in anonymized:
@@ -131,6 +136,7 @@ class TestFundDataManagerSecurity(unittest.TestCase):
 
     def test_anonymize_preserves_public(self):
         """测试脱敏保留公开字段"""
+        self.manager.add_holding({"code": "009051", "name": "测试基金", "category": "混合型"})
         anonymized = self.manager.anonymize_holdings()
         for h in anonymized:
             self.assertIn("code", h)
@@ -173,9 +179,10 @@ class TestFundDataManagerCRUD(unittest.TestCase):
 
     def test_get_holding(self):
         """测试获取单只基金"""
+        self.manager.add_holding({"code": "009051", "name": "测试基金"})
         holding = self.manager.get_holding("009051")
         self.assertIsNotNone(holding)
-        self.assertEqual(holding["name"], "易方达中证红利ETF联接A")
+        self.assertEqual(holding["name"], "测试基金")
 
     def test_get_holding_not_found(self):
         """测试获取不存在的基金"""
@@ -184,6 +191,7 @@ class TestFundDataManagerCRUD(unittest.TestCase):
 
     def test_update_holding(self):
         """测试更新持仓"""
+        self.manager.add_holding({"code": "009051", "name": "测试基金"})
         result = self.manager.update_holding("009051", current_price=2.5)
         self.assertTrue(result)
         holding = self.manager.get_holding("009051")
@@ -210,6 +218,7 @@ class TestFundDataManagerCRUD(unittest.TestCase):
 
     def test_add_duplicate_holding(self):
         """测试添加重复基金"""
+        self.manager.add_holding({"code": "009051", "name": "初始"})
         new_holding = {"code": "009051", "name": "重复"}
         result = self.manager.add_holding(new_holding)
         self.assertFalse(result)
@@ -260,6 +269,10 @@ class TestFundDataManagerPortfolio(unittest.TestCase):
         self.test_user = "__test_fund_port__"
         self._tmp_root = tempfile.mkdtemp()
         self.manager = FundDataManager(self.test_user, root_dir=self._tmp_root)
+        # 添加 3 只不同类别的持仓用于组合分析
+        self.manager.add_holding({"code": "000001", "name": "基金A", "category": "混合型"})
+        self.manager.add_holding({"code": "000002", "name": "基金B", "category": "债券型"})
+        self.manager.add_holding({"code": "000003", "name": "基金C", "category": "指数型"})
 
     def tearDown(self):
         shutil.rmtree(self._tmp_root, ignore_errors=True)
@@ -270,12 +283,12 @@ class TestFundDataManagerPortfolio(unittest.TestCase):
         self.assertIn("total_amount", summary)
         self.assertIn("total_profit", summary)
         self.assertIn("fund_count", summary)
-        self.assertEqual(summary["fund_count"], 11)
+        self.assertEqual(summary["fund_count"], 3)
 
     def test_category_distribution(self):
         """测试分类分布"""
         dist = self.manager.get_category_distribution()
-        self.assertGreater(len(dist), 0)
+        self.assertGreaterEqual(len(dist), 3)
         for cat in dist:
             self.assertIn("amount", dist[cat])
             self.assertIn("count", dist[cat])
@@ -288,7 +301,7 @@ class TestFundDataManagerPortfolio(unittest.TestCase):
     def test_performance_ranking(self):
         """测试收益率排序"""
         ranking = self.manager.get_performance_ranking()
-        self.assertEqual(len(ranking), 11)
+        self.assertEqual(len(ranking), 3)
         # 验证按收益率降序排列
         for i in range(len(ranking) - 1):
             rate_i = ranking[i].get("profit_rate", 0) or 0
@@ -337,11 +350,9 @@ class TestFundDataManagerMultiUser(unittest.TestCase):
 
     def test_user_data_isolated(self):
         """测试用户数据隔离"""
-        # 用户A更新数据
+        # 用户A添加并更新数据
+        self.manager_a.add_holding({"code": "009051", "name": "测试基金"})
         self.manager_a.update_holding("009051", amount=999.99)
-        # 用户B不应看到A的数据
+        # 用户B不应看到A的数据（B 中该基金不存在）
         holding_b = self.manager_b.get_holding("009051")
-        self.assertNotEqual(
-            holding_b.get("amount"),
-            999.99
-        )
+        self.assertIsNone(holding_b)
