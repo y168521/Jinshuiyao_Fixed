@@ -133,8 +133,17 @@ class PredictionService:
             if not con:
                 return None
             order = [(c["digit"], c["score"]) for c in con]
+            # 融合大脑号码偏差学习（digit_adjustments 0.5-1.5，漏斗补位同时吃到两路信号）
+            adj = {}
+            if self.brain is not None:
+                try:
+                    adj = self.brain.get_digit_adjustments(lot)
+                except Exception:
+                    pass
+            if adj:
+                order = [(d, s * adj.get(d, 1.0)) for d, s in order]
             top = ", ".join("%02d(%d)" % (d, s) for d, s in order[:5])
-            self.log(f"🧠 {lot} 维度共识注入选号(朋友方法): {top}")
+            self.log(f"🧠 {lot} 维度共识注入选号(朋友方法+大脑偏差): {top}")
             return order
         except Exception as e:
             logger.debug("维度共识注入失败: %s", e)
