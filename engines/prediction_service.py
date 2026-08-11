@@ -11,6 +11,7 @@
   4. 与 App.gen_one 保持100%逻辑一致性
 """
 import logging
+import json
 import traceback
 from config import LOTTERY_RULES, EXCLUDED_LOTS
 from models.lottery_data import Data
@@ -58,6 +59,86 @@ class PredictionService:
         logger.log(getattr(logging, level.upper(), logging.INFO), msg)
         if self._on_log:
             self._on_log(msg, level)
+
+    # ===== 大脑玩法健康度基准：各玩法纯随机期望命中（hits=命中号码/位置数） =====
+    _PLAY_EXPECTED = {
+        ("福彩3D", "单注"): 0.9, ("排列三", "单注"): 0.9,
+        ("福彩3D", "直选"): 0.3, ("排列三", "直选"): 0.3,
+        ("福彩3D", "直选推荐"): 0.3, ("排列三", "直选推荐"): 0.3,
+        ("福彩3D", "组三"): 0.9, ("排列三", "组三"): 0.9,
+        ("福彩3D", "组六"): 0.9, ("排列三", "组六"): 0.9,
+        ("福彩3D", "组六复式(5码)"): 1.5, ("排列三", "组六复式(5码)"): 1.5,
+        ("福彩3D", "组六复式(6码)"): 1.8, ("排列三", "组六复式(6码)"): 1.8,
+        ("福彩3D", "复式"): 1.4, ("排列三", "复式"): 1.4,
+        ("双色球", "单注"): 1.15, ("双色球", "复式"): 1.40,
+        ("双色球", "预测"): 1.15, ("双色球", "胆拖"): 1.17,
+        ("大乐透", "单注"): 1.05, ("大乐透", "复式"): 1.36,
+        ("大乐透", "预测"): 1.05, ("大乐透", "胆拖"): 1.17,
+        ("七乐彩", "单注"): 1.63, ("七乐彩", "复式"): 2.10, ("七乐彩", "胆拖"): 1.90,
+        ("快乐8", "单注"): 2.13, ("快乐8", "复式"): 2.25, ("快乐8", "胆拖"): 2.00,
+        ("七星彩", "单注"): 2.97, ("七星彩", "复式"): 3.08, ("七星彩", "胆拖"): 3.00,
+    }
+
+    def _play_recent_health(self, lot, play_type, window=30):
+        """读取复盘数据，统计该彩种+玩法近 N 期平均命中"""
+        try:
+            if self.brain is None:
+                return None
+            with open(self.brain.pred_file, encoding="utf-8") as f:
+                rows = json.load(f)
+            rows = [r for r in rows if r.get("lot") == lot and r.get("type") == play_type][-window:]
+            if len(rows) < 5:
+                return None
+            return {"n": len(rows), "avg": sum(r.get("hits", 0) for r in rows) / len(rows)}
+        except Exception:
+            return None
+
+    def _brain_play_health(self, lot, play_plan):
+        """🧠 大脑玩法健康度调整：低于随机基准60% → 自动停用；高于140% → 自动加注"""
+        if not play_plan:
+            return play_plan
+        changes = []
+        new_plan = []
+        for p in play_plan:
+            t = p.get("type", "")
+            if t == "胆拖":
+                changes.append("胆拖已自动停用(7彩种实测命中率均低于随机基准)")
+                continue
+            exp = self._PLAY_EXPECTED.get((lot, t))
+            if exp:
+                st = self._play_recent_health(lot, t, 30)
+                if st:
+                    ratio = st["avg"] / exp
+                    if ratio < 0.6:
+                        changes.append(f"{t}自动停用(近{st['n']}期命中{st['avg']:.2f}/随机期望{exp:.2f}, 仅{ratio*100:.0f}%)")
+                        continue
+                    if ratio > 1.4:
+                        p2 = dict(p)
+                        p2["count"] = p.get("count", 1) * 2
+                        new_plan.append(p2)
+                        changes.append(f"{t}自动加注(近{st['n']}期命中{st['avg']:.2f}/随机期望{exp:.2f}, {ratio*100:.0f}%)")
+                        continue
+            new_plan.append(p)
+        for ch in changes:
+            self.log(f"🧠 {lot} 大脑自动调整: {ch}")
+        return new_plan
+
+    def _brain_consensus_order(self, lot, arr, kill, morph_data):
+        """🧠 朋友方法(维度共识)注入选号：共识度降序号码表，供漏斗引擎补位优先"""
+        try:
+            from engines.dimension_consensus import DimensionConsensus
+            morph_suggest = (morph_data or {}).get("suggest", "")
+            dc = DimensionConsensus(lot).analyze(arr, kill=kill, morph_suggest=morph_suggest)
+            con = dc.get("consensus") or []
+            if not con:
+                return None
+            order = [(c["digit"], c["score"]) for c in con]
+            top = ", ".join("%02d(%d)" % (d, s) for d, s in order[:5])
+            self.log(f"🧠 {lot} 维度共识注入选号(朋友方法): {top}")
+            return order
+        except Exception as e:
+            logger.debug("维度共识注入失败: %s", e)
+            return None
 
     def generate(self, lot, play_plan=None, scheme="默认方案",
                  hot_window=None, per_value=None, play_value=None,
@@ -319,16 +400,31 @@ class PredictionService:
                 except Exception:
                     pass
 
+            # ===== 🧠 大脑玩法健康度自动调整（低于随机基准60%→停用，高于140%→加注） =====
+            if play_plan:
+                play_plan = self._brain_play_health(lot, play_plan)
+
+            # ===== 🧠 实测追热无益彩种：热号权重均匀化（防追热负贡献） =====
+            if isinstance(hot, dict) and hot and lot in ("快乐8", "大乐透"):
+                hot = {k: 1.0 for k in hot}
+                self.log(f"🧠 {lot} 实测命中率低于随机基准, 大脑热号权重均匀化(回归随机采样)")
+
             if lot in ["福彩3D", "排列三"] and play_plan and sum(p['count'] for p in play_plan if p['type'] == '单注') >= 2:
+                consensus_order = self._brain_consensus_order(lot, arr, kill, morph_data)
                 fg = FormatGen(lot, kill, hot, play=play, recent_stats=recent_stats, morph_data=morph_data,
                                kill_check=self.engine_states.get("killcheck", False), history=arr,
                                smart_kill_scorer=smart_killer, play_plan=play_plan,
                                corr_matrix=corr, cold_tunnel_enabled=cold_tunnel, vote_mode=vote,
-                               hot_window=hw, miss_data=miss_data, position_aware=True)
+                               hot_window=hw, miss_data=miss_data, position_aware=True,
+                               consensus_order=consensus_order)
                 # 智能大脑修正
                 self._apply_brain_adjustments(lot, fg)
                 tickets = fg._gen_3d_hot_freq()
-                dan_tuo = fg._make_dantuo(play_plan[-1].get('config', {}))
+                dan_tuo = None
+                for _p in play_plan:
+                    if _p.get('type') == '胆拖':
+                        dan_tuo = fg._make_dantuo(_p.get('config', {}))
+                        break
                 if dan_tuo:
                     tickets["胆拖"] = [dan_tuo]
                 # 智能补位：确保至少1注组三 + 2注组六

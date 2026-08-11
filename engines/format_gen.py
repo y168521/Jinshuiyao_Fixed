@@ -75,7 +75,8 @@ class FormatGen:
     def __init__(self, lot, kill, hot, play="选10", recent_stats=None, morph_data=None,
                  kill_check=False, history=None, smart_kill_scorer=None, play_plan=None,
                  corr_matrix=None, cold_tunnel_enabled=False, vote_mode=False, extra_hot=None,
-                 hot_window=10, miss_data=None, position_aware=False):
+                 hot_window=10, miss_data=None, position_aware=False, consensus_order=None):
+        self.consensus_order = consensus_order or []
         self.lot = lot
         self.rule = LOTTERY_RULES[lot]
         self.kill = kill
@@ -293,7 +294,11 @@ class FormatGen:
         target_size = self.pool_size
         if len(pool_set) < target_size:
             remaining = [x for x in range(10) if x not in pool_set and x not in kill_set]  # V3.0: 优先非杀号
-            remaining.sort(key=lambda x: (-digit_freq.get(x, 0), get_missing(x)))
+            if self.consensus_order:
+                con = {d: s for d, s in self.consensus_order}
+                remaining.sort(key=lambda x: (-con.get(x, 0), -digit_freq.get(x, 0), get_missing(x)))
+            else:
+                remaining.sort(key=lambda x: (-digit_freq.get(x, 0), get_missing(x)))
             for x in remaining:
                 pool_set.add(x)
                 if len(pool_set) == target_size:
