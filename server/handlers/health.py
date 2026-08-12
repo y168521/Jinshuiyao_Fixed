@@ -13,6 +13,7 @@
   GET /api/ai/mode             — 当前 AI 运行模式
   GET /api/ai/mode/set         — 切换 AI 运行模式（GET 变体）
   GET /api/ai/status           — AI 服务详细状态
+  GET /api/telemetry           — 统一遥测查询（最近调用记录 + 聚合，供可观测面板）
 """
 import os
 import json
@@ -268,3 +269,13 @@ def handle_ai_status(handler):
     else:
         handler._send_json({"available": False, "_refreshing": True,
                             "info": "AI状态首次加载中，请稍后重试"})
+
+
+def handle_telemetry(handler):
+    """GET /api/telemetry — 统一遥测查询（债务-213：自 router 内联迁出）"""
+    try:
+        from core.telemetry import recent, summary
+        handler._send_json({"ok": True, "summary": summary(), "events": recent(200)})
+    except Exception as e:
+        log(f"[telemetry] 查询失败: {e}")
+        handler._send_json({"ok": False, "error": str(e)}, 500)

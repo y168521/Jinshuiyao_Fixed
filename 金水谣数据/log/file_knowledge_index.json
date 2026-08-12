@@ -1,10 +1,32 @@
 {
-  "_generated": "2026-07-29",
+  "_generated": "2026-08-12",
   "_schema": "v2",
-  "_count": 390,
+  "_count": 549,
   "_note": "文件→关联知识反向索引。由 tools/knowledge_index.py v2 自动生成，请勿手动编辑。",
   "entries": {
+    "*_cookie.txt": [
+      {
+        "type": "js",
+        "id": "JS-20260730-02",
+        "summary": "小隐患深度体检（代码层 + 安全边角）",
+        "source": "工作留痕总索引"
+      }
+    ],
+    "*_key.txt": [
+      {
+        "type": "js",
+        "id": "JS-20260730-02",
+        "summary": "小隐患深度体检（代码层 + 安全边角）",
+        "source": "工作留痕总索引"
+      }
+    ],
     ".bat": [
+      {
+        "type": "js",
+        "id": "JS-20260730-01",
+        "summary": "深度复查（LAN 绑定暴露 + 知识提取格式崩溃）+ 双重加固",
+        "source": "工作留痕总索引"
+      },
       {
         "type": "js",
         "id": "JS-20260728-04",
@@ -29,12 +51,48 @@
       },
       {
         "type": "exp",
-        "id": "EXP-069",
+        "id": "EXP-070",
         "summary": "2026-07-23 TRAE 的经验（AI代码审查工作流全落地 · Phase 1+2+3）[代码质量][流程规范][",
         "source": "经验收集箱"
       }
     ],
+    ".opencode/command/distill.md": [
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      }
+    ],
+    ".opencode/skills/jinshuiyao-encoding/skill.md": [
+      {
+        "type": "js",
+        "id": "JS-20260802-10",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
+    ".opencode/skills/jinshuiyao-verify/skill.md": [
+      {
+        "type": "js",
+        "id": "JS-20260803-02",
+        "summary": "WorkBuddy",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      }
+    ],
     ".py": [
+      {
+        "type": "js",
+        "id": "JS-20260730-01",
+        "summary": "深度复查（LAN 绑定暴露 + 知识提取格式崩溃）+ 双重加固",
+        "source": "工作留痕总索引"
+      },
       {
         "type": "js",
         "id": "JS-20260725-41",
@@ -49,7 +107,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-068",
+        "id": "EXP-069",
         "summary": "[2026-07-23] 金水谣 的经验（非彩票功能安全/并发/健壮性优化）[安全][后端][踩坑]",
         "source": "经验收集箱"
       }
@@ -208,12 +266,32 @@
         "source": "工作留痕总索引(dot)"
       }
     ],
+    "agent-pipeline-visualizer.html": [
+      {
+        "type": "js",
+        "id": "JS-20260810-01",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260810-03",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
     "agent_reminder.py": [
       {
         "type": "ad",
         "id": "AD-JS-20260727-30 · 本地助手进化终局补齐：主动",
         "summary": "JS-20260727-30 · 本地助手进化终局补齐：主动提醒引擎 + 多角色生成/复核",
         "source": "ai_decisions.md"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-104",
+        "summary": "2026-08-05 · 经验条目合集（JS-20260805-01~11，附4字段标注）[复盘][免费模型][解析修复",
+        "source": "经验收集箱"
       }
     ],
     "agents.md": [
@@ -231,6 +309,12 @@
       },
       {
         "type": "js",
+        "id": "JS-20260810-01",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
         "id": "JS-20260729-01",
         "summary": "全框架细节优化（P0-P3四连）",
         "source": "工作留痕总索引"
@@ -239,6 +323,12 @@
         "type": "js",
         "id": "JS-20260729-02",
         "summary": "全框架文档合并 11→3 + 脚本入口合并 20+→3",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260729-07",
+        "summary": "全子系统架构重组：基金/股票/足彩 Hub + 股票仪表盘新建 + 全导航更新",
         "source": "工作留痕总索引"
       },
       {
@@ -333,7 +423,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-066",
+        "id": "EXP-067",
         "summary": "2026-07-23 WorkBuddy 的经验（彩票抓取 Layer1 S5+S6 实施 + 正反推导方法论补齐）[代",
         "source": "经验收集箱"
       }
@@ -361,9 +451,23 @@
       },
       {
         "type": "exp",
-        "id": "EXP-068",
+        "id": "EXP-069",
         "summary": "[2026-07-23] 金水谣 的经验（非彩票功能安全/并发/健壮性优化）[安全][后端][踩坑]",
         "source": "经验收集箱"
+      }
+    ],
+    "ai代码助手(deepseek备用)/deepseek_coder.py": [
+      {
+        "type": "js",
+        "id": "JS-20260803-01",
+        "summary": "WorkBuddy",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
       }
     ],
     "ai代码助手(deepseek备用)/使用说明.html": [
@@ -455,6 +559,12 @@
       },
       {
         "type": "js",
+        "id": "JS-20260731-01",
+        "summary": "彩票P2/P3页面创建+全路由注册+端到端测试",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "js",
         "id": "JS-20260726-27",
         "summary": "§12 / 经验底座 F9+维度二。\n\n### 🔷 天枢 TS（详细见 `模型/.workbuddy/memory/2026-07-19.md` 与 `MEMORY.md`）\n\n| 编号 | 日期 | 主题 | 经手AI | 关键改动 | 验证 | 关联 | 成熟度（补标-2026-07-21） |\n|------|------|------|--------|----------|------|------|------|\n| TS-20260719-01 | 07-19 | 系统性审查+稳定性全套修复(P0-P3) | WorkBuddy | `guide_server.py` 双库连通/密钥迁`~/.tianshu-secrets`/SSRF守卫/线程锁/`/health`；`mirofish_db.py`写锁；`video_to_kb.py`同步双库 | 端到端实测 | MEMORY.md运维铁律 | verified |\n| TS-20260719-02 | 07-19 | 外部调用硬超时熔断(T6头号建议) | WorkBuddy | `guide_server.py` 加 `ThreadPoolExecutor`+`run_external()`，包裹/chat/ask/extract-archive/ingest | 卡死对话10s→3.02s返回TIMEOUT | `docs/超时熔断验证报告_2026-07-19.html` | verified |\n| TS-20260719-03 | 07-19 | 「反复打不开」根因根治 | WorkBuddy | 根因=旧guide_server进程顶着18888未加载新代码；`launch.bat`启动前清旧进程+`/health`暴露version+topnav红字提示 | /health带version；模拟旧版→红字 | **JS-20260721根因同源** | proven |\n| TS-20260721-01 | 07-21 | 全量清理+终态验证（不再反反复复） | WorkBuddy | 清7个孤儿python进程；修`/api/ask`等4处utf-8解码容错；`/api/ask`空路径默认项目根；删临时文件/缓存/旧报告归置 | 全接口200；进程仅1个 | `docs/模型终态优化报告_2026-07-19.html` | verified |\n| TS-20260721-02 | 07-21 | 跨项目留痕总索引体系建立 | WorkBuddy | 新建本文件`工作留痕总索引.md`；AGENTS.md/两份交接中心加铁律③+溯源专章；经验箱补跨项目根因 | 文件写入校验 | 本索引所有条目 | verified |\n\n### 🔷 跨项目关联链（无缝衔接的关键）\n\n- **根因同源**：`TS-20260719-03`（天枢旧进程顶端口导致反复打不开）与 `JS-20260721-01`（金水谣换机后 venv 失效）本质都是「**运行态与实际代码/配置不同步**」。\n  → 解法通用：**启动前自检 + 版本/配置指纹校验**（金水谣已有 doctor.py+前哨，天枢有 launch.bat清旧进程+version）。\n- **溯源闭环**：天枢的 `/health` 版本号思路 ↔ 金水谣的启动前哨，可互相借鉴。\n\n---\n\n## 四、使用说明（给 AI 和主人的速查）\n\n**倒查某次工作**：\n1. 知道编号 → 直接在上方表格或 `Ctrl+F` 搜编号\n2. 知道大概时间/主题 → 按日期或项目筛\n3. 想知道「为什么这么改」→ 看该条「改动文件+关联」指向的交接中心序号/经验箱条目\n\n**开工前（任何AI）**：\n1. 读 `AI协作交接中心.md`（**根目录一份为权威**；项目内 `Jinshuiyao_Fixed/AI协作交接中心.md` 已改为指回根目录的占位，勿再维护双份）→ 再读 `金水谣_模块契约.md` + `金水谣_编码规范.md`（多模型防乱强制规则）\n2. 扫一眼本索引最新 3-5 条，确认无「遗留未验证」项\n3. 换设备 → 执行交接中心「一-B」环境检查清单\n4. 若距上次知识体检（Lint）>30 天 → 先跑一次 Lint（见第六节）\n\n**收工前（强制，不做=白干）**：\n1. 在本索引登记一条（按 v1.1 模板，拿新编号，必填「被否决方案」+「人工介入触发」+「成熟度」）\n2. 更新对应项目留痕（交接中心第二章 / 经验箱 / `.workbuddy/memory`）\n3. 回答末尾输出：完成清单 + 变更文件 + 遗留 + 「✅ 已登记总索引」\n4. **不可篡改原则**：本索引只追加、不修改历史条目；发现旧条错误，新登记一条「更正」并关联原条，禁止直接改旧条（保证审计链完整、可倒查）\n\n---\n\n## 五、知识成熟度与衰减（吸收自团队知识沉淀实践）\n\n经验收集箱与总索引条目按「被验证次数」分级，避免过时知识误导 AI：\n\n| 成熟度 | 含义 | 升级条件 |\n|--------|------|----------|\n| `draft` | 新登记，单一来源，未经验证 | — |\n| `verified` | 在 ≥1 个项目中被成功复用 | 被某次工作引用且验证有效 |\n| `proven` | 在 ≥2 个不同项目中被验证，或跨项目根因 | 跨项目复用成功 |\n\n**自动衰减**（知识会过时，宁让其自然降级）：\n- `proven` 12 个月未被引用 → 降为 `verified`\n- `verified` 6 个月未被引用 → 降为 `draft`\n- `draft` 长期未引用 + Lint 标记为孤儿 → 移出活跃索引（归档）\n\n---\n\n## 六、知识体检（Lint）机制（定期查矛盾/断链，保证长期无缝衔接）\n\n- **频率**：每月 1 次自动（WorkBuddy 自动化「金水谣/天枢 知识体检 Lint」，id `automation-1784644448088`，已于 2026-07-21 真正注册并 ACTIVE）；或任何 AI 开工前若发现索引 >30 天未 Lint 则先 Lint。\n- **⚠️ 待核实（重复风险）**：`JS-20260721-03` 曾在 `core/scheduler.py` 内另建「每日触发 + `day!=1` 守卫」的 N3 Lint 任务（见交接中心 P0.5-N3 标记✅）。本项目自动化与其可能重复——下次 Lint 运行时确认保留两者或合并其一，避免双跑。\n- **Lint 检查项**：① 矛盾条目（同一事实两处说法不一致）② 孤儿页（有出链无入链的反向引用）③ 缺失交叉引用 ④ 数据缺口（路径/文件已不存在）⑤ 过时路径（被改名的文件）\n- **产出**：在今日日志登记 Lint 结果；矛盾项标「待核实」并关联负责人；清理孤儿与断链\n\n---\n\n## 七、未完成 / 跳过项清单（避免误判为「已做」）\n\n> 以下项**不是**「完成」，明确标注状态，防止下一个 AI 或主人误以为全部交付。\n\n| 项 | 状态 | 原因 / 触发条件 | 关联 |\n|----|------|----------------|------|\n| N4 语音交互 | ⏸ 跳过 | 需 8GB+ 显存硬件，当前未到位 | JS-20260721-03 补录跳过项 |\n| 云端上线（ICP备案→个体户→小程序） | ⏸ 跳过 | 当前本地+坚果云零成本策略，功能完善后再启动 | JS-20260721-03 补录跳过项 |\n| 22 个 pytest 失败（实测应为 9 项） | ✅ 已清零 | 实为 9 项测试隔离失败(preload 孤儿6 + creator 共享目录1 + fund 持久根2)，非生产bug；2026-07-22 用「可测试性改造 root_dir + 独立临时目录」逐条根治，全量 0 failed / 740 passed | JS-20260722-02 / 金水谣_测试债清理追踪.md |\n| 扁平根文件迁包（8 个 .py 进包） | ⏸ 未做 | 低风险重构，待拍板 | 防乱方案待办 |\n| 内容营销 Skill（B 档）/ 对外网页（C 档） | ⏸ 未做 | 工作台标签已做(JS-20260721-11)，封装/部署未启动 | JS-20260721-09/11 |\n| N3 Lint 双跑合并 | ⚠️ 待核实 | `core/scheduler.py` 内 N3 与自动化 `automation-1784644448088` 可能重复，下次 Lint 确认合并其一 | JS-20260721-03 / JS-20260721-15 |\n\n> **⚠️ 更正（2026-07-22）**：交接中心 Qoder #13/#21/#24 称「22 个预存测试失败全部修复、746 项全绿」——本机 `py -3.14` 实测为 **9 failed / 737 passed**（非 22，也非 0）；其中 6 项为已删 `preload.py` 的孤儿测试、3 项为持久共享目录隔离失败。JS-20260722-02 已真清零（**0 failed / 740 passed**）。Qoder 的「22」可能来自更早某次临时态，非本机终态；倒查时以本索引实测为准，不以旧交接中心数字为准。\n\n---\n\n## 📌 补录区（被否决方案 / 人工介入",
         "source": "工作留痕总索引(dot)"
@@ -488,6 +598,24 @@
         "id": "JS-20260728-17",
         "summary": "**时间**: 2026-07-28",
         "source": "工作留痕总索引(dot)"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-31 彩票P2/P3页面收尾 + 全路由注册",
+        "summary": "2026-07-31 彩票P2/P3页面收尾 + 全路由注册 + 端到端验证 · JS-20260731-01",
+        "source": "ai_decisions.md"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-05 收工门禁修复: 改动量统计误报 + 总",
+        "summary": "2026-08-05 收工门禁修复: 改动量统计误报 + 总索引补录块 + 决策卡 + 知识孤岛回收 · JS-2026",
+        "source": "ai_decisions.md"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-05 生产遗留清理: DIAG噪音打印降噪 ",
+        "summary": "2026-08-05 生产遗留清理: DIAG噪音打印降噪 + 手机端误导地址修复 · JS-20260805-14",
+        "source": "ai_decisions.md"
       },
       {
         "type": "exp",
@@ -541,7 +669,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-069",
+        "id": "EXP-070",
         "summary": "2026-07-23 TRAE 的经验（AI代码审查工作流全落地 · Phase 1+2+3）[代码质量][流程规范][",
         "source": "经验收集箱"
       }
@@ -549,7 +677,7 @@
     "analyzer.py/domain.py": [
       {
         "type": "exp",
-        "id": "EXP-082",
+        "id": "EXP-083",
         "summary": "2026-07-24（WorkBuddy）基金经理真实任职数据 · JS-20260724-10 [后端][最佳实践]",
         "source": "经验收集箱"
       }
@@ -560,6 +688,30 @@
         "id": "EXP-036",
         "summary": "2026-07-21 WorkBuddy 的经验（AI协作文档核查+修复）[协作]",
         "source": "经验收集箱"
+      }
+    ],
+    "assistant.html": [
+      {
+        "type": "js",
+        "id": "JS-20260730-05",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
+    "auto_audit.py": [
+      {
+        "type": "js",
+        "id": "JS-20260730-05",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
+    "automation-dashboard.html": [
+      {
+        "type": "js",
+        "id": "JS-20260802-06",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
       }
     ],
     "backtest_lottery_honest.py": [
@@ -650,6 +802,20 @@
         "id": "AD-2026-07-27 17份彩票模型元分析+金水谣教训吸收自",
         "summary": "2026-07-27 17份彩票模型元分析+金水谣教训吸收自检 (JS-20260727-03)",
         "source": "ai_decisions.md"
+      },
+      {
+        "type": "pattern",
+        "id": "PAT-019",
+        "summary": "[PAT-019] 基金回测成本建模缺失: 基金回测忽略申购/赎回费会高估收益10-30%，定投模拟必须计入每笔申购费",
+        "source": "pattern_library"
+      }
+    ],
+    "backups/gui/main_window.py": [
+      {
+        "type": "exp",
+        "id": "EXP-104",
+        "summary": "2026-08-05 · 经验条目合集（JS-20260805-01~11，附4字段标注）[复盘][免费模型][解析修复",
+        "source": "经验收集箱"
       }
     ],
     "closeout_gate.py": [
@@ -711,7 +877,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-068",
+        "id": "EXP-069",
         "summary": "[2026-07-23] 金水谣 的经验（非彩票功能安全/并发/健壮性优化）[安全][后端][踩坑]",
         "source": "经验收集箱"
       }
@@ -764,17 +930,49 @@
         "source": "ai_decisions.md"
       },
       {
+        "type": "exp",
+        "id": "EXP-104",
+        "summary": "2026-08-05 · 经验条目合集（JS-20260805-01~11，附4字段标注）[复盘][免费模型][解析修复",
+        "source": "经验收集箱"
+      },
+      {
         "type": "risk",
         "id": "R-001",
         "summary": "[R-001] 免费模型政策易变（下架/转收费/限流/上新）",
         "source": "risk_register"
       }
     ],
+    "config/llm_budget.json": [
+      {
+        "type": "js",
+        "id": "JS-20260729-10",
+        "summary": "自动化系统优化 P0/P1/P2 落地（成本熔断+限流+健康闭环+遥测+并发门+影子测试+路由超时熔断 G1-G8）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-29 自动化系统优化架构（成本熔断+限流+健",
+        "summary": "2026-07-29 自动化系统优化架构（成本熔断+限流+健康闭环+遥测+并发门+影子测试 G1-G8）· JS-202",
+        "source": "ai_decisions.md"
+      }
+    ],
     "config/model_router.json": [
+      {
+        "type": "js",
+        "id": "JS-20260729-10",
+        "summary": "自动化系统优化 P0/P1/P2 落地（成本熔断+限流+健康闭环+遥测+并发门+影子测试+路由超时熔断 G1-G8）",
+        "source": "工作留痕总索引"
+      },
       {
         "type": "ad",
         "id": "AD-JS-20260727-30 · 本地助手进化终局补齐：主动",
         "summary": "JS-20260727-30 · 本地助手进化终局补齐：主动提醒引擎 + 多角色生成/复核",
+        "source": "ai_decisions.md"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-29 自动化系统优化架构（成本熔断+限流+健",
+        "summary": "2026-07-29 自动化系统优化架构（成本熔断+限流+健康闭环+遥测+并发门+影子测试 G1-G8）· JS-202",
         "source": "ai_decisions.md"
       }
     ],
@@ -784,6 +982,36 @@
         "id": "JS-20260729-04",
         "summary": "P0-P4 全线推进：双脚本/跨文档审计/旧引用/前端注册/配置收敛",
         "source": "工作留痕总索引"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260729-06",
+        "summary": "P1彩票三件套：遗漏热力图/旋转矩阵/缩水过滤",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260729-09",
+        "summary": "全链路交叉验证+遗漏修补+TradingView图表引入",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260731-01",
+        "summary": "彩票P2/P3页面创建+全路由注册+端到端测试",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-31 彩票P2/P3页面收尾 + 全路由注册",
+        "summary": "2026-07-31 彩票P2/P3页面收尾 + 全路由注册 + 端到端验证 · JS-20260731-01",
+        "source": "ai_decisions.md"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-112",
+        "summary": "基金系统三问题：3套名单打架 + 缓存过期不失效 + 关注列表无删除 [基金][缓存TTL][单一真源][数据更新]",
+        "source": "经验收集箱"
       }
     ],
     "config/paths.json": [
@@ -827,7 +1055,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-087",
+        "id": "EXP-088",
         "summary": "2026-07-24（WorkBuddy）知识库架构优化P3-4：定时reindex · JS-20260724-16 ",
         "source": "经验收集箱"
       }
@@ -838,6 +1066,14 @@
         "id": "AD-JS-20260727-30 · 本地助手进化终局补齐：主动",
         "summary": "JS-20260727-30 · 本地助手进化终局补齐：主动提醒引擎 + 多角色生成/复核",
         "source": "ai_decisions.md"
+      }
+    ],
+    "control-center.html": [
+      {
+        "type": "js",
+        "id": "JS-20260802-06",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
       }
     ],
     "controllers/budget_controller.py": [
@@ -858,6 +1094,28 @@
         "id": "AD-2026-07-27 遗留清零+全链路实证+门禁[E]项堵c",
         "summary": "2026-07-27 遗留清零+全链路实证+门禁[E]项堵commit断链 (JS-20260727-10)",
         "source": "ai_decisions.md"
+      }
+    ],
+    "core/agent_formatters.py": [
+      {
+        "type": "js",
+        "id": "JS-20260730-03",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260730-05",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
+    "core/agent_formatters.py:42,78": [
+      {
+        "type": "js",
+        "id": "JS-20260730-02",
+        "summary": "小隐患深度体检（代码层 + 安全边角）",
+        "source": "工作留痕总索引"
       }
     ],
     "core/agent_project_memory.py": [
@@ -910,6 +1168,14 @@
         "source": "ai_decisions.md"
       }
     ],
+    "core/agent_vector_memory.py": [
+      {
+        "type": "exp",
+        "id": "EXP-104",
+        "summary": "2026-08-05 · 经验条目合集（JS-20260805-01~11，附4字段标注）[复盘][免费模型][解析修复",
+        "source": "经验收集箱"
+      }
+    ],
     "core/agent_web_search.py": [
       {
         "type": "js",
@@ -930,6 +1196,36 @@
         "id": "JS-20260728-08",
         "summary": "金水谣",
         "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260730-03",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260730-05",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-11",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-14",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
       },
       {
         "type": "js",
@@ -966,6 +1262,26 @@
         "id": "AD-JS-20260727-30 · 本地助手进化终局补齐：主动",
         "summary": "JS-20260727-30 · 本地助手进化终局补齐：主动提醒引擎 + 多角色生成/复核",
         "source": "ai_decisions.md"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-103",
+        "summary": "2026-08-02 · opencode — Obsidian 插件\"加载失败\"排查（坚果云内 vault 插件文件易",
+        "source": "经验收集箱"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-104",
+        "summary": "2026-08-05 · 经验条目合集（JS-20260805-01~11，附4字段标注）[复盘][免费模型][解析修复",
+        "source": "经验收集箱"
+      }
+    ],
+    "core/ai_agent.py:692-701": [
+      {
+        "type": "js",
+        "id": "JS-20260730-02",
+        "summary": "小隐患深度体检（代码层 + 安全边角）",
+        "source": "工作留痕总索引"
       }
     ],
     "core/ai_agent.py:chat()": [
@@ -974,6 +1290,26 @@
         "id": "JS-20260728-08",
         "summary": "GStack调度，单Agent直调改代码)",
         "source": "工作留痕总索引(dot)"
+      }
+    ],
+    "core/ai_decisions_extractor.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-13",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-103",
+        "summary": "2026-08-02 · opencode — Obsidian 插件\"加载失败\"排查（坚果云内 vault 插件文件易",
+        "source": "经验收集箱"
       }
     ],
     "core/ai_service.py": [
@@ -1017,9 +1353,17 @@
     "core/ai_service.py/core/scheduler.py": [
       {
         "type": "exp",
-        "id": "EXP-078",
+        "id": "EXP-079",
         "summary": "2026-07-24 门禁基线因坚果云同步漂移需刷新（非代码改动）[工具运维][最佳实践][数据完整性]",
         "source": "经验收集箱"
+      }
+    ],
+    "core/audit_log.py:124": [
+      {
+        "type": "js",
+        "id": "JS-20260730-01",
+        "summary": "深度复查（LAN 绑定暴露 + 知识提取格式崩溃）+ 双重加固",
+        "source": "工作留痕总索引"
       }
     ],
     "core/auto_knowledge.py": [
@@ -1122,6 +1466,12 @@
         "id": "AD-2026-07-27 自动化平移Batch2·剩余5个全免积",
         "summary": "2026-07-27 自动化平移Batch2·剩余5个全免积分(JS-20260727-22)",
         "source": "ai_decisions.md"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-111",
+        "summary": "2026-08-10 子进程输出解码: subprocess.text=True 必须显式指定编码 [后端][编码][s",
+        "source": "经验收集箱"
       }
     ],
     "core/circuit_breaker.py": [
@@ -1133,9 +1483,31 @@
       },
       {
         "type": "exp",
-        "id": "EXP-063",
+        "id": "EXP-064",
         "summary": "2026-07-23 WorkBuddy 的经验（彩票抓取系统 Layer0 防御层修复 · 三维框架首次实战）[代码优",
         "source": "经验收集箱"
+      }
+    ],
+    "core/concurrency_gate.py": [
+      {
+        "type": "js",
+        "id": "JS-20260729-10",
+        "summary": "自动化系统优化 P0/P1/P2 落地（成本熔断+限流+健康闭环+遥测+并发门+影子测试+路由超时熔断 G1-G8）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-29 自动化系统优化架构（成本熔断+限流+健",
+        "summary": "2026-07-29 自动化系统优化架构（成本熔断+限流+健康闭环+遥测+并发门+影子测试 G1-G8）· JS-202",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "core/data_truth_guard.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-05",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
       }
     ],
     "core/dispatch_knowledge.py": [
@@ -1178,7 +1550,39 @@
         "source": "ai_decisions.md"
       }
     ],
+    "core/exp_box_extractor.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-10",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-12",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-13",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      }
+    ],
     "core/free_model_pool.py": [
+      {
+        "type": "js",
+        "id": "JS-20260729-10",
+        "summary": "自动化系统优化 P0/P1/P2 落地（成本熔断+限流+健康闭环+遥测+并发门+影子测试+路由超时熔断 G1-G8）",
+        "source": "工作留痕总索引"
+      },
       {
         "type": "js",
         "id": "JS-20260727-12",
@@ -1232,6 +1636,12 @@
         "id": "AD-JS-20260727-30 · 本地助手进化终局补齐：主动",
         "summary": "JS-20260727-30 · 本地助手进化终局补齐：主动提醒引擎 + 多角色生成/复核",
         "source": "ai_decisions.md"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-29 自动化系统优化架构（成本熔断+限流+健",
+        "summary": "2026-07-29 自动化系统优化架构（成本熔断+限流+健康闭环+遥测+并发门+影子测试 G1-G8）· JS-202",
+        "source": "ai_decisions.md"
       }
     ],
     "core/free_model_pool/__init__.py": [
@@ -1240,6 +1650,20 @@
         "id": "R-001",
         "summary": "[R-001] 免费模型政策易变（下架/转收费/限流/上新）",
         "source": "risk_register"
+      }
+    ],
+    "core/gui_registry.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-09",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-103",
+        "summary": "2026-08-02 · opencode — Obsidian 插件\"加载失败\"排查（坚果云内 vault 插件文件易",
+        "source": "经验收集箱"
       }
     ],
     "core/intent_rules.py": [
@@ -1268,6 +1692,52 @@
         "source": "ai_decisions.md"
       }
     ],
+    "core/knowledge_gateway.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-11",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-12",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-14",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-103",
+        "summary": "2026-08-02 · opencode — Obsidian 插件\"加载失败\"排查（坚果云内 vault 插件文件易",
+        "source": "经验收集箱"
+      }
+    ],
+    "core/llm_budget.py": [
+      {
+        "type": "js",
+        "id": "JS-20260729-10",
+        "summary": "自动化系统优化 P0/P1/P2 落地（成本熔断+限流+健康闭环+遥测+并发门+影子测试+路由超时熔断 G1-G8）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-29 自动化系统优化架构（成本熔断+限流+健",
+        "summary": "2026-07-29 自动化系统优化架构（成本熔断+限流+健康闭环+遥测+并发门+影子测试 G1-G8）· JS-202",
+        "source": "ai_decisions.md"
+      }
+    ],
     "core/memory_decay.py": [
       {
         "type": "js",
@@ -1283,7 +1753,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-068",
+        "id": "EXP-069",
         "summary": "[2026-07-23] 金水谣 的经验（非彩票功能安全/并发/健壮性优化）[安全][后端][踩坑]",
         "source": "经验收集箱"
       }
@@ -1298,10 +1768,50 @@
     ],
     "core/model_router.py": [
       {
+        "type": "js",
+        "id": "JS-20260729-10",
+        "summary": "自动化系统优化 P0/P1/P2 落地（成本熔断+限流+健康闭环+遥测+并发门+影子测试+路由超时熔断 G1-G8）",
+        "source": "工作留痕总索引"
+      },
+      {
         "type": "ad",
         "id": "AD-JS-20260727-30 · 本地助手进化终局补齐：主动",
         "summary": "JS-20260727-30 · 本地助手进化终局补齐：主动提醒引擎 + 多角色生成/复核",
         "source": "ai_decisions.md"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-29 自动化系统优化架构（成本熔断+限流+健",
+        "summary": "2026-07-29 自动化系统优化架构（成本熔断+限流+健康闭环+遥测+并发门+影子测试 G1-G8）· JS-202",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "core/model_shadow.py": [
+      {
+        "type": "js",
+        "id": "JS-20260729-10",
+        "summary": "自动化系统优化 P0/P1/P2 落地（成本熔断+限流+健康闭环+遥测+并发门+影子测试+路由超时熔断 G1-G8）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-29 自动化系统优化架构（成本熔断+限流+健",
+        "summary": "2026-07-29 自动化系统优化架构（成本熔断+限流+健康闭环+遥测+并发门+影子测试 G1-G8）· JS-202",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "core/pipeline_state.py": [
+      {
+        "type": "js",
+        "id": "JS-20260810-01",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260810-03",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
       }
     ],
     "core/scheduler.py": [
@@ -1309,6 +1819,12 @@
         "type": "js",
         "id": "JS-20260721-03",
         "summary": "WorkBuddy",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260730-01",
+        "summary": "金水谣",
         "source": "工作留痕总索引(表)"
       },
       {
@@ -1390,6 +1906,12 @@
         "source": "ai_decisions.md"
       },
       {
+        "type": "ad",
+        "id": "AD-2026-08-07 智能链路全线联通（W63补54 / J",
+        "summary": "2026-08-07 智能链路全线联通（W63补54 / JS-20260807-03）",
+        "source": "ai_decisions.md"
+      },
+      {
         "type": "exp",
         "id": "EXP-028",
         "summary": "2026-07-21 WorkBuddy 的经验（知识系统自动化 N1/N2/N3 接入 scheduler）[架构][",
@@ -1403,9 +1925,39 @@
       },
       {
         "type": "exp",
-        "id": "EXP-064",
+        "id": "EXP-065",
         "summary": "2026-07-23 WorkBuddy 的经验（彩票抓取系统 Layer1 熔断架构修复 · Stage B 单例Fe",
         "source": "经验收集箱"
+      }
+    ],
+    "core/security.py": [
+      {
+        "type": "exp",
+        "id": "EXP-111",
+        "summary": "2026-08-10 子进程输出解码: subprocess.text=True 必须显式指定编码 [后端][编码][s",
+        "source": "经验收集箱"
+      }
+    ],
+    "core/security.py::is_safe_http_url": [
+      {
+        "type": "exp",
+        "id": "EXP-104",
+        "summary": "2026-08-05 · 经验条目合集（JS-20260805-01~11，附4字段标注）[复盘][免费模型][解析修复",
+        "source": "经验收集箱"
+      }
+    ],
+    "core/telemetry.py": [
+      {
+        "type": "js",
+        "id": "JS-20260729-10",
+        "summary": "自动化系统优化 P0/P1/P2 落地（成本熔断+限流+健康闭环+遥测+并发门+影子测试+路由超时熔断 G1-G8）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-29 自动化系统优化架构（成本熔断+限流+健",
+        "summary": "2026-07-29 自动化系统优化架构（成本熔断+限流+健康闭环+遥测+并发门+影子测试 G1-G8）· JS-202",
+        "source": "ai_decisions.md"
       }
     ],
     "core/theme.py": [
@@ -1428,6 +1980,26 @@
         "id": "AD-JS-20260727-30 · 本地助手进化终局补齐：主动",
         "summary": "JS-20260727-30 · 本地助手进化终局补齐：主动提醒引擎 + 多角色生成/复核",
         "source": "ai_decisions.md"
+      }
+    ],
+    "core/tk_style.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-07",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-103",
+        "summary": "2026-08-02 · opencode — Obsidian 插件\"加载失败\"排查（坚果云内 vault 插件文件易",
+        "source": "经验收集箱"
       }
     ],
     "core/video_extractor.py": [
@@ -1458,6 +2030,14 @@
         "source": "工作留痕总索引(dot)"
       }
     ],
+    "data_maintenance.py": [
+      {
+        "type": "exp",
+        "id": "EXP-104",
+        "summary": "2026-08-05 · 经验条目合集（JS-20260805-01~11，附4字段标注）[复盘][免费模型][解析修复",
+        "source": "经验收集箱"
+      }
+    ],
     "deepseek_key.txt": [
       {
         "type": "js",
@@ -1473,9 +2053,49 @@
       },
       {
         "type": "exp",
-        "id": "EXP-068",
+        "id": "EXP-069",
         "summary": "[2026-07-23] 金水谣 的经验（非彩票功能安全/并发/健壮性优化）[安全][后端][踩坑]",
         "source": "经验收集箱"
+      }
+    ],
+    "deliverables/docs_archive_2026-07": [
+      {
+        "type": "js",
+        "id": "JS-20260802-03",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
+    "deliverables/gstack/fix-minor-risks-jinshuiyao-2026-07-30.md": [
+      {
+        "type": "js",
+        "id": "JS-20260730-03",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
+    "deliverables/gstack/log-health-review-jinshuiyao-2026-07-30.md": [
+      {
+        "type": "js",
+        "id": "JS-20260730-04",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
+    "deliverables/gstack/log-review-issues-fix-jinshuiyao-2026-07-30.md": [
+      {
+        "type": "js",
+        "id": "JS-20260730-05",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
+    "deliverables/gstack/minor-risks-sweep-jinshuiyao-2026-07-30.md": [
+      {
+        "type": "js",
+        "id": "JS-20260730-02",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
       }
     ],
     "deliverables/gstack/post-launch-todo-jinshuiyao-2026-07-28.md": [
@@ -1502,6 +2122,22 @@
         "source": "工作留痕总索引(表)"
       }
     ],
+    "deliverables/gstack/recheck-lan-binding-jinshuiyao-2026-07-30.md": [
+      {
+        "type": "js",
+        "id": "JS-20260730-01",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
+    "deliverables/笔记本同步配置说明.md": [
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
     "device_sync.py": [
       {
         "type": "js",
@@ -1517,7 +2153,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-068",
+        "id": "EXP-069",
         "summary": "[2026-07-23] 金水谣 的经验（非彩票功能安全/并发/健壮性优化）[安全][后端][踩坑]",
         "source": "经验收集箱"
       }
@@ -1594,6 +2230,40 @@
         "source": "工作留痕总索引(dot)"
       }
     ],
+    "domains/base.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-08",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-103",
+        "summary": "2026-08-02 · opencode — Obsidian 插件\"加载失败\"排查（坚果云内 vault 插件文件易",
+        "source": "经验收集箱"
+      }
+    ],
+    "domains/creator/creator_gui.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-07",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-08",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
     "domains/fund/analyzer.py": [
       {
         "type": "ad",
@@ -1603,6 +2273,12 @@
       }
     ],
     "domains/fund/domain.py": [
+      {
+        "type": "js",
+        "id": "JS-20260730-05",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      },
       {
         "type": "ad",
         "id": "AD-2026-07-24 基金回测引擎 run_fund + F",
@@ -1626,6 +2302,46 @@
         "id": "AD-2026-07-24 基金对比视图 + 股基 API 端点 ",
         "summary": "2026-07-24 基金对比视图 + 股基 API 端点 · JS-20260724-12",
         "source": "ai_decisions.md"
+      },
+      {
+        "type": "pattern",
+        "id": "PAT-019",
+        "summary": "[PAT-019] 基金回测成本建模缺失: 基金回测忽略申购/赎回费会高估收益10-30%，定投模拟必须计入每笔申购费",
+        "source": "pattern_library"
+      },
+      {
+        "type": "pattern",
+        "id": "PAT-021",
+        "summary": "[PAT-021] 基金对比视图缺少风险指标: 基金并排对比表缺少 Alpha/Beta/信息比率等专业指标，仅展示基础收益风险数据",
+        "source": "pattern_library"
+      },
+      {
+        "type": "risk",
+        "id": "R-004",
+        "summary": "[R-004] akshare 免费数据源不可用或变更",
+        "source": "risk_register"
+      }
+    ],
+    "domains/fund/fetcher.py": [
+      {
+        "type": "risk",
+        "id": "R-004",
+        "summary": "[R-004] akshare 免费数据源不可用或变更",
+        "source": "risk_register"
+      }
+    ],
+    "domains/fund/fund_backtest.py": [
+      {
+        "type": "js",
+        "id": "JS-20260730-05",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "pattern",
+        "id": "PAT-019",
+        "summary": "[PAT-019] 基金回测成本建模缺失: 基金回测忽略申购/赎回费会高估收益10-30%，定投模拟必须计入每笔申购费",
+        "source": "pattern_library"
       }
     ],
     "domains/fund/fund_data_manager.py": [
@@ -1634,6 +2350,42 @@
         "id": "JS-20260722-02",
         "summary": "WorkBuddy",
         "source": "工作留痕总索引(表)"
+      }
+    ],
+    "domains/fund/fund_gui.py": [
+      {
+        "type": "js",
+        "id": "JS-20260730-03",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-07",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-08",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
+    "domains/fund/fund_gui.py:548": [
+      {
+        "type": "js",
+        "id": "JS-20260730-02",
+        "summary": "小隐患深度体检（代码层 + 安全边角）",
+        "source": "工作留痕总索引"
+      }
+    ],
+    "domains/fund/fund_metrics.py": [
+      {
+        "type": "pattern",
+        "id": "PAT-021",
+        "summary": "[PAT-021] 基金对比视图缺少风险指标: 基金并排对比表缺少 Alpha/Beta/信息比率等专业指标，仅展示基础收益风险数据",
+        "source": "pattern_library"
       }
     ],
     "domains/lottery/domain.py": [
@@ -1674,14 +2426,20 @@
         "source": "ai_decisions.md"
       },
       {
+        "type": "ad",
+        "id": "AD-2026-08-07 智能链路全线联通（W63补54 / J",
+        "summary": "2026-08-07 智能链路全线联通（W63补54 / JS-20260807-03）",
+        "source": "ai_decisions.md"
+      },
+      {
         "type": "exp",
-        "id": "EXP-064",
+        "id": "EXP-065",
         "summary": "2026-07-23 WorkBuddy 的经验（彩票抓取系统 Layer1 熔断架构修复 · Stage B 单例Fe",
         "source": "经验收集箱"
       },
       {
         "type": "exp",
-        "id": "EXP-076",
+        "id": "EXP-077",
         "summary": "2026-07-24 彩票生成置信度 SQI（信号质量指数·诚实非概率）· JS-20260724-04 [后端][最佳",
         "source": "经验收集箱"
       }
@@ -1696,6 +2454,12 @@
     ],
     "domains/stock/domain.py": [
       {
+        "type": "js",
+        "id": "JS-20260730-05",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      },
+      {
         "type": "ad",
         "id": "AD-2026-07-24 股票真实股票池筛选 screen() ",
         "summary": "2026-07-24 股票真实股票池筛选 screen() · JS-20260724-07",
@@ -1706,6 +2470,102 @@
         "id": "AD-2026-07-24 基金对比视图 + 股基 API 端点 ",
         "summary": "2026-07-24 基金对比视图 + 股基 API 端点 · JS-20260724-12",
         "source": "ai_decisions.md"
+      },
+      {
+        "type": "pattern",
+        "id": "PAT-020",
+        "summary": "[PAT-020] 多因子选股权重参数硬编码: 选股因子权重在代码中硬编码，修改权重需要改代码，不利于策略迭代和回测调优",
+        "source": "pattern_library"
+      },
+      {
+        "type": "pattern",
+        "id": "PAT-022",
+        "summary": "[PAT-022] 股票选股结果缺少命中率追踪: 选股推荐后无自动化复盘机制，无法评估选股建议的准确性和改进方向",
+        "source": "pattern_library"
+      },
+      {
+        "type": "risk",
+        "id": "R-004",
+        "summary": "[R-004] akshare 免费数据源不可用或变更",
+        "source": "risk_register"
+      },
+      {
+        "type": "risk",
+        "id": "R-005",
+        "summary": "[R-005] 多因子选股评分参数过拟合",
+        "source": "risk_register"
+      }
+    ],
+    "domains/stock/fetcher.py": [
+      {
+        "type": "risk",
+        "id": "R-004",
+        "summary": "[R-004] akshare 免费数据源不可用或变更",
+        "source": "risk_register"
+      }
+    ],
+    "domains/stock/music/fund/creator/lottery/domain.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-08",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
+    "domains/stock/stock_gui.py": [
+      {
+        "type": "js",
+        "id": "JS-20260730-03",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-07",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-08",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
+    "domains/stock/stock_gui.py:507": [
+      {
+        "type": "js",
+        "id": "JS-20260730-02",
+        "summary": "小隐患深度体检（代码层 + 安全边角）",
+        "source": "工作留痕总索引"
+      }
+    ],
+    "domains/stock/stock_screener.py": [
+      {
+        "type": "pattern",
+        "id": "PAT-020",
+        "summary": "[PAT-020] 多因子选股权重参数硬编码: 选股因子权重在代码中硬编码，修改权重需要改代码，不利于策略迭代和回测调优",
+        "source": "pattern_library"
+      },
+      {
+        "type": "pattern",
+        "id": "PAT-022",
+        "summary": "[PAT-022] 股票选股结果缺少命中率追踪: 选股推荐后无自动化复盘机制，无法评估选股建议的准确性和改进方向",
+        "source": "pattern_library"
+      },
+      {
+        "type": "risk",
+        "id": "R-005",
+        "summary": "[R-005] 多因子选股评分参数过拟合",
+        "source": "risk_register"
+      }
+    ],
+    "engines.json/pattern_library.json/user_themes.json": [
+      {
+        "type": "exp",
+        "id": "EXP-111",
+        "summary": "2026-08-10 子进程输出解码: subprocess.text=True 必须显式指定编码 [后端][编码][s",
+        "source": "经验收集箱"
       }
     ],
     "engines/backtest/evaluate.py": [
@@ -1716,12 +2576,80 @@
         "source": "pattern_library"
       }
     ],
+    "engines/brain_daily.py": [
+      {
+        "type": "exp",
+        "id": "EXP-112",
+        "summary": "基金系统三问题：3套名单打架 + 缓存过期不失效 + 关注列表无删除 [基金][缓存TTL][单一真源][数据更新]",
+        "source": "经验收集箱"
+      }
+    ],
+    "engines/dimension_consensus.py": [
+      {
+        "type": "js",
+        "id": "JS-20260803-16",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-103",
+        "summary": "2026-08-02 · opencode — Obsidian 插件\"加载失败\"排查（坚果云内 vault 插件文件易",
+        "source": "经验收集箱"
+      }
+    ],
+    "engines/evolution.py": [
+      {
+        "type": "js",
+        "id": "JS-20260730-01",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-07 智能链路全线联通（W63补54 / J",
+        "summary": "2026-08-07 智能链路全线联通（W63补54 / JS-20260807-03）",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "engines/format_gen.py": [
+      {
+        "type": "js",
+        "id": "JS-20260803-17",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      }
+    ],
     "engines/killer.py": [
       {
         "type": "js",
         "id": "JS-20260721-12",
         "summary": "WorkBuddy",
         "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-01",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-102",
+        "summary": "2026-08-02 · opencode — 修复排列三/福彩3D预测\"全是0\"根因 [彩票][踩坑][最佳实践]",
+        "source": "经验收集箱"
       }
     ],
     "engines/killer_fixed.py": [
@@ -1810,12 +2738,44 @@
         "source": "ai_decisions.md"
       }
     ],
+    "engines/miss_analyzer.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-01",
+        "summary": "修复排列三/福彩3D预测\"全是0\"根因（Killer杀号过猛收敛 + MissAnalyzer数据方向契约修正）",
+        "source": "工作留痕总索引"
+      }
+    ],
     "engines/prediction_service.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-01",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
       {
         "type": "js",
         "id": "JS-20260722-18",
         "summary": "TRAE",
         "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260803-16",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260803-17",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
       },
       {
         "type": "js",
@@ -1836,6 +2796,12 @@
         "source": "ai_decisions.md"
       },
       {
+        "type": "ad",
+        "id": "AD-2026-08-07 智能链路全线联通（W63补54 / J",
+        "summary": "2026-08-07 智能链路全线联通（W63补54 / JS-20260807-03）",
+        "source": "ai_decisions.md"
+      },
+      {
         "type": "exp",
         "id": "EXP-053",
         "summary": "2026-07-22 TRAE 的经验（预测服务热号KeyError · 类型不匹配陷阱）[后端][踩坑][最佳实践]",
@@ -1843,7 +2809,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-076",
+        "id": "EXP-077",
         "summary": "2026-07-24 彩票生成置信度 SQI（信号质量指数·诚实非概率）· JS-20260724-04 [后端][最佳",
         "source": "经验收集箱"
       },
@@ -1854,12 +2820,42 @@
         "source": "pattern_library"
       }
     ],
+    "engines/prediction_service.py:220": [
+      {
+        "type": "js",
+        "id": "JS-20260802-01",
+        "summary": "修复排列三/福彩3D预测\"全是0\"根因（Killer杀号过猛收敛 + MissAnalyzer数据方向契约修正）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-102",
+        "summary": "2026-08-02 · opencode — 修复排列三/福彩3D预测\"全是0\"根因 [彩票][踩坑][最佳实践]",
+        "source": "经验收集箱"
+      }
+    ],
+    "engines/prediction_service.py::_consult_knowledge": [
+      {
+        "type": "ad",
+        "id": "AD-2026-08-07 智能链路全线联通（W63补54 / J",
+        "summary": "2026-08-07 智能链路全线联通（W63补54 / JS-20260807-03）",
+        "source": "ai_decisions.md"
+      }
+    ],
     "engines/prediction_service.py:predictionservice.generate()": [
       {
         "type": "js",
         "id": "JS-20260725-41",
         "summary": "**时间**: 2026-07-25",
         "source": "工作留痕总索引(dot)"
+      }
+    ],
+    "engines/strategy_cards.py": [
+      {
+        "type": "ad",
+        "id": "AD-2026-08-07 智能链路全线联通（W63补54 / J",
+        "summary": "2026-08-07 智能链路全线联通（W63补54 / JS-20260807-03）",
+        "source": "ai_decisions.md"
       }
     ],
     "engines/trend_generator.py": [
@@ -1882,6 +2878,18 @@
         "id": "JS-20260723-29",
         "summary": "金水谣(WorkBuddy)",
         "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260803-15",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
       },
       {
         "type": "js",
@@ -1927,25 +2935,25 @@
       },
       {
         "type": "exp",
-        "id": "EXP-063",
+        "id": "EXP-064",
         "summary": "2026-07-23 WorkBuddy 的经验（彩票抓取系统 Layer0 防御层修复 · 三维框架首次实战）[代码优",
         "source": "经验收集箱"
       },
       {
         "type": "exp",
-        "id": "EXP-064",
+        "id": "EXP-065",
         "summary": "2026-07-23 WorkBuddy 的经验（彩票抓取系统 Layer1 熔断架构修复 · Stage B 单例Fe",
         "source": "经验收集箱"
       },
       {
         "type": "exp",
-        "id": "EXP-066",
+        "id": "EXP-067",
         "summary": "2026-07-23 WorkBuddy 的经验（彩票抓取 Layer1 S5+S6 实施 + 正反推导方法论补齐）[代",
         "source": "经验收集箱"
       },
       {
         "type": "exp",
-        "id": "EXP-067",
+        "id": "EXP-068",
         "summary": "[2026-07-23] 金水谣 的经验（time 字段回填 + 全功能深究 + 文档核查）",
         "source": "经验收集箱"
       },
@@ -1964,18 +2972,58 @@
         "source": "工作留痕总索引(dot)"
       }
     ],
+    "football/dashboard.html": [
+      {
+        "type": "js",
+        "id": "JS-20260729-07",
+        "summary": "全子系统架构重组：基金/股票/足彩 Hub + 股票仪表盘新建 + 全导航更新",
+        "source": "工作留痕总索引"
+      }
+    ],
+    "football/football-hub.html": [
+      {
+        "type": "js",
+        "id": "JS-20260729-07",
+        "summary": "全子系统架构重组：基金/股票/足彩 Hub + 股票仪表盘新建 + 全导航更新",
+        "source": "工作留痕总索引"
+      }
+    ],
+    "fund/dashboard.html": [
+      {
+        "type": "js",
+        "id": "JS-20260729-07",
+        "summary": "全子系统架构重组：基金/股票/足彩 Hub + 股票仪表盘新建 + 全导航更新",
+        "source": "工作留痕总索引"
+      }
+    ],
     "fund/domain.py": [
       {
         "type": "exp",
-        "id": "EXP-090",
+        "id": "EXP-091",
         "summary": "测试覆盖率分析",
         "source": "经验收集箱"
       },
       {
         "type": "exp",
-        "id": "EXP-091",
+        "id": "EXP-092",
         "summary": "建议",
         "source": "经验收集箱"
+      }
+    ],
+    "fund/fund-hub.html": [
+      {
+        "type": "js",
+        "id": "JS-20260729-07",
+        "summary": "全子系统架构重组：基金/股票/足彩 Hub + 股票仪表盘新建 + 全导航更新",
+        "source": "工作留痕总索引"
+      }
+    ],
+    "fund/nav-trend.html": [
+      {
+        "type": "js",
+        "id": "JS-20260729-09",
+        "summary": "全链路交叉验证+遗漏修补+TradingView图表引入",
+        "source": "工作留痕总索引"
       }
     ],
     "generate_real_dataset.py": [
@@ -2025,7 +3073,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-068",
+        "id": "EXP-069",
         "summary": "[2026-07-23] 金水谣 的经验（非彩票功能安全/并发/健壮性优化）[安全][后端][踩坑]",
         "source": "经验收集箱"
       }
@@ -2042,6 +3090,18 @@
         "id": "JS-20260722-22",
         "summary": "WorkBuddy",
         "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260803-18",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
       },
       {
         "type": "js",
@@ -2062,6 +3122,12 @@
         "source": "ai_decisions.md"
       },
       {
+        "type": "ad",
+        "id": "AD-2026-08-07 智能链路全线联通（W63补54 / J",
+        "summary": "2026-08-07 智能链路全线联通（W63补54 / JS-20260807-03）",
+        "source": "ai_decisions.md"
+      },
+      {
         "type": "exp",
         "id": "EXP-048",
         "summary": "2026-07-22 TRAE 的经验（GUI变量作用域bug + Python环境修复）[前端][踩坑][运维]",
@@ -2069,9 +3135,23 @@
       },
       {
         "type": "exp",
-        "id": "EXP-064",
+        "id": "EXP-065",
         "summary": "2026-07-23 WorkBuddy 的经验（彩票抓取系统 Layer1 熔断架构修复 · Stage B 单例Fe",
         "source": "经验收集箱"
+      }
+    ],
+    "gui/play_plans.py": [
+      {
+        "type": "js",
+        "id": "JS-20260803-17",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
       }
     ],
     "guide_server.py": [
@@ -2080,6 +3160,14 @@
         "id": "JS-20260726-27",
         "summary": "§12 / 经验底座 F9+维度二。\n\n### 🔷 天枢 TS（详细见 `模型/.workbuddy/memory/2026-07-19.md` 与 `MEMORY.md`）\n\n| 编号 | 日期 | 主题 | 经手AI | 关键改动 | 验证 | 关联 | 成熟度（补标-2026-07-21） |\n|------|------|------|--------|----------|------|------|------|\n| TS-20260719-01 | 07-19 | 系统性审查+稳定性全套修复(P0-P3) | WorkBuddy | `guide_server.py` 双库连通/密钥迁`~/.tianshu-secrets`/SSRF守卫/线程锁/`/health`；`mirofish_db.py`写锁；`video_to_kb.py`同步双库 | 端到端实测 | MEMORY.md运维铁律 | verified |\n| TS-20260719-02 | 07-19 | 外部调用硬超时熔断(T6头号建议) | WorkBuddy | `guide_server.py` 加 `ThreadPoolExecutor`+`run_external()`，包裹/chat/ask/extract-archive/ingest | 卡死对话10s→3.02s返回TIMEOUT | `docs/超时熔断验证报告_2026-07-19.html` | verified |\n| TS-20260719-03 | 07-19 | 「反复打不开」根因根治 | WorkBuddy | 根因=旧guide_server进程顶着18888未加载新代码；`launch.bat`启动前清旧进程+`/health`暴露version+topnav红字提示 | /health带version；模拟旧版→红字 | **JS-20260721根因同源** | proven |\n| TS-20260721-01 | 07-21 | 全量清理+终态验证（不再反反复复） | WorkBuddy | 清7个孤儿python进程；修`/api/ask`等4处utf-8解码容错；`/api/ask`空路径默认项目根；删临时文件/缓存/旧报告归置 | 全接口200；进程仅1个 | `docs/模型终态优化报告_2026-07-19.html` | verified |\n| TS-20260721-02 | 07-21 | 跨项目留痕总索引体系建立 | WorkBuddy | 新建本文件`工作留痕总索引.md`；AGENTS.md/两份交接中心加铁律③+溯源专章；经验箱补跨项目根因 | 文件写入校验 | 本索引所有条目 | verified |\n\n### 🔷 跨项目关联链（无缝衔接的关键）\n\n- **根因同源**：`TS-20260719-03`（天枢旧进程顶端口导致反复打不开）与 `JS-20260721-01`（金水谣换机后 venv 失效）本质都是「**运行态与实际代码/配置不同步**」。\n  → 解法通用：**启动前自检 + 版本/配置指纹校验**（金水谣已有 doctor.py+前哨，天枢有 launch.bat清旧进程+version）。\n- **溯源闭环**：天枢的 `/health` 版本号思路 ↔ 金水谣的启动前哨，可互相借鉴。\n\n---\n\n## 四、使用说明（给 AI 和主人的速查）\n\n**倒查某次工作**：\n1. 知道编号 → 直接在上方表格或 `Ctrl+F` 搜编号\n2. 知道大概时间/主题 → 按日期或项目筛\n3. 想知道「为什么这么改」→ 看该条「改动文件+关联」指向的交接中心序号/经验箱条目\n\n**开工前（任何AI）**：\n1. 读 `AI协作交接中心.md`（**根目录一份为权威**；项目内 `Jinshuiyao_Fixed/AI协作交接中心.md` 已改为指回根目录的占位，勿再维护双份）→ 再读 `金水谣_模块契约.md` + `金水谣_编码规范.md`（多模型防乱强制规则）\n2. 扫一眼本索引最新 3-5 条，确认无「遗留未验证」项\n3. 换设备 → 执行交接中心「一-B」环境检查清单\n4. 若距上次知识体检（Lint）>30 天 → 先跑一次 Lint（见第六节）\n\n**收工前（强制，不做=白干）**：\n1. 在本索引登记一条（按 v1.1 模板，拿新编号，必填「被否决方案」+「人工介入触发」+「成熟度」）\n2. 更新对应项目留痕（交接中心第二章 / 经验箱 / `.workbuddy/memory`）\n3. 回答末尾输出：完成清单 + 变更文件 + 遗留 + 「✅ 已登记总索引」\n4. **不可篡改原则**：本索引只追加、不修改历史条目；发现旧条错误，新登记一条「更正」并关联原条，禁止直接改旧条（保证审计链完整、可倒查）\n\n---\n\n## 五、知识成熟度与衰减（吸收自团队知识沉淀实践）\n\n经验收集箱与总索引条目按「被验证次数」分级，避免过时知识误导 AI：\n\n| 成熟度 | 含义 | 升级条件 |\n|--------|------|----------|\n| `draft` | 新登记，单一来源，未经验证 | — |\n| `verified` | 在 ≥1 个项目中被成功复用 | 被某次工作引用且验证有效 |\n| `proven` | 在 ≥2 个不同项目中被验证，或跨项目根因 | 跨项目复用成功 |\n\n**自动衰减**（知识会过时，宁让其自然降级）：\n- `proven` 12 个月未被引用 → 降为 `verified`\n- `verified` 6 个月未被引用 → 降为 `draft`\n- `draft` 长期未引用 + Lint 标记为孤儿 → 移出活跃索引（归档）\n\n---\n\n## 六、知识体检（Lint）机制（定期查矛盾/断链，保证长期无缝衔接）\n\n- **频率**：每月 1 次自动（WorkBuddy 自动化「金水谣/天枢 知识体检 Lint」，id `automation-1784644448088`，已于 2026-07-21 真正注册并 ACTIVE）；或任何 AI 开工前若发现索引 >30 天未 Lint 则先 Lint。\n- **⚠️ 待核实（重复风险）**：`JS-20260721-03` 曾在 `core/scheduler.py` 内另建「每日触发 + `day!=1` 守卫」的 N3 Lint 任务（见交接中心 P0.5-N3 标记✅）。本项目自动化与其可能重复——下次 Lint 运行时确认保留两者或合并其一，避免双跑。\n- **Lint 检查项**：① 矛盾条目（同一事实两处说法不一致）② 孤儿页（有出链无入链的反向引用）③ 缺失交叉引用 ④ 数据缺口（路径/文件已不存在）⑤ 过时路径（被改名的文件）\n- **产出**：在今日日志登记 Lint 结果；矛盾项标「待核实」并关联负责人；清理孤儿与断链\n\n---\n\n## 七、未完成 / 跳过项清单（避免误判为「已做」）\n\n> 以下项**不是**「完成」，明确标注状态，防止下一个 AI 或主人误以为全部交付。\n\n| 项 | 状态 | 原因 / 触发条件 | 关联 |\n|----|------|----------------|------|\n| N4 语音交互 | ⏸ 跳过 | 需 8GB+ 显存硬件，当前未到位 | JS-20260721-03 补录跳过项 |\n| 云端上线（ICP备案→个体户→小程序） | ⏸ 跳过 | 当前本地+坚果云零成本策略，功能完善后再启动 | JS-20260721-03 补录跳过项 |\n| 22 个 pytest 失败（实测应为 9 项） | ✅ 已清零 | 实为 9 项测试隔离失败(preload 孤儿6 + creator 共享目录1 + fund 持久根2)，非生产bug；2026-07-22 用「可测试性改造 root_dir + 独立临时目录」逐条根治，全量 0 failed / 740 passed | JS-20260722-02 / 金水谣_测试债清理追踪.md |\n| 扁平根文件迁包（8 个 .py 进包） | ⏸ 未做 | 低风险重构，待拍板 | 防乱方案待办 |\n| 内容营销 Skill（B 档）/ 对外网页（C 档） | ⏸ 未做 | 工作台标签已做(JS-20260721-11)，封装/部署未启动 | JS-20260721-09/11 |\n| N3 Lint 双跑合并 | ⚠️ 待核实 | `core/scheduler.py` 内 N3 与自动化 `automation-1784644448088` 可能重复，下次 Lint 确认合并其一 | JS-20260721-03 / JS-20260721-15 |\n\n> **⚠️ 更正（2026-07-22）**：交接中心 Qoder #13/#21/#24 称「22 个预存测试失败全部修复、746 项全绿」——本机 `py -3.14` 实测为 **9 failed / 737 passed**（非 22，也非 0）；其中 6 项为已删 `preload.py` 的孤儿测试、3 项为持久共享目录隔离失败。JS-20260722-02 已真清零（**0 failed / 740 passed**）。Qoder 的「22」可能来自更早某次临时态，非本机终态；倒查时以本索引实测为准，不以旧交接中心数字为准。\n\n---\n\n## 📌 补录区（被否决方案 / 人工介入",
         "source": "工作留痕总索引(dot)"
+      }
+    ],
+    "health/review类在lottery.py": [
+      {
+        "type": "exp",
+        "id": "EXP-112",
+        "summary": "基金系统三问题：3套名单打架 + 缓存过期不失效 + 关注列表无删除 [基金][缓存TTL][单一真源][数据更新]",
+        "source": "经验收集箱"
       }
     ],
     "html/review-dashboard.html": [
@@ -2091,6 +3179,12 @@
       }
     ],
     "install_watchdog.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      },
       {
         "type": "js",
         "id": "JS-20260727-22",
@@ -2166,13 +3260,79 @@
     ],
     "jinshuiyao-guide/ai-agent.html": [
       {
+        "type": "js",
+        "id": "JS-20260730-05",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      },
+      {
         "type": "ad",
         "id": "AD-JS-20260727-30 · 本地助手进化终局补齐：主动",
         "summary": "JS-20260727-30 · 本地助手进化终局补齐：主动提醒引擎 + 多角色生成/复核",
         "source": "ai_decisions.md"
       }
     ],
+    "jinshuiyao-guide/audit-dashboard.html": [
+      {
+        "type": "js",
+        "id": "JS-20260729-09",
+        "summary": "全链路交叉验证+遗漏修补+TradingView图表引入",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260731-01",
+        "summary": "彩票P2/P3页面创建+全路由注册+端到端测试",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-31 彩票P2/P3页面收尾 + 全路由注册",
+        "summary": "2026-07-31 彩票P2/P3页面收尾 + 全路由注册 + 端到端验证 · JS-20260731-01",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "jinshuiyao-guide/automation-dashboard.html": [
+      {
+        "type": "js",
+        "id": "JS-20260802-09",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
     "jinshuiyao-guide/control-center.html": [
+      {
+        "type": "js",
+        "id": "JS-20260729-07",
+        "summary": "全子系统架构重组：基金/股票/足彩 Hub + 股票仪表盘新建 + 全导航更新",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260731-01",
+        "summary": "彩票P2/P3页面创建+全路由注册+端到端测试",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-24 P2九项+P1-5 god objec",
+        "summary": "2026-07-24 P2九项+P1-5 god object拆分：wrapup_check 2630行→9模块包 · ",
+        "source": "ai_decisions.md"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-31 彩票P2/P3页面收尾 + 全路由注册",
+        "summary": "2026-07-31 彩票P2/P3页面收尾 + 全路由注册 + 端到端验证 · JS-20260731-01",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "jinshuiyao-guide/engine-dashboard.html": [
+      {
+        "type": "js",
+        "id": "JS-20260729-09",
+        "summary": "全链路交叉验证+遗漏修补+TradingView图表引入",
+        "source": "工作留痕总索引"
+      },
       {
         "type": "ad",
         "id": "AD-2026-07-24 P2九项+P1-5 god objec",
@@ -2180,11 +3340,63 @@
         "source": "ai_decisions.md"
       }
     ],
-    "jinshuiyao-guide/engine-dashboard.html": [
+    "jinshuiyao-guide/filter-panel.html": [
+      {
+        "type": "js",
+        "id": "JS-20260729-06",
+        "summary": "P1彩票三件套：遗漏热力图/旋转矩阵/缩水过滤",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260729-09",
+        "summary": "全链路交叉验证+遗漏修补+TradingView图表引入",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260731-01",
+        "summary": "彩票P2/P3页面创建+全路由注册+端到端测试",
+        "source": "工作留痕总索引"
+      },
       {
         "type": "ad",
-        "id": "AD-2026-07-24 P2九项+P1-5 god objec",
-        "summary": "2026-07-24 P2九项+P1-5 god object拆分：wrapup_check 2630行→9模块包 · ",
+        "id": "AD-2026-07-31 彩票P2/P3页面收尾 + 全路由注册",
+        "summary": "2026-07-31 彩票P2/P3页面收尾 + 全路由注册 + 端到端验证 · JS-20260731-01",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "jinshuiyao-guide/fund-dashboard.html": [
+      {
+        "type": "js",
+        "id": "JS-20260729-09",
+        "summary": "全链路交叉验证+遗漏修补+TradingView图表引入",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-112",
+        "summary": "基金系统三问题：3套名单打架 + 缓存过期不失效 + 关注列表无删除 [基金][缓存TTL][单一真源][数据更新]",
+        "source": "经验收集箱"
+      }
+    ],
+    "jinshuiyao-guide/head-tail-analysis.html": [
+      {
+        "type": "js",
+        "id": "JS-20260729-09",
+        "summary": "全链路交叉验证+遗漏修补+TradingView图表引入",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260731-01",
+        "summary": "彩票P2/P3页面创建+全路由注册+端到端测试",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-31 彩票P2/P3页面收尾 + 全路由注册",
+        "summary": "2026-07-31 彩票P2/P3页面收尾 + 全路由注册 + 端到端验证 · JS-20260731-01",
         "source": "ai_decisions.md"
       }
     ],
@@ -2198,9 +3410,27 @@
     ],
     "jinshuiyao-guide/jinshuiyao-guide.html": [
       {
+        "type": "js",
+        "id": "JS-20260729-07",
+        "summary": "全子系统架构重组：基金/股票/足彩 Hub + 股票仪表盘新建 + 全导航更新",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260731-01",
+        "summary": "彩票P2/P3页面创建+全路由注册+端到端测试",
+        "source": "工作留痕总索引"
+      },
+      {
         "type": "ad",
         "id": "AD-JS-20260727-30 · 本地助手进化终局补齐：主动",
         "summary": "JS-20260727-30 · 本地助手进化终局补齐：主动提醒引擎 + 多角色生成/复核",
+        "source": "ai_decisions.md"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-31 彩票P2/P3页面收尾 + 全路由注册",
+        "summary": "2026-07-31 彩票P2/P3页面收尾 + 全路由注册 + 端到端验证 · JS-20260731-01",
         "source": "ai_decisions.md"
       }
     ],
@@ -2212,7 +3442,21 @@
         "source": "经验收集箱"
       }
     ],
+    "jinshuiyao-guide/lottery-dashboard.html": [
+      {
+        "type": "js",
+        "id": "JS-20260729-09",
+        "summary": "全链路交叉验证+遗漏修补+TradingView图表引入",
+        "source": "工作留痕总索引"
+      }
+    ],
     "jinshuiyao-guide/lottery-sources-health.html": [
+      {
+        "type": "js",
+        "id": "JS-20260729-09",
+        "summary": "全链路交叉验证+遗漏修补+TradingView图表引入",
+        "source": "工作留痕总索引"
+      },
       {
         "type": "ad",
         "id": "AD-代码优化决策卡 · JS-20260723-31 · 彩票抓",
@@ -2227,9 +3471,63 @@
       },
       {
         "type": "exp",
-        "id": "EXP-066",
+        "id": "EXP-067",
         "summary": "2026-07-23 WorkBuddy 的经验（彩票抓取 Layer1 S5+S6 实施 + 正反推导方法论补齐）[代",
         "source": "经验收集箱"
+      }
+    ],
+    "jinshuiyao-guide/math-model.html": [
+      {
+        "type": "js",
+        "id": "JS-20260730-05",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
+    "jinshuiyao-guide/prize-calculator.html": [
+      {
+        "type": "js",
+        "id": "JS-20260729-09",
+        "summary": "全链路交叉验证+遗漏修补+TradingView图表引入",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260731-01",
+        "summary": "彩票P2/P3页面创建+全路由注册+端到端测试",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-31 彩票P2/P3页面收尾 + 全路由注册",
+        "summary": "2026-07-31 彩票P2/P3页面收尾 + 全路由注册 + 端到端验证 · JS-20260731-01",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "jinshuiyao-guide/rotation-matrix.html": [
+      {
+        "type": "js",
+        "id": "JS-20260729-06",
+        "summary": "P1彩票三件套：遗漏热力图/旋转矩阵/缩水过滤",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260729-09",
+        "summary": "全链路交叉验证+遗漏修补+TradingView图表引入",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260731-01",
+        "summary": "彩票P2/P3页面创建+全路由注册+端到端测试",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-31 彩票P2/P3页面收尾 + 全路由注册",
+        "summary": "2026-07-31 彩票P2/P3页面收尾 + 全路由注册 + 端到端验证 · JS-20260731-01",
+        "source": "ai_decisions.md"
       }
     ],
     "jinshuiyao-guide/workbench.html": [
@@ -2260,6 +3558,20 @@
         "source": "ai_decisions.md"
       }
     ],
+    "jinshuiyao-trend/omission-heatmap.html": [
+      {
+        "type": "js",
+        "id": "JS-20260729-06",
+        "summary": "P1彩票三件套：遗漏热力图/旋转矩阵/缩水过滤",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260729-09",
+        "summary": "全链路交叉验证+遗漏修补+TradingView图表引入",
+        "source": "工作留痕总索引"
+      }
+    ],
     "jinshuiyao/data/backtest": [
       {
         "type": "js",
@@ -2269,7 +3581,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-093",
+        "id": "EXP-094",
         "summary": "2026-07-28（诺亚）matches 回测分析：聚合级校准+Brier+双对照 · JS-20260728-15 ",
         "source": "经验收集箱"
       }
@@ -2306,12 +3618,48 @@
         "source": "工作留痕总索引(dot)"
       }
     ],
+    "jinshuiyao/data_fetcher.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-05",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
+    "jinshuiyao/fetcher.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-05",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
     "jinshuiyao/football_gui.py": [
       {
         "type": "js",
         "id": "JS-20260722-03",
         "summary": "TRAE",
         "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-07",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
+    "kb_bridge.py": [
+      {
+        "type": "js",
+        "id": "JS-20260803-01",
+        "summary": "WorkBuddy",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
       }
     ],
     "knowledge/file_knowledge_index.json": [
@@ -2350,6 +3698,14 @@
         "source": "pattern_library"
       }
     ],
+    "knowledge/knowledge_graph.json": [
+      {
+        "type": "js",
+        "id": "JS-20260802-12",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
     "knowledge/knowledge_graph.py": [
       {
         "type": "js",
@@ -2384,6 +3740,28 @@
         "id": "AD-2026-07-23 非彩票功能安全/并发/健壮性优化（全模",
         "summary": "2026-07-23 非彩票功能安全/并发/健壮性优化（全模块深究+7文件修复）· JS-20260723-38",
         "source": "ai_decisions.md"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-07 智能链路全线联通（W63补54 / J",
+        "summary": "2026-08-07 智能链路全线联通（W63补54 / JS-20260807-03）",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "knowledge/mirofish_db.py::add_card": [
+      {
+        "type": "ad",
+        "id": "AD-2026-08-07 智能链路全线联通（W63补54 / J",
+        "summary": "2026-08-07 智能链路全线联通（W63补54 / JS-20260807-03）",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "knowledge/mirofish_gui.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-07",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
       }
     ],
     "knowledge/pattern_library.json": [
@@ -2401,7 +3779,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-069",
+        "id": "EXP-070",
         "summary": "2026-07-23 TRAE 的经验（AI代码审查工作流全落地 · Phase 1+2+3）[代码质量][流程规范][",
         "source": "经验收集箱"
       }
@@ -2415,13 +3793,13 @@
       },
       {
         "type": "exp",
-        "id": "EXP-086",
+        "id": "EXP-087",
         "summary": "2026-07-24（WorkBuddy）知识库架构优化P3-3：标签校验 · JS-20260724-15 [后端][",
         "source": "经验收集箱"
       },
       {
         "type": "exp",
-        "id": "EXP-088",
+        "id": "EXP-089",
         "summary": "2026-07-25（Qoder）质量门禁红灯修复与收工自检闭环 · JS-20260725-01 [运维][最佳实践]",
         "source": "经验收集箱"
       }
@@ -2449,7 +3827,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-085",
+        "id": "EXP-086",
         "summary": "2026-07-24（WorkBuddy）知识库架构优化P3-2：向量检索 · JS-20260724-14 [后端][",
         "source": "经验收集箱"
       }
@@ -2551,6 +3929,12 @@
       },
       {
         "type": "js",
+        "id": "JS-20260730-01",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
         "id": "JS-20260726-14",
         "summary": "**时间**: 2026-07-26 06:16",
         "source": "工作留痕总索引(dot)"
@@ -2580,26 +3964,146 @@
         "source": "pattern_library"
       }
     ],
+    "link_vault.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-12",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      }
+    ],
+    "lottery-hub.html": [
+      {
+        "type": "exp",
+        "id": "EXP-098",
+        "summary": "2026-07-29（opencode）WebSearch 调研：子系统架构方案 [架构][最佳实践]",
+        "source": "经验收集箱"
+      }
+    ],
+    "lottery/ac-calculator.html": [
+      {
+        "type": "js",
+        "id": "JS-20260731-01",
+        "summary": "彩票P2/P3页面创建+全路由注册+端到端测试",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-31 彩票P2/P3页面收尾 + 全路由注册",
+        "summary": "2026-07-31 彩票P2/P3页面收尾 + 全路由注册 + 端到端验证 · JS-20260731-01",
+        "source": "ai_decisions.md"
+      }
+    ],
     "lottery/domain.py": [
       {
         "type": "exp",
-        "id": "EXP-090",
+        "id": "EXP-091",
         "summary": "测试覆盖率分析",
         "source": "经验收集箱"
       },
       {
         "type": "exp",
-        "id": "EXP-091",
+        "id": "EXP-092",
         "summary": "建议",
         "source": "经验收集箱"
+      }
+    ],
+    "lottery/historical-same-period.html": [
+      {
+        "type": "js",
+        "id": "JS-20260731-01",
+        "summary": "彩票P2/P3页面创建+全路由注册+端到端测试",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-31 彩票P2/P3页面收尾 + 全路由注册",
+        "summary": "2026-07-31 彩票P2/P3页面收尾 + 全路由注册 + 端到端验证 · JS-20260731-01",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "lottery/lottery-hub.html": [
+      {
+        "type": "js",
+        "id": "JS-20260731-01",
+        "summary": "彩票P2/P3页面创建+全路由注册+端到端测试",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-31 彩票P2/P3页面收尾 + 全路由注册",
+        "summary": "2026-07-31 彩票P2/P3页面收尾 + 全路由注册 + 端到端验证 · JS-20260731-01",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "lottery/number-follow-up.html": [
+      {
+        "type": "js",
+        "id": "JS-20260731-01",
+        "summary": "彩票P2/P3页面创建+全路由注册+端到端测试",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-31 彩票P2/P3页面收尾 + 全路由注册",
+        "summary": "2026-07-31 彩票P2/P3页面收尾 + 全路由注册 + 端到端验证 · JS-20260731-01",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "lottery/omission-table.html": [
+      {
+        "type": "js",
+        "id": "JS-20260731-01",
+        "summary": "彩票P2/P3页面创建+全路由注册+端到端测试",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-31 彩票P2/P3页面收尾 + 全路由注册",
+        "summary": "2026-07-31 彩票P2/P3页面收尾 + 全路由注册 + 端到端验证 · JS-20260731-01",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "lottery/trend-classification.html": [
+      {
+        "type": "js",
+        "id": "JS-20260731-01",
+        "summary": "彩票P2/P3页面创建+全路由注册+端到端测试",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-31 彩票P2/P3页面收尾 + 全路由注册",
+        "summary": "2026-07-31 彩票P2/P3页面收尾 + 全路由注册 + 端到端验证 · JS-20260731-01",
+        "source": "ai_decisions.md"
       }
     ],
     "lottery_dashboard.html": [
       {
         "type": "exp",
-        "id": "EXP-073",
+        "id": "EXP-074",
         "summary": "2026-07-24 WorkBuddy 的经验（彩票命中率口径校正：杀假象+统一口径）[数据完整性][可视化][最佳实",
         "source": "经验收集箱"
+      }
+    ],
+    "lottery_datasource_health.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-03",
+        "summary": "坚果云瘦身整理（流量耗尽应对，125MB→36.7MB）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
       }
     ],
     "lottery_health_report.json": [
@@ -2617,7 +4121,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-073",
+        "id": "EXP-074",
         "summary": "2026-07-24 WorkBuddy 的经验（彩票命中率口径校正：杀假象+统一口径）[数据完整性][可视化][最佳实",
         "source": "经验收集箱"
       }
@@ -2633,6 +4137,14 @@
         "type": "exp",
         "id": "EXP-036",
         "summary": "2026-07-21 WorkBuddy 的经验（AI协作文档核查+修复）[协作]",
+        "source": "经验收集箱"
+      }
+    ],
+    "main.py/sync/device_sync.py": [
+      {
+        "type": "exp",
+        "id": "EXP-112",
+        "summary": "基金系统三问题：3套名单打架 + 缓存过期不失效 + 关注列表无删除 [基金][缓存TTL][单一真源][数据更新]",
         "source": "经验收集箱"
       }
     ],
@@ -2757,7 +4269,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-068",
+        "id": "EXP-069",
         "summary": "[2026-07-23] 金水谣 的经验（非彩票功能安全/并发/健壮性优化）[安全][后端][踩坑]",
         "source": "经验收集箱"
       }
@@ -2774,6 +4286,34 @@
         "id": "AD-2026-07-23 预测退化专项修复（诚实基准 + 新鲜度",
         "summary": "2026-07-23 预测退化专项修复（诚实基准 + 新鲜度门禁）· JS-20260723-37 · pl3/福彩3D",
         "source": "ai_decisions.md"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-05 生产遗留清理: DIAG噪音打印降噪 ",
+        "summary": "2026-08-05 生产遗留清理: DIAG噪音打印降噪 + 手机端误导地址修复 · JS-20260805-14",
+        "source": "ai_decisions.md"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-104",
+        "summary": "2026-08-05 · 经验条目合集（JS-20260805-01~11，附4字段标注）[复盘][免费模型][解析修复",
+        "source": "经验收集箱"
+      }
+    ],
+    "obsidian-vault/刷新vault.ps1": [
+      {
+        "type": "js",
+        "id": "JS-20260802-12",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
+    "opencode.json": [
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
       }
     ],
     "paths.json/scheduler.json": [
@@ -2782,6 +4322,14 @@
         "id": "EXP-050",
         "summary": "2026-07-22 TRAE 的经验（自检v1.7升级 · 文件哈希基线替代git）[安全][协作][踩坑]",
         "source": "经验收集箱"
+      }
+    ],
+    "pending_reminders.json": [
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
       }
     ],
     "pip install -r requirements.txt": [
@@ -2802,6 +4350,14 @@
       {
         "type": "js",
         "id": "JS-20260728-07",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
+    "prediction-reference.html": [
+      {
+        "type": "js",
+        "id": "JS-20260730-05",
         "summary": "金水谣",
         "source": "工作留痕总索引(表)"
       }
@@ -2844,6 +4400,22 @@
         "id": "EXP-037",
         "summary": "2026-07-22 WorkBuddy 的经验（测试债清零 · 测试隔离根治）[测试][最佳实践]",
         "source": "经验收集箱"
+      }
+    ],
+    "project_env/jinshuiyao_env/scripts/python.exe -m pytest tests/unit/test_engines.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-01",
+        "summary": "修复排列三/福彩3D预测\"全是0\"根因（Killer杀号过猛收敛 + MissAnalyzer数据方向契约修正）",
+        "source": "工作留痕总索引"
+      }
+    ],
+    "protocol_handler.bat": [
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
       }
     ],
     "py -3.14 -m py_compile engines/prediction_service.py domains/lottery/domain.py": [
@@ -2892,6 +4464,20 @@
         "id": "JS-20260725-41",
         "summary": "**时间**: 2026-07-25",
         "source": "工作留痕总索引(dot)"
+      }
+    ],
+    "py -3.14 tools/verify_chain.py": [
+      {
+        "type": "ad",
+        "id": "AD-2026-08-07 智能链路全线联通（W63补54 / J",
+        "summary": "2026-08-07 智能链路全线联通（W63补54 / JS-20260807-03）",
+        "source": "ai_decisions.md"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-106",
+        "summary": "2026-08-07 智能链路全线联通（W63补54 / JS-20260807-03）[链路联通][知识库][智能大脑",
+        "source": "经验收集箱"
       }
     ],
     "py -3.14 分析脚本_生成仪表盘.py": [
@@ -2968,6 +4554,22 @@
         "source": "ai_decisions.md"
       }
     ],
+    "scripts/audit_system_scheduler.py": [
+      {
+        "type": "js",
+        "id": "JS-20260730-03",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
+    "scripts/audit_system_scheduler.py:239,384": [
+      {
+        "type": "js",
+        "id": "JS-20260730-02",
+        "summary": "小隐患深度体检（代码层 + 安全边角）",
+        "source": "工作留痕总索引"
+      }
+    ],
     "scripts/backtest_five_models_claims.py": [
       {
         "type": "js",
@@ -3039,7 +4641,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-073",
+        "id": "EXP-074",
         "summary": "2026-07-24 WorkBuddy 的经验（彩票命中率口径校正：杀假象+统一口径）[数据完整性][可视化][最佳实",
         "source": "经验收集箱"
       }
@@ -3108,6 +4710,14 @@
         "id": "AD-2026-07-27 决策卡新增反事实对照+置信度字段(JS",
         "summary": "2026-07-27 决策卡新增反事实对照+置信度字段(JS-20260727-20)",
         "source": "ai_decisions.md"
+      }
+    ],
+    "scripts/daily_fund_monitor.py": [
+      {
+        "type": "exp",
+        "id": "EXP-062",
+        "summary": "2026-08-06 金水谣 的经验（视觉L2禁用色根治·生成器模板正文漏改 + P0须全量扫描 + 门禁防复发）[前端",
+        "source": "经验收集箱"
       }
     ],
     "scripts/data_backup.py": [
@@ -3187,6 +4797,12 @@
       }
     ],
     "scripts/git_commit_gate.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-03",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
       {
         "type": "js",
         "id": "JS-20260726-17",
@@ -3330,9 +4946,21 @@
         "id": "AD-2026-07-24 文件梳理安全动作+量化案例知识库注入 ",
         "summary": "2026-07-24 文件梳理安全动作+量化案例知识库注入 · JS-20260724-05",
         "source": "ai_decisions.md"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-104",
+        "summary": "2026-08-05 · 经验条目合集（JS-20260805-01~11，附4字段标注）[复盘][免费模型][解析修复",
+        "source": "经验收集箱"
       }
     ],
     "scripts/session_coordinator.py": [
+      {
+        "type": "js",
+        "id": "JS-20260730-05",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      },
       {
         "type": "js",
         "id": "JS-20260727-17",
@@ -3390,6 +5018,14 @@
         "source": "ai_decisions.md"
       }
     ],
+    "scripts/upload-files.py": [
+      {
+        "type": "exp",
+        "id": "EXP-111",
+        "summary": "2026-08-10 子进程输出解码: subprocess.text=True 必须显式指定编码 [后端][编码][s",
+        "source": "经验收集箱"
+      }
+    ],
     "scripts/validate_phase1.py": [
       {
         "type": "js",
@@ -3414,10 +5050,30 @@
         "source": "工作留痕总索引(dot)"
       }
     ],
+    "sendkey.txt": [
+      {
+        "type": "js",
+        "id": "JS-20260730-02",
+        "summary": "小隐患深度体检（代码层 + 安全边角）",
+        "source": "工作留痕总索引"
+      }
+    ],
     "server/__init__.py": [
       {
         "type": "js",
         "id": "JS-20260728-08",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260730-01",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260730-05",
         "summary": "金水谣",
         "source": "工作留痕总索引(表)"
       },
@@ -3452,6 +5108,12 @@
         "source": "ai_decisions.md"
       },
       {
+        "type": "ad",
+        "id": "AD-2026-08-05 生产遗留清理: DIAG噪音打印降噪 ",
+        "summary": "2026-08-05 生产遗留清理: DIAG噪音打印降噪 + 手机端误导地址修复 · JS-20260805-14",
+        "source": "ai_decisions.md"
+      },
+      {
         "type": "exp",
         "id": "EXP-016",
         "summary": "2026-07-20 Qoder 的经验（guide_server.py 退役）[架构][运维]",
@@ -3471,7 +5133,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-070",
+        "id": "EXP-071",
         "summary": "2026-07-23 WorkBuddy 的可视化后端 API 经验 [后端] [可视化]",
         "source": "经验收集箱"
       }
@@ -3488,6 +5150,12 @@
         "id": "JS-20260722-14",
         "summary": "TRAE",
         "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
       },
       {
         "type": "exp",
@@ -3563,7 +5231,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-068",
+        "id": "EXP-069",
         "summary": "[2026-07-23] 金水谣 的经验（非彩票功能安全/并发/健壮性优化）[安全][后端][踩坑]",
         "source": "经验收集箱"
       }
@@ -3584,6 +5252,14 @@
         "source": "ai_decisions.md"
       }
     ],
+    "server/handlers/filter.py": [
+      {
+        "type": "js",
+        "id": "JS-20260729-06",
+        "summary": "P1彩票三件套：遗漏热力图/旋转矩阵/缩水过滤",
+        "source": "工作留痕总索引"
+      }
+    ],
     "server/handlers/health.py": [
       {
         "type": "ad",
@@ -3593,6 +5269,24 @@
       }
     ],
     "server/handlers/knowledge.py": [
+      {
+        "type": "js",
+        "id": "JS-20260730-05",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-11",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-12",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
       {
         "type": "ad",
         "id": "AD-2026-07-23 非彩票功能安全/并发/健壮性优化（全模",
@@ -3639,7 +5333,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-068",
+        "id": "EXP-069",
         "summary": "[2026-07-23] 金水谣 的经验（非彩票功能安全/并发/健壮性优化）[安全][后端][踩坑]",
         "source": "经验收集箱"
       }
@@ -3677,7 +5371,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-066",
+        "id": "EXP-067",
         "summary": "2026-07-23 WorkBuddy 的经验（彩票抓取 Layer1 S5+S6 实施 + 正反推导方法论补齐）[代",
         "source": "经验收集箱"
       }
@@ -3691,7 +5385,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-067",
+        "id": "EXP-068",
         "summary": "[2026-07-23] 金水谣 的经验（time 字段回填 + 全功能深究 + 文档核查）",
         "source": "经验收集箱"
       }
@@ -3702,6 +5396,20 @@
         "id": "JS-20260728-08",
         "summary": "GStack调度，单Agent直调改代码)",
         "source": "工作留痕总索引(dot)"
+      }
+    ],
+    "server/handlers/pipeline.py": [
+      {
+        "type": "js",
+        "id": "JS-20260810-01",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260810-03",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
       }
     ],
     "server/handlers/prediction.py": [
@@ -3725,7 +5433,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-072",
+        "id": "EXP-073",
         "summary": "2026-07-23 WorkBuddy 的预测置信度 API 经验 [后端] [可视化] [API]",
         "source": "经验收集箱"
       }
@@ -3739,7 +5447,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-069",
+        "id": "EXP-070",
         "summary": "2026-07-23 TRAE 的经验（AI代码审查工作流全落地 · Phase 1+2+3）[代码质量][流程规范][",
         "source": "经验收集箱"
       }
@@ -3753,9 +5461,45 @@
       },
       {
         "type": "js",
+        "id": "JS-20260802-06",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-09",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
         "id": "JS-20260729-04",
         "summary": "P0-P4 全线推进：双脚本/跨文档审计/旧引用/前端注册/配置收敛",
         "source": "工作留痕总索引"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260729-06",
+        "summary": "P1彩票三件套：遗漏热力图/旋转矩阵/缩水过滤",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260729-07",
+        "summary": "全子系统架构重组：基金/股票/足彩 Hub + 股票仪表盘新建 + 全导航更新",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260731-01",
+        "summary": "彩票P2/P3页面创建+全路由注册+端到端测试",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-31 彩票P2/P3页面收尾 + 全路由注册",
+        "summary": "2026-07-31 彩票P2/P3页面收尾 + 全路由注册 + 端到端验证 · JS-20260731-01",
+        "source": "ai_decisions.md"
       }
     ],
     "server/handlers/static.py:handle_open": [
@@ -3775,9 +5519,23 @@
       },
       {
         "type": "exp",
-        "id": "EXP-070",
+        "id": "EXP-071",
         "summary": "2026-07-23 WorkBuddy 的可视化后端 API 经验 [后端] [可视化]",
         "source": "经验收集箱"
+      }
+    ],
+    "server/rate_limiter.py": [
+      {
+        "type": "js",
+        "id": "JS-20260729-10",
+        "summary": "自动化系统优化 P0/P1/P2 落地（成本熔断+限流+健康闭环+遥测+并发门+影子测试+路由超时熔断 G1-G8）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-29 自动化系统优化架构（成本熔断+限流+健",
+        "summary": "2026-07-29 自动化系统优化架构（成本熔断+限流+健康闭环+遥测+并发门+影子测试 G1-G8）· JS-202",
+        "source": "ai_decisions.md"
       }
     ],
     "server/router.py": [
@@ -3786,6 +5544,36 @@
         "id": "JS-20260728-08",
         "summary": "金水谣",
         "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-09",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-11",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260810-01",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260729-06",
+        "summary": "P1彩票三件套：遗漏热力图/旋转矩阵/缩水过滤",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260729-10",
+        "summary": "自动化系统优化 P0/P1/P2 落地（成本熔断+限流+健康闭环+遥测+并发门+影子测试+路由超时熔断 G1-G8）",
+        "source": "工作留痕总索引"
       },
       {
         "type": "js",
@@ -3854,14 +5642,20 @@
         "source": "ai_decisions.md"
       },
       {
+        "type": "ad",
+        "id": "AD-2026-07-29 自动化系统优化架构（成本熔断+限流+健",
+        "summary": "2026-07-29 自动化系统优化架构（成本熔断+限流+健康闭环+遥测+并发门+影子测试 G1-G8）· JS-202",
+        "source": "ai_decisions.md"
+      },
+      {
         "type": "exp",
-        "id": "EXP-070",
+        "id": "EXP-071",
         "summary": "2026-07-23 WorkBuddy 的可视化后端 API 经验 [后端] [可视化]",
         "source": "经验收集箱"
       },
       {
         "type": "exp",
-        "id": "EXP-072",
+        "id": "EXP-073",
         "summary": "2026-07-23 WorkBuddy 的预测置信度 API 经验 [后端] [可视化] [API]",
         "source": "经验收集箱"
       }
@@ -3881,8 +5675,34 @@
       },
       {
         "type": "exp",
-        "id": "EXP-068",
+        "id": "EXP-069",
         "summary": "[2026-07-23] 金水谣 的经验（非彩票功能安全/并发/健壮性优化）[安全][后端][踩坑]",
+        "source": "经验收集箱"
+      }
+    ],
+    "server/utils.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-07",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-103",
+        "summary": "2026-08-02 · opencode — Obsidian 插件\"加载失败\"排查（坚果云内 vault 插件文件易",
+        "source": "经验收集箱"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-104",
+        "summary": "2026-08-05 · 经验条目合集（JS-20260805-01~11，附4字段标注）[复盘][免费模型][解析修复",
         "source": "经验收集箱"
       }
     ],
@@ -3919,15 +5739,37 @@
     "stock/domain.py": [
       {
         "type": "exp",
-        "id": "EXP-090",
+        "id": "EXP-091",
         "summary": "测试覆盖率分析",
         "source": "经验收集箱"
       },
       {
         "type": "exp",
-        "id": "EXP-091",
+        "id": "EXP-092",
         "summary": "建议",
         "source": "经验收集箱"
+      }
+    ],
+    "stock/stock-dashboard.html": [
+      {
+        "type": "js",
+        "id": "JS-20260729-07",
+        "summary": "全子系统架构重组：基金/股票/足彩 Hub + 股票仪表盘新建 + 全导航更新",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260729-09",
+        "summary": "全链路交叉验证+遗漏修补+TradingView图表引入",
+        "source": "工作留痕总索引"
+      }
+    ],
+    "stock/stock-hub.html": [
+      {
+        "type": "js",
+        "id": "JS-20260729-07",
+        "summary": "全子系统架构重组：基金/股票/足彩 Hub + 股票仪表盘新建 + 全导航更新",
+        "source": "工作留痕总索引"
       }
     ],
     "sync/device_sync.py": [
@@ -3936,6 +5778,14 @@
         "id": "AD-2026-07-23 非彩票功能安全/并发/健壮性优化（全模",
         "summary": "2026-07-23 非彩票功能安全/并发/健壮性优化（全模块深究+7文件修复）· JS-20260723-38",
         "source": "ai_decisions.md"
+      }
+    ],
+    "teams/design-engine-landing/金水谣-设计令牌.md": [
+      {
+        "type": "js",
+        "id": "JS-20260729-08",
+        "summary": "Stripe风格金水谣SaaS落地页设计（设计引擎五成员接力·单文件自包含HTML）",
+        "source": "工作留痕总索引"
       }
     ],
     "test_data_backup.py": [
@@ -3957,7 +5807,7 @@
     "test_prediction_service.py": [
       {
         "type": "exp",
-        "id": "EXP-090",
+        "id": "EXP-091",
         "summary": "测试覆盖率分析",
         "source": "经验收集箱"
       }
@@ -3967,6 +5817,14 @@
         "type": "exp",
         "id": "EXP-037",
         "summary": "2026-07-22 WorkBuddy 的经验（测试债清零 · 测试隔离根治）[测试][最佳实践]",
+        "source": "经验收集箱"
+      }
+    ],
+    "test_utils_extra.py": [
+      {
+        "type": "exp",
+        "id": "EXP-104",
+        "summary": "2026-08-05 · 经验条目合集（JS-20260805-01~11，附4字段标注）[复盘][免费模型][解析修复",
         "source": "经验收集箱"
       }
     ],
@@ -4056,6 +5914,14 @@
         "source": "工作留痕总索引(表)"
       }
     ],
+    "tests/test_knowledge_gateway.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-12",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
     "tests/test_lease_helper.py": [
       {
         "type": "js",
@@ -4072,12 +5938,56 @@
         "source": "工作留痕总索引(dot)"
       }
     ],
+    "tests/test_safe_json.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-07 智能链路全线联通（W63补54 / J",
+        "summary": "2026-08-07 智能链路全线联通（W63补54 / JS-20260807-03）",
+        "source": "ai_decisions.md"
+      }
+    ],
     "tests/unit/test_creator_domain.py": [
       {
         "type": "js",
         "id": "JS-20260722-02",
         "summary": "WorkBuddy",
         "source": "工作留痕总索引(表)"
+      }
+    ],
+    "tests/unit/test_dimension_consensus.py": [
+      {
+        "type": "js",
+        "id": "JS-20260803-16",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      }
+    ],
+    "tests/unit/test_engines.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-01",
+        "summary": "修复排列三/福彩3D预测\"全是0\"根因（Killer杀号过猛收敛 + MissAnalyzer数据方向契约修正）",
+        "source": "工作留痕总索引"
+      }
+    ],
+    "tests/unit/test_fund_api_contract.py": [
+      {
+        "type": "exp",
+        "id": "EXP-112",
+        "summary": "基金系统三问题：3套名单打架 + 缓存过期不失效 + 关注列表无删除 [基金][缓存TTL][单一真源][数据更新]",
+        "source": "经验收集箱"
       }
     ],
     "tests/unit/test_fund_data_manager.py": [
@@ -4124,6 +6034,20 @@
         "id": "JS-20260722-02",
         "summary": "WorkBuddy",
         "source": "工作留痕总索引(表)"
+      }
+    ],
+    "tests/unit/test_strategy_cards.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-07 智能链路全线联通（W63补54 / J",
+        "summary": "2026-08-07 智能链路全线联通（W63补54 / JS-20260807-03）",
+        "source": "ai_decisions.md"
       }
     ],
     "tests/unit/test_tag_validator.py": [
@@ -4197,7 +6121,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-069",
+        "id": "EXP-070",
         "summary": "2026-07-23 TRAE 的经验（AI代码审查工作流全落地 · Phase 1+2+3）[代码质量][流程规范][",
         "source": "经验收集箱"
       }
@@ -4205,7 +6129,7 @@
     "tools/ast_checker.py": [
       {
         "type": "exp",
-        "id": "EXP-069",
+        "id": "EXP-070",
         "summary": "2026-07-23 TRAE 的经验（AI代码审查工作流全落地 · Phase 1+2+3）[代码质量][流程规范][",
         "source": "经验收集箱"
       }
@@ -4234,6 +6158,40 @@
         "id": "R-002",
         "summary": "[R-002] 坚果云同步可能丢/覆盖文件",
         "source": "risk_register"
+      }
+    ],
+    "tools/auto_data_truth.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-06",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-103",
+        "summary": "2026-08-02 · opencode — Obsidian 插件\"加载失败\"排查（坚果云内 vault 插件文件易",
+        "source": "经验收集箱"
+      }
+    ],
+    "tools/auto_distill.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-10",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
       }
     ],
     "tools/backups": [
@@ -4269,8 +6227,32 @@
     "tools/backups后auto_backup.py": [
       {
         "type": "exp",
-        "id": "EXP-077",
+        "id": "EXP-078",
         "summary": "2026-07-24 WorkBuddy 的经验（文件梳理安全动作+量化案例知识库注入）[知识库][前端][最佳实践]",
+        "source": "经验收集箱"
+      }
+    ],
+    "tools/check_consistency.py": [
+      {
+        "type": "exp",
+        "id": "EXP-112",
+        "summary": "基金系统三问题：3套名单打架 + 缓存过期不失效 + 关注列表无删除 [基金][缓存TTL][单一真源][数据更新]",
+        "source": "经验收集箱"
+      }
+    ],
+    "tools/closeout_gate.py": [
+      {
+        "type": "exp",
+        "id": "EXP-062",
+        "summary": "2026-08-06 金水谣 的经验（视觉L2禁用色根治·生成器模板正文漏改 + P0须全量扫描 + 门禁防复发）[前端",
+        "source": "经验收集箱"
+      }
+    ],
+    "tools/compliance.py": [
+      {
+        "type": "exp",
+        "id": "EXP-104",
+        "summary": "2026-08-05 · 经验条目合集（JS-20260805-01~11，附4字段标注）[复盘][免费模型][解析修复",
         "source": "经验收集箱"
       }
     ],
@@ -4286,6 +6268,14 @@
         "id": "PAT-018",
         "summary": "[PAT-018] 文档与代码静默漂移（doc-code drift）: 代码修改后，关联的文档/规范/设计决策未同步更新，导致新AI基于过期文档做出错误判断。此模式的根因是文档验证未纳入CI门禁。",
         "source": "pattern_library"
+      }
+    ],
+    "tools/digest_experience.py": [
+      {
+        "type": "exp",
+        "id": "EXP-104",
+        "summary": "2026-08-05 · 经验条目合集（JS-20260805-01~11，附4字段标注）[复盘][免费模型][解析修复",
+        "source": "经验收集箱"
       }
     ],
     "tools/doctor.py": [
@@ -4322,6 +6312,26 @@
         "source": "pattern_library"
       }
     ],
+    "tools/gen_knowledge_index.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-11",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-12",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-103",
+        "summary": "2026-08-02 · opencode — Obsidian 插件\"加载失败\"排查（坚果云内 vault 插件文件易",
+        "source": "经验收集箱"
+      }
+    ],
     "tools/jinshuiyao_python310_validator.py": [
       {
         "type": "js",
@@ -4341,6 +6351,28 @@
         "type": "js",
         "id": "JS-20260729-05",
         "summary": "知识索引系统 + 前瞻议程 + 开工雷达 + 全场扫描",
+        "source": "工作留痕总索引"
+      }
+    ],
+    "tools/knowledge_mcp.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-11",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-103",
+        "summary": "2026-08-02 · opencode — Obsidian 插件\"加载失败\"排查（坚果云内 vault 插件文件易",
+        "source": "经验收集箱"
+      }
+    ],
+    "tools/lottery_rotation_matrix.py": [
+      {
+        "type": "js",
+        "id": "JS-20260729-06",
+        "summary": "P1彩票三件套：遗漏热力图/旋转矩阵/缩水过滤",
         "source": "工作留痕总索引"
       }
     ],
@@ -4378,6 +6410,28 @@
         "source": "工作留痕总索引"
       }
     ],
+    "tools/page_api_lint.py": [
+      {
+        "type": "exp",
+        "id": "EXP-112",
+        "summary": "基金系统三问题：3套名单打架 + 缓存过期不失效 + 关注列表无删除 [基金][缓存TTL][单一真源][数据更新]",
+        "source": "经验收集箱"
+      }
+    ],
+    "tools/pre-commit-hook-wrapper.sh": [
+      {
+        "type": "js",
+        "id": "JS-20260803-02",
+        "summary": "WorkBuddy",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      }
+    ],
     "tools/review_learning.py": [
       {
         "type": "js",
@@ -4387,8 +6441,14 @@
       },
       {
         "type": "exp",
-        "id": "EXP-069",
+        "id": "EXP-070",
         "summary": "2026-07-23 TRAE 的经验（AI代码审查工作流全落地 · Phase 1+2+3）[代码质量][流程规范][",
+        "source": "经验收集箱"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-104",
+        "summary": "2026-08-05 · 经验条目合集（JS-20260805-01~11，附4字段标注）[复盘][免费模型][解析修复",
         "source": "经验收集箱"
       }
     ],
@@ -4400,12 +6460,28 @@
         "source": "工作留痕总索引(dot)"
       }
     ],
+    "tools/route_probe.py": [
+      {
+        "type": "exp",
+        "id": "EXP-107",
+        "summary": "2026-08-07 智能探路引擎·链路地图（W63补55 / JS-20260807-04）[探路][链路地图][诊断",
+        "source": "经验收集箱"
+      }
+    ],
     "tools/run_review.py": [
       {
         "type": "js",
         "id": "JS-20260725-41",
         "summary": "**时间**: 2026-07-25",
         "source": "工作留痕总索引(dot)"
+      }
+    ],
+    "tools/smoke_mcp.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-12",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
       }
     ],
     "tools/smoke_test.py": [
@@ -4434,6 +6510,38 @@
         "id": "AD-2026-07-23 预测退化专项修复（诚实基准 + 新鲜度",
         "summary": "2026-07-23 预测退化专项修复（诚实基准 + 新鲜度门禁）· JS-20260723-37 · pl3/福彩3D",
         "source": "ai_decisions.md"
+      }
+    ],
+    "tools/staleness_check.py": [
+      {
+        "type": "js",
+        "id": "JS-20260802-12",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-13",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-14",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-103",
+        "summary": "2026-08-02 · opencode — Obsidian 插件\"加载失败\"排查（坚果云内 vault 插件文件易",
+        "source": "经验收集箱"
       }
     ],
     "tools/sync_ai_decisions.py": [
@@ -4478,6 +6586,20 @@
         "source": "ai_decisions.md"
       }
     ],
+    "tools/verify_chain.py": [
+      {
+        "type": "ad",
+        "id": "AD-2026-08-07 智能链路全线联通（W63补54 / J",
+        "summary": "2026-08-07 智能链路全线联通（W63补54 / JS-20260807-03）",
+        "source": "ai_decisions.md"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-106",
+        "summary": "2026-08-07 智能链路全线联通（W63补54 / JS-20260807-03）[链路联通][知识库][智能大脑",
+        "source": "经验收集箱"
+      }
+    ],
     "tools/wrapup/base.py": [
       {
         "type": "js",
@@ -4486,12 +6608,50 @@
         "source": "工作留痕总索引(dot)"
       }
     ],
+    "tools/wrapup/checks_code.py": [
+      {
+        "type": "ad",
+        "id": "AD-2026-08-05 收工门禁修复: 改动量统计误报 + 总",
+        "summary": "2026-08-05 收工门禁修复: 改动量统计误报 + 总索引补录块 + 决策卡 + 知识孤岛回收 · JS-2026",
+        "source": "ai_decisions.md"
+      }
+    ],
     "tools/wrapup/checks_integrity.py": [
       {
         "type": "js",
         "id": "JS-20260725-41",
         "summary": "**时间**: 2026-07-25",
         "source": "工作留痕总索引(dot)"
+      }
+    ],
+    "tools/wrapup/checks_quality.py": [
+      {
+        "type": "js",
+        "id": "JS-20260731-01",
+        "summary": "彩票P2/P3页面创建+全路由注册+端到端测试",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-31 彩票P2/P3页面收尾 + 全路由注册",
+        "summary": "2026-07-31 彩票P2/P3页面收尾 + 全路由注册 + 端到端验证 · JS-20260731-01",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "tools/wrapup/checks_security.py": [
+      {
+        "type": "ad",
+        "id": "AD-2026-08-05 生产遗留清理: DIAG噪音打印降噪 ",
+        "summary": "2026-08-05 生产遗留清理: DIAG噪音打印降噪 + 手机端误导地址修复 · JS-20260805-14",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "tools/wrapup/checks_workflow.py": [
+      {
+        "type": "js",
+        "id": "JS-20260729-10",
+        "summary": "自动化系统优化 P0/P1/P2 落地（成本熔断+限流+健康闭环+遥测+并发门+影子测试+路由超时熔断 G1-G8）",
+        "source": "工作留痕总索引"
       }
     ],
     "tools/wrapup_check.py": [
@@ -4563,7 +6723,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-088",
+        "id": "EXP-089",
         "summary": "2026-07-25（Qoder）质量门禁红灯修复与收工自检闭环 · JS-20260725-01 [运维][最佳实践]",
         "source": "经验收集箱"
       }
@@ -4602,6 +6762,34 @@
         "id": "JS-20260721-12",
         "summary": "WorkBuddy",
         "source": "工作留痕总索引(表)"
+      }
+    ],
+    "utils/safe_json.py": [
+      {
+        "type": "ad",
+        "id": "AD-2026-08-07 智能链路全线联通（W63补54 / J",
+        "summary": "2026-08-07 智能链路全线联通（W63补54 / JS-20260807-03）",
+        "source": "ai_decisions.md"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-105",
+        "summary": "2026-08-07 核心配置状态JSON原子写收口（JS-20260807-02）[原子写][安全][最佳实践]",
+        "source": "经验收集箱"
+      }
+    ],
+    "utils/shared_write.py": [
+      {
+        "type": "exp",
+        "id": "EXP-104",
+        "summary": "2026-08-05 · 经验条目合集（JS-20260805-01~11，附4字段标注）[复盘][免费模型][解析修复",
+        "source": "经验收集箱"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-105",
+        "summary": "2026-08-07 核心配置状态JSON原子写收口（JS-20260807-02）[原子写][安全][最佳实践]",
+        "source": "经验收集箱"
       }
     ],
     "venv_314/pyvenv.cfg": [
@@ -4651,13 +6839,13 @@
     "①core/auto_knowledge.py": [
       {
         "type": "exp",
-        "id": "EXP-062",
+        "id": "EXP-063",
         "summary": "2026-07-22 WorkBuddy 的经验（AI决策自动入知识库 Layer A+B · 根治接力失真）[协作][",
         "source": "经验收集箱"
       },
       {
         "type": "exp",
-        "id": "EXP-084",
+        "id": "EXP-085",
         "summary": "2026-07-24（WorkBuddy）知识库架构优化P3-1：图谱接入检索 · JS-20260724-13 [后端",
         "source": "经验收集箱"
       }
@@ -4665,7 +6853,7 @@
     "①core/scheduler.py": [
       {
         "type": "exp",
-        "id": "EXP-087",
+        "id": "EXP-088",
         "summary": "2026-07-24（WorkBuddy）知识库架构优化P3-4：定时reindex · JS-20260724-16 ",
         "source": "经验收集箱"
       }
@@ -4673,15 +6861,31 @@
     "②core/auto_knowledge.py": [
       {
         "type": "exp",
-        "id": "EXP-085",
+        "id": "EXP-086",
         "summary": "2026-07-24（WorkBuddy）知识库架构优化P3-2：向量检索 · JS-20260724-14 [后端][",
+        "source": "经验收集箱"
+      }
+    ],
+    "②knowledge/mirofish_db-冲突-北冥有金_win10.json": [
+      {
+        "type": "exp",
+        "id": "EXP-103",
+        "summary": "2026-08-02 · opencode — Obsidian 插件\"加载失败\"排查（坚果云内 vault 插件文件易",
+        "source": "经验收集箱"
+      }
+    ],
+    "②server/__init__.py": [
+      {
+        "type": "exp",
+        "id": "EXP-104",
+        "summary": "2026-08-05 · 经验条目合集（JS-20260805-01~11，附4字段标注）[复盘][免费模型][解析修复",
         "source": "经验收集箱"
       }
     ],
     "②server/handlers/knowledge.py": [
       {
         "type": "exp",
-        "id": "EXP-084",
+        "id": "EXP-085",
         "summary": "2026-07-24（WorkBuddy）知识库架构优化P3-1：图谱接入检索 · JS-20260724-13 [后端",
         "source": "经验收集箱"
       }
@@ -4689,7 +6893,7 @@
     "②tools/tag_validator.py": [
       {
         "type": "exp",
-        "id": "EXP-086",
+        "id": "EXP-087",
         "summary": "2026-07-24（WorkBuddy）知识库架构优化P3-3：标签校验 · JS-20260724-15 [后端][",
         "source": "经验收集箱"
       }
@@ -4697,7 +6901,7 @@
     "③knowledge/vector_index.py": [
       {
         "type": "exp",
-        "id": "EXP-087",
+        "id": "EXP-088",
         "summary": "2026-07-24（WorkBuddy）知识库架构优化P3-4：定时reindex · JS-20260724-16 ",
         "source": "经验收集箱"
       }
@@ -4705,21 +6909,29 @@
     "③server/handlers/knowledge.py": [
       {
         "type": "exp",
-        "id": "EXP-085",
+        "id": "EXP-086",
         "summary": "2026-07-24（WorkBuddy）知识库架构优化P3-2：向量检索 · JS-20260724-14 [后端][",
         "source": "经验收集箱"
       },
       {
         "type": "exp",
-        "id": "EXP-086",
+        "id": "EXP-087",
         "summary": "2026-07-24（WorkBuddy）知识库架构优化P3-3：标签校验 · JS-20260724-15 [后端][",
+        "source": "经验收集箱"
+      }
+    ],
+    "③修复server/handlers/filter.py": [
+      {
+        "type": "exp",
+        "id": "EXP-097",
+        "summary": "2026-07-29（opencode）操作留痕系统+龙头凤尾P2-4+导航/响应式修复 [前端][架构]",
         "source": "经验收集箱"
       }
     ],
     "④server/handlers/knowledge.py": [
       {
         "type": "exp",
-        "id": "EXP-087",
+        "id": "EXP-088",
         "summary": "2026-07-24（WorkBuddy）知识库架构优化P3-4：定时reindex · JS-20260724-16 ",
         "source": "经验收集箱"
       }
@@ -4727,7 +6939,7 @@
     "④server/router.py": [
       {
         "type": "exp",
-        "id": "EXP-085",
+        "id": "EXP-086",
         "summary": "2026-07-24（WorkBuddy）知识库架构优化P3-2：向量检索 · JS-20260724-14 [后端][",
         "source": "经验收集箱"
       }
@@ -4735,7 +6947,7 @@
     "⑤server/router.py": [
       {
         "type": "exp",
-        "id": "EXP-087",
+        "id": "EXP-088",
         "summary": "2026-07-24（WorkBuddy）知识库架构优化P3-4：定时reindex · JS-20260724-16 ",
         "source": "经验收集箱"
       }
@@ -4743,7 +6955,7 @@
     "交接中心/规范/agents.md": [
       {
         "type": "exp",
-        "id": "EXP-067",
+        "id": "EXP-068",
         "summary": "[2026-07-23] 金水谣 的经验（time 字段回填 + 全功能深究 + 文档核查）",
         "source": "经验收集箱"
       }
@@ -4762,6 +6974,22 @@
         "id": "AD-JS-20260727-30 · 本地助手进化终局补齐：主动",
         "summary": "JS-20260727-30 · 本地助手进化终局补齐：主动提醒引擎 + 多角色生成/复核",
         "source": "ai_decisions.md"
+      }
+    ],
+    "刷新vault.bat": [
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      }
+    ],
+    "刷新vault.ps1": [
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
       }
     ],
     "启动提示词.txt": [
@@ -4831,9 +7059,17 @@
     "回填_time字段.py": [
       {
         "type": "exp",
-        "id": "EXP-067",
+        "id": "EXP-068",
         "summary": "[2026-07-23] 金水谣 的经验（time 字段回填 + 全功能深究 + 文档核查）",
         "source": "经验收集箱"
+      }
+    ],
+    "复制启动提示词.bat": [
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
       }
     ],
     "安装依赖.bat": [
@@ -4882,6 +7118,24 @@
         "id": "JS-20260728-09",
         "summary": "**时间**: 2026-07-28 07:15",
         "source": "工作留痕总索引(dot)"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-31 彩票P2/P3页面收尾 + 全路由注册",
+        "summary": "2026-07-31 彩票P2/P3页面收尾 + 全路由注册 + 端到端验证 · JS-20260731-01",
+        "source": "ai_decisions.md"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-05 收工门禁修复: 改动量统计误报 + 总",
+        "summary": "2026-08-05 收工门禁修复: 改动量统计误报 + 总索引补录块 + 决策卡 + 知识孤岛回收 · JS-2026",
+        "source": "ai_decisions.md"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-05 生产遗留清理: DIAG噪音打印降噪 ",
+        "summary": "2026-08-05 生产遗留清理: DIAG噪音打印降噪 + 手机端误导地址修复 · JS-20260805-14",
+        "source": "ai_decisions.md"
       }
     ],
     "我的启动提示词.md": [
@@ -4925,9 +7179,17 @@
       },
       {
         "type": "exp",
-        "id": "EXP-069",
+        "id": "EXP-070",
         "summary": "2026-07-23 TRAE 的经验（AI代码审查工作流全落地 · Phase 1+2+3）[代码质量][流程规范][",
         "source": "经验收集箱"
+      }
+    ],
+    "桌面/金水谣一键重启.bat": [
+      {
+        "type": "js",
+        "id": "JS-20260810-02",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
       }
     ],
     "模型/.workbuddy/memory/2026-07-19.md": [
@@ -4977,6 +7239,14 @@
         "type": "exp",
         "id": "EXP-051",
         "summary": "2026-07-22 WorkBuddy 的经验（Git 安装 · 国内镜像+非提权适配）[运维][踩坑][最佳实践]",
+        "source": "经验收集箱"
+      }
+    ],
+    "模型/jinshuiyao_fixed": [
+      {
+        "type": "exp",
+        "id": "EXP-101",
+        "summary": "2026-07-31 · opencode — 彩票P2/P3页面收尾 + 端到端路由验证 [前端][彩票][验证方法]",
         "source": "经验收集箱"
       }
     ],
@@ -5182,6 +7452,28 @@
         "source": "工作留痕总索引"
       }
     ],
+    "模型/金水谣一键重启.bat": [
+      {
+        "type": "js",
+        "id": "JS-20260810-02",
+        "summary": "金水谣",
+        "source": "工作留痕总索引(表)"
+      }
+    ],
+    "模型/金水谣数据/log": [
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-101",
+        "summary": "2026-07-31 · opencode — 彩票P2/P3页面收尾 + 端到端路由验证 [前端][彩票][验证方法]",
+        "source": "经验收集箱"
+      }
+    ],
     "模型/金水谣视觉决策体系.md": [
       {
         "type": "js",
@@ -5206,6 +7498,32 @@
         "source": "工作留痕总索引(表)"
       }
     ],
+    "自动同步.ps1": [
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-06",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260802-12",
+        "summary": "opencode",
+        "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-103",
+        "summary": "2026-08-02 · opencode — Obsidian 插件\"加载失败\"排查（坚果云内 vault 插件文件易",
+        "source": "经验收集箱"
+      }
+    ],
     "运行日志与临时文件/kb_lint_20260728.py": [
       {
         "type": "js",
@@ -5223,7 +7541,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-093",
+        "id": "EXP-094",
         "summary": "2026-07-28（诺亚）matches 回测分析：聚合级校准+Brier+双对照 · JS-20260728-15 ",
         "source": "经验收集箱"
       }
@@ -5257,7 +7575,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-071",
+        "id": "EXP-072",
         "summary": "2026-07-23 金水谣 的经验（多AI审查差异整合：全视角清单+速查卡+联动门禁）[协作][最佳实践]",
         "source": "经验收集箱"
       }
@@ -5378,6 +7696,14 @@
         "source": "ai_decisions.md"
       }
     ],
+    "金水谣助手门户.html": [
+      {
+        "type": "js",
+        "id": "JS-20260729-09",
+        "summary": "全链路交叉验证+遗漏修补+TradingView图表引入",
+        "source": "工作留痕总索引"
+      }
+    ],
     "金水谣数据": [
       {
         "type": "exp",
@@ -5476,6 +7802,14 @@
         "source": "工作留痕总索引(dot)"
       }
     ],
+    "金水谣数据/log": [
+      {
+        "type": "exp",
+        "id": "EXP-101",
+        "summary": "2026-07-31 · opencode — 彩票P2/P3页面收尾 + 端到端路由验证 [前端][彩票][验证方法]",
+        "source": "经验收集箱"
+      }
+    ],
     "金水谣数据/log/ai_conversations-冲突-*.jsonl": [
       {
         "type": "js",
@@ -5502,6 +7836,12 @@
         "id": "JS-20260722-27",
         "summary": "金水谣(用户+WorkBuddy)",
         "source": "工作留痕总索引(表)"
+      },
+      {
+        "type": "js",
+        "id": "JS-20260731-01",
+        "summary": "彩票P2/P3页面创建+全路由注册+端到端测试",
+        "source": "工作留痕总索引"
       },
       {
         "type": "js",
@@ -5538,6 +7878,20 @@
         "id": "AD-2026-07-27 决策卡新增反事实对照+置信度字段(JS",
         "summary": "2026-07-27 决策卡新增反事实对照+置信度字段(JS-20260727-20)",
         "source": "ai_decisions.md"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-05 收工门禁修复: 改动量统计误报 + 总",
+        "summary": "2026-08-05 收工门禁修复: 改动量统计误报 + 总索引补录块 + 决策卡 + 知识孤岛回收 · JS-2026",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "金水谣数据/log/auto_sync.log": [
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
       }
     ],
     "金水谣数据/log/automation_mirror.json": [
@@ -5554,6 +7908,14 @@
         "id": "JS-20260727-21",
         "summary": "免WorkBuddy积分 (🟡重要)\n\n- **经手AI**: 金水谣(WorkBuddy)",
         "source": "工作留痕总索引(dot)"
+      }
+    ],
+    "金水谣数据/log/data_truth.log": [
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
       }
     ],
     "金水谣数据/log/game_day.json": [
@@ -5615,6 +7977,24 @@
         "type": "ad",
         "id": "AD-2026-07-24 彩票命中率口径统一延伸至 GUI（双栏",
         "summary": "2026-07-24 彩票命中率口径统一延伸至 GUI（双栏直选/组选）· JS-20260724-02",
+        "source": "ai_decisions.md"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-31 彩票P2/P3页面收尾 + 全路由注册",
+        "summary": "2026-07-31 彩票P2/P3页面收尾 + 全路由注册 + 端到端验证 · JS-20260731-01",
+        "source": "ai_decisions.md"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-05 收工门禁修复: 改动量统计误报 + 总",
+        "summary": "2026-08-05 收工门禁修复: 改动量统计误报 + 总索引补录块 + 决策卡 + 知识孤岛回收 · JS-2026",
+        "source": "ai_decisions.md"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-05 生产遗留清理: DIAG噪音打印降噪 ",
+        "summary": "2026-08-05 生产遗留清理: DIAG噪音打印降噪 + 手机端误导地址修复 · JS-20260805-14",
         "source": "ai_decisions.md"
       }
     ],
@@ -5722,6 +8102,14 @@
         "source": "工作留痕总索引(dot)"
       }
     ],
+    "金水谣数据/telemetry.jsonl": [
+      {
+        "type": "js",
+        "id": "JS-20260729-10",
+        "summary": "自动化系统优化 P0/P1/P2 落地（成本熔断+限流+健康闭环+遥测+并发门+影子测试+路由超时熔断 G1-G8）",
+        "source": "工作留痕总索引"
+      }
+    ],
     "金水谣数据/test_creator_*": [
       {
         "type": "js",
@@ -5775,7 +8163,7 @@
       },
       {
         "type": "exp",
-        "id": "EXP-067",
+        "id": "EXP-068",
         "summary": "[2026-07-23] 金水谣 的经验（time 字段回填 + 全功能深究 + 文档核查）",
         "source": "经验收集箱"
       }
@@ -5892,6 +8280,36 @@
         "id": "AD-2026-07-27 风险登记册 Risk Register",
         "summary": "2026-07-27 风险登记册 Risk Register (JS-20260727-19)",
         "source": "ai_decisions.md"
+      }
+    ],
+    "金水谣自动化优化方案.html": [
+      {
+        "type": "js",
+        "id": "JS-20260729-10",
+        "summary": "自动化系统优化 P0/P1/P2 落地（成本熔断+限流+健康闭环+遥测+并发门+影子测试+路由超时熔断 G1-G8）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-07-29 自动化系统优化架构（成本熔断+限流+健",
+        "summary": "2026-07-29 自动化系统优化架构（成本熔断+限流+健康闭环+遥测+并发门+影子测试 G1-G8）· JS-202",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "金水谣落地页/landing.html": [
+      {
+        "type": "js",
+        "id": "JS-20260729-08",
+        "summary": "Stripe风格金水谣SaaS落地页设计（设计引擎五成员接力·单文件自包含HTML）",
+        "source": "工作留痕总索引"
+      }
+    ],
+    "金水谣落地页/金水谣saas落地页.html": [
+      {
+        "type": "js",
+        "id": "JS-20260729-08",
+        "summary": "Stripe风格金水谣SaaS落地页设计（设计引擎五成员接力·单文件自包含HTML）",
+        "source": "工作留痕总索引"
       }
     ],
     "金水谣视觉决策体系.md": [

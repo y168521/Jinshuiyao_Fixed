@@ -166,11 +166,7 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
             return
         # /api/telemetry — 统一遥测查询（最近调用记录 + 聚合，供可观测面板）
         if parsed.path == '/api/telemetry':
-            try:
-                from core.telemetry import recent, summary
-                self._send_json({"ok": True, "summary": summary(), "events": recent(200)})
-            except Exception as e:
-                self._send_json({"ok": False, "error": str(e)}, 500)
+            h_health.handle_telemetry(self)
             return
         # /api/pipeline/status — 多 Agent 流水线实时状态（前端轮询 / 连接探测）
         if parsed.path == '/api/pipeline/status':

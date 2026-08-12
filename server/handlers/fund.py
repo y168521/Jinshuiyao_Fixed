@@ -9,7 +9,6 @@
   GET/POST  /api/fund/strategies    — 列出所有可用策略
   GET/POST  /api/fund/compare-strategies — 同一基金多策略对比
   GET/POST  /api/fund/status        — 基金子系统状态
-  GET/POST  /api/fund/with-benchmark — 带基准对比的回测
 
 均为只读分析端点（纯计算，不执行文件/不越权），对局域网开放。
 """
