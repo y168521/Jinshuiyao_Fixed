@@ -60,7 +60,6 @@ FILE_CATEGORY = {
     "test_number_utils": "P1",
     # P2 - 运行监控 / 基础设施
     "test_watchdog": "P2",
-    "test_preload": "P2",
     "test_circuit_breaker": "P2",
     "test_auto_systems": "P2",
     "test_scheduler": "P2",
@@ -703,8 +702,8 @@ def generate_html_report(results, total_time, file_stats):
     for key, value in substitutions.items():
         html = html.replace(key, str(value))
 
-    # 保存HTML
-    report_dir = os.path.join(_SCRIPT_DIR, "金水谣数据", "test_reports")
+    # 保存HTML（统一放 金水谣数据/log/test_reports/，与运行时日志同处）
+    report_dir = os.path.join(os.path.dirname(_SCRIPT_DIR), "金水谣数据", "log", "test_reports")
     os.makedirs(report_dir, exist_ok=True)
     report_path = os.path.join(report_dir, f"test_report_{time.strftime('%Y%m%d_%H%M%S')}.html")
 
@@ -825,8 +824,9 @@ def main():
     else:
         print("  [模式] 跳过HTML报告")
 
-    # 测试目录
-    test_dir = os.path.join(_SCRIPT_DIR, "tests")
+    # 测试目录（tools/tests 不存在；真源为仓库根 tests/，pytest 风格。
+    # 注：全量测试请优先使用 pytest（gate.py --test 已改走 pytest 轨道））
+    test_dir = os.path.join(os.path.dirname(_SCRIPT_DIR), "tests")
 
     # 创建运行器
     runner = SimpleTestRunner()

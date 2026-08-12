@@ -13,6 +13,14 @@ import sys
 import socket
 from datetime import datetime
 
+# GBK 控制台安全输出（Windows 计划任务/镜像调用时 print('✓') 会 UnicodeEncodeError → rc=1）
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 BASE_URL = "http://localhost:18888"
 TIMEOUT = 15  # 秒，探测超时
 

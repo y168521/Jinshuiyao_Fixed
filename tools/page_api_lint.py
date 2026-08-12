@@ -25,12 +25,26 @@ SKIP_DIRS = {"node_modules", "_shared", "assets"}
 
 # 已知待修死链（WARN 不阻断提交，修完必须移除！）
 # JS-20260812-03 第二批：彩票 4 分析页后端引擎缺失，需新建引擎+handler+路由后再移除
+# 2026-08-12 规范：PENDING 必须带 入库日期+到期日；到期后未修自动升级为 FAIL（阻断提交）
 PENDING_APIS = {
-    "/api/lottery/historical-same-period",
-    "/api/lottery/number-follow-up",
-    "/api/lottery/omission-table",
-    "/api/lottery/trend-classification",
+    "/api/lottery/historical-same-period": {"added": "2026-08-12", "due": "2026-08-31"},
+    "/api/lottery/number-follow-up":      {"added": "2026-08-12", "due": "2026-08-31"},
+    "/api/lottery/omission-table":        {"added": "2026-08-12", "due": "2026-08-31"},
+    "/api/lottery/trend-classification":  {"added": "2026-08-12", "due": "2026-08-31"},
 }
+
+
+def _pending_expired(api):
+    """PENDING 条目是否已过到期日（today > due → 过期 → 升级 FAIL）"""
+    import datetime
+    meta = PENDING_APIS.get(api)
+    if not meta or not meta.get("due"):
+        return False
+    try:
+        due = datetime.date.fromisoformat(meta["due"])
+        return datetime.date.today() > due
+    except ValueError:
+        return False
 
 
 def norm(path):
@@ -115,7 +129,10 @@ def main():
             if a not in apis:
                 rel = os.path.relpath(page, ROOT).replace("\\", "/")
                 if a in PENDING_APIS:
-                    warnings.append(f"{rel} 调用未注册 API: {a}（已知待修名单内，第二批处理）")
+                    if _pending_expired(a):
+                        errors.append(f"{rel} 调用未注册 API: {a}（PENDING 已过到期日 {PENDING_APIS[a]['due']}，必须修复！）")
+                    else:
+                        warnings.append(f"{rel} 调用未注册 API: {a}（PENDING 名单内，入库 {PENDING_APIS[a]['added']}，到期 {PENDING_APIS[a]['due']}）")
                 else:
                     errors.append(f"{rel} 调用未注册 API: {a}")
 

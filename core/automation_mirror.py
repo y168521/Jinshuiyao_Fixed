@@ -30,7 +30,7 @@ _interval_min = 15  # 每 15 分钟巡检一次守卫窗口
 
 # 镜像任务表（Batch 1：纯脚本，无 AI，脚本均已存在）
 MIRROR_TASKS = [
-    {"name": "mirror_closeout", "script": "scripts/closeout_gate.py",
+    {"name": "mirror_closeout", "script": "tools/closeout_gate.py",
      "guard": "daily@23:30", "desc": "收工自检(五查门禁)"},
     {"name": "mirror_frontend_probe", "script": "scripts/frontend_health_probe.py",
      "guard": "daily@09:00", "desc": "前端健康巡检"},

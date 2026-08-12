@@ -17,6 +17,7 @@ quality_gate / review / test / audit(跨文档一致性) 为单一入口。用�
 各子命令透传额外参数（如 --quick, --skip-tests 等）。
 旧入口脚本保留作为兼容别名，但新调用请统一走 gate.py。
 """
+from __future__ import annotations
 import sys, os, subprocess
 
 # GBK 安全输出
@@ -33,14 +34,14 @@ SCRIPTS = os.path.join(ROOT, "scripts")
 
 SCRIPT_MAP = {
     "check":     (os.path.join(BASE, "wrapup_check.py"),     "收工自检"),
-    "smoke":     (os.path.join(BASE, "smoke_test.py"),       "冒烟测试·组件(15项)"),
-    "e2e":       (os.path.join(SCRIPTS, "smoke_test.py"),    "冒烟测试·端到端(12项)"),
+    "smoke":     (os.path.join(BASE, "smoke_test.py"),       "冒烟测试(15项)"),
+    "e2e":       (os.path.join(BASE, "smoke_test.py"),       "冒烟测试·端到端(15项)"),
     "ast":       (os.path.join(BASE, "ast_checker.py"),      "AST 扫描"),
     "closeout":  (os.path.join(BASE, "closeout_gate.py"), "DoD 门禁"),
     "quality":   (os.path.join(SCRIPTS, "quality_gate.py"),  "质量基线"),
     "review":    (os.path.join(BASE, "run_review.py"),       "AI 审查"),
-    "test":      (os.path.join(BASE, "run_tests.py"),        "全量测试"),
-    "audit":     (os.path.join(BASE, "cross_doc_audit.py"),  "跨文档一致性审计·5项"),
+    "test":      (os.path.join(BASE, "run_tests.py"),        "全量测试(pytest)"),
+    "audit":     (os.path.join(BASE, "cross_doc_audit.py"),  "跨文档一致性审计"),
 }
 
 def run_script(script_path, label, extra_args):
@@ -54,6 +55,20 @@ def run_script(script_path, label, extra_args):
         print(f"[gate] FAIL {label} 失败 (exit={result.returncode})")
     else:
         print(f"[gate] OK {label} 通过")
+    return result.returncode
+
+def run_tests(extra_args):
+    """--test: 直接跑 pytest（真源轨道），不再走 run_tests.py 空跑"""
+    cmd = [sys.executable, "-m", "pytest", os.path.join(ROOT, "tests"), "-q"] + extra_args
+    print(f"[gate] {'='*50}")
+    print(f"[gate] 执行: 全量测试(pytest) — 真断言轨道")
+    print(f"[gate] 命令: {' '.join(cmd)}")
+    print(f"[gate] {'='*50}")
+    result = subprocess.run(cmd)
+    if result.returncode != 0:
+        print(f"[gate] FAIL 全量测试失败 (exit={result.returncode})")
+    else:
+        print(f"[gate] OK 全量测试通过")
     return result.returncode
 
 def main():
@@ -86,8 +101,11 @@ def main():
 
     exit_codes = []
     for key in selected:
-        script_path, label = SCRIPT_MAP[key]
-        code = run_script(script_path, label, extra)
+        if key == "test":
+            code = run_tests(extra)
+        else:
+            script_path, label = SCRIPT_MAP[key]
+            code = run_script(script_path, label, extra)
         exit_codes.append(code)
 
     max_code = max(exit_codes) if exit_codes else 0

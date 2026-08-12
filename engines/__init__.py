@@ -32,7 +32,7 @@ _ENGINE_REGISTRY = {
     "health_check": ("engines.health_check", "HealthChecker"),
     "plugin_manager": ("engines.plugin_manager", "PluginManager"),
     "sync_manager": ("engines.sync_manager", "SyncManager"),
-    "audit": ("engines.audit", "SchemeAuditor"),
+    "audit": ("engines.audit", "Audit"),
 }
 
 # ========== 引擎实例缓存 ==========

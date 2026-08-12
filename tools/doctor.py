@@ -330,7 +330,6 @@ def check_files(report):
     print_section("关键文件完整性")
 
     critical_files = [
-        ("main.py", "主程序入口"),
         ("launch_jinshuiyao.py", "启动器"),
         ("launch.bat", "启动脚本"),
         ("config.py", "全局配置"),
@@ -338,10 +337,12 @@ def check_files(report):
         (os.path.join("server", "router.py"), "路由"),
         (os.path.join("core", "ai_service.py"), "AI服务"),
         (os.path.join("core", "scheduler.py"), "定时调度"),
-        (os.path.join("sync", "device_sync.py"), "跨设备同步"),
         (os.path.join("utils", "safe_json.py"), "安全JSON"),
         (os.path.join("config", "logging_config.py"), "日志配置"),
-        ("deepseek_key.txt", "AI密钥"),
+        # 以下为"已知删除/可选"，不再计入缺失（避免恒定假红）：
+        # main.py        → 已迁移为 launch_jinshuiyao.py（2026-07 重构）
+        # sync/device_sync.py → 跨设备同步为可选功能，本机未启用（sync.py 已诚实降级）
+        # deepseek_key.txt   → 密钥已收口到 ~/.jinshuiyao-secrets/（core/security.py 单一入口）
     ]
 
     missing = []
@@ -401,7 +402,7 @@ def check_imports(report):
         ("utils.locks", BASE_DIR, "锁管理"),
         ("core.ai_service", BASE_DIR, "AI服务"),
         ("core.scheduler", BASE_DIR, "调度器"),
-        ("sync.device_sync", BASE_DIR, "设备同步"),
+        # sync.device_sync 为可选功能（本机未启用），不计入核心模块
     ]
 
     fail_count = 0

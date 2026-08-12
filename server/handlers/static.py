@@ -44,7 +44,6 @@ _PAGE_ROUTES = {
     '/global-plan':      'jinshuiyao-global-plan.html',
     '/scheduler':        'scheduler.html',
     '/engine-dashboard': 'engine-dashboard.html',
-    '/review-dashboard':    'review-dashboard.html',
     '/compare-tech':        'compare-tech.html',
     '/math-model':          'math-model.html',
     '/prediction-reference':'prediction-reference.html',
@@ -57,19 +56,17 @@ _EXTERNAL_PAGE_ROUTES = {
     '/dashboard':      os.path.join(BASE_DIR, 'frontend/dashboard', 'jinshuiyao-dashboard.html'),
     '/trend':          os.path.join(BASE_DIR, 'frontend/trend', 'jinshuiyao-trend.html'),
     '/quant':          os.path.join(BASE_DIR, 'frontend/quant-dashboard', 'index.html'),
-    '/sync':           os.path.join(BASE_DIR, 'sync', 'sync_dashboard.html'),
     '/gap-analysis':   os.path.join(BASE_DIR, 'frontend/gap-analysis', 'jinshuiyao-gap-analysis.html'),
     '/deepseek-manual': os.path.join(BASE_DIR, 'AI代码助手(DeepSeek备用)', '使用说明.html'),
     '/fund-dashboard':  os.path.join(BASE_DIR, 'frontend', 'fund', 'dashboard.html'),
     '/lottery-dashboard': os.path.join(HTML_DIR, 'lottery-dashboard.html'),
     '/omission-heatmap': os.path.join(BASE_DIR, 'frontend/trend', 'omission-heatmap.html'),
-    '/rotation-matrix': os.path.join(HTML_DIR, 'rotation-matrix.html'),
-    '/filter-panel':    os.path.join(HTML_DIR, 'filter-panel.html'),
-    '/prize-calculator': os.path.join(HTML_DIR, 'prize-calculator.html'),
-    '/audit-dashboard':  os.path.join(HTML_DIR, 'audit-dashboard.html'),
+    '/rotation-matrix': os.path.join(BASE_DIR, 'frontend', 'lottery', 'rotation-matrix.html'),
+    '/filter-panel':    os.path.join(BASE_DIR, 'frontend', 'lottery', 'filter-panel.html'),
+    '/prize-calculator': os.path.join(BASE_DIR, 'frontend', 'lottery', 'prize-calculator.html'),
+    '/audit-dashboard':  os.path.join(BASE_DIR, 'frontend', 'lottery', 'audit-dashboard.html'),
     '/automation-dashboard': os.path.join(HTML_DIR, 'automation-dashboard.html'),
-    '/head-tail-analysis': os.path.join(HTML_DIR, 'head-tail-analysis.html'),
-    '/lottery-sources-health': os.path.join(BASE_DIR, 'frontend', 'lottery', 'sources-health.html'),
+    '/head-tail-analysis': os.path.join(BASE_DIR, 'frontend', 'lottery', 'head-tail-analysis.html'),
     # 轻量入口：A股每日情绪日报（独立脚本每日生成，最新一份始终覆盖此文件）
     '/daily-sentiment': os.path.join(ROOT_DIR, 'deliverables', 'A股情绪日报_最新.html'),
     # 股票系统同名入口（同一份独立日报，仅路由路径不同，便于从股票中心进入）
@@ -571,7 +568,7 @@ def handle_run_tests(handler):
         return
     try:
         result = subprocess.run(
-            [SYSTEM_PYTHON, 'scripts/smoke_test.py'],
+            [SYSTEM_PYTHON, 'tools/smoke_test.py'],
             capture_output=True, text=True, cwd=BASE_DIR, timeout=60,
             env={**os.environ, 'PYTHONPATH': BASE_DIR}
         )

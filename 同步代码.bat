@@ -1,43 +1,13 @@
 @echo off
-chcp 936 >nul
-title ×Ô¶¯Í¬²½´úÂë...
+chcp 65001 >nul
+title é‡‘æ°´è°£è‡ªåŠ¨åŒæ­¥(å®Œæ•´é“¾è·¯)
 cd /d "%~dp0"
 
-echo ========== ×Ô¶¯Í¬²½´úÂë ==========
+REM ============================================================
+REM è‡ªåŠ¨åŒæ­¥å…¥å£ï¼ˆè®¡åˆ’ä»»åŠ¡ \Jinshuiyaoè‡ªåŠ¨åŒæ­¥ æ¯å°æ—¶è°ƒç”¨æœ¬ batï¼‰
+REM å®Œæ•´é“¾è·¯å§”æ‰˜ç»™ è‡ªåŠ¨åŒæ­¥.ps1ï¼ˆpull+ç™½åå•æäº¤+push+åŒå‰¯æœ¬+è’¸é¦+æ•°æ®å®ˆå«+ç´¢å¼•ä¿é²œ+vaultï¼‰
+REM 2026-08-12 ä¿®å¤ï¼šåŸ bat ä»… pull+add -A å…¨é‡æäº¤ï¼ˆè¿è¡Œæ—¶æ•°æ®å…¥åº“ï¼‰ï¼›ç°ç»Ÿä¸€èµ° ps1 ç™½åå•é€šé“
+REM ============================================================
 
-REM ×Ô¶¯Ñ¡Ôñ git Â·¾¶
-set GITCMD=git
-where git >nul 2>nul
-if %errorlevel% neq 0 set GITCMD=E:\Git\cmd\git.exe
-
-REM ÏÂÔØÔ¶³Ì¸üĞÂ£¬×Ô¶¯ÈİÈÌ°æ±¾ĞŞ¸Ä
-echo [1/3] ÏÂÔØÔ¶³Ì¸üĞÂ...
-REM DNS²¨¶¯ÈİÈÌ: pullÊ§°Ü×Ô¶¯ÖØÊÔ(×î¶à3´Î, ¼ä¸ô5Ãë)
-set RETRY=0
-:RETRY_PULL
-%GITCMD% pull --rebase --autostash
-if %errorlevel% equ 0 goto PULL_OK
-set /a RETRY+=1
-if %RETRY% geq 3 goto PULL_FAIL
-echo   Í¬²½Ê§°Ü, 5Ãëºó×Ô¶¯ÖØÊÔ (%RETRY%/3)...
-timeout /t 5 /nobreak >nul
-goto RETRY_PULL
-:PULL_FAIL
-echo x ÏÂÔØÊ§°Ü(ÖØÊÔ3´ÎÈÔÊ§°Ü), ¿ÉÄÜÓĞ³åÍ»
-pause
-exit /b
-:PULL_OK
-
-REM Ìá½»±¾»úĞŞ¸Ä
-echo [2/3] Ìá½»±¾»úĞŞ¸Ä...
-%GITCMD% add -A
-%GITCMD% commit -m "×Ô¶¯Í¬²½ %date% %time%"
-if %errorlevel% equ 0 (
-    echo [3/3] ÉÏ´«µ½ GitHub...
-    %GITCMD% push
-) else (
-    echo - Ã»ÓĞĞÂµÄĞŞ¸ÄĞèÒªÉÏ´«
-)
-
-echo ========== Í¬²½Íê³É ==========
-timeout /t 3 /nobreak >nul
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0è‡ªåŠ¨åŒæ­¥.ps1"
+exit /b %errorlevel%

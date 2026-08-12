@@ -124,7 +124,7 @@ def main():
     lines.append('```')
     lines.append('经验收集箱(L1原始) ──自动蒸馏──> Skill(L3规则,带原文指针)')
     lines.append('       │──提取──> 知识卡片(MiroFish) ──> 全文检索')
-    lines.append('       └──三元组──> 图谱(567条) ──> 多跳推理/搜索证据')
+    lines.append('       └──三元组──> 图谱 ──> 多跳推理/搜索证据')
     lines.append('用户知识库(raw证据+卡片) ──> 实体图谱 ──> 可视化')
     lines.append('所有层 ──> 知识网关 ──> 外部AI/网页助手/服务器')
     lines.append('```')

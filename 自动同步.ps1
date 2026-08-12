@@ -1,4 +1,6 @@
-﻿# Jinshuiyao auto-sync (called by Windows Task Scheduler every 30 min)
+﻿# Jinshuiyao auto-sync (called by Windows Task Scheduler via 同步代码.bat, every 1 hour)
+# 完整链路: pull -> 白名单提交源码/文档 -> push -> 双副本活文档回拷 -> vault刷新 -> 蒸馏 -> 数据守卫 -> 知识索引保鲜
+# 2026-08-12 修复: 计划任务实际只跑同步代码.bat(裸 pull+add -A)，本文件被绕过约10天；bat 已改为委托本 ps1。
 # Commits only source/docs, ignores runtime data. Exits silently when no changes.
 $ErrorActionPreference = "SilentlyContinue"
 $Repo = "C:\Users\Administrator\Nutstore\1\我的坚果云\模型\Jinshuiyao_Fixed"
@@ -104,7 +106,11 @@ if ($candidates.Count -gt 0) {
 & powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\Administrator\Nutstore\1\我的坚果云\模型\obsidian-vault\刷新vault.ps1" 2>&1 | Out-Null
 
 # 6) 自动蒸馏: 经验收集箱新条目 -> SKILL.md(幂等), 有改动下轮自动同步提交
-$py = "D:\Project_Env\jinshuiyao_env\Scripts\python.exe"
+#    python 优先 LOCALAPPDATA venv（新环境），回退 D:\Project_Env 旧环境（迁移中，勿删）
+$py = "$env:LOCALAPPDATA\Jinshuiyao\venv\Scripts\python.exe"
+if (-not (Test-Path $py)) {
+    $py = "D:\Project_Env\jinshuiyao_env\Scripts\python.exe"
+}
 if (Test-Path $py) {
     & $py "$Repo\tools\auto_distill.py" 2>&1 | Out-Null
 }
