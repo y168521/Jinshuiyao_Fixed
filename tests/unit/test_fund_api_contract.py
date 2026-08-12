@@ -117,8 +117,17 @@ class TestFundNavSeriesContract(unittest.TestCase):
 
     def _make_nav_df(self):
         import pandas as pd
+        from datetime import datetime, timedelta
+        base = datetime.now()
+        dates = [
+            (base - timedelta(days=365)).strftime("%Y-%m-%d"),
+            (base - timedelta(days=275)).strftime("%Y-%m-%d"),
+            (base - timedelta(days=180)).strftime("%Y-%m-%d"),
+            (base - timedelta(days=90)).strftime("%Y-%m-%d"),
+            base.strftime("%Y-%m-%d"),
+        ]
         return pd.DataFrame({
-            "净值日期": ["2025-08-12", "2025-11-12", "2026-02-12", "2026-05-12", "2026-08-12"],
+            "净值日期": dates,
             "单位净值": [1.0000, 1.1000, 1.0500, 1.2000, 1.3000],
         })
 
