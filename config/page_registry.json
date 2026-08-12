@@ -27,7 +27,7 @@
     {"path": "sync/sync_dashboard.html",                   "route": "/sync",               "category": "admin",     "desc": "同步仪表盘"},
     {"path": "jinshuiyao-gap-analysis/jinshuiyao-gap-analysis.html", "route": "/gap-analysis","category": "plan",   "desc": "差距分析"},
     {"path": "AI代码助手(DeepSeek备用)/使用说明.html",       "route": "/deepseek-manual",    "category": "guide",     "desc": "DeepSeek 使用说明"},
-    {"path": "jinshuiyao-guide/fund-dashboard.html",         "route": "/fund-dashboard",     "category": "fund",      "desc": "基金分析仪表盘"},
+    {"path": "frontend/fund/dashboard.html",                "route": "/fund-dashboard",     "category": "fund",      "desc": "基金分析仪表盘"},
     {"path": "jinshuiyao-guide/lottery-dashboard.html",      "route": "/lottery-dashboard",  "category": "lottery",   "desc": "彩票分析仪表盘(新版)"},
     {"path": "jinshuiyao-trend/omission-heatmap.html",       "route": "/omission-heatmap",   "category": "lottery",   "desc": "遗漏热力图(遗漏分层+交互热图)"},
     {"path": "jinshuiyao-guide/rotation-matrix.html",        "route": "/rotation-matrix",    "category": "lottery",   "desc": "旋转矩阵(号码缩水+覆盖优化)"},

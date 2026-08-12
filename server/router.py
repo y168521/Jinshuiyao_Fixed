@@ -362,6 +362,15 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
         if parsed.path == '/api/fund/status':
             h_fund.handle_status(self, parsed)
             return
+        if parsed.path == '/api/fund/pool':
+            h_fund.handle_pool(self, parsed)
+            return
+        if parsed.path == '/api/fund/nav-series':
+            h_fund.handle_nav_series(self, parsed)
+            return
+        if parsed.path == '/api/fund/holdings':
+            h_fund.handle_holdings_detail(self, parsed)
+            return
         if parsed.path == '/api/fund/portfolio':
             h_fund.handle_portfolio_list(self, parsed)
             return
@@ -601,6 +610,15 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
             return
         if parsed.path == '/api/fund/status':
             h_fund.handle_status(self, parsed)
+            return
+        if parsed.path == '/api/fund/pool':
+            h_fund.handle_pool(self, parsed)
+            return
+        if parsed.path == '/api/fund/nav-series':
+            h_fund.handle_nav_series(self, parsed)
+            return
+        if parsed.path == '/api/fund/holdings':
+            h_fund.handle_holdings_detail(self, parsed)
             return
         if parsed.path == '/api/fund/portfolio':
             h_fund.handle_portfolio_list(self, parsed)

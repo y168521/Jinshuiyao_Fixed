@@ -33,23 +33,19 @@ button.primary:hover { opacity:.85; }
 .legend-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
 .err { color:var(--copper); font-size:13px; }
 .muted { color:var(--muted); }
+.warn { color:var(--warn); font-size:12px; }
 @media(max-width:600px){ body{ padding:12px; } #chartWrap{ height:260px; } .param-row{ flex-direction:column; align-items:stretch; } }
 </style>
 </head>
 <body>
 <div style="margin-bottom:10px;"><a href="/fund" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回基金分析中心</a></div>
 <h1>定投模拟器</h1>
-<div class="sub">模拟基金定投效果 — 买入成本、收益曲线、微笑曲线可视化</div>
+<div class="sub">模拟基金定投效果 — 买入成本、收益曲线、微笑曲线可视化（基于真实净值数据）</div>
 
 <div class="card">
   <div class="param-row">
     <label>基金 <select id="fundSelect">
-      <option value="华夏成长">华夏成长</option>
-      <option value="嘉实沪深300" selected>嘉实沪深300</option>
-      <option value="易方达蓝筹">易方达蓝筹</option>
-      <option value="广发小盘">广发小盘</option>
-      <option value="富国天惠">富国天惠</option>
-      <option value="中欧医疗">中欧医疗</option>
+      <option value="">加载中...</option>
     </select></label>
     <label>每期金额 <input type="number" id="amount" value="1000" min="100" step="100"></label>
     <label>频率(天) <input type="number" id="every" value="30" min="5" max="90" step="5"></label>
@@ -85,114 +81,80 @@ function initChart() {
   });
 }
 
+async function loadPool() {
+  try {
+    const r = await fetch(BASE + '/api/fund/pool');
+    const j = await r.json();
+    const sel = document.getElementById('fundSelect');
+    if (j.ok && j.pool && j.pool.length) {
+      sel.innerHTML = j.pool.map(p => `<option value="${p.code}">${p.name}</option>`).join('');
+    } else {
+      sel.innerHTML = '<option value="">基金池为空</option>';
+    }
+  } catch (e) {
+    document.getElementById('fundSelect').innerHTML = '<option value="">基金池加载失败</option>';
+  }
+}
+
 async function runSimulation() {
-  const name = document.getElementById('fundSelect').value;
+  const code = document.getElementById('fundSelect').value;
   const amount = parseFloat(document.getElementById('amount').value) || 1000;
   const every = parseInt(document.getElementById('every').value) || 30;
   const feeRate = (parseFloat(document.getElementById('feeRate').value) || 0.15) / 100;
   const st = document.getElementById('status');
+  if (!code) { st.textContent = '无可用基金'; return; }
 
   st.textContent = '计算中...';
   try {
     const r = await fetch(BASE + '/api/fund/backtest', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        strategy: '定投', codes: name,
-        amount_per_period: amount, every: every, fee_rate: feeRate,
-        initial_capital: amount * 12
+        strategy: '定投', codes: [code],
+        amount_per_period: amount, every: every, fee_rate: feeRate
       })
     });
     const j = await r.json();
-    if (j.ok) {
+    if (j.ok && j.report) {
+      const rpt = j.report;
       document.getElementById('resultCard').style.display = 'block';
       const grid = document.getElementById('resultsGrid');
-      grid.innerHTML = Object.entries(j).filter(([k]) => k !== 'ok' && k !== 'nav_history' && k !== 'cost_history').map(([k, v]) =>
-        `<div class="result-card"><div class="result-label">${k}</div><div class="result-value${typeof v === 'number' && v < 0 ? ' down' : ' up'}">${typeof v === 'number' ? (k.includes('率') || k.includes('收益') ? fmtPct(v) : fmtMoney(v)) : v}</div></div>`
-      ).join('');
+      const returnPct = (rpt.total_return || 0) * 100;
+      grid.innerHTML = `
+        <div class="result-card"><div class="result-label">累计投入</div><div class="result-value up">${fmtMoney(rpt.total_invested)}</div></div>
+        <div class="result-card"><div class="result-label">最终市值</div><div class="result-value up">${fmtMoney(rpt.final_value)}</div></div>
+        <div class="result-card"><div class="result-label">收益率</div><div class="result-value ${returnPct >= 0 ? 'up' : 'down'}">${rpt.total_return_pct || fmtPct(returnPct)}</div></div>
+        <div class="result-card"><div class="result-label">最大回撤</div><div class="result-value down">${rpt.max_drawdown_pct || '—'}</div></div>
+        <div class="result-card"><div class="result-label">累计份额</div><div class="result-value up">${rpt.total_shares != null ? rpt.total_shares.toFixed(2) : '—'}</div></div>
+        <div class="result-card"><div class="result-label">平均成本</div><div class="result-value">${rpt.avg_cost != null ? rpt.avg_cost.toFixed(4) : '—'}</div></div>
+        <div class="result-card"><div class="result-label">定投期数</div><div class="result-value up">${rpt.num_purchases || 0}</div></div>
+        <div class="result-card"><div class="result-label">盈亏平衡净值</div><div class="result-value">${rpt.break_even_nav != null ? rpt.break_even_nav.toFixed(4) : '—'}</div></div>
+      `;
 
-      const navHist = j.nav_history || [];
-      const costHist = j.cost_history || [];
-
-      if (navHist.length > 0) {
+      const curve = rpt.curve || [];
+      if (curve.length > 0) {
         initChart();
-        const now = new Date();
-        const navCandles = navHist.map((v, i) => {
-          const d = new Date(now); d.setDate(d.getDate() - (navHist.length - 1) + i);
-          return { time: d.toISOString().slice(0, 10), value: v };
-        });
         const navLine = chart.addLineSeries({ color: '#c8755a', lineWidth: 2, title: '净值', lastValueVisible: true, priceLineVisible: false });
-        navLine.setData(navCandles);
-
-        document.getElementById('legend').innerHTML = '<span class="legend-item"><span class="legend-dot" style="background:#c8755a"></span>净值走势</span>';
-
-        if (costHist.length > 0) {
-          const costCandles = costHist.map((v, i) => {
-            const d = new Date(now); d.setDate(d.getDate() - (costHist.length - 1) + i);
-            return { time: d.toISOString().slice(0, 10), value: v };
-          });
-          const costLine = chart.addLineSeries({ color: '#c9a96e', lineWidth: 2, title: '平均成本', lastValueVisible: true, priceLineVisible: false, lineStyle: 2 });
-          costLine.setData(costCandles);
-          document.getElementById('legend').innerHTML += '<span class="legend-item"><span class="legend-dot" style="background:#c9a96e"></span>平均成本(虚线)</span>';
-        }
+        navLine.setData(curve.map(p => ({ time: p.date, value: p.nav })));
+        const costLine = chart.addLineSeries({ color: '#c9a96e', lineWidth: 2, title: '平均成本', lastValueVisible: true, priceLineVisible: false, lineStyle: 2 });
+        costLine.setData(curve.map(p => ({ time: p.date, value: p.avg_cost })));
         chart.timeScale().fitContent();
+        document.getElementById('legend').innerHTML =
+          '<span class="legend-item"><span class="legend-dot" style="background:#c8755a"></span>净值走势</span>' +
+          '<span class="legend-item"><span class="legend-dot" style="background:#c9a96e"></span>平均成本(虚线)</span>';
       }
-      st.textContent = '模拟完成';
+      st.textContent = '模拟完成（真实净值数据）' + (rpt.summary ? ` — ${rpt.summary}` : '');
     } else {
-      loadMock(name, amount, every);
+      st.innerHTML = `<span class="err">模拟失败: ${j.error || '未知错误'}</span>`;
     }
-  } catch (e) { loadMock(name, amount, every); }
-}
-
-function loadMock(name, amount, every) {
-  document.getElementById('resultCard').style.display = 'block';
-  const months = 36;
-  const baseNav = 1.0;
-  const navVals = Array.from({ length: months }, (_, i) => baseNav + Math.sin(i * 0.3) * 0.15 + Math.random() * 0.05);
-  const investCount = Math.floor(months * 30 / every);
-  let totalShares = 0, totalCost = 0;
-  const costHist = [];
-  for (let i = 0; i < months; i++) {
-    if (i % Math.round(every / 30) === 0) {
-      const shares = amount / navVals[i];
-      totalShares += shares;
-      totalCost += amount;
-    }
-    costHist.push(totalShares > 0 ? totalCost / totalShares : navVals[i]);
+  } catch (e) {
+    st.innerHTML = `<span class="err">请求异常: ${e.message}</span>`;
   }
-  const finalValue = totalShares * navVals[months - 1];
-  const returnRate = (finalValue - totalCost) / totalCost * 100;
-
-  document.getElementById('resultsGrid').innerHTML = `
-    <div class="result-card"><div class="result-label">总投资</div><div class="result-value up">${fmtMoney(totalCost)}</div></div>
-    <div class="result-card"><div class="result-label">最终市值</div><div class="result-value up">${fmtMoney(finalValue)}</div></div>
-    <div class="result-card"><div class="result-label">累计收益</div><div class="result-value ${returnRate >= 0 ? 'up' : 'down'}">${fmtMoney(finalValue - totalCost)}</div></div>
-    <div class="result-card"><div class="result-label">收益率</div><div class="result-value ${returnRate >= 0 ? 'up' : 'down'}">${fmtPct(returnRate)}</div></div>
-    <div class="result-card"><div class="result-label">总份额</div><div class="result-value up">${totalShares.toFixed(2)}</div></div>
-    <div class="result-card"><div class="result-label">平均成本</div><div class="result-value">${fmtMoney(totalCost / totalShares)}</div></div>
-  `;
-
-  initChart();
-  const now = new Date();
-  const navCandles = navVals.map((v, i) => {
-    const d = new Date(now); d.setDate(d.getDate() - (months - 1) + i * 30);
-    return { time: d.toISOString().slice(0, 10), value: v };
-  });
-  const navLine = chart.addLineSeries({ color: '#c8755a', lineWidth: 2, title: '净值', lastValueVisible: true, priceLineVisible: false });
-  navLine.setData(navCandles);
-
-  const costCandles = costHist.map((v, i) => {
-    const d = new Date(now); d.setDate(d.getDate() - (months - 1) + i * 30);
-    return { time: d.toISOString().slice(0, 10), value: v };
-  });
-  const costLine = chart.addLineSeries({ color: '#c9a96e', lineWidth: 2, title: '平均成本', lastValueVisible: true, priceLineVisible: false, lineStyle: 2 });
-  costLine.setData(costCandles);
-  chart.timeScale().fitContent();
-
-  document.getElementById('legend').innerHTML = '<span class="legend-item"><span class="legend-dot" style="background:#c8755a"></span>净值走势</span><span class="legend-item"><span class="legend-dot" style="background:#c9a96e"></span>平均成本(虚线)</span>';
-  document.getElementById('status').textContent = '模拟数据';
 }
 
-runSimulation();
+(async function init() {
+  await loadPool();
+  runSimulation();
+})();
 window.addEventListener('resize', () => { if (chart) chart.resize(chart.chartElement().clientWidth, 360); });
 </script>
 </body>

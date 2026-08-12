@@ -45,6 +45,45 @@ class FundFetcher:
         "260108",  # 景顺长城新兴成长混合
     ]
 
+    # 默认池名称表（真实基金名称，供前端下拉快速渲染，不发网络）
+    DEFAULT_FUND_NAMES = {
+        "000001": "华夏成长混合",
+        "110011": "易方达中小盘混合",
+        "161725": "招商中证白酒指数",
+        "005827": "易方达蓝筹精选混合",
+        "001102": "前海开源国家比较优势",
+        "519674": "银河创新成长混合",
+        "003096": "中欧医疗健康混合",
+        "001071": "华安媒体互联网混合",
+        "001875": "前海开源沪港深优势精选",
+        "260108": "景顺长城新兴成长混合",
+        "000961": "天弘沪深300ETF联接A",
+        "110022": "易方达消费行业股票",
+        "000171": "易方达裕丰回报债券",
+        "003547": "鹏华丰禄债券",
+        "163406": "兴全合润混合",
+    }
+
+    def get_fund_names_map(self, codes=None):
+        """快速获取基金名称映射 {code: name}（仅缓存+内置表，不发网络请求）
+
+        优先级：本地列表缓存 → 内置名称表 → 代码本身。
+        """
+        name_map = {}
+        try:
+            cached = self._read_cache("list_all")
+            if cached is not None and hasattr(cached, "columns"):
+                for _, row in cached.iterrows():
+                    c = str(row.get("基金代码", "")).strip()
+                    if c:
+                        name_map[c] = str(row.get("基金名称", "")) or c
+        except Exception as e:
+            logger.warning("读取基金列表缓存失败: %s", e)
+        name_map.update(self.DEFAULT_FUND_NAMES)
+        if codes:
+            return {c: name_map.get(c, c) for c in codes}
+        return name_map
+
     def __init__(self, cache_dir=None):
         """初始化基金数据获取器
 

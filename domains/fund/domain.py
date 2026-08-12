@@ -65,6 +65,7 @@ class FundDomain(DomainBase):
         self._analyzer = None
         self._ai_service = None
         self._data_cache = {}  # {fund_code: {nav, info, holdings}}
+        self._data_mode = {}  # {fund_code: "real"|"mock"} 数据来源诚实标记
         self._analysis_cache = {}  # {fund_code: analysis_result}
         self._last_run = None
         self._review_count = 0
@@ -188,6 +189,7 @@ class FundDomain(DomainBase):
                         if fund_data:
                             results[code] = fund_data
                             self._data_cache[code] = fund_data
+                            self._data_mode[code] = "real"
                             success_count += 1
                     except Exception as e:
                         logger.warning("获取基金 %s 数据失败: %s", code, e)
@@ -202,6 +204,7 @@ class FundDomain(DomainBase):
                     if code not in results:
                         results[code] = self._generate_mock_fund_data(code)
                         self._data_cache[code] = results[code]
+                        self._data_mode[code] = "mock"
 
             self._last_run = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 

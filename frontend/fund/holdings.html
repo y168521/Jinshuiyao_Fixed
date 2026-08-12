@@ -56,7 +56,7 @@
 
 <div class="card scroll-x">
   <h2>前十大重仓股</h2>
-  <table><thead><tr><th>股票</th><th>占比</th><th>市值</th><th>年初至今</th><th>行业</th></tr></thead>
+  <table><thead><tr><th>股票</th><th>代码</th><th>占比</th><th>持仓市值(万)</th><th>持股数(万股)</th></tr></thead>
   <tbody id="stockBody"><tr><td colspan="5" class="muted" style="text-align:center;">选择基金后加载</td></tr></tbody></table>
 </div>
 
@@ -111,34 +111,55 @@ async function loadFunds(){
 }
 
 async function loadHoldings(){
-  const name=document.getElementById('fundSel').value;
-  if(!name){
+  const code=document.getElementById('fundSel').value;
+  if(!code){
     document.getElementById('status').textContent='请先选择持仓基金';
     return;
   }
-  document.getElementById('status').textContent='加载中...';
+  const st=document.getElementById('status');
+  st.textContent='加载中...';
   document.getElementById('stockBody').innerHTML='<tr><td colspan="5" class="muted" style="text-align:center;">加载中...</td></tr>';
   try{
-    const r = await fetch(window.location.origin + '/api/fund/compare?codes=' + encodeURIComponent(name));
+    const r = await fetch(window.location.origin + '/api/fund/holdings', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({code})
+    });
     const j = await r.json();
-    if(!j || !j.success || !j.comparison || !j.comparison.length){
-      document.getElementById('status').textContent='暂无该基金分析数据，请稍后重试';
-      document.getElementById('stockBody').innerHTML='<tr><td colspan="5" class="muted" style="text-align:center;">暂无持仓穿透数据（净值/结构数据每日更新后可用）</td></tr>';
-      drawDonut([]);
+    if(!j || !j.ok){
+      st.textContent='加载失败: ' + (j && j.error || '未知错误');
       return;
     }
-    const row = j.comparison[0];
+    if(!j.available){
+      drawDonut([]);
+      document.getElementById('concGrid').innerHTML='';
+      document.getElementById('stockBody').innerHTML='<tr><td colspan="5" class="muted" style="text-align:center;">'+(j.error||'暂无持仓数据')+'</td></tr>';
+      st.textContent='该基金暂无持仓穿透数据（诚实提示：数据源未返回）';
+      return;
+    }
+    const c = j.concentration || {};
+    drawDonut(Object.entries(j.industry || {}).map(([name,value])=>({name,value:Number(value)})));
     document.getElementById('concGrid').innerHTML = [
-      {label:'年化收益', value:fmtPct(row.annual_return)},
-      {label:'最大回撤', value:fmtPct(row.max_drawdown)},
-      {label:'夏普比率', value:row.sharpe!=null?Number(row.sharpe).toFixed(2):'—'},
-      {label:'综合评分', value:row.score!=null?row.score+'分':'—'}
-    ].map(v=>`<div class="card" style="padding:12px;text-align:center"><div style="font-size:11px;color:var(--muted)">${v.label}</div><div style="font-size:20px;font-weight:700;margin-top:4px">${v.value}</div></div>`).join('');
-    document.getElementById('stockBody').innerHTML='<tr><td colspan="5" class="muted" style="text-align:center;">个股持仓穿透：暂无明细（待接入真实持仓结构数据）</td></tr>';
-    drawDonut([]);
-    document.getElementById('status').textContent=`${row.name||name} · 指标已加载`;
+      {label:'前十大重仓占比', value:c.top10_ratio!=null?c.top10_ratio.toFixed(1)+'%':'—'},
+      {label:'第一大重仓占比', value:c.top1_ratio!=null?c.top1_ratio.toFixed(1)+'%':'—'},
+      {label:'持仓集中度(HHI)', value:c.hhi!=null?c.hhi.toFixed(2):'—'},
+      {label:'持股数量', value:c.stock_count!=null?c.stock_count:'—'},
+      {label:'风格倾向', value:c.style||'—'},
+      {label:'集中度评价', value:c.level||'—'},
+      {label:'行业分布', value:Object.keys(j.industry||{}).length?Object.keys(j.industry).length+'个行业（估算）':'—'},
+      {label:'数据来源', value:j.mode==='mock'?'模拟兜底':'真实'}
+    ].map(v=>`<div class="card" style="padding:12px;text-align:center"><div style="font-size:11px;color:var(--muted)">${v.label}</div><div style="font-size:18px;font-weight:700;margin-top:4px">${v.value}</div></div>`).join('');
+
+    const stocks = j.stocks || [];
+    if(!stocks.length){
+      document.getElementById('stockBody').innerHTML='<tr><td colspan="5" class="muted" style="text-align:center;">无重仓股明细（诚实提示：数据源未返回个股明细）</td></tr>';
+    } else {
+      document.getElementById('stockBody').innerHTML = stocks.map(s=>
+        `<tr><td>${s.name}</td><td>${s.code}</td><td class="num">${s.ratio!=null?s.ratio.toFixed(2)+'%':'—'}</td><td class="num">${s.value!=null?fmtNum(s.value):'—'}</td><td class="num">${s.shares!=null?s.shares.toFixed(2):'—'}</td></tr>`
+      ).join('');
+    }
+    st.textContent = (j.name||code) + ' · 持仓穿透已加载' + (j.mode==='mock'?'（模拟兜底数据）':'（真实数据）');
   }catch(e){
-    document.getElementById('status').textContent='加载失败: '+e.message;
+    st.textContent='加载失败: '+e.message;
   }
 }
 
