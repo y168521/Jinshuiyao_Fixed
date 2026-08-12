@@ -25,6 +25,7 @@ class WorkerAgent:
         dispatch_map = {
             "lottery": agent._dispatch_lottery,
             "stock": agent._dispatch_stock,
+            "fund": agent._dispatch_fund,
             "football": agent._dispatch_football,
             "music": agent._dispatch_music,
             "video": agent._dispatch_video,

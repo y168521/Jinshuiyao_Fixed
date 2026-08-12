@@ -105,30 +105,59 @@ class LotteryDomain(DomainBase):
 
     def analyze(self, data, lots=None, budget=None, play=None, **kwargs):
         """多引擎分析
-        
-        复用 jinshuiyao.py 中的 gen_one 逻辑进行多引擎分析。
-        由于 jinshuiyao.py 中 gen_one 逻辑复杂（约800行），
-        实际生产环境通过调用 jinshuiyao.py 中已有的 App._gen_predictions 方法实现。
-        
+
+        对每个目标彩种读取历史开奖，调用统计分析引擎（遗漏/热冷/跟随/走势）
+        产出真实分析结果，供 predict_full 链路与外部调研使用。
+        数据契约与 engines/lottery_stats.py 一致（Data.load 单真源）。
+
         Args:
-            data: 抓取的数据
+            data: 抓取的数据（未使用，历史数据统一经 Data.load 读取）
             lots: 目标彩种
             budget: 预算
             play: 玩法
-            
+
         Returns:
-            dict: 分析结果字典
+            dict: {
+                "lots": [...], "results": {彩种: {...}}, "status": str,
+                "engine_count": int, "analyzed_count": int,
+            }
         """
-        # 在彩票子系统上下文中运行
         def _do_analyze():
-            # 实际分析逻辑复用现有引擎
-            # 此适配层提供标准接口，具体实现通过引用现有引擎
+            target_lots = [l for l in (lots or LOT_ALL) if l not in ("排除", "")]
+            results = {}
+
+            for lot in target_lots:
+                try:
+                    history = Data.load(lot) or []
+                except Exception as e:
+                    logger.warning("分析 %s 读取历史失败: %s", lot, e)
+                    history = []
+
+                if not history:
+                    results[lot] = {"status": "no_data", "error": "无历史开奖数据"}
+                    continue
+
+                from engines.lottery_stats import (
+                    omission_table,
+                    number_follow_up,
+                    trend_classification,
+                )
+                results[lot] = {
+                    "omission": omission_table(history, lot),
+                    "trend": trend_classification(history),
+                    "follow_up": number_follow_up(history, lot_type=lot),
+                    "history_count": len(history),
+                    "status": "ok",
+                }
+
             return {
-                "lots": lots or LOT_ALL,
+                "lots": target_lots,
+                "results": results,
                 "budget": budget,
                 "play": play,
                 "engine_count": len(self._engines),
-                "status": "ready",
+                "analyzed_count": sum(1 for r in results.values() if r.get("status") == "ok"),
+                "status": "ok" if results else "no_data",
             }
         return run_in_subsystem("lottery", _do_analyze)
 

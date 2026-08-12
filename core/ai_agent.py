@@ -116,6 +116,9 @@ class JinshuiyaoAgent:
                 elif name == "football":
                     from domains.football.domain import FootballDomain
                     self._domains[name] = FootballDomain()
+                elif name == "fund":
+                    from domains.fund.domain import FundDomain
+                    self._domains[name] = FundDomain()
                 elif name == "music":
                     from domains.music.domain import MusicDomain
                     self._domains[name] = MusicDomain()
@@ -299,7 +302,7 @@ class JinshuiyaoAgent:
             if text_out and not err:
                 val = self._unwrap_reply(text_out).strip().lower()
                 # 宽松匹配：返回中含任一已知子系统词即认（兼容模型带引号/解释文字）
-                for sub in ("lottery", "stock", "football", "music", "system", "general", "knowledge", "video", "creator"):
+                for sub in ("lottery", "stock", "football", "music", "system", "general", "knowledge", "video", "creator", "fund"):
                     if sub in val:
                         return sub
         except Exception:
@@ -345,7 +348,7 @@ class JinshuiyaoAgent:
                 f"用户说：'{text}'\n"
                 f"请判断属于哪个子系统：lottery/stock/football/music/system/general\n"
                 f"只回复子系统英文名，不要其他内容")
-            if intent and intent.strip().lower() in ("lottery", "stock", "football", "music", "system", "knowledge", "video", "creator"):
+            if intent and intent.strip().lower() in ("lottery", "stock", "football", "music", "system", "knowledge", "video", "creator", "fund"):
                 return (intent.strip().lower(), "general", "用户自定义问题")
 
         return ("general", "chat", "通用对话")
@@ -397,6 +400,11 @@ class JinshuiyaoAgent:
         """调度股票子系统（委托到 core/dispatch_stock.py）"""
         from core.dispatch_stock import dispatch_stock as _ds
         return _ds(self, action, target)
+
+    def _dispatch_fund(self, action: str, target: str) -> str:
+        """调度基金子系统（委托到 core/dispatch_fund.py）"""
+        from core.dispatch_fund import dispatch_fund as _df
+        return _df(self, action, target)
 
     def _dispatch_football(self, action: str, target: str) -> str:
         """调度足彩子系统（委托到 core/dispatch_football.py）"""
@@ -538,6 +546,8 @@ class JinshuiyaoAgent:
                 data_result = self._dispatch_lottery(action, target, user_input=user_input)
             elif subsystem == "stock":
                 data_result = self._dispatch_stock(action, target)
+            elif subsystem == "fund":
+                data_result = self._dispatch_fund(action, target)
             elif subsystem == "football":
                 data_result = self._dispatch_football(action, target)
             elif subsystem == "music":

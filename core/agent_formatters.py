@@ -241,3 +241,78 @@ def format_refined_result(refined: dict) -> str:
     if tags:
         lines.append(f"\n标签: {', '.join(tags)}")
     return "\n".join(lines)
+
+
+def format_fund_result(fetch_result: dict, analysis: dict, generate_result: dict, mode: str = "recommend") -> str:
+    """格式化基金结果（分析/推荐/行情）
+
+    Args:
+        fetch_result: fetch() 返回 {"success", "data", "message", "mode"}
+        analysis: analyze() 返回 {"results": {code: analysis}}，可为 None
+        generate_result: generate() 返回 {"predictions", "summary"}，可为 None
+        mode: "quote" | "recommend"（默认）
+
+    Returns:
+        str: 格式化文本
+    """
+    if mode == "quote":
+        lines = ["【基金行情】"]
+        if not fetch_result:
+            return "暂无基金行情数据"
+        data = fetch_result.get("data", {})
+        if not data:
+            return "暂无基金行情数据"
+        for code, fd in list(data.items())[:10]:
+            info = fd.get("info", {})
+            name = info.get("基金名称", f"基金{code}")
+            nav_df = fd.get("nav")
+            latest = None
+            if nav_df is not None:
+                try:
+                    if hasattr(nav_df, "iloc") and len(nav_df) > 0:
+                        latest = float(nav_df.iloc[-1].get("单位净值", 0))
+                except (TypeError, ValueError, IndexError):
+                    latest = None
+            latest_str = f"{latest:.4f}" if isinstance(latest, float) else "—"
+            lines.append(f"\n{code} {name}: 净值 {latest_str}")
+        mode_note = fetch_result.get("mode", "")
+        if mode_note:
+            lines.append(f"\n数据来源: {'真实' if mode_note == 'real' else '模拟(降级)'}")
+        return "\n".join(lines)
+
+    lines = ["【基金分析】"]
+    if not analysis or not analysis.get("results"):
+        idle = ""
+        if fetch_result:
+            idle = f"（已获取{len(fetch_result.get('data', {}))}只基金数据，但分析未产出结果）"
+        return f"{lines[0]}\n暂无分析结果{idle}"
+
+    results = analysis.get("results", {})
+    for code, r in list(results.items())[:8]:
+        info = r.get("info", {})
+        name = info.get("基金名称", f"基金{code}")
+        nav = r.get("nav_analysis", {})
+        returns = nav.get("returns", {})
+        risk = nav.get("risk", {})
+        comp = r.get("composite_score", {})
+        score = comp.get("总分")
+        grade = comp.get("等级", "")
+        annual = returns.get("年化收益率")
+        max_dd = risk.get("最大回撤")
+        annual_str = f"{_as_float(annual):.1f}%" if annual is not None else "—"
+        dd_str = f"{_as_float(max_dd):.1f}%" if max_dd is not None else "—"
+        score_str = f"{_as_float(score):.0f}" if score is not None else "—"
+        lines.append(f"\n{code} {name} | 评级{grade} | 评分{score_str}")
+        lines.append(f"  年化{annual_str} | 回撤{dd_str}")
+
+    if generate_result:
+        summary = generate_result.get("summary", "")
+        if summary:
+            lines.append(f"\n{summary}")
+        buy = generate_result.get("buy_count", 0)
+        hold = generate_result.get("hold_count", 0)
+        watch = generate_result.get("watch_count", 0)
+        if buy or hold or watch:
+            lines.append(f"建议: 买入{buy} / 持有{hold} / 观望{watch}")
+
+    return "\n".join(lines) if len(lines) > 1 else "暂无基金数据"
