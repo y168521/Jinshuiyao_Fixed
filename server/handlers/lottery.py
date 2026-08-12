@@ -12,7 +12,7 @@
 import os
 import time
 
-from ..config import BASE_DIR, HTML_DIR
+from ..config import HTML_DIR
 from ..utils import log
 
 

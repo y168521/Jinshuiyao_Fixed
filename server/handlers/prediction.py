@@ -11,11 +11,9 @@
 """
 import os
 import json
-import threading
 import datetime
 
 from ..config import PREDICTION_DIR, PREDICTION_FILE, _PRED_DOMAIN_KEYWORDS, _PRED_LOCK
-from ..utils import log
 
 
 # ---------------------------------------------------------------------------

@@ -7,7 +7,6 @@
 import json
 import os
 import itertools
-import urllib.parse
 from ..config import BASE_DIR
 from ..utils import log
 

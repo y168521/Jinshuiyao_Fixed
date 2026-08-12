@@ -7,7 +7,6 @@
   GET /api/trend/data?lot=福彩3D  — 指定彩种的走势数据（含新鲜度元数据）
   GET /api/trend/freshness        — 所有彩种数据新鲜度概览
 """
-import json
 import os
 import time
 import urllib.parse

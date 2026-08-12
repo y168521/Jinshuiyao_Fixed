@@ -8,13 +8,11 @@
   GET  /api/review/patterns       — 查模式库
   GET  /review-dashboard          — 审查仪表盘页面（HTML）
 """
-import json
 import os
 import sys
 import importlib
 
 from ..config import BASE_DIR, HTML_DIR
-from ..utils import log
 
 # ─── 动态导入自学习模块（在 tools/ 下，不在 handlers/ 下）───
 TOOLS_DIR = os.path.join(BASE_DIR, "tools")

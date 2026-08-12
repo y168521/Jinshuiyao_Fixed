@@ -13,7 +13,6 @@ JSON 结构（route_probe.run_probe 输出）：
 import json
 import os
 import subprocess
-import sys
 
 from ..config import BASE_DIR, ROOT_DIR, SYSTEM_PYTHON
 from ..utils import log

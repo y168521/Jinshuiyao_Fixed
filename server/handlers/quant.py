@@ -5,7 +5,6 @@
 """
 import json, os, re
 from datetime import datetime
-from ..utils import log
 
 HERE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 CACHE_DIRS = [

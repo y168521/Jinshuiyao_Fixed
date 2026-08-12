@@ -94,6 +94,30 @@ class JinshuiyaoScheduler(TaskScheduler):
         except Exception as e:
             logger.warning("[AI决策监听] 启动失败（不影响其余定时任务）: %s", e)
 
+    # 数据表驱动（债务-215：原 193 行逐块注册 → 表+循环）
+    # (name, method, interval_key, run_now, first_delay)
+    # data_refresh/auto_review 开机会补跑（run_now），auto_review 延迟 420s 等数据抓取完成错峰
+    _TASKS_ALWAYS = [
+        ("data_refresh", "_task_data_refresh", "data_refresh", True, None),
+        ("auto_review", "_task_auto_review", "auto_review", True, 420),
+        ("knowledge_extract", "_task_knowledge_extract", "knowledge_extract", False, None),
+        ("data_maintenance", "_task_data_maintenance", "data_maintenance", False, None),
+        ("health_backup", "_task_health_backup", "health_backup", False, None),
+        ("file_cleanup", "_task_file_cleanup", "file_cleanup", False, None),
+        ("memory_decay", "_task_memory_decay", "memory_decay", False, None),
+        ("cross_link", "_task_cross_link", "cross_link", False, None),
+        ("kg_rebuild", "_task_kg_rebuild", "kg_rebuild", False, None),
+        ("kb_lint", "_task_kb_lint", "kb_lint", False, None),
+        ("vector_index_rebuild", "_task_vector_index_rebuild", "vector_index_rebuild", False, None),
+    ]
+    # 条件任务（config/scheduler.json 对应 key >0 才注册）
+    _TASKS_CONDITIONAL = ["ai_code_review", "free_model_sync", "free_model_health"]
+    # 兜底任务（注册失败不影响其余任务，间隔固定）
+    _TASKS_SAFE = [
+        ("proactive_reminder", "_task_proactive_reminder", 30),
+        ("brain_daily", "_task_brain_daily", 1440),
+    ]
+
     def _register_default_tasks(self):
         """注册金水谣系统的16项默认定时任务（11 无条件 + 3 条件开关 + 2 兜底注册；间隔可从 config/scheduler.json 覆盖；实际注册数随条件开关浮动，以 register() 调用为准）"""
         # 加载用户自定义间隔配置（可选）
@@ -126,173 +150,48 @@ class JinshuiyaoScheduler(TaskScheduler):
         except Exception:
             pass  # 配置文件不存在或格式错误时用默认值
 
-        # 1. 数据刷新 - 抓取最新彩票/股票/足彩数据（run_now: 开机即抓一次，
-        #    避免等一个完整间隔才补上开奖数据 → 自动复盘跟着有米下锅）
-        self.register(
-            name="data_refresh",
-            func=self._task_data_refresh,
-            interval_minutes=_defaults["data_refresh"],
-            enabled=True,
-            run_now=True,
-        )
-
-        # 2. 自动复盘 - 对最近的预测自动复盘（run_now: 开机后补复盘，
-        #    已开奖未复盘的记录（如昨晚开奖今早开机）马上被处理，不用等 2 小时；
-        #    first_delay=420: 首跑延迟到数据刷新（约150s，最坏5分钟）完成之后再跑，
-        #    避免与 data_refresh 同时启动导致开奖结果未入库而整批"未开奖跳过"）
-        self.register(
-            name="auto_review",
-            func=self._task_auto_review,
-            interval_minutes=_defaults["auto_review"],
-            enabled=True,
-            run_now=True,
-            first_delay=420,
-        )
-
-        # 3. 知识提取 - 从复盘中自动提取知识卡片
-        self.register(
-            name="knowledge_extract",
-            func=self._task_knowledge_extract,
-            interval_minutes=_defaults["knowledge_extract"],
-            enabled=True,
-        )
-
-        # 4. 数据维护 - 清理过期数据、压缩归档
-        self.register(
-            name="data_maintenance",
-            func=self._task_data_maintenance,
-            interval_minutes=_defaults["data_maintenance"],
-            enabled=True,
-        )
-
-        # 5. 健康备份 - 全量数据备份
-        self.register(
-            name="health_backup",
-            func=self._task_health_backup,
-            interval_minutes=_defaults["health_backup"],
-            enabled=True,
-        )
-
-        # 6. 文件清理 - 清理临时文件、整理目录
-        self.register(
-            name="file_cleanup",
-            func=self._task_file_cleanup,
-            interval_minutes=_defaults["file_cleanup"],
-            enabled=True,
-        )
-
-        # 7. 记忆衰减 - 对所有知识卡做衰减+自动归档（每24小时）
-        self.register(
-            name="memory_decay",
-            func=self._task_memory_decay,
-            interval_minutes=_defaults["memory_decay"],
-            enabled=True,
-        )
-
-        # 8. 双库自动发现链接 - 发现左脑MiroFish↔右脑用户库关联（每24小时）
-        self.register(
-            name="cross_link",
-            func=self._task_cross_link,
-            interval_minutes=_defaults["cross_link"],
-            enabled=True,
-        )
-
-        # 9. 知识图谱重建 - 重建知识图谱（每24小时）
-        self.register(
-            name="kg_rebuild",
-            func=self._task_kg_rebuild,
-            interval_minutes=_defaults["kg_rebuild"],
-            enabled=True,
-        )
-
-        # 10. 知识体检(Lint) - 每月1号自动体检（每日触发，仅1号执行）
-        self.register(
-            name="kb_lint",
-            func=self._task_kb_lint,
-            interval_minutes=_defaults["kb_lint"],
-            enabled=True,
-        )
-
-        # 11. 向量索引重建(P3-4) - 主动重建离线VSM语义索引（每24小时）
-        #     与 get_vector_index 的 mtime 失效机制互补，避免首个语义检索临时构建阻塞
-        self.register(
-            name="vector_index_rebuild",
-            func=self._task_vector_index_rebuild,
-            interval_minutes=_defaults["vector_index_rebuild"],
-            enabled=True,
-        )
-
-        # 12. AI代码语义审查 - 对最近改动的 .py 文件做模型级语义审查（免费模型优先）
-        #     与 pre-commit 钩子互补：钩子拦"本次提交"，此任务兜底"已入库代码"
-        #     免费(siliconflow)优先；免费不可用且禁用付费时跳过，绝不报错影响其他任务
-        if _defaults.get("ai_code_review", 0) > 0:
+        # 1. 无条件任务（数据驱动注册）
+        for _name, _meth, _key, _run_now, _first_delay in self._TASKS_ALWAYS:
             self.register(
-                name="ai_code_review",
-                func=self._task_ai_code_review,
-                interval_minutes=_defaults["ai_code_review"],
+                name=_name,
+                func=getattr(self, _meth),
+                interval_minutes=_defaults[_key],
                 enabled=True,
+                run_now=_run_now,
+                first_delay=_first_delay,
             )
 
-        # 13. 免费模型自动同步 - 每日自动拉取硅基流动模型清单→探活→质量排序→写回配置
-        #     免费额度/模型随时可能下线或新增（如 GLM-4-9B 官方免费下线），
-        #     手动 sync 容易忘 → 配置僵化 → 免费池失效。此任务让配置永远新鲜。
-        #     若运行环境无硅基流动密钥则跳过，不影响其他任务。
-        if _defaults.get("free_model_sync", 0) > 0:
-            self.register(
-                name="free_model_sync",
-                func=self._task_free_model_sync,
-                interval_minutes=_defaults["free_model_sync"],
-                enabled=True,
-            )
+        # 2. 条件任务（对应配置 key >0 才注册，0=禁用）
+        for _name in self._TASKS_CONDITIONAL:
+            if _defaults.get(_name, 0) > 0:
+                self.register(
+                    name=_name,
+                    func=getattr(self, "_task_" + _name),
+                    interval_minutes=_defaults[_name],
+                    enabled=True,
+                )
 
-        # 14. 免费模型健康探活 - 每2小时对池内模型发探活请求更新健康状态
-        #     与 scripts/free_model_health_check.py（WorkBuddy 外部）互补，
-        #     本任务内置于调度器，无需外部平台也能自动发现免费模型宕机并告警。
-        if _defaults.get("free_model_health", 0) > 0:
-            self.register(
-                name="free_model_health",
-                func=self._task_free_model_health,
-                interval_minutes=_defaults["free_model_health"],
-                enabled=True,
-                run_now=True,
-            )
-
-        # 12+. 自动化镜像：把原 WorkBuddy 平台自动化（仅计时触发器）平移进金水谣调度器，
-        #     用 sys.executable 调同一批本地 scripts/*.py → 免 WorkBuddy 积分（详见 core/automation_mirror.py）。
-        #     任何失败仅告警，不影响上述 16 项原生任务（地：隔离）。
+        # 3. 自动化镜像：把原 WorkBuddy 平台自动化（仅计时触发器）平移进金水谣调度器，
+        #    用 sys.executable 调同一批本地 scripts/*.py → 免 WorkBuddy 积分（详见 core/automation_mirror.py）。
+        #    任何失败仅告警，不影响上述原生任务（地：隔离）。
         try:
             from core.automation_mirror import register_mirrors
             register_mirrors(self)
         except Exception as e:
             logger.warning("[自动化镜像] 注册失败（不影响其余定时任务）: %s", e)
 
-        # 13. 主动提醒引擎：每30分钟扫描到期提醒写入待提醒队列（进化·进阶1）
-        try:
-            self.register(
-                name="proactive_reminder",
-                func=self._task_proactive_reminder,
-                interval_minutes=30,
-                enabled=True,
-            )
-        except Exception as e:
-            logger.warning("[主动提醒] 注册失败（不影响其余定时任务）: %s", e)
+        # 4. 兜底任务（间隔固定，注册失败静默跳过，不影响其余任务）
+        for _name, _meth, _interval in self._TASKS_SAFE:
+            try:
+                self.register(
+                    name=_name,
+                    func=getattr(self, _meth),
+                    interval_minutes=_interval,
+                    enabled=True,
+                )
+            except Exception as e:
+                logger.warning("[%s] 注册失败（不影响其余定时任务）: %s", _name, e)
 
-        # 14. 大脑日报：每天1次AI复盘总结+生成《大脑日报》（第2步·长脑子，免费模型，失败静默）
-        try:
-            self.register(
-                name="brain_daily",
-                func=self._task_brain_daily,
-                interval_minutes=1440,
-                enabled=True,
-            )
-        except Exception as e:
-            logger.warning("[大脑日报] 注册失败（不影响其余定时任务）: %s", e)
-
-    # ------------------------------------------------------------------
-    # 任务实现
-    # ------------------------------------------------------------------
-
-    @staticmethod
     def _task_data_refresh():
         """数据刷新任务 - 抓取最新彩票/股票/足彩数据
 
