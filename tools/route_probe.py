@@ -367,11 +367,18 @@ def _build_e():
 
 
 def football_at():
-    import glob
-    if not os.path.isdir(_data("football")):
-        return False, "足彩数据未接入(目录不存在)"
-    fs = glob.glob(os.path.join(_data("football"), "**", "*.json"), recursive=True)
-    return len(fs) > 0, f"足彩赛事 {len(fs)} 份" if fs else "足彩数据(空)"
+    """足彩数据探测（探路口径对齐 domain 实际数据路径，勿用 金水谣数据/football/）"""
+    try:
+        from domains.football.domain import MATCHES_CSV, MATCHES_FALLBACK_CSV, REAL_CSV
+        for p in (MATCHES_CSV, MATCHES_FALLBACK_CSV, REAL_CSV):
+            if os.path.isfile(p):
+                import csv as _csv
+                with open(p, "r", encoding="utf-8") as f:
+                    n = sum(1 for _ in _csv.DictReader(f))
+                return n > 0, f"足彩赛事 {p} 共 {n} 场"
+        return False, "足彩数据文件缺失(domain 三 csv 均不存在)"
+    except Exception as e:
+        return False, f"足彩数据探测异常: {e}"
 
 
 # ===========================================================================

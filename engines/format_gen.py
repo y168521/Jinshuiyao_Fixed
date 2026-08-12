@@ -79,8 +79,8 @@ class FormatGen:
         self.consensus_order = consensus_order or []
         self.lot = lot
         self.rule = LOTTERY_RULES[lot]
-        self.kill = kill
-        self.hot = hot
+        self.kill = list(kill) if kill else []
+        self.hot = hot or {}
         self.play = play
         self.stats = recent_stats
         self.morph = morph_data
