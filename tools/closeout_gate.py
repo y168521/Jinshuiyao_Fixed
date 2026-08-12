@@ -19,6 +19,10 @@ from datetime import date
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_DIR = os.path.dirname(BASE_DIR)
 
+# 防御性：确保 tools 包可被导入（from tools.xxx）
+if MODEL_DIR not in sys.path:
+    sys.path.insert(0, MODEL_DIR)
+
 FILES = {
     "交接中心": os.path.join(MODEL_DIR, "AI协作交接中心.md"),
     "经验收集箱": os.path.join(BASE_DIR, "金水谣数据", "log", "经验收集箱.md"),
@@ -43,7 +47,7 @@ def check_file_updated(path, name):
         # 兼容两种登记写法：详细式 `### JS-编号 | 日期 |` 与紧凑表格式 `| JS-编号 | 日期 |`
         # 日期支持短日期(08-06)或全日期(2026-08-06)，避免格式漂移导致门禁误判"未登记"
         pattern = re.compile(
-            rf"^(?:###\s*)?\|?\s*JS-\d{{8}}-\d{{2}}\s*\|\s*(?:\d{{4}}-)?{re.escape(short_date)}\s*\|",
+            rf"^(?:###\s*)?\|?\s*JS-\d{{8}}-\d{{2}}\s*\|\s*(?:\d{{4}}-)?{re.escape(short_date)}(?:\s+\d{{1,2}}:\d{{2}}(?::\d{{2}})?)?\s*\|",
             re.MULTILINE)
     else:
         pattern = re.compile(re.escape(today))
@@ -184,7 +188,28 @@ def main():
     if not ok:
         all_ok = False
 
-    # 6: 金水谣数据完整性（盲区告警 · JS-20260810-13 还原 T04 集成断言）
+    # 6: 代码体检门禁（JS-20260812-01 · 四 Agent 重构管线方法论落地）
+    # 默认 WARN-ONLY（BLOCKING=False）：现有代码库体量未清，直接硬拦会阻断收工。
+    # 待基线清理干净后，把 code_health_gate.BLOCKING 改为 True 即变硬拦截。
+    try:
+        import importlib.util as _ilu
+        _spec = _ilu.spec_from_file_location(
+            "code_health_gate",
+            os.path.join(BASE_DIR, "tools", "code_health_gate.py"),
+        )
+        _chg = _ilu.module_from_spec(_spec)
+        _spec.loader.exec_module(_chg)
+        ok_ch, msg_ch, violated_ch = _chg.check_code_health()
+        status_ch = "OK" if ok_ch else "FAIL"
+        if violated_ch and ok_ch:
+            status_ch = "WARN"
+        print(f"  [{status_ch}] 代码体检门禁: {msg_ch}")
+        if not ok_ch:
+            all_ok = False
+    except Exception as e:
+        print(f"  [WARN] 代码体检门禁: 检查不可用 ({e})")
+
+    # 7: 金水谣数据完整性（盲区告警 · JS-20260810-13 还原 T04 集成断言）
     # 仅告警(WARN)不阻断：数据缺失可能只是未开奖/未生成，不应拦收工
     try:
         sys.path.insert(0, os.path.join(BASE_DIR, "scripts"))
