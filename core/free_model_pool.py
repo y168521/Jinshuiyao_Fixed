@@ -84,8 +84,10 @@ def _load_health_exclusions(status_path=_STATUS_PATH, max_age_sec=3 * 3600):
             st = json.load(f)
         down = set(st.get("down", []) or [])
         degraded = set(st.get("degraded", []) or [])
-    except Exception:
-        pass
+    except Exception as e:
+        # 状态文件缺失/损坏 → 按无故障处理（降级说明，C-013）
+        import logging
+        logging.getLogger(__name__).debug("[free_model_pool] 状态文件读取失败: %s", e)
     return down, degraded
 
 

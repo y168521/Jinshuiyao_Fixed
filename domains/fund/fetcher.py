@@ -364,7 +364,7 @@ class FundFetcher:
                     "成立日期": str(row.get("成立日期", "")),
                     "基金经理": "",
                     "基金规模": "",
-                    "基金公司": row.get("发行日期", ""),
+                    "基金公司": str(row.get("基金公司", "")),
                 }
                 return info
         except Exception as e:

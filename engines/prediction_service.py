@@ -20,6 +20,25 @@ from utils.ticket_validator import is_valid_period
 
 logger = logging.getLogger(__name__)
 
+# 各玩法随机期望命中（hits=命中号码/位置数）——单一真源（债务-203，brain_daily.py 复用本常量）
+_PLAY_EXPECTED = {
+    ("福彩3D", "单注"): 0.9, ("排列三", "单注"): 0.9,
+    ("福彩3D", "直选"): 0.3, ("排列三", "直选"): 0.3,
+    ("福彩3D", "直选推荐"): 0.3, ("排列三", "直选推荐"): 0.3,
+    ("福彩3D", "组三"): 0.9, ("排列三", "组三"): 0.9,
+    ("福彩3D", "组六"): 0.9, ("排列三", "组六"): 0.9,
+    ("福彩3D", "组六复式(5码)"): 1.5, ("排列三", "组六复式(5码)"): 1.5,
+    ("福彩3D", "组六复式(6码)"): 1.8, ("排列三", "组六复式(6码)"): 1.8,
+    ("福彩3D", "复式"): 1.4, ("排列三", "复式"): 1.4,
+    ("双色球", "单注"): 1.15, ("双色球", "复式"): 1.40,
+    ("双色球", "预测"): 1.15, ("双色球", "胆拖"): 1.17,
+    ("大乐透", "单注"): 1.05, ("大乐透", "复式"): 1.36,
+    ("大乐透", "预测"): 1.05, ("大乐透", "胆拖"): 1.17,
+    ("七乐彩", "单注"): 1.63, ("七乐彩", "复式"): 2.10, ("七乐彩", "胆拖"): 1.90,
+    ("快乐8", "单注"): 2.13, ("快乐8", "复式"): 2.25, ("快乐8", "胆拖"): 2.00,
+    ("七星彩", "单注"): 2.97, ("七星彩", "复式"): 3.08, ("七星彩", "胆拖"): 3.00,
+}
+
 
 class PredictionService:
     """彩票预测服务
@@ -29,8 +48,7 @@ class PredictionService:
     """
 
     def __init__(self, killer=None, evolve=None, brain=None, corr_matrix=None,
-                 engine_states=None, hot_window=50, schemes=None,
-                 on_log=None):
+                 engine_states=None, hot_window=50, on_log=None):
         """
         Args:
             killer: Killer 引擎实例
@@ -39,7 +57,6 @@ class PredictionService:
             corr_matrix: CorrelationMatrix 实例（可选，懒初始化）
             engine_states: dict 引擎开关 {"hurst": True, "morph": True, ...}
             hot_window: 热号计算窗口
-            schemes: SchemeAuditor 实例（可选）
             on_log: 日志回调 func(message, level="INFO")
         """
         self.killer = killer
@@ -48,7 +65,6 @@ class PredictionService:
         self.corr_matrix = corr_matrix
         self.engine_states = engine_states or {}
         self.hot_window = hot_window
-        self.schemes = schemes
         self._on_log = on_log
 
         # 延迟导入的引擎引用
@@ -59,25 +75,6 @@ class PredictionService:
         logger.log(getattr(logging, level.upper(), logging.INFO), msg)
         if self._on_log:
             self._on_log(msg, level)
-
-    # ===== 大脑玩法健康度基准：各玩法纯随机期望命中（hits=命中号码/位置数） =====
-    _PLAY_EXPECTED = {
-        ("福彩3D", "单注"): 0.9, ("排列三", "单注"): 0.9,
-        ("福彩3D", "直选"): 0.3, ("排列三", "直选"): 0.3,
-        ("福彩3D", "直选推荐"): 0.3, ("排列三", "直选推荐"): 0.3,
-        ("福彩3D", "组三"): 0.9, ("排列三", "组三"): 0.9,
-        ("福彩3D", "组六"): 0.9, ("排列三", "组六"): 0.9,
-        ("福彩3D", "组六复式(5码)"): 1.5, ("排列三", "组六复式(5码)"): 1.5,
-        ("福彩3D", "组六复式(6码)"): 1.8, ("排列三", "组六复式(6码)"): 1.8,
-        ("福彩3D", "复式"): 1.4, ("排列三", "复式"): 1.4,
-        ("双色球", "单注"): 1.15, ("双色球", "复式"): 1.40,
-        ("双色球", "预测"): 1.15, ("双色球", "胆拖"): 1.17,
-        ("大乐透", "单注"): 1.05, ("大乐透", "复式"): 1.36,
-        ("大乐透", "预测"): 1.05, ("大乐透", "胆拖"): 1.17,
-        ("七乐彩", "单注"): 1.63, ("七乐彩", "复式"): 2.10, ("七乐彩", "胆拖"): 1.90,
-        ("快乐8", "单注"): 2.13, ("快乐8", "复式"): 2.25, ("快乐8", "胆拖"): 2.00,
-        ("七星彩", "单注"): 2.97, ("七星彩", "复式"): 3.08, ("七星彩", "胆拖"): 3.00,
-    }
 
     def _play_recent_health(self, lot, play_type, window=30):
         """读取复盘数据，统计该彩种+玩法近 N 期平均命中"""
@@ -104,7 +101,7 @@ class PredictionService:
             if t == "胆拖":
                 changes.append("胆拖已自动停用(7彩种实测命中率均低于随机基准)")
                 continue
-            exp = self._PLAY_EXPECTED.get((lot, t))
+            exp = _PLAY_EXPECTED.get((lot, t))
             if exp:
                 st = self._play_recent_health(lot, t, 30)
                 if st:

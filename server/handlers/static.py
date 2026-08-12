@@ -110,24 +110,6 @@ _SUBSYSTEM_ROUTES = {
     '/football/predict':   os.path.join(BASE_DIR, 'frontend', 'football', 'predict.html'),
 }
 
-_PAGE_ERROR_MESSAGES = {
-    '/docs':             '接口文档页面不存在',
-    '/test-report':      '测试报告页面不存在',
-    '/health-check':     '体检中心页面不存在',
-    '/ai-test':          'AI用例页面不存在',
-    '/ai-agent':         'AI助手页面不存在',
-    '/workbench':        '工作台页面不存在',
-    '/jinshuiyao-guide': '金水谣导航页面不存在',
-    '/route':            '调度中枢页面不存在',
-    '/smart-coder':      '智能代码助手页面不存在',
-    '/control-center':   '总控台页面不存在',
-    '/architecture':     '架构图页面不存在',
-    '/global-plan':      '全局规划页面不存在',
-    '/scheduler':        '定时任务监控页面不存在',
-    '/engine-dashboard': '引擎效果看板页面不存在',
-}
-
-
 # ---------------------------------------------------------------------------
 # GET 路由处理函数
 # ---------------------------------------------------------------------------
@@ -144,7 +126,7 @@ def handle_page(handler, path):
             with open(page_file, 'rb') as f:
                 handler.wfile.write(f.read())
         else:
-            handler._send_json({"error": _PAGE_ERROR_MESSAGES.get(path, "页面不存在")}, 404)
+            handler._send_json({"error": "页面不存在"}, 404)
         return True
 
     # 再查外部路由（独立仪表板等）

@@ -45,7 +45,7 @@ def handle_trend_data(handler, parsed):
             return
         handler._send_json(result, 200)
     except Exception as e:
-        log("error", f"走势数据生成异常 [lot={lot_name}]: {e}")
+        log(f"[trend] 走势数据生成异常 [lot={lot_name}]: {e}")
         handler._send_json({"error": f"走势数据生成失败: {str(e)}"}, 500)
 
 
@@ -84,7 +84,7 @@ def handle_trend_freshness(handler):
                 else:
                     lots[name] = {"error": "数据加载失败"}
             except Exception as e:
-                log("error", f"新鲜度检查异常 [{name}]: {e}")
+                log(f"[trend] 新鲜度检查异常 [{name}]: {e}")
                 lots[name] = {"error": str(e)}
 
         handler._send_json({
@@ -92,5 +92,5 @@ def handle_trend_freshness(handler):
             "server_time": time.time(),
         }, 200)
     except Exception as e:
-        log("error", f"新鲜度概览异常: {e}")
+        log(f"[trend] 新鲜度概览异常: {e}")
         handler._send_json({"error": f"新鲜度查询失败: {str(e)}"}, 500)

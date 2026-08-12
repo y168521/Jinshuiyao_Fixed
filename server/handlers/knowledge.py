@@ -53,8 +53,10 @@ def _parse_memory_file(path):
                     continue
                 mid = hashlib.md5((section + '|' + st).encode('utf-8')).hexdigest()[:12]
                 items.append({'id': mid, 'section': section, 'text': st})
-    except Exception:
-        pass
+    except Exception as e:
+        # 记忆文件损坏时降级为空列表（债务-202：加日志便于排查）
+        from ..utils import log as _log
+        _log(f"[knowledge] 记忆文件解析失败 {path}: {e}")
     return items
 
 

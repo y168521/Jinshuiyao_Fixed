@@ -9,30 +9,16 @@
   GET  /api/fund-compare    — 基金横向对比视图（多基金同屏对比）
   POST /api/fund-compare    — 同上
 
+债务-201（W63补72）：参数工具/基金域单例已合一至 fund.py，本模块 import 复用。
+
 均为只读分析端点（纯计算，不执行文件/不越权），对局域网开放。
 """
-import json
-import urllib.parse
-
 from ..utils import log
+from .fund import _parse_codes, _parse_params, _to_float, _to_int, get_fund_domain
 
 # ─── 域实例单例（惰性初始化，跨请求复用 _data_cache）───
-_fund_domain = None
+# 基金域单例统一由 fund.py 持有（债务-201 合一）；股票域本模块持有。
 _stock_domain = None
-
-
-def get_fund_domain():
-    """获取（惰性初始化并 setup 的）FundDomain 单例。"""
-    global _fund_domain
-    if _fund_domain is None:
-        try:
-            from domains.fund.domain import FundDomain
-            d = FundDomain()
-            d.setup()
-            _fund_domain = d
-        except Exception as e:
-            log(f"[fund-backtest] FundDomain 初始化失败: {e}")
-    return _fund_domain
 
 
 def get_stock_domain():
@@ -49,54 +35,7 @@ def get_stock_domain():
     return _stock_domain
 
 
-# ─── 参数解析工具 ───
-
-def _parse_params(handler, parsed):
-    """从 query string 与（可选）POST JSON body 合并参数，body 优先。"""
-    params = {}
-    try:
-        qs = urllib.parse.parse_qs(parsed.query)
-        for k, v in qs.items():
-            params[k] = v[0] if len(v) == 1 else v
-    except Exception as e:
-        log(f"[backtest] 解析 query 失败: {e}")
-    cl = int(handler.headers.get("Content-Length", 0) or 0)
-    if cl > 0:
-        try:
-            raw = handler.rfile.read(cl).decode("utf-8", errors="replace")
-            if raw:
-                body = json.loads(raw)
-                if isinstance(body, dict):
-                    params.update(body)
-        except Exception as e:
-            log(f"[backtest] 解析 POST body 失败: {e}")
-    return params
-
-
-def _to_float(val, default):
-    try:
-        return float(val)
-    except (TypeError, ValueError):
-        return default
-
-
-def _to_int(val, default):
-    try:
-        return int(val)
-    except (TypeError, ValueError):
-        return default
-
-
-def _parse_codes(val):
-    """把 'a,b,c' 或 ['a','b'] 规整为代码列表（去空格）。"""
-    if val is None:
-        return None
-    if isinstance(val, (list, tuple)):
-        return [str(x).strip() for x in val if str(x).strip()]
-    if isinstance(val, str):
-        return [c.strip() for c in val.split(",") if c.strip()]
-    return [str(val).strip()] if val else None
-
+# ─── 参数解析工具（债务-201 已合一至 fund.py，本模块 import 复用）───
 
 def _ensure_fund_data(domain, codes, force_refresh):
     """确保基金缓存有数据：空缓存或强制刷新时先抓取（避免每次请求重抓）。"""

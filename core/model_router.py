@@ -31,14 +31,20 @@ def _load_cfg():
     global _cfg_cache, _cfg_mtime
     try:
         mtime = os.path.getmtime(_CONFIG_PATH)
-    except Exception:
+    except Exception as e:
+        # 配置缺失 → 按默认策略（降级说明，C-013）
+        import logging
+        logging.getLogger(__name__).debug("[model_router] 配置 mtime 读取失败: %s", e)
         mtime = 0
     if _cfg_cache is not None and mtime == _cfg_mtime:
         return _cfg_cache
     try:
         with open(_CONFIG_PATH, "r", encoding="utf-8") as f:
             c = json.load(f)
-    except Exception:
+    except Exception as e:
+        # 配置损坏 → 用默认策略（降级说明，C-013）
+        import logging
+        logging.getLogger(__name__).debug("[model_router] 配置加载失败，用默认: %s", e)
         c = {"policy": "auto", "thresholds": {}, "deep_keywords": [], "log_calls": True}
     _cfg_cache = c
     _cfg_mtime = mtime

@@ -200,7 +200,8 @@ def _check_network(timeout: int = 5) -> bool:
             except Exception:
                 continue
         return False
-    except Exception:
+    except Exception as e:
+        logger.debug("[ai_service] 网络探测异常: %s", e)
         return False
 
 

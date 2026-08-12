@@ -205,19 +205,20 @@ class StockFetcher:
         return os.path.join(self.cache_dir, f"{symbol}_{period}.json")
 
     def _read_cache(self, symbol, period):
-        """从本地缓存读取"""
+        """从本地缓存读取（超过 1 天视为过期，强制重新抓取，债务-205）"""
         path = self._cache_path(symbol, period)
         if not os.path.exists(path):
             return None
         try:
-            records = safe_load_json(path, default=None)
-            import pandas as pd
-            df = pd.DataFrame(records)
-            # 检查缓存是否过期（超过1天）
             mtime = os.path.getmtime(path)
             if datetime.now().timestamp() - mtime > 86400:
-                logger.debug("缓存过期: %s", symbol)
-            return df
+                logger.info("缓存过期（>1天），重新抓取: %s", symbol)
+                return None
+            records = safe_load_json(path, default=None)
+            if not records:
+                return None
+            import pandas as pd
+            return pd.DataFrame(records)
         except Exception as e:
             logger.warning("缓存读取失败 %s: %s", symbol, e)
             return None

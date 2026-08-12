@@ -99,4 +99,4 @@ def handle_error_report(handler):
             log(f'[error-report] 处理异常: {e}')
             handler._send_json({"ok": True})
         except Exception:
-            pass
+            pass  # 最外层兜底：日志/响应自身也失败时静默（降级说明，债务-202）
