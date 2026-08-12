@@ -60,7 +60,6 @@ _EXTERNAL_PAGE_ROUTES = {
     '/deepseek-manual': os.path.join(BASE_DIR, 'AI代码助手(DeepSeek备用)', '使用说明.html'),
     '/fund-dashboard':  os.path.join(BASE_DIR, 'frontend', 'fund', 'dashboard.html'),
     '/lottery-dashboard': os.path.join(HTML_DIR, 'lottery-dashboard.html'),
-    '/omission-heatmap': os.path.join(BASE_DIR, 'frontend/trend', 'omission-heatmap.html'),
     '/rotation-matrix': os.path.join(BASE_DIR, 'frontend', 'lottery', 'rotation-matrix.html'),
     '/filter-panel':    os.path.join(BASE_DIR, 'frontend', 'lottery', 'filter-panel.html'),
     '/prize-calculator': os.path.join(BASE_DIR, 'frontend', 'lottery', 'prize-calculator.html'),

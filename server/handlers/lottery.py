@@ -16,23 +16,6 @@ from ..config import HTML_DIR
 from ..utils import log
 
 
-def handle_sources_health_page(handler):
-    """GET /lottery-sources-health — 返回数据源健康仪表盘 HTML 页面。"""
-    page = os.path.join(HTML_DIR, 'lottery-sources-health.html')
-    if os.path.isfile(page):
-        try:
-            with open(page, 'r', encoding='utf-8') as f:
-                content = f.read()
-            handler.send_response(200)
-            handler.send_header('Content-Type', 'text/html; charset=utf-8')
-            handler.end_headers()
-            handler.wfile.write(content.encode('utf-8'))
-            return
-        except Exception as e:
-            log(f'[lottery-sources-health-page] 读取页面失败: {e}')
-    handler._send_json({"ok": False, "error": "仪表盘页面不存在"}, 404)
-
-
 def handle_sources_health(handler):
     """GET /api/lottery/sources-health — 数据源健康 + 数据新鲜度快照
 

@@ -69,12 +69,6 @@
       "desc": "门户引导页"
     },
     {
-      "path": "jinshuiyao-guide/lottery-sources-health.html",
-      "route": "/lottery-sources-health",
-      "category": "lottery",
-      "desc": "彩票源健康"
-    },
-    {
       "path": "jinshuiyao-guide/math-model.html",
       "route": "/math-model",
       "category": "engine",
@@ -157,12 +151,6 @@
       "route": "/lottery-dashboard",
       "category": "lottery",
       "desc": "彩票分析仪表盘(新版)"
-    },
-    {
-      "path": "frontend/trend/omission-heatmap.html",
-      "route": "/omission-heatmap",
-      "category": "lottery",
-      "desc": "遗漏热力图(遗漏分层+交互热图)"
     },
     {
       "path": "frontend/lottery/rotation-matrix.html",

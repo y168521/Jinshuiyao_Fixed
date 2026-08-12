@@ -285,10 +285,6 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
             h_lottery.handle_sources_health(self)
             return
 
-        # /lottery-sources-health — 数据源健康仪表盘页面（S6 可观测）
-        if parsed.path == '/lottery-sources-health':
-            h_lottery.handle_sources_health_page(self)
-            return
 
         # /api/lottery/reference — 福彩3D/排列三 多维参考特征 + SQI（不生成号码）
         if parsed.path.startswith('/api/lottery/reference'):
