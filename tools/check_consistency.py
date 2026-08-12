@@ -104,7 +104,6 @@ KNOWN_EXTERNAL_PAGES = {
     '/trend':          os.path.join(BASE_DIR, 'frontend/trend/jinshuiyao-trend.html'),
     '/quant':          os.path.join(BASE_DIR, 'frontend/quant-dashboard/index.html'),
     '/gap-analysis':   os.path.join(BASE_DIR, 'frontend/gap-analysis/jinshuiyao-gap-analysis.html'),
-    '/omission-heatmap': os.path.join(BASE_DIR, 'frontend/trend/omission-heatmap.html'),
     '/audit-dashboard':  os.path.join(BASE_DIR, 'frontend/lottery/audit-dashboard.html'),
     '/head-tail-analysis': os.path.join(BASE_DIR, 'frontend/lottery/head-tail-analysis.html'),
     # A股情绪日报（与 static.py 路由一致：独立脚本每日生成，覆盖 deliverables 下的固定文件 · JS-20260811-03）
