@@ -145,3 +145,126 @@ def handle_math_model(handler):
         handler._send_json(data, 200 if data.get("ok") else 500)
     except Exception as e:
         handler._send_json({"ok": False, "error": str(e)}, 500)
+
+
+def _load_lottery_body(handler, required=()):
+    """POST body 解析 + 彩种校验（统一入口，W63补71 新增）。
+
+    读取方式与 server/handlers/backtest.py 一致（headers + rfile.read），
+    便于 FakeHandler 契约测试 mock。
+    """
+    import json
+    from config import LOT_ALL
+
+    cl = int(handler.headers.get('Content-Length', 0) or 0)
+    raw = handler.rfile.read(cl).decode('utf-8', errors='replace') if cl else ''
+    data = json.loads(raw) if raw else {}
+    lot = str(data.get("lottery", "")).strip()
+    if not lot:
+        handler._send_json({"ok": False, "error": "缺少 lottery 参数"}, 400)
+        return None
+    if lot not in LOT_ALL:
+        handler._send_json({"ok": False, "error": f"暂不支持彩种: {lot}", "supported": LOT_ALL}, 400)
+        return None
+    return data
+
+
+def handle_omission_table(handler):
+    """POST /api/lottery/omission-table — 交互式遗漏表格（真实数据，W63补71 接通）
+
+    请求: {"lottery": "双色球"}（可选 count 限定分析期数）
+    响应: {"ok": true, "data": [{number, current, max, avg, frequency, lastAppear, hotLevel}]}
+    """
+    try:
+        from models.lottery_data import Data
+        from engines.lottery_stats import omission_table
+
+        data = _load_lottery_body(handler)
+        if data is None:
+            return
+        history = Data.load(data["lottery"])
+        handler._send_json({"ok": True, "lottery": data["lottery"], "data": omission_table(history, data["lottery"])})
+    except Exception as e:
+        log(f'[lottery-omission-table] 计算失败: {e}')
+        handler._send_json({"ok": False, "error": f"遗漏表格计算失败: {e}"}, 500)
+
+
+def handle_historical_same_period(handler):
+    """POST /api/lottery/historical-same-period — 历史同期查询（真实数据，W63补71 接通）
+
+    请求: {"lottery": "双色球", "date": "2026-08-11", "mode": "date"|"month"}
+    响应: {"ok": true, "data": [{date, drawNum, reds, blues}]}
+    """
+    try:
+        from models.lottery_data import Data
+        from engines.lottery_stats import historical_same_period
+
+        data = _load_lottery_body(handler)
+        if data is None:
+            return
+        date_str = str(data.get("date", "")).strip()
+        mode = str(data.get("mode", "date")).strip() or "date"
+        if not date_str:
+            handler._send_json({"ok": False, "error": "缺少 date 参数（格式 YYYY-MM-DD）"}, 400)
+            return
+        history = Data.load(data["lottery"])
+        rows = historical_same_period(history, date_str, mode)
+        handler._send_json({"ok": True, "lottery": data["lottery"], "mode": mode, "data": rows})
+    except Exception as e:
+        log(f'[lottery-historical-same-period] 计算失败: {e}')
+        handler._send_json({"ok": False, "error": f"历史同期查询失败: {e}"}, 500)
+
+
+def handle_number_follow_up(handler):
+    """POST /api/lottery/number-follow-up — 号码跟随分析（真实数据，W63补71 接通）
+
+    请求: {"lottery": "双色球", "gap": 1}
+    响应: {"ok": true, "data": {前号i: {后号j: 概率}}}
+    诚实：仅历史转移统计，非中奖预测。
+    """
+    try:
+        from models.lottery_data import Data
+        from engines.lottery_stats import number_follow_up
+
+        data = _load_lottery_body(handler)
+        if data is None:
+            return
+        gap = data.get("gap", 1)
+        try:
+            gap = int(gap)
+        except Exception:
+            gap = 1
+        history = Data.load(data["lottery"])
+        handler._send_json({
+            "ok": True, "lottery": data["lottery"], "gap": gap,
+            "data": number_follow_up(history, gap, data["lottery"]),
+            "honest_note": "仅历史号码转移统计，非中奖概率",
+        })
+    except Exception as e:
+        log(f'[lottery-number-follow-up] 计算失败: {e}')
+        handler._send_json({"ok": False, "error": f"号码跟随计算失败: {e}"}, 500)
+
+
+def handle_trend_classification(handler):
+    """POST /api/lottery/trend-classification — 近期开奖序列（012路/质合/五行在前端本地分类）
+
+    请求: {"lottery": "福彩3D", "count": 30}
+    响应: {"ok": true, "data": [{drawNum, numbers}]}
+    """
+    try:
+        from models.lottery_data import Data
+        from engines.lottery_stats import trend_classification
+
+        data = _load_lottery_body(handler)
+        if data is None:
+            return
+        count = data.get("count", 30)
+        try:
+            count = int(count)
+        except Exception:
+            count = 30
+        history = Data.load(data["lottery"])
+        handler._send_json({"ok": True, "lottery": data["lottery"], "data": trend_classification(history, count)})
+    except Exception as e:
+        log(f'[lottery-trend-classification] 计算失败: {e}')
+        handler._send_json({"ok": False, "error": f"走势分类计算失败: {e}"}, 500)

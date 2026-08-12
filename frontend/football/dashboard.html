@@ -151,6 +151,30 @@ body::before {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   数据源诚实横幅（W63补71 / 债务-108）：模拟/真实 状态提示
+   ═══════════════════════════════════════════════════════════ */
+.data-notice {
+  margin: 14px auto 0;
+  max-width: 960px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.7;
+  border: 1px solid;
+}
+.data-notice.mock {
+  background: rgba(245, 158, 11, 0.10);
+  border-color: rgba(245, 158, 11, 0.45);
+  color: #fcd34d;
+}
+.data-notice.real {
+  background: rgba(45, 139, 126, 0.10);
+  border-color: rgba(45, 139, 126, 0.45);
+  color: #7fd1c4;
+}
+.data-notice a { color: var(--accent-bright); text-decoration: underline; }
+
+/* ═══════════════════════════════════════════════════════════
    三栏切换标签 (Pill形)
    ═══════════════════════════════════════════════════════════ */
 .tab-nav {
@@ -1673,11 +1697,14 @@ body::before {
     <span class="logo-text">金水谣 AI 足彩预测</span>
   </div>
   <div class="top-actions">
-    <div class="status-dot"></div>
-    <span class="sys-status">系统就绪</span>
+    <div class="status-dot" id="sysDot"></div>
+    <span class="sys-status" id="sysStatus">数据源检测中...</span>
     <button class="btn-secondary" onclick="fetchMatches()" style="margin-left:12px">刷新数据</button>
   </div>
 </div>
+
+<!-- 数据源诚实横幅（W63补71 / 债务-108） -->
+<div class="data-notice" id="dataNotice"></div>
 
 <!-- 三栏切换标签 (Pill形) -->
 <div class="tab-nav">

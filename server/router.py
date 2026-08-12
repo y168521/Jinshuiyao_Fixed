@@ -568,6 +568,20 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
             h_health.handle_ai_mode_set_post(self)
             return
 
+        # /api/lottery/* 统计引擎（W63补71 接通：遗漏表格/历史同期/号码跟随/走势分类）
+        if parsed.path == '/api/lottery/omission-table':
+            h_lottery.handle_omission_table(self)
+            return
+        if parsed.path == '/api/lottery/historical-same-period':
+            h_lottery.handle_historical_same_period(self)
+            return
+        if parsed.path == '/api/lottery/number-follow-up':
+            h_lottery.handle_number_follow_up(self)
+            return
+        if parsed.path == '/api/lottery/trend-classification':
+            h_lottery.handle_trend_classification(self)
+            return
+
         # /api/review/trigger — 触发代码审查
         if parsed.path == '/api/review/trigger':
             h_review.handle_review_trigger(self, parsed)

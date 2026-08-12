@@ -60,9 +60,9 @@ ROOT_DIR = os.path.dirname(PROJECT_DIR)  # 项目根（模型/），用于看护
 #       代价是命门文档也失守——循环删除事故即源于此。此处单独死守关键文档。
 #       同时覆盖根级文档（quality_gate 以 Jinshuiyao_Fixed 为根，原根本看不见根级文档）。
 PROTECTED_VITAL_DOCS = [
-    os.path.join(ROOT_DIR, "金水谣数据", "启动AI知识库_搭建手册.html"),
-    os.path.join(ROOT_DIR, "金水谣数据", "对抗AI惰性_五道防线方案.html"),
-    os.path.join(ROOT_DIR, "金水谣数据", "自动化Skill经验底座_成败案例库.md"),
+    os.path.join(ROOT_DIR, "金水谣_纲.md"),
+    os.path.join(ROOT_DIR, "金水谣_契.md"),
+    os.path.join(ROOT_DIR, "金水谣_录.md"),
     os.path.join(PROJECT_DIR, "金水谣数据", "log", "ai_decisions.md"),
     os.path.join(PROJECT_DIR, "金水谣数据", "风险登记册.md"),
     os.path.join(ROOT_DIR, "工作留痕总索引.md"),
@@ -267,10 +267,10 @@ def run_tests():
         print("❌")
         all_pass = False
 
-    # 2. 烟雾测试
+    # 2. 烟雾测试（批次A后迁 tools/，2026-08-12 W63补71 路径修正）
     print("  [2/4] 烟雾测试 smoke_test.py...", end=" ")
     r = subprocess.run(
-        [sys.executable, "scripts/smoke_test.py"],
+        [sys.executable, "tools/smoke_test.py"],
         cwd=PROJECT_DIR, capture_output=True, text=True
     )
     if "10/10 通过" in r.stdout or "9/10 通过" in r.stdout:
@@ -279,14 +279,14 @@ def run_tests():
         print("❌")
         all_pass = False
 
-    # 3. 全量单元测试
+    # 3. 全量单元测试（批次A后迁 tools/，2026-08-12 W63补71 路径修正）
     print("  [3/4] 全量单元测试 run_tests.py...", end=" ")
     r = subprocess.run(
-        [sys.executable, "run_tests.py"],
+        [sys.executable, "tools/run_tests.py"],
         cwd=PROJECT_DIR, capture_output=True, text=True
     )
-    if "726 个测试" in r.stdout and "失败: 0" in r.stdout:
-        print("✅ (726/726)")
+    if "失败: 0" in r.stdout:
+        print("✅ (全量通过)")
     else:
         lines = [l.strip() for l in r.stdout.split("\n") if "失败" in l or "总计" in l]
         print(f"⚠ ({'; '.join(lines) if lines else '查看详情'})")

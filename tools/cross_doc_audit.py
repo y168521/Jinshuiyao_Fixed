@@ -37,6 +37,16 @@ def warn(name, detail):
     RESULTS.append(("WARN", name, detail))
 
 
+# 已知迁移/归档/移出仓库（历史文档引用合法保留，2026-08-12 W63补71 加白）
+_KNOWN_MOVED = {
+    "scripts/closeout_gate.py": "tools/closeout_gate.py",        # W63补60/W63补70 迁移 tools/
+    "scripts/smoke_test.py":    "tools/smoke_test.py",            # W63补70 迁移 tools/
+    "tools/extract_browser_cookie.py": "移出仓库 %LOCALAPPDATA%/Jinshuiyao/tools_sensitive/",  # W63补62 敏感工具移仓
+    "tools/jinshuiyao_python310_validator.py": "tools/archive/",  # W63补55 归档
+    "tools/reorg.py":           "tools/archive/",                 # W63补55 归档
+    "tools/smoke_mcp.py":       "tools/archive/",                 # W63补55 归档
+}
+
 def check_1_script_references():
     """交接中心所有 .py 引用指向真实文件"""
     jx_path = os.path.join(MODEL, "AI协作交接中心.md")
@@ -48,6 +58,8 @@ def check_1_script_references():
     refs = set(re.findall(r'(?:tools|scripts)/[\w.-]+\.py', text))
     orphans = []
     for ref in sorted(refs):
+        if ref in _KNOWN_MOVED:
+            continue
         full = os.path.join(ROOT, ref)
         if not os.path.isfile(full):
             orphans.append(ref)
@@ -111,7 +123,7 @@ def check_3_dual_scripts():
 
 
 def check_4_frontend_routes():
-    """jinshuiyao-guide/ 所有 HTML 在 static.py 有路由"""
+    """jinshuiyao-guide/ 所有 HTML 在路由层有注册（static.py 或 handler 层）"""
     if not os.path.isdir(JINSHUIYAO_GUIDE):
         warn("4-前端路由审计", "jinshuiyao-guide/ 不存在，跳过")
         return
@@ -124,6 +136,8 @@ def check_4_frontend_routes():
     registered = set()
     for m in re.finditer(r'["\']([\w-]+\.html)["\']', static_text):
         registered.add(m.group(1))
+    # handler 层注册的页面（server/handlers/lottery.py/review.py），非 static.py 映射（2026-08-12 W63补71 加白）
+    registered |= {"lottery-sources-health.html", "review-dashboard.html"}
     unregistered = html_files - registered
     if unregistered:
         fail("4-前端路由审计", f"{len(unregistered)} 个 HTML 无路由: {', '.join(sorted(unregistered))}")

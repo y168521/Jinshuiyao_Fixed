@@ -16,6 +16,13 @@ import shutil
 import sys
 from datetime import date
 
+# GBK 控制台打印 ✅ 等 Unicode 会崩（债务-209 同类坑，W63补71 修）
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except Exception:
+    pass
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_DIR = os.path.dirname(BASE_DIR)
 

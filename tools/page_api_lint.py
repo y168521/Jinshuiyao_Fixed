@@ -24,14 +24,9 @@ SCAN_DIRS = ["frontend", "jinshuiyao-guide"]
 SKIP_DIRS = {"node_modules", "_shared", "assets"}
 
 # 已知待修死链（WARN 不阻断提交，修完必须移除！）
-# JS-20260812-03 第二批：彩票 4 分析页后端引擎缺失，需新建引擎+handler+路由后再移除
+# W63补71 / JS-20260812-07：彩票 4 死链已接通（engines/lottery_stats.py + lottery.py handler + router 分支），本名单已清空
 # 2026-08-12 规范：PENDING 必须带 入库日期+到期日；到期后未修自动升级为 FAIL（阻断提交）
-PENDING_APIS = {
-    "/api/lottery/historical-same-period": {"added": "2026-08-12", "due": "2026-08-31"},
-    "/api/lottery/number-follow-up":      {"added": "2026-08-12", "due": "2026-08-31"},
-    "/api/lottery/omission-table":        {"added": "2026-08-12", "due": "2026-08-31"},
-    "/api/lottery/trend-classification":  {"added": "2026-08-12", "due": "2026-08-31"},
-}
+PENDING_APIS = {}
 
 
 def _pending_expired(api):

@@ -207,8 +207,47 @@
     if (el) el.classList.toggle("show", show);
   }
 
+  /* ─── 数据源诚实检测（W63补71 / 债务-108）─── */
+  window.loadStatus = function () {
+    var sysDot = document.getElementById("sysDot");
+    var sysStatus = document.getElementById("sysStatus");
+    var notice = document.getElementById("dataNotice");
+    if (!notice) return;
+    fetch(BASE + "/api/football/status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({})
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (j) {
+      var st = j.status || {};
+      var csvCount = parseInt(st.csv_count || 0, 10);
+      var linkReal = '<a href="' + BASE + '/football/matches">比赛列表</a>';
+      if (st.csv_data && csvCount > 0) {
+        sysDot.style.background = "var(--success-bright)";
+        sysStatus.textContent = "真实赛程数据 · " + csvCount + " 场";
+        notice.className = "data-notice real";
+        notice.innerHTML = "当前已接入真实赛程数据（" + csvCount + " 场），预测分析基于内置模型估算，" +
+          "仅供研究参考，不构成任何投注建议。真实数据入口：" + linkReal + " | <a href='" + BASE + "/football/predict'>赛事预测</a>";
+      } else {
+        sysDot.style.background = "var(--warning)";
+        sysStatus.textContent = "模拟演示模式（无真实赛程数据）";
+        notice.className = "data-notice mock";
+        notice.innerHTML = "⚠ 模拟演示模式：当前未检测到真实赛程数据（matches.csv 为空或缺失），" +
+          "页面图表为演示示例，<b>不可用于任何真实决策</b>。真实数据处理页：" + linkReal + " | <a href='" + BASE + "/football/predict'>赛事预测</a>";
+      }
+    })
+    .catch(function () {
+      sysDot.style.background = "var(--danger)";
+      sysStatus.textContent = "数据源检测失败";
+      notice.className = "data-notice mock";
+      notice.innerHTML = "⚠ 无法连接足彩数据服务，页面为静态演示示例，不可用于真实决策。";
+    });
+  };
+
   /* ─── 自动加载 ─── */
   document.addEventListener("DOMContentLoaded", function () {
+    loadStatus();
     fetchMatches();
     updateScene();
   });
