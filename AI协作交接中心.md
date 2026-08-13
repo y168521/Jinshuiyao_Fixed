@@ -127,7 +127,7 @@
 - [x] 足彩赔率分析页（/football/matches 内嵌赔率数据，2026-08-02 验证可达）✅
 - [x] 足彩赛事详情页（/football/predict?home=xx 单场预测详情，已验证）✅
 - [x] 足彩预测看板（/football/dashboard 仪表盘，已验证 200）✅
-- [ ] `GuideHandler._errors_recent`（server/router.py L48/L75-77/L482-484）加线程锁保护 —— pre-commit AI 审查 P0 发现（2026-08-12，并发写共享 list 的 append/pop(0) 竞态，仅错误路径触发、影响极小；本次提交未改此既有代码，待后续收口）。另注：同次审查的 `_send_json 未定义` 经核实为**误报**（定义在 GuideHandler L840，全项目 handler 统一收 GuideHandler 实例）
+- [x] `GuideHandler._errors_recent`（server/router.py L48/L75-77/L482-484）加线程锁保护 —— **已收口：W63补81 / JS-20260813-02（2026-08-13 提交 31cb439）**。另注：同次审查的 `_send_json 未定义` 经核实为**误报**（定义在 GuideHandler L840，全项目 handler 统一收 GuideHandler 实例）
 
 ### 已完成 (近期)
 - [x] **基金详情页** `/fund/detail`：单只基金全景分析（净值走势+业绩指标+策略回测），TradingView 图表
