@@ -7,6 +7,7 @@ GuideHandler 类：继承 http.server.SimpleHTTPRequestHandler，
 import http.server
 import json
 import os
+import threading
 import urllib.parse
 import time
 
@@ -46,6 +47,7 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
     _request_count = 0
     _error_count = 0
     _errors_recent = []  # 最近 20 条错误记录
+    _errors_lock = threading.Lock()  # 并发写保护（JS-20260813-02）
     _start_time = time.time()
 
     def __init__(self, *args, **kwargs):
@@ -72,9 +74,10 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
         except Exception as e:
             GuideHandler._error_count += 1
             err = f'[{__import__("datetime").datetime.now().isoformat()}] GET {self.path} → {type(e).__name__}: {e}'
-            GuideHandler._errors_recent.append(err)
-            if len(GuideHandler._errors_recent) > 20:
-                GuideHandler._errors_recent.pop(0)
+            with GuideHandler._errors_lock:
+                GuideHandler._errors_recent.append(err)
+                if len(GuideHandler._errors_recent) > 20:
+                    GuideHandler._errors_recent.pop(0)
             log(f'[ERROR-GET] {err}')
             try:
                 self.send_response(500)
@@ -471,9 +474,10 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
         except Exception as e:
             GuideHandler._error_count += 1
             err = f'[{__import__("datetime").datetime.now().isoformat()}] POST {self.path} → {type(e).__name__}: {e}'
-            GuideHandler._errors_recent.append(err)
-            if len(GuideHandler._errors_recent) > 20:
-                GuideHandler._errors_recent.pop(0)
+            with GuideHandler._errors_lock:
+                GuideHandler._errors_recent.append(err)
+                if len(GuideHandler._errors_recent) > 20:
+                    GuideHandler._errors_recent.pop(0)
             log(f'[ERROR-POST] {err}')
             try:
                 self.send_response(500)
