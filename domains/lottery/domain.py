@@ -234,7 +234,6 @@ class LotteryDomain(DomainBase):
                         brain=brain,
                         engine_states=self._engine_states,
                         hot_window=hot_window,
-                        schemes=None,
                     )
 
                     gen_result = svc.generate(

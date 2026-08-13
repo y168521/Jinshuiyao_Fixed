@@ -207,7 +207,7 @@ class App:
         self.killer = Killer()
         self.evolve = Evolve()
         self.scheme_mgr = SchemeManager()
-        self.schemes = self.scheme_mgr  # PredictionService 需要 schemes 参数
+        self.schemes = self.scheme_mgr  # 方案管理器（update_hit 用；PredictionService 已不再接收 schemes 参数）
 
         # 智能大脑 & 进化引擎（复盘学习用）
         try:
@@ -1805,7 +1805,6 @@ class App:
                     evolve=self.evolve,
                     engine_states=self.engine_states,
                     hot_window=self.hot_window,
-                    schemes=self.schemes,
                     on_log=self.log
                 )
                 result = svc.generate(
@@ -1990,7 +1989,6 @@ class App:
                 evolve=self.evolve,
                 engine_states=self.engine_states,
                 hot_window=self.hot_window,
-                schemes=self.schemes,
                 on_log=self.log
             )
             result = svc.generate(lot, play_plan=play_plan, scheme=scheme, hot_window=self.hot_window,
