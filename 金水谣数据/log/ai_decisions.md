@@ -937,3 +937,17 @@
 - **有效方法**：全链路验收一键化 = `py -3.14 tools/verify_chain.py`（exit=0 全通）；"功能无感"先 grep except 块看吞了什么；契约默认值变更必带存量迁移清单。
 - **关联文件**：`engines/prediction_service.py` · `engines/strategy_cards.py`(新建) · `knowledge/mirofish_db.py` · `utils/safe_json.py` · `tools/verify_chain.py`(新建) · `gui/main_window.py` · `core/scheduler.py` · `domains/lottery/domain.py` · `engines/evolution.py` · `tests/unit/test_strategy_cards.py`(新建) · `tests/test_safe_json.py`
 - **关联总索引**：JS-20260807-03
+
+### 2026-08-13 gate 收尾红灯修复:页面路由双真源 + AGENTS.md 补登20文件（W63补80 / JS-20260813-01）
+
+- **属主**：opencode
+- **做了什么**：gate --check 收工自检 2 红灯根治: (1)核心文件地图覆盖——tools/wrapup/checks_infra.py 输出 uncovered[:5] 截断掩盖欠账, AGENTS.md 核心登记表补登记 11 个历史未登记文件(dispatch_fund/pipeline_state/scheduler_tasks/brain_daily/evolution_experience/evolution_feedback/evolution_manager/evolution_rule/lottery_stats/sync_network/sync_queue)，20 个新增全认领; (2)页面路由注册完整——review-dashboard.html 由 server/router.py:320-322 先行响应页面, static.py 无字面量，检查器升级 static.py+router.py 双真源(base.py 新增 ROUTER_PY 常量; check_page_routes 文件名去 .html 扩展名匹配 URL 路径)。
+- **为什么根因**：路由注册存在 static.py 与 router.py 双真源(router 直接 handle 页面的情形, 如 /review-dashboard → handle_review_dashboard_page)，检查器只认 static.py 单真源必然误报; AGENTS.md 登记是"新增文件强制登记"铁律的兜底网, 历史欠账应补登记而非刷新基线掩盖; [:5] 截断让修完一批又冒一批, 挤牙膏式反复。
+- **验证**：核心文件地图覆盖 20 文件全认领 PASS; 页面路由 21 个全有路由 PASS; py_compile 通过; AGENTS.md 模型根+仓库根 MD5 一致(FE4C26DF)并校准 mtime; gate --check 收工自检 5 项留痕红灯逐个转绿。
+- **坑**：gate 红色输出列表带 [:5] 截断, 修完 5 个又冒 5 个(sync_queue 最后才露头)——先全量列出再动手; 检查器字段名是硬编码契约(经验箱"做了什么/踩过的坑/下次注意/有效方法", 决策卡"属主/做了什么/为什么根因/验证/坑/有效方法/关联文件/关联总索引"), 随意换名=白写; gate --check 末尾挂全量 pytest 约 6 分钟看似卡住属正常; 坚果云 pwsh Get-Location 显示折叠路径, 判定文件位置用 python os.getcwd()。
+- **有效方法**：新增 core/knowledge/server/engines 下的 .py 创建时当场登记 AGENTS.md(含职责一句话), 欠账集中一次性补清; 双注册点检查器各自读文本取并集(static 全文 + router 去扩展名); 留痕四件套(交接中心/总索引+补录块/经验箱/决策卡)字段名先读检查器源码对齐再写。
+- **关联文件**：tools/wrapup/base.py(+ROUTER_PY) · tools/wrapup/checks_infra.py(check_page_routes 双真源+去扩展名) · AGENTS.md×2(登记表 +11 行)
+- **关联总索引**：JS-20260813-01
+- **被否决方案**：把 review-dashboard 加进 static.py _PAGE_ROUTES —— 否决:router.py:320 已先响应 return, static 注册成永远走不到的死条目(债务-014 教训同类)。刷新 tools/.wrapup_baseline.txt 绕过地图检查 —— 否决:违背"新增文件强制登记"铁律, 治标不治本。
+- **成熟度**：高
+- **置信度**：高 —— 双真源模型有 router.py:320-322 实测支撑, 补登前后 check_file_map 输出 FAIL 变 PASS 直接证明。

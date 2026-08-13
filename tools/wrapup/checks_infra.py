@@ -119,6 +119,8 @@ def check_page_routes():
     if not static_text:
         _report("页面路由注册完整", False, "static.py 无法读取")
         return
+    # 页面路由双真源：static.py 路由表 OR router.py 页面路由（review-dashboard 等由 router 先行响应）
+    router_text = _read_text(ROUTER_PY)
     if not os.path.isdir(GUIDE_DIR):
         _warn("页面路由注册完整", "jinshuiyao-guide/ 目录不存在")
         return
@@ -126,8 +128,11 @@ def check_page_routes():
                   if f.endswith(".html") and f not in _PAGE_WHITELIST]
     unregistered = []
     for fname in html_files:
-        # 文件名出现在 static.py 的路由表中即视为已注册
-        if fname not in static_text:
+        # 文件名出现在 static.py 或 router.py 中即视为已注册
+        # （router.py 只写 URL 路径，故去掉 .html 扩展名再匹配一次）
+        base = fname[:-5] if fname.endswith(".html") else fname
+        if fname not in static_text and fname not in (router_text or "") \
+                and base not in (router_text or ""):
             # 也检查 _shared 子目录中的（不需要注册）
             unregistered.append(fname)
     if unregistered:

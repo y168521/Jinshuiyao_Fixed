@@ -137,6 +137,15 @@
 | `core/adaptive_models.py` | 平台模型智能自动匹配（额度耗尽探测切换，含 list/probe/find_working_model，持久化到 secrets） |
 | `engines/strategy_cards.py` | 策略知识卡提炼引擎：复盘→7彩种×3类引擎挂钩卡（weight_calibration/kill_strategy/miss_breakthrough），refresh/ensure 幂等（W63补54 / JS-20260807-03） |
 | `core/security.py` | 安全校验单一真源：is_safe_http_url 供 router/video_extractor SSRF 校验委托（JS-20260807-01） |
+| `core/dispatch_fund.py` | 基金子系统薄委托：fetch→analyze→generate，供 ai_agent/_dispatch_fund 分发（W63补77 / JS-20260812-13） |
+| `core/pipeline_state.py` | Agent 内部分析流水线实时状态模块（HTTP 状态查询 + daemon 线程节点动态，失败降级 degraded） |
+| `core/scheduler_tasks.py` | 通用定时任务容器 TaskScheduler（自 core/scheduler.py 拆分，JS-20260810-10） |
+| `engines/brain_daily.py` | 智能大脑第2层每日简报（每日AI日报+汇总+报告，run_daily 定时入口） |
+| `engines/evolution_experience.py` | L3 经验驱动进化模块（自 engines/evolution.py 按 JS-20260810-10 拆分） |
+| `engines/evolution_feedback.py` / `evolution_manager.py` / `evolution_rule.py` | L3 自适应进化引擎子模块三件套（JS-20260810-10 自 engines/evolution.py 拆分） |
+| `engines/lottery_stats.py` | 彩票统计分析引擎：omission_table/trend_classification/number_follow_up 纯计算支撑 4 死链 API（W63补71 / JS-20260812-07，债务-013 复用） |
+| `engines/sync_network.py` | 离线优先同步管理器子模块：NetworkDetector 轻量网络状态检测（JS-20260810-10 拆分） |
+| `engines/sync_queue.py` | 离线优先同步管理器子模块：OfflineQueue 离线请求队列（本地 JSONL 持久化，联网后回放，JS-20260810-10 拆分） |
 
 > ⚠️ 本表是「新增文件强制登记」清单，**不是** core/ 全量模块地图（core/ 共约 59 个 .py，本表仅登记重点新增项）。完整模块导航请以 `知识网关索引.md` 或代码搜索为准（JS-20260806-10 校正）。
 > 新增 core/knowledge/server/engines 下的 .py 文件后，必须在本表登记（tools/wrapup/checks_infra.py 基线检查会拦）。

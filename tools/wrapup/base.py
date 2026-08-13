@@ -90,6 +90,7 @@ SCHEDULER_JSON = os.path.join(BASE_DIR, "config", "scheduler.json")
 SCHEDULER_PY = os.path.join(BASE_DIR, "core", "scheduler.py")
 AGENTS_MD = os.path.join(BASE_DIR, "AGENTS.md")
 STATIC_PY = os.path.join(BASE_DIR, "server", "handlers", "static.py")
+ROUTER_PY = os.path.join(BASE_DIR, "server", "router.py")
 GUIDE_DIR = os.path.join(BASE_DIR, "jinshuiyao-guide")
 
 # ---------------------------------------------------------------------------

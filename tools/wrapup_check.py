@@ -108,7 +108,8 @@ def main():
         print(f"  结果: {passed}/{total} 项通过 —— 全绿，可以收工！")
         # 全绿后自动刷新文件哈希基线（自检通过=改动已留痕=可纳入新基线）
         # 这样下次自检只检测"本次基线之后"的新改动，不会重复检测已留痕的改动
-        _save_file_hash_baseline(_scan_py_files_hashmap(BASE_DIR))
+        # （update_file_hash_baseline 为公开 API，等价私有 _save_file_hash_baseline(_scan_py_files_hashmap(...))）
+        update_file_hash_baseline()
         print("-" * 60)
         return 0
     else:
