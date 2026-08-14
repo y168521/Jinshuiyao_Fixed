@@ -55,11 +55,14 @@
 </div>
 
 <div class="card scroll-x">
-  <h2>前十大重仓股</h2>
-  <table><thead><tr><th>股票</th><th>代码</th><th>占比</th><th>持仓市值(万)</th><th>持股数(万股)</th></tr></thead>
+  <h2 style="display:flex;align-items:center;gap:10px;">前十大重仓股
+    <button onclick="exportTableCsv(document.getElementById('stockTable'), '重仓股_'+(document.getElementById('fundSel').value||'基金')+'.csv')" style="margin-left:auto;padding:4px 10px;font-size:11px;cursor:pointer;">导出CSV</button>
+  </h2>
+  <table id="stockTable"><thead><tr><th>股票</th><th>代码</th><th>占比</th><th>持仓市值(万)</th><th>持股数(万股)</th></tr></thead>
   <tbody id="stockBody"><tr><td colspan="5" class="muted" style="text-align:center;">选择基金后加载</td></tr></tbody></table>
 </div>
 
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/table-enhance.js"></script>
 <script>
 const COLORS = ['#c8755a','#2d8b7e','#5bc0de','#c9a96e','#e8ecf1','#d29922','#4ade80','#f87171'];
 
@@ -164,6 +167,8 @@ async function loadHoldings(){
 }
 
 loadFunds();
+enhanceTable(document.getElementById('stockTable'));
 </script>
+  <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
 </body>
 </html>

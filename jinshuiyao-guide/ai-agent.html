@@ -1272,7 +1272,7 @@
         <span class="topbar-badge" id="aiBadge">检测中...</span>
       </div>
       <div class="topbar-actions">
-        <button class="topbar-btn" onclick="clearChat()">&#128465; 清空</button>
+        <button class="topbar-btn" onclick="if(!confirm('确定清空全部对话？此操作不可恢复'))return;clearChat()">&#128465; 清空</button>
         <button class="topbar-btn" onclick="window.open('/','_self')">&#127968; 总控台</button>
       </div>
     </div>

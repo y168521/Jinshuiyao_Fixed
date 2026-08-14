@@ -674,7 +674,7 @@ async function play(){
 }
 
 playBtn.addEventListener("click",play);
-resetBtn.addEventListener("click",()=>{resetAll();});
+resetBtn.addEventListener("click",()=>{if(!confirm('确定重置当前视图？'))return;resetAll();});
 
 /* ---------- init ---------- */
 window.addEventListener("load",()=>{
@@ -684,5 +684,6 @@ window.addEventListener("load",()=>{
   setInterval(heartbeat,4000);          // 每 4s 心跳，保持连接灯真实
 });
 </script>
+  <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
 </body>
 </html>

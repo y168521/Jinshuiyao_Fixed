@@ -60,9 +60,15 @@ button.primary:hover { opacity:.85; }
 </div>
 
 <div class="card" id="tableCard" style="display:none;">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+    <b style="font-size:14px;">遗漏明细表</b>
+    <span class="muted" style="font-size:12px;">点击表头排序 · 可筛选 · 导出CSV</span>
+    <button class="primary" style="margin-left:auto;padding:4px 12px;" onclick="exportOmissionCsv()">导出CSV</button>
+  </div>
   <div class="table-wrap" id="tableWrap"></div>
 </div>
 
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/table-enhance.js"></script>
 <script>
 const BASE = window.location.origin;
 const LOT_CFG = { ssq:{range:33,name:'双色球'}, dlt:{range:35,name:'大乐透'}, fc3d:{range:10,name:'福彩3D'}, pl3:{range:10,name:'排列三'} };
@@ -153,6 +159,13 @@ function sortBy(key){
   render(rawData);
 }
 
+function exportOmissionCsv(){
+  const t = document.getElementById('omissionTable');
+  if(!t){ alert('暂无数据可导出'); return; }
+  const cfg = LOT_CFG[document.getElementById('lotType').value] || {name:'彩票'};
+  exportTableCsv(t, '遗漏表_'+cfg.name+'_'+new Date().toISOString().slice(0,10)+'.csv');
+}
+
 async function loadData(){
   const lot = document.getElementById('lotType').value;
   document.getElementById('status').innerHTML = '<span class="spinner"></span>加载中...';
@@ -168,5 +181,6 @@ async function loadData(){
 
 loadData();
 </script>
+  <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
 </body>
 </html>

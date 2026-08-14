@@ -118,6 +118,16 @@
     ".ts-topnav a:hover{color:#C9A96E}" +
     ".ts-topnav .ts-brand{color:#C9A96E;font-size:16px;font-weight:800;letter-spacing:.5px;display:flex;align-items:center;gap:8px}" +
     ".ts-topnav .ts-cur{color:#E8ECF1;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
+    ".ts-topnav .ts-subs{display:flex;align-items:center;gap:6px;margin-left:8px}" +
+    ".ts-topnav .ts-sub{font-size:13px;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid rgba(201,169,110,.18);color:rgba(232,236,241,.75);transition:all .2s}" +
+    ".ts-topnav .ts-sub:hover{color:#C9A96E;border-color:rgba(201,169,110,.5)}" +
+    ".ts-topnav .ts-sub.on{color:#0B1A2F;background:#C9A96E;border-color:#C9A96E;font-weight:700}" +
+    ".ts-topnav .ts-drop{position:relative}" +
+    ".ts-topnav .ts-drop-btn{background:transparent;border:1px solid rgba(201,169,110,.25);color:#C9A96E;font-size:13px;font-weight:600;font-family:inherit;padding:4px 10px;border-radius:999px;cursor:pointer;white-space:nowrap}" +
+    ".ts-topnav .ts-drop-btn:hover{background:rgba(201,169,110,.12)}" +
+    ".ts-topnav .ts-drop-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:150px;background:rgba(13,31,53,.97);border:1px solid rgba(201,169,110,.25);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.5);padding:6px;z-index:99998}" +
+    ".ts-topnav .ts-drop-menu a{display:block;padding:8px 12px;border-radius:6px;font-size:13px;color:rgba(232,236,241,.8)}" +
+    ".ts-topnav .ts-drop-menu a:hover{background:rgba(201,169,110,.12);color:#C9A96E}" +
     ".ts-topnav .ts-spacer{flex:1}" +
     ".ts-topnav .ts-pill{background:rgba(201,169,110,.12);color:#C9A96E;padding:6px 12px;border-radius:999px;font-size:13px;border:1px solid rgba(201,169,110,.25)}" +
     ".ts-topnav.float{position:fixed;top:12px;right:12px;left:auto;width:auto;border:none;" +
@@ -138,25 +148,79 @@
   var healthHtml =
     '<span id="ts-health-dot" class="ts-hdot" style="background:rgba(11,26,47,.4)" title="检测中…"></span>';
 
+  /* ====== 四大子系统快捷入口 ====== */
+  var SUB_MENUS = [
+    { name: "彩票", href: "/lottery" },
+    { name: "基金", href: "/fund" },
+    { name: "股票", href: "/stock" },
+    { name: "足彩", href: "/football" }
+  ];
+  function subActive() {
+    var p = location.pathname || "";
+    for (var i = 0; i < SUB_MENUS.length; i++) {
+      if (p === SUB_MENUS[i].href || p.indexOf(SUB_MENUS[i].href + "/") === 0) return SUB_MENUS[i].name;
+    }
+    return "";
+  }
+  function subsHtml() {
+    var curSub = subActive();
+    var h = "";
+    for (var i = 0; i < SUB_MENUS.length; i++) {
+      var m = SUB_MENUS[i];
+      var cls = "ts-sub" + (m.name === curSub ? " on" : "");
+      h += '<a class="' + cls + '" href="' + m.href + '">' + m.name + '</a>';
+    }
+    return h;
+  }
+
   if (mode === "float") {
     bar.innerHTML =
       healthHtml +
       '<a class="ts-brand" href="' + HOME + '">🏠 工作台</a>' +
+      '<span class="ts-drop"><button type="button" class="ts-drop-btn">子系统 ▾</button>' +
+      '<span class="ts-drop-menu">' + subsHtml() + '</span></span>' +
       '<a href="' + PORTAL + '">← 门户</a>';
   } else {
     bar.innerHTML =
       '<a class="ts-brand" href="' + HOME + '">' + healthHtml + '金水谣工作台</a>' +
       '<span class="ts-cur">' + cur + '</span>' +
+      '<span class="ts-subs">' + subsHtml() + '</span>' +
       '<span class="ts-spacer"></span>' +
       '<a href="/ai-agent">💬 AI助手</a>' +
+      '<span class="ts-drop"><button type="button" class="ts-drop-btn">更多 ▾</button>' +
+      '<span class="ts-drop-menu">' +
       '<a href="/ai-agent#knowledge">📚 知识库</a>' +
       '<a href="/sync">📋 看板</a>' +
       '<a href="/scheduler.html">⏰ 定时任务</a>' +
       '<a href="/engine-dashboard.html">📊 效果看板</a>' +
       '<a href="/Jinshuiyao_Fixed/jinshuiyao-guide/compare-tech.html">🔬 方案对比</a>' +
+      '</span></span>' +
       '<a class="ts-pill" href="' + PORTAL + '">← 返回门户</a>';
   }
   document.body.insertBefore(bar, document.body.firstChild);
+
+  /* 下拉菜单：点击按钮切换，点击外部关闭 */
+  function bindDrop() {
+    var btns = bar.querySelectorAll(".ts-drop-btn");
+    for (var i = 0; i < btns.length; i++) {
+      (function (btn) {
+        btn.addEventListener("click", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          var m = btn.parentNode.querySelector(".ts-drop-menu");
+          var open = m.style.display === "block";
+          closeAllDrop();
+          m.style.display = open ? "none" : "block";
+        });
+      })(btns[i]);
+    }
+    document.addEventListener("click", closeAllDrop);
+    function closeAllDrop() {
+      var ms = bar.querySelectorAll(".ts-drop-menu");
+      for (var j = 0; j < ms.length; j++) ms[j].style.display = "none";
+    }
+  }
+  bindDrop();
 
   /* 启动健康检查：立即一次 + 每30秒轮询 */
   pollHealth();

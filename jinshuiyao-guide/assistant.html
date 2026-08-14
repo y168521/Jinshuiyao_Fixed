@@ -418,6 +418,7 @@ function initHistory() {
   
   // 清空历史
   $('clearHistoryBtn').onclick = function() {
+    if (!confirm('确定清空全部历史？此操作不可恢复')) return;
     localStorage.removeItem('assistantHistory');
     renderHistory();
     setStatus($('askStatus'), '历史已清空', 'ok');
