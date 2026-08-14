@@ -441,6 +441,16 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
             h_static.handle_logs(self)
             return
 
+        # /api/system/backup — 一键数据快照（复用 auto_backup.py）
+        if parsed.path == '/api/system/backup':
+            h_static.handle_backup(self)
+            return
+
+        # /api/frontend-errors — 前端错误收集尾部查询
+        if parsed.path == '/api/frontend-errors':
+            h_static.handle_frontend_errors(self)
+            return
+
         # 已知页面路由（批量查表）
         if h_static.handle_page(self, parsed.path):
             return

@@ -337,6 +337,12 @@
       "route": "/lottery/combo-calculator",
       "category": "lottery",
       "desc": "号码组合计算器：和值/跨度/012路/奇偶大小/形态/AC值"
+    },
+    {
+      "path": "jinshuiyao-guide/system-tools.html",
+      "route": "/system-tools",
+      "category": "system",
+      "desc": "系统工具箱：一键备份+前端错误日志"
     }
   ]
 }

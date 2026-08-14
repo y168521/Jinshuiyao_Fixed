@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 系统工具箱</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+  :root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:18px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media(max-width:900px){ .grid{ grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; }
+  .card h2 { font-size:15px; margin:0 0 12px; }
+  .btn { padding:7px 18px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--txt); font-size:13px; cursor:pointer; margin-right:8px; }
+  .btn:hover { border-color:#C9A96E; color:#C9A96E; }
+  .btn-primary { background:rgba(201,169,110,.85); border-color:#C9A96E; color:#0B1A2F; font-weight:600; }
+  .btn-primary:hover { background:#C9A96E; color:#0B1A2F; }
+  .tip { font-size:12px; color:var(--muted); margin-top:12px; line-height:1.7; }
+  .info { font-size:13px; color:var(--muted); margin-top:10px; line-height:1.8; }
+  .info b { color:var(--txt); }
+  table { width:100%; border-collapse:collapse; font-size:12px; margin-top:8px; }
+  th,td { text-align:left; padding:5px 7px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; }
+  .err-row td { white-space:nowrap; }
+  .err-msg { max-width:340px; white-space:normal; word-break:break-all; }
+  .count { color:#C9A96E; font-weight:700; }
+</style>
+</head>
+<body>
+  <div style="margin-bottom:10px;"><a href="/control-center" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回控制中心</a></div>
+  <h1>🛠 系统工具箱</h1>
+  <div class="sub">数据一键备份 · 前端错误日志排查 · 全部操作本地执行，不经过任何第三方</div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>💾 数据一键备份</h2>
+      <button class="btn btn-primary" onclick="doBackup()" id="backupBtn">开始备份</button>
+      <button class="btn" onclick="loadLatest()">查看最近备份</button>
+      <div class="info" id="backupInfo">点击"开始备份"将整个工作目录快照到坚果云安全位置（自动保留最近 10 份，旧快照自动清理）。</div>
+      <div class="tip">💡 备份位置经安全校验：仅允许坚果云同步目录，杜绝外泄。也可命令行执行：<code>py -3.14 tools/auto_backup.py</code></div>
+    </div>
+
+    <div class="card">
+      <h2>🐞 前端错误日志 <span class="muted" id="errCount"></span></h2>
+      <button class="btn" onclick="loadErrors()">刷新</button>
+      <button class="btn" onclick="exportErrors()">导出 CSV</button>
+      <div id="errWrap">
+        <div class="muted" style="padding:14px;text-align:center;color:var(--muted);">加载中…</div>
+      </div>
+      <div class="tip">💡 由各页面 error-monitor.js 自动上报，仅存最近记录；导出 CSV 可用 Excel 打开。空列表 = 没有前端错误，正常。</div>
+    </div>
+  </div>
+
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/toast.js"></script>
+<script>
+var lastErrors = [];
+function doBackup(){
+  var btn = document.getElementById('backupBtn');
+  btn.disabled = true;
+  btn.textContent = '备份中…';
+  fetch('/api/system/backup').then(function(r){ return r.json(); }).then(function(d){
+    btn.disabled = false;
+    btn.textContent = '开始备份';
+    if(d.ok){
+      document.getElementById('backupInfo').innerHTML = '<b>✅ 备份完成：</b>' + (d.snapshot || '') + '<br>最近快照：' + (d.latest || '—');
+      showToast('数据备份完成','success');
+    }else{
+      document.getElementById('backupInfo').innerHTML = '<span style="color:var(--err)">❌ ' + (d.message || '备份失败') + '</span>';
+      showToast(d.message || '备份失败','error');
+    }
+  }).catch(function(err){
+    btn.disabled = false;
+    btn.textContent = '开始备份';
+    document.getElementById('backupInfo').innerHTML = '<span style="color:var(--err)">❌ 请求失败，请确认服务器运行中</span>';
+  });
+}
+function loadLatest(){
+  fetch('/api/system/backup?latest=1').then(function(r){ return r.json(); }).then(function(d){
+    if(d.ok){
+      document.getElementById('backupInfo').innerHTML = '<b>最近快照：</b>' + (d.latest || '尚无快照，点"开始备份"创建');
+    }
+  }).catch(function(){});
+}
+function loadErrors(){
+  var wrap = document.getElementById('errWrap');
+  fetch('/api/frontend-errors?limit=50').then(function(r){ return r.json(); }).then(function(d){
+    if(!d.ok){ wrap.innerHTML = '<div class="muted" style="padding:14px;color:var(--err);">' + (d.message || '读取失败') + '</div>'; return; }
+    document.getElementById('errCount').textContent = '（共 ' + d.total + ' 条，显示最近 ' + d.errors.length + ' 条）';
+    lastErrors = d.errors || [];
+    if(!lastErrors.length){
+      wrap.innerHTML = '<div class="muted" style="padding:14px;text-align:center;">暂无前端错误记录</div>';
+      return;
+    }
+    var html = '<table><thead><tr><th>时间</th><th>页面</th><th>消息</th></tr></thead><tbody>';
+    for(var i=0;i<lastErrors.length;i++){
+      var e = lastErrors[i];
+      html += '<tr class="err-row"><td>' + esc(e.time || '') + '</td><td>' + esc(e.page || '') + '</td><td class="err-msg">' + esc(e.message || e.raw || '') + '</td></tr>';
+    }
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+  }).catch(function(){
+    wrap.innerHTML = '<div class="muted" style="padding:14px;color:var(--err);">请求失败，请确认服务器运行中</div>';
+  });
+}
+function exportErrors(){
+  if(!lastErrors.length){ showToast('当前没有可导出的错误记录','warn'); return; }
+  var lines = ['\ufeff时间,页面,来源,行号,消息'];
+  for(var i=0;i<lastErrors.length;i++){
+    var e = lastErrors[i];
+    lines.push([e.time||'', e.page||'', e.source||'', e.lineno||'', (e.message||'').replace(/\s+/g,' ')].map(csvEsc).join(','));
+  }
+  var blob = new Blob([lines.join('\r\n')], { type:'text/csv;charset=utf-8;' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '前端错误日志_' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  showToast('已导出 ' + lastErrors.length + ' 条','success');
+}
+function csvEsc(v){
+  v = String(v==null?'':v);
+  if(/[",\n]/.test(v)) return '"' + v.replace(/"/g,'""') + '"';
+  return v;
+}
+function esc(v){
+  v = String(v==null?'':v);
+  return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+loadErrors();
+</script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
+</body>
+</html>

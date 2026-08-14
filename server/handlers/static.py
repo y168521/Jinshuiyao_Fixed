@@ -51,6 +51,7 @@ _PAGE_ROUTES = {
     '/agent-pipeline':     'agent-pipeline-visualizer.html',
     '/prediction-tracker': 'prediction-tracker.html',
     '/showcase':           'showcase.html',
+    '/system-tools':       'system-tools.html',
 }
 
 # 外部页面路由（不在 HTML_DIR 内的独立仪表板页面）
@@ -544,6 +545,69 @@ def handle_logs(handler):
 # ---------------------------------------------------------------------------
 # POST 路由处理函数
 # ---------------------------------------------------------------------------
+def handle_backup(handler):
+    """GET /api/system/backup — 一键创建数据快照（坚果云安全位置）
+
+    复用 tools/auto_backup.py 的 create_snapshot（已含安全位置校验+旧快照清理）。
+    """
+    try:
+        if BASE_DIR not in sys.path:
+            sys.path.insert(0, BASE_DIR)
+        from tools.auto_backup import create_snapshot, get_latest_snapshot
+        q = urllib.parse.parse_qs(urllib.parse.urlparse(handler.path).query)
+        if q.get('latest', [''])[0]:
+            latest = None
+            try:
+                latest = get_latest_snapshot()
+            except Exception:
+                pass
+            handler._send_json({'ok': True, 'latest': latest})
+            return
+        snap = create_snapshot()
+        latest = None
+        try:
+            latest = get_latest_snapshot()
+        except Exception:
+            pass
+        if not snap:
+            handler._send_json({'ok': False, 'message': '备份失败：未生成快照（检查坚果云同步目录权限）'})
+            return
+        handler._send_json({'ok': True, 'message': '快照已创建', 'snapshot': snap, 'latest': latest})
+    except Exception as e:
+        handler._send_json({'ok': False, 'message': '备份异常：%s' % e})
+
+
+def handle_frontend_errors(handler):
+    """GET /api/frontend-errors?limit=50 — 前端错误收集（error-monitor 上报 JSONL）尾部 N 条"""
+    import datetime
+    LOG_DIR = os.path.join(BASE_DIR, '金水谣数据', 'log', 'err_log')
+    q = urllib.parse.parse_qs(urllib.parse.urlparse(handler.path).query)
+    limit = 50
+    try:
+        limit = min(max(int(q.get('limit', ['50'])[0]), 1), 200)
+    except Exception:
+        pass
+    p = os.path.join(LOG_DIR, 'frontend_errors.jsonl')
+    if not os.path.isfile(p):
+        handler._send_json({'ok': True, 'total': 0, 'errors': []})
+        return
+    try:
+        rows = []
+        with open(p, encoding='utf-8', errors='replace') as f:
+            for ln in f:
+                ln = ln.strip()
+                if not ln:
+                    continue
+                try:
+                    rows.append(json.loads(ln))
+                except Exception:
+                    rows.append({'raw': ln})
+        total = len(rows)
+        handler._send_json({'ok': True, 'total': total, 'errors': rows[-limit:]})
+    except Exception as e:
+        handler._send_json({'ok': False, 'message': '读取错误日志失败：%s' % e, 'total': 0, 'errors': []})
+
+
 def handle_run_tests(handler):
     """POST /api/run-tests — 运行自动化测试"""
     # 安全加固：运行测试会执行本机程序，仅允许本机调用
