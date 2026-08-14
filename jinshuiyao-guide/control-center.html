@@ -931,10 +931,11 @@
               <a href="/lottery/ac-calculator" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">AC值计算</a>
               <a href="/lottery/trend-classification" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">012路/质合/五行</a>
               <a href="/lottery/omission-table" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">遗漏表格</a>
+              <a href="/lottery/combo-calculator" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">号码计算器</a>
               <a href="/lottery/audit-dashboard" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">操作留痕</a>
               <a href="/lottery/sources-health" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">彩票源健康</a>
               <a href="/prediction-tracker" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">预测准确率</a>
-              <a href="/showcase" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;">组件库展示</a>
+              <a href="/showcase" class="lot-btn" target="_blank" style="font-size:11px;padding:3px 10px;" id="showcaseLink">组件库展示<span id="newBadge" style="display:inline-block;background:#E2574C;color:#fff;font-size:9px;line-height:1;padding:2px 4px;border-radius:6px;margin-left:4px;vertical-align:1px;">NEW</span></a>
             </div>
           </div>
         </div>
@@ -1609,6 +1610,22 @@
     refreshAllStatus();
     checkFundNotification();
     loadAiMode();
+
+    // NEW 角标：点击组件库链接或查看后消失（localStorage 记住）
+    (function () {
+      var badge = document.getElementById('newBadge');
+      if (!badge) return;
+      try {
+        if (localStorage.getItem('jsy_new_badge_seen')) { badge.style.display = 'none'; return; }
+      } catch (e) {}
+      var link = document.getElementById('showcaseLink');
+      if (link) {
+        link.addEventListener('click', function () {
+          badge.style.display = 'none';
+          try { localStorage.setItem('jsy_new_badge_seen', '1'); } catch (e) {}
+        });
+      }
+    })();
 
     // 每分钟自动刷新
     setInterval(refreshAllStatus, 60000);

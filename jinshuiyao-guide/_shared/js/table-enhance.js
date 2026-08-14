@@ -49,6 +49,7 @@
 
   window.enhanceTable = function (table, opts) {
     if (!table) return;
+    opts = opts || {};
     var state = { key: -1, asc: true };
     var thead = table.querySelector("thead");
     if (!thead) return;
@@ -66,6 +67,46 @@
           saveSort(table, idx, state.asc);
         });
       })(i, ths[i]);
+    }
+    if (opts.sticky !== false) {
+      var bg = getComputedStyle(ths[0]).backgroundColor;
+      if (!bg || bg === "rgba(0, 0, 0, 0)") bg = "#0F2238";
+      for (var s = 0; s < ths.length; s++) {
+        ths[s].style.position = "sticky";
+        ths[s].style.top = "0";
+        ths[s].style.zIndex = "5";
+        ths[s].style.backgroundColor = bg;
+      }
+    }
+    if (opts.filter) {
+      var prevWrap = table.previousElementSibling;
+      if (!(prevWrap && prevWrap.className === "jsy-table-filter")) {
+        var wrap = document.createElement("div");
+        wrap.className = "jsy-table-filter";
+        wrap.style.cssText = "margin-bottom:8px;position:relative;";
+        var inp = document.createElement("input");
+        inp.type = "text";
+        inp.placeholder = "🔍 输入关键字过滤（支持表内任意列，不区分大小写）";
+        inp.style.cssText = "width:100%;padding:6px 10px;border-radius:6px;border:1px solid rgba(201,169,110,.35);background:rgba(0,0,0,.25);color:inherit;font-size:12px;";
+        var hint = document.createElement("div");
+        hint.className = "jsy-filter-hint";
+        hint.style.cssText = "position:absolute;right:8px;top:7px;font-size:11px;color:rgba(232,236,241,.4);pointer-events:none;";
+        var doFilter = function () {
+          var q = inp.value.trim().toLowerCase();
+          var rows = table.querySelectorAll("tbody tr");
+          var vis = 0;
+          for (var r = 0; r < rows.length; r++) {
+            var hit = !q || (rows[r].textContent || "").toLowerCase().indexOf(q) > -1;
+            rows[r].style.display = hit ? "" : "none";
+            if (hit) vis++;
+          }
+          hint.textContent = q ? "匹配 " + vis + " / " + rows.length + " 行" : "";
+        };
+        inp.addEventListener("input", doFilter);
+        wrap.appendChild(inp);
+        wrap.appendChild(hint);
+        table.parentNode.insertBefore(wrap, table);
+      }
     }
     var remembered = loadSort(table);
     if (remembered && remembered.c < ths.length) {

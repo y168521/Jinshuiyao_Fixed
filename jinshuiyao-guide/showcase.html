@@ -107,7 +107,7 @@
       <div style="display:flex;gap:8px;">
         <button class="btn" onclick="exportTableCsv(document.getElementById('demoTable'),'演示.csv')">导出CSV</button>
       </div>
-      <div class="usage" style="margin-top:10px;"><b>用法</b>：<code>enhanceTable(表格元素)</code> 表头点击排序（排序记忆自动，同 id 表重开保持）；<code>exportTableCsv(表格, 文件名)</code> 导出 Excel 兼容 CSV。</div>
+      <div class="usage" style="margin-top:10px;"><b>用法</b>：<code>enhanceTable(表格元素, {filter:true})</code> 表头点击排序（排序记忆自动，同 id 表重开保持）；<code>exportTableCsv(表格, 文件名)</code> 导出 Excel 兼容 CSV；<code>{sticky:false}</code> 关闭吸顶表头。本表已开启🔍关键字过滤演示。</div>
     </div>
 
     <div class="card">
@@ -125,7 +125,7 @@
     <div class="card">
       <h2>⌨ 全局快捷键 <span class="tag">quick-search.js（topnav 自动加载）</span></h2>
       <div class="demo">
-        <p style="margin:4px 0;"><kbd><code>Ctrl+K</code></kbd> 全局搜索（54 个页面，含最近访问）</p>
+        <p style="margin:4px 0;"><kbd><code>Ctrl+K</code></kbd> 全局搜索（56 个页面，含最近访问）</p>
         <p style="margin:4px 0;"><kbd><code>?</code></kbd> 快捷键帮助面板</p>
         <p style="margin:4px 0;"><kbd><code>/</code></kbd> AI 助手内快捷指令菜单</p>
         <p style="margin:4px 0;"><kbd><code>Esc</code></kbd> 关闭所有弹层</p>
@@ -157,7 +157,7 @@
 <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/table-enhance.js"></script>
 <script>
 StateUI.empty(document.getElementById('stateDemo'), '点击上方按钮预览三种状态', '加载/失败+重试/空态');
-enhanceTable(document.getElementById('demoTable'));
+enhanceTable(document.getElementById('demoTable'), { filter: true });
 </script>
 <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
 </body>

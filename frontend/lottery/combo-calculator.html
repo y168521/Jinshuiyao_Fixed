@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 号码组合计算器</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+  :root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim);
+          --c-ok:var(--ok); --c-warn:var(--warn); --bad:var(--err); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:18px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media(max-width:900px){ .grid{ grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; }
+  .card h2 { font-size:15px; margin:0 0 12px; }
+  .input { width:100%; padding:10px 12px; border-radius:8px; border:1px solid var(--border); background:rgba(0,0,0,.25); color:var(--txt); font-size:15px; letter-spacing:1px; }
+  .input:focus { outline:none; border-color:var(--c-warn); }
+  .row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:14px; }
+  @media(max-width:900px){ .row{ grid-template-columns:repeat(2,1fr); } }
+  .stat { background:rgba(201,169,110,.07); border:1px solid var(--border); border-radius:8px; padding:12px; }
+  .stat .k { font-size:12px; color:var(--muted); }
+  .stat .v { font-size:22px; font-weight:700; margin-top:4px; }
+  .chip { display:inline-block; padding:3px 10px; border-radius:10px; font-size:12px; margin:3px 3px 0 0; background:rgba(45,139,126,.13); color:var(--c-ok); }
+  .chip.hi { background:rgba(201,169,110,.18); color:var(--c-warn); }
+  .chip.lo { background:rgba(200,117,90,.13); color:var(--bad); }
+  .btn { padding:6px 16px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--txt); font-size:13px; cursor:pointer; margin-right:8px; }
+  .btn:hover { border-color:var(--c-warn); color:var(--c-warn); }
+  .btn-primary { background:rgba(201,169,110,.85); border-color:#C9A96E; color:#0B1A2F; font-weight:600; }
+  .btn-primary:hover { background:#C9A96E; color:#0B1A2F; }
+  .muted { color:var(--muted); }
+  .tip { font-size:12px; color:var(--muted); margin-top:10px; line-height:1.7; }
+</style>
+</head>
+<body>
+  <div style="margin-bottom:10px;"><a href="/lottery" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回彩票分析中心</a></div>
+  <h1>🧮 号码组合计算器</h1>
+  <div class="sub">输入一组号码，实时算出和值、跨度、012路、奇偶比、大小比、形态、AC值等全部指标 — 纯本地计算</div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>输入号码</h2>
+      <input class="input" id="nums" placeholder="例：3 5 8（或 3,5,8 / 3 5 8）" autocomplete="off" />
+      <div style="margin-top:12px;">
+        <button class="btn btn-primary" onclick="calc()">计算</button>
+        <button class="btn" onclick="demo()">示例</button>
+        <button class="btn" onclick="document.getElementById('nums').value='';document.getElementById('out').innerHTML='';showToast('已清空','info')">清空</button>
+      </div>
+      <div class="tip">💡 支持任意个号码：福彩3D/排列三（3个）、双色球红球（6个）、大乐透前区（5个）均可。<br>形态判断按 3 个号适用（3D/排列三）。</div>
+    </div>
+    <div class="card">
+      <h2>分析结果</h2>
+      <div id="out"><div class="muted" style="padding:20px;text-align:center;">输入号码后点击"计算"</div></div>
+    </div>
+  </div>
+
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/toast.js"></script>
+<script>
+function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function parseNums(s){
+  var nums = s.split(/[,，、\s]+/);
+  var arr = [];
+  for (var i=0;i<nums.length;i++){
+    var x = nums[i].trim();
+    if (x!=='') arr.push(Number(x));
+  }
+  if(!arr.length) return [];
+  for (var j=0;j<arr.length;j++){
+    var n = arr[j];
+    if(isNaN(n) || !Number.isInteger(n) || n<0 || n>99) return null;
+  }
+  return arr;
+}
+function acValue(a){
+  var seen = {};
+  a.forEach(function(n){ seen[n]=1; });
+  var uniq = Object.keys(seen).map(Number);
+  if(uniq.length<2) return 0;
+  var diffs = {};
+  for(var i=0;i<uniq.length;i++) for(var j=i+1;j<uniq.length;j++) diffs[Math.abs(uniq[i]-uniq[j])]=1;
+  return Object.keys(diffs).length - (uniq.length - 1);
+}
+function calc(){
+  var raw = document.getElementById('nums').value;
+  var arr = parseNums(raw);
+  var out = document.getElementById('out');
+  if(!arr || !arr.length){ showToast('请输入有效的号码（0-99 的整数，空格或逗号分隔）','error'); if(window.StateUI) StateUI.empty(out,'请输入号码','例如：3 5 8'); return; }
+  if(arr.length===1){ showToast('至少输入 2 个号码','warn'); return; }
+  var sorted = arr.slice().sort(function(a,b){ return a-b; });
+  var sum=0, odd=0, big=0, r0=0, r1=0, r2=0;
+  arr.forEach(function(n){
+    sum+=n;
+    if(n%2===1) odd++;
+    if(n>=5 && n<=9) big++;
+    if(n%3===0) r0++; else if(n%3===1) r1++; else r2++;
+  });
+  var even = arr.length-odd, small = arr.length-big;
+  var span = sorted[sorted.length-1]-sorted[0];
+  var ac = acValue(arr);
+  var shape = '—';
+  if(arr.length===3){
+    var u = {}; arr.forEach(function(n){ u[n]=1; });
+    var cnt = Object.keys(u).length;
+    shape = cnt===1 ? '豹子' : (cnt===2 ? '组三' : '组六');
+  }
+  out.innerHTML =
+    '<div class="row">' +
+    stat('和值', sum) + stat('跨度', span) +
+    stat('012路', r0+' / '+r1+' / '+r2) +
+    stat('AC值', ac) +
+    stat('奇偶比', odd+':'+even) + stat('大小比', big+':'+small) +
+    stat('形态', shape, shape==='—'?'':(shape==='组六'?'hi':(shape==='组三'?'hi':'lo'))) +
+    stat('号码个数', arr.length) +
+    '</div>' +
+    '<div style="margin-top:14px;font-size:13px;">' +
+    '<div style="color:var(--muted);margin-bottom:6px;">号码明细：<b style="color:var(--txt);">'+arr.join(' ')+'</b>（升序 '+sorted.join(' ')+'）</div>' +
+    '<div style="color:var(--muted);margin-bottom:6px;">012路说明：0路='+r0+' 个，1路='+r1+' 个，2路='+r2+' 个（按号码 mod 3）</div>' +
+    '<div style="color:var(--muted);">AC值：'+ac+' — 衡量号码离散度，值越大分布越散（AC 计算法：两两差值去重数 − (去重号码数−1)）</div>' +
+    '</div>';
+  showToast('计算完成','success');
+}
+function stat(k,v,cls){
+  return '<div class="stat"><div class="k">'+k+'</div><div class="v" '+(cls?('style="color:'+(cls==='hi'?'var(--c-warn)':'var(--bad)')+'"'):'')+'>'+esc(v)+'</div></div>';
+}
+function demo(){
+  document.getElementById('nums').value='3 5 8';
+  calc();
+}
+document.getElementById('nums').addEventListener('keydown', function(e){ if(e.key==='Enter') calc(); });
+</script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
+</body>
+</html>

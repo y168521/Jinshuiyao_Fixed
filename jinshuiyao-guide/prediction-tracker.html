@@ -132,7 +132,7 @@ async function loadStats(){
         return '<tr><td>'+dn(k)+'</td><td>'+(d.total||0)+'</td><td>'+(d.hits||0)+'</td><td>'+(d.misses||0)+'</td><td>'+rateStr(rate)+'</td><td>'+rateBadge(rate)+'</td></tr>';
       }).join('');
     }
-    if (window.enhanceTable) enhanceTable(document.getElementById('domainTable'));
+    if (window.enhanceTable) enhanceTable(document.getElementById('domainTable'), { filter: true });
     renderTrend(j.trend||[]);
   }catch(e){
     StateUI.error(wrap, '统计加载失败：'+esc(e.message), loadStats);
@@ -193,7 +193,7 @@ function renderDetails(){
     '<td class="q" title="'+esc(x.answer)+'">'+esc(x.answer)+'</td>'+
     '<td>'+outcomeBadge(x.outcome)+'</td>'+
     '<td>'+markBtns(x)+'</td></tr>').join('');
-  if (window.enhanceTable) enhanceTable(document.getElementById('detailTable'));
+  if (window.enhanceTable) enhanceTable(document.getElementById('detailTable'), { filter: true });
 }
 function markBtns(x){
   if(!x.id) return '<span class="muted">—</span>';

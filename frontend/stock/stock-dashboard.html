@@ -191,7 +191,7 @@ async function runScreen(){
         `<tr><td>${s.code}</td><td>${s.name}</td><td class="num">${fmtNum(s.price)}</td><td class="num ${(s.change||0)>=0?'chg-up':'chg-down'}">${fmtPct(s.change)}</td><td class="num">${s.score||'—'}</td></tr>`
       ).join('');
       document.getElementById('screenResult').textContent = `找到 ${j.stocks.length} 只`;
-      if (window.enhanceTable) enhanceTable(document.querySelector('#screenTable table'));
+      if (window.enhanceTable) enhanceTable(document.querySelector('#screenTable table'), { filter: true });
     }
   } catch(e){
     document.getElementById('screenResult').textContent = '接口暂不可用（请确保服务器运行）';

@@ -88,6 +88,7 @@ _LOTTERY_ROUTES = {
     '/lottery/number-follow-up':  os.path.join(BASE_DIR, 'frontend', 'lottery', 'number-follow-up.html'),
     '/lottery/audit-dashboard':   os.path.join(BASE_DIR, 'frontend', 'lottery', 'audit-dashboard.html'),
     '/lottery/ac-calculator':    os.path.join(BASE_DIR, 'frontend', 'lottery', 'ac-calculator.html'),
+    '/lottery/combo-calculator': os.path.join(BASE_DIR, 'frontend', 'lottery', 'combo-calculator.html'),
     '/lottery/trend-classification': os.path.join(BASE_DIR, 'frontend', 'lottery', 'trend-classification.html'),
     '/lottery/omission-table':    os.path.join(BASE_DIR, 'frontend', 'lottery', 'omission-table.html'),
 }

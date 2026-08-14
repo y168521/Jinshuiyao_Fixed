@@ -134,6 +134,8 @@ function render(data){
   });
   html+='</tbody></table>';
   document.getElementById('tableWrap').innerHTML = html;
+  var ot = document.getElementById('omissionTable');
+  if (ot && window.enhanceTable) window.enhanceTable(ot, { filter: true });
 
   const filterLabels = ['全部','遗漏0期（已开出）','遗漏1~5期','遗漏6~15期','遗漏16期以上'];
   const filterVals = [null,0,1,6,16];

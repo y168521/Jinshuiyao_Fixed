@@ -84,7 +84,7 @@ async function refresh(){
              `<td><span class="badge ${stale?'b-stale':'b-fresh'}">${stale?'陈旧':'新鲜'}</span></td></tr>`;
     }).join('');
     document.getElementById('ts').textContent = '更新于 '+new Date(j.generated_at*1000).toLocaleTimeString('zh-CN',{hour12:false});
-    if (window.enhanceTable) { enhanceTable(document.getElementById('srcTable')); enhanceTable(document.getElementById('lotTable')); }
+    if (window.enhanceTable) { enhanceTable(document.getElementById('srcTable'), { filter: true }); enhanceTable(document.getElementById('lotTable'), { filter: true }); }
   }catch(e){
     document.getElementById('errBox').innerHTML = '<p class="err">刷新失败：'+e+'（server 可能未启动）</p>';
   }
