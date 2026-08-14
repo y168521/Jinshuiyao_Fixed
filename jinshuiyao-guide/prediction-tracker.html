@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 预测结果追踪 · 准确率看板</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+  :root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim);
+          --c-ok:var(--ok); --c-warn:var(--warn); --bad:var(--err); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:18px; }
+  .cards { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px; }
+  @media(max-width:900px){ .cards{ grid-template-columns:repeat(2,1fr); } }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; }
+  .stat .k { font-size:12px; color:var(--muted); margin-bottom:8px; }
+  .stat .v { font-size:26px; font-weight:700; }
+  .stat .s { font-size:12px; color:var(--muted); margin-top:6px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:18px; }
+  @media(max-width:900px){ .grid2{ grid-template-columns:1fr; } }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th,td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--border); }
+  th { color:var(--muted); font-weight:600; font-size:12px; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; font-weight:600; }
+  .b-hit { background:rgba(45,139,126,.15); color:var(--c-ok); }
+  .b-miss { background:rgba(200,117,90,.15); color:var(--bad); }
+  .b-pend { background:rgba(139,148,166,.15); color:var(--muted); }
+  .b-hot { background:rgba(45,139,126,.15); color:var(--c-ok); }
+  .b-mid { background:rgba(201,169,110,.18); color:var(--c-warn); }
+  .b-cold { background:rgba(200,117,90,.15); color:var(--bad); }
+  .b-none { background:rgba(139,148,166,.15); color:var(--muted); }
+  .scroll-x { overflow-x:auto; }
+  .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px; }
+  .btn { padding:4px 10px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--txt); font-size:12px; cursor:pointer; }
+  .btn:hover { border-color:var(--c-warn); color:var(--c-warn); }
+  .muted { color:var(--muted); }
+  .q { max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  @media(max-width:600px){ body{ padding:12px; } .card{ padding:12px; } }
+</style>
+</head>
+<body>
+  <div style="margin-bottom:10px;"><a href="/control-center" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回控制中心</a></div>
+  <div class="topbar">
+    <div><h1>🎯 预测结果追踪 · 准确率看板</h1><div class="sub">预测记录 vs 实际结果反馈闭环 · 各策略/域命中率统计 · 90天趋势 — 数据来自 <span class="muted">/api/prediction/*</span></div></div>
+    <div class="muted" id="ts">—</div>
+  </div>
+
+  <div class="cards" id="statCards"></div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2 style="font-size:15px;margin:0 0 12px;">📈 命中率趋势（近90天）</h2>
+      <div id="trendChart" style="height:260px;"></div>
+    </div>
+    <div class="card">
+      <h2 style="font-size:15px;margin:0 0 12px;">🧩 分域命中率</h2>
+      <div class="scroll-x"><table id="domainTable"><thead><tr><th>领域</th><th>预测数</th><th>命中</th><th>未命中</th><th>命中率</th><th>状态</th></tr></thead><tbody id="domainBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:15px;margin:0 0 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      🗒 预测明细（按时间倒序）
+      <select id="flt" class="btn" style="margin-left:auto;">
+        <option value="">全部</option>
+        <option value="hit">仅命中</option>
+        <option value="miss">仅未命中</option>
+        <option value="pending">仅未判定</option>
+      </select>
+      <button class="btn" onclick="exportCsv()">导出CSV</button>
+    </h2>
+    <div class="scroll-x">
+      <table id="detailTable"><thead><tr><th>时间</th><th>领域</th><th>预测内容</th><th>答案</th><th>结果</th><th>标注</th></tr></thead>
+      <tbody id="detailBody"><tr><td colspan="6" class="muted">加载中…</td></tr></tbody></table>
+    </div>
+    <div style="margin-top:10px;font-size:12px;color:var(--muted);">💡 预测记录由 AI 助手/各子系统分析时自动收录，开奖后可在本页标注命中/未命中，形成准确率反馈闭环。</div>
+  </div>
+  <div id="errBox"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/jinshuiyao-echarts-theme.js"></script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/state-ui.js"></script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/table-enhance.js"></script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/toast.js"></script>
+<script>
+let trendChart = null, allRecords = [];
+const DOMAIN_NAMES = { stock:'股票', fund:'基金', lottery:'彩票', football:'足彩', probe:'探测', other:'其他' };
+function dn(d){ return DOMAIN_NAMES[d] || d || '—'; }
+function fmtTs(t){ if(!t) return '—'; const d = new Date(t); return d.toLocaleString('zh-CN',{hour12:false}); }
+function rateStr(r){ if(r==null) return '—'; return (r*100).toFixed(1)+'%'; }
+function rateBadge(r){
+  if(r==null) return '<span class="badge b-none">未判定</span>';
+  if(r>=0.5) return '<span class="badge b-hot">'+(r*100).toFixed(1)+'%</span>';
+  if(r>=0.3) return '<span class="badge b-mid">'+(r*100).toFixed(1)+'%</span>';
+  return '<span class="badge b-cold">'+(r*100).toFixed(1)+'%</span>';
+}
+function outcomeBadge(o){
+  if(o==='hit') return '<span class="badge b-hit">命中</span>';
+  if(o==='miss') return '<span class="badge b-miss">未命中</span>';
+  return '<span class="badge b-pend">未判定</span>';
+}
+function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+async function loadStats(){
+  const wrap = document.getElementById('statCards');
+  StateUI.loading(wrap, '统计加载中…');
+  try{
+    const r = await fetch('/api/prediction/stats', {cache:'no-store'});
+    const j = await r.json();
+    if(!j.ok) throw new Error(j.error||'接口错误');
+    let total=0, hits=0, judged=0, totalRate=null;
+    const doms = j.by_domain || {};
+    Object.keys(doms).forEach(k=>{ const d=doms[k]; total+=d.total||0; hits+=d.hits||0; judged+=(d.hits||0)+(d.misses||0); });
+    if(judged>0) totalRate = hits/judged;
+    const rate30 = calcRate(j.trend||[], 30);
+    wrap.innerHTML =
+      '<div class="card stat"><div class="k">累计预测数</div><div class="v">'+total+'</div><div class="s">全部领域合计</div></div>' +
+      '<div class="card stat"><div class="k">已判定</div><div class="v">'+judged+'</div><div class="s">命中 '+hits+' · 未命中 '+(judged-hits)+'</div></div>' +
+      '<div class="card stat"><div class="k">综合命中率</div><div class="v" style="color:'+(totalRate==null?'var(--muted)':(totalRate>=0.5?'var(--c-ok)':(totalRate>=0.3?'var(--c-warn)':'var(--bad)')))+';">'+(totalRate==null?'—':(totalRate*100).toFixed(1)+'%')+'</div><div class="s">已判定 '+judged+' 条</div></div>' +
+      '<div class="card stat"><div class="k">近30天命中率</div><div class="v" style="color:'+(rate30==null?'var(--muted)':(rate30>=0.5?'var(--c-ok)':(rate30>=0.3?'var(--c-warn)':'var(--bad)')))+';">'+(rate30==null?'—':(rate30*100).toFixed(1)+'%')+'</div><div class="s">滚动统计</div></div>';
+    // 分域表
+    const db = document.getElementById('domainBody');
+    const keys = Object.keys(doms);
+    if(!keys.length){ StateUI.empty(db, '暂无预测记录', '去 AI 助手提问，系统自动收录预测'); }
+    else{
+      db.innerHTML = keys.map(k=>{
+        const d=doms[k];
+        const rate = ((d.hits||0)+(d.misses||0))>0 ? d.rate : null;
+        return '<tr><td>'+dn(k)+'</td><td>'+(d.total||0)+'</td><td>'+(d.hits||0)+'</td><td>'+(d.misses||0)+'</td><td>'+rateStr(rate)+'</td><td>'+rateBadge(rate)+'</td></tr>';
+      }).join('');
+    }
+    if (window.enhanceTable) enhanceTable(document.getElementById('domainTable'));
+    renderTrend(j.trend||[]);
+  }catch(e){
+    StateUI.error(wrap, '统计加载失败：'+esc(e.message), loadStats);
+  }
+}
+function calcRate(trend, n){
+  const seg = trend.slice(-n);
+  let t=0,h=0;
+  seg.forEach(x=>{ t+=x.total||0; h+=x.hits||0; });
+  return t>0 ? h/t : null;
+}
+function renderTrend(trend){
+  const dates = trend.map(x=>x.date), rates = trend.map(x=>{
+    const t=x.total||0, h=x.hits||0;
+    return t>0 ? +(h/t*100).toFixed(1) : null;
+  });
+  const el = document.getElementById('trendChart');
+  if(!window.echarts){ el.innerHTML='<div class="muted" style="padding:40px;text-align:center;">图表库未加载（需联网）</div>'; return; }
+  if(!trendChart) trendChart = echarts.init(el, 'jinshuiyao');
+  trendChart.setOption({
+    grid:{left:40,right:16,top:20,bottom:28},
+    tooltip:{trigger:'axis', formatter:function(ps){ const p=ps[0]; const d=trend[p.dataIndex]; return (d.date||'')+'<br/>预测 '+d.total+' 条 · 命中 '+d.hits+' 条<br/>命中率 '+(p.value==null?'—':p.value+'%'); }},
+    xAxis:{type:'category', data:dates, axisLabel:{fontSize:10, color:'#8A94A6'}},
+    yAxis:{type:'value', max:100, axisLabel:{formatter:'{value}%', fontSize:10, color:'#8A94A6'}},
+    series:[{name:'命中率', type:'line', data:rates, smooth:true, symbol:'none',
+      lineStyle:{color:'#C9A96E', width:2}, itemStyle:{color:'#C9A96E'},
+      areaStyle:{color:'rgba(201,169,110,.12)'},
+      connectNulls:false}]
+  });
+}
+
+async function loadDetails(){
+  const wrap = document.getElementById('detailBody');
+  StateUI.loading(wrap, '明细加载中…');
+  try{
+    const r = await fetch('/api/prediction/list', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({limit:100})});
+    const j = await r.json();
+    if(!j.ok) throw new Error(j.error||'接口错误');
+    allRecords = j.records||[];
+    renderDetails();
+  }catch(e){
+    StateUI.error(wrap, '明细加载失败：'+esc(e.message), loadDetails);
+  }
+}
+function renderDetails(){
+  const flt = document.getElementById('flt').value;
+  let recs = allRecords;
+  if(flt==='hit') recs = recs.filter(x=>x.outcome==='hit');
+  else if(flt==='miss') recs = recs.filter(x=>x.outcome==='miss');
+  else if(flt==='pending') recs = recs.filter(x=>!x.outcome);
+  const wrap = document.getElementById('detailBody');
+  if(!recs.length){ StateUI.empty(wrap, flt ? '该筛选下暂无记录' : '暂无预测记录', '去 AI 助手提问，系统自动收录预测'); return; }
+  wrap.innerHTML = recs.map(x=>
+    '<tr data-id="'+esc(x.id||'')+'"><td class="muted">'+fmtTs(x.time)+'</td>'+
+    '<td>'+dn(x.domain)+'</td>'+
+    '<td class="q" title="'+esc(x.question)+'">'+esc(x.question)+'</td>'+
+    '<td class="q" title="'+esc(x.answer)+'">'+esc(x.answer)+'</td>'+
+    '<td>'+outcomeBadge(x.outcome)+'</td>'+
+    '<td>'+markBtns(x)+'</td></tr>').join('');
+  if (window.enhanceTable) enhanceTable(document.getElementById('detailTable'));
+}
+function markBtns(x){
+  if(!x.id) return '<span class="muted">—</span>';
+  return '<button class="btn" data-v="hit" onclick="markOutcome(this,\''+esc(x.id)+'\',\'hit\')">命中</button> '+
+         '<button class="btn" data-v="miss" onclick="markOutcome(this,\''+esc(x.id)+'\',\'miss\')">未命中</button>'+
+         (x.outcome ? ' <button class="btn" data-v="" onclick="markOutcome(this,\''+esc(x.id)+'\',\'\')">清除</button>' : '');
+}
+async function markOutcome(btn, id, outcome){
+  try{
+    const r = await fetch('/api/prediction/outcome', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:id, outcome:outcome||null})});
+    const j = await r.json();
+    if(!j.ok) throw new Error(j.error||'保存失败');
+    showToast(outcome==='hit'?'已标记命中':(outcome==='miss'?'已标记未命中':'已清除标注'), 'success');
+    await loadStats(); loadDetails();
+  }catch(e){
+    showToast('标注失败：'+e.message, 'error');
+  }
+}
+function exportCsv(){
+  const tb = document.getElementById('detailTable');
+  exportTableCsv(tb, '预测明细_'+new Date().toISOString().slice(0,10)+'.csv');
+  showToast('已导出 CSV', 'success');
+}
+document.getElementById('flt').addEventListener('change', renderDetails);
+loadStats(); loadDetails();
+setInterval(loadStats, 60000);
+</script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
+</body>
+</html>

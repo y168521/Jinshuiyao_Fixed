@@ -15,6 +15,38 @@
     return t;
   }
 
+  function applySort(table, ths, idx, asc) {
+    for (var k = 0; k < ths.length; k++) {
+      var a = ths[k].lastChild;
+      if (a && a.tagName === "SPAN") a.textContent = (k === idx ? (asc ? "▲" : "▼") : "");
+    }
+    var rows = Array.prototype.slice.call(table.querySelectorAll("tbody tr"));
+    rows.sort(function (r1, r2) {
+      var c1 = r1.cells[idx], c2 = r2.cells[idx];
+      var v1 = c1 ? cellValue(c1) : "", v2 = c2 ? cellValue(c2) : "";
+      if (v1 === -Infinity) return 1;
+      if (v2 === -Infinity) return -1;
+      var cmp = (typeof v1 === "number" && typeof v2 === "number") ? (v1 - v2) : String(v1).localeCompare(String(v2), "zh-CN");
+      return asc ? cmp : -cmp;
+    });
+    var tbody = table.querySelector("tbody");
+    for (var r = 0; r < rows.length; r++) tbody.appendChild(rows[r]);
+  }
+
+  function sortKey(table) { return table.id ? "jsy_sort_" + table.id : null; }
+  function loadSort(table) {
+    if (!table.id) return null;
+    try {
+      var raw = localStorage.getItem(sortKey(table));
+      if (raw) { var d = JSON.parse(raw); if (typeof d.c === "number" && d.a !== undefined) return d; }
+    } catch (e) {}
+    return null;
+  }
+  function saveSort(table, idx, asc) {
+    if (!table.id) return;
+    try { localStorage.setItem(sortKey(table), JSON.stringify({ c: idx, a: asc })); } catch (e) {}
+  }
+
   window.enhanceTable = function (table, opts) {
     if (!table) return;
     var state = { key: -1, asc: true };
@@ -30,23 +62,15 @@
         th.appendChild(arrow);
         th.addEventListener("click", function () {
           if (state.key === idx) { state.asc = !state.asc; } else { state.key = idx; state.asc = true; }
-          for (var k = 0; k < ths.length; k++) {
-            var a = ths[k].lastChild;
-            if (a && a.tagName === "SPAN") a.textContent = (k === idx ? (state.asc ? "▲" : "▼") : "");
-          }
-          var rows = Array.prototype.slice.call(table.querySelectorAll("tbody tr"));
-          rows.sort(function (r1, r2) {
-            var c1 = r1.cells[idx], c2 = r2.cells[idx];
-            var v1 = c1 ? cellValue(c1) : "", v2 = c2 ? cellValue(c2) : "";
-            if (v1 === -Infinity) return 1;
-            if (v2 === -Infinity) return -1;
-            var cmp = (typeof v1 === "number" && typeof v2 === "number") ? (v1 - v2) : String(v1).localeCompare(String(v2), "zh-CN");
-            return state.asc ? cmp : -cmp;
-          });
-          var tbody = table.querySelector("tbody");
-          for (var r = 0; r < rows.length; r++) tbody.appendChild(rows[r]);
+          applySort(table, ths, idx, state.asc);
+          saveSort(table, idx, state.asc);
         });
       })(i, ths[i]);
+    }
+    var remembered = loadSort(table);
+    if (remembered && remembered.c < ths.length) {
+      state.key = remembered.c; state.asc = !!remembered.a;
+      applySort(table, ths, remembered.c, state.asc);
     }
   };
 
