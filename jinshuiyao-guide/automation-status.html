@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 自动化运行状态</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+  :root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:16px; }
+  .bar { display:flex; gap:8px; align-items:center; margin-bottom:16px; }
+  .btn { padding:6px 16px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--txt); font-size:13px; cursor:pointer; }
+  .btn:hover { border-color:#C9A96E; color:#C9A96E; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  @media(max-width:1000px){ .grid{ grid-template-columns:1fr 1fr; } }
+  @media(max-width:700px){ .grid{ grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+  .card h3 { font-size:14px; margin:0 0 8px; display:flex; align-items:center; gap:8px; }
+  .dot { width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .dot-ok { background:#2D8B7E; box-shadow:0 0 6px rgba(45,139,126,.8); }
+  .dot-err { background:#C8755A; box-shadow:0 0 6px rgba(200,117,90,.8); }
+  .dot-mid { background:#C9A96E; }
+  .dot-unk { background:#5B6B81; }
+  .meta { font-size:12px; color:var(--muted); margin-bottom:8px; }
+  .meta b { color:var(--txt); }
+  .recent { font-size:11px; color:var(--muted); line-height:1.7; border-top:1px dashed rgba(201,169,110,.2); padding-top:8px; max-height:130px; overflow-y:auto; }
+  .recent div { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .big-card { grid-column:1 / -1; display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+  .big-card .item { font-size:13px; color:var(--muted); }
+  .big-card .item b { color:var(--txt); font-size:16px; margin-right:4px; }
+  .muted { color:var(--muted); }
+</style>
+</head>
+<body>
+  <div style="margin-bottom:10px;"><a href="/control-center" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回控制中心</a></div>
+  <h1>🤖 自动化运行状态</h1>
+  <div class="sub">自动同步 · 看门狗 · 知识蒸馏 · Vault · 数据真相 — 系统自运转一览（30 秒自动刷新）</div>
+
+  <div class="bar">
+    <button class="btn" onclick="load()">刷新</button>
+    <span id="updated" class="muted" style="font-size:12px;"></span>
+  </div>
+  <div id="wrap"></div>
+
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/toast.js"></script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/state-ui.js"></script>
+<script>
+function esc(v){
+  return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function recentHtml(arr, max){
+  var list = (arr || []).slice(-max).reverse();
+  if(!list.length) return '<div>（暂无记录）</div>';
+  return list.map(function(x){ return '<div>' + esc(x) + '</div>'; }).join('');
+}
+function card(title, ok, lastKey, lastVal, arr, max){
+  var dot = ok === true ? 'dot-ok' : (ok === false ? 'dot-err' : (ok == null ? 'dot-unk' : 'dot-mid'));
+  var stateTxt = ok === true ? '正常' : (ok === false ? '异常' : '未知');
+  var last = lastKey && lastVal != null ? '<div class="meta"><b>' + esc(lastKey) + '</b>：' + esc(String(lastVal).replace('T',' ')) + '</div>' : '';
+  return '<div class="card"><h3><span class="dot ' + dot + '"></span>' + esc(title) + '<span style="font-size:11px;color:var(--muted);font-weight:400;">' + stateTxt + '</span></h3>' + last +
+    '<div class="recent">' + recentHtml(arr, max || 4) + '</div></div>';
+}
+function load(){
+  var wrap = document.getElementById('wrap');
+  fetch('/api/automation-status').then(function(r){ return r.json(); }).then(function(d){
+    document.getElementById('updated').textContent = '更新时间：' + String(d.updated_at || '').replace('T',' ') + '（30 秒自动刷新）';
+    if(!d || !d.server){
+      wrap.innerHTML = '';
+      StateUI.error(wrap, '状态接口异常', load);
+      return;
+    }
+    var sv = d.server;
+    var as = d.auto_sync || {}, wd = d.watchdog || {}, di = d.distill || {}, va = d.vault || {}, dt = d.data_truth || {};
+    var html =
+      '<div class="grid">' +
+      '<div class="card big-card">' +
+        '<div class="item"><b>' + (sv.alive ? '✅' : '❌') + '</b>导航服务器 ' + (sv.alive ? '存活' : '已停止') + '（端口 ' + esc(sv.port) + '）</div>' +
+        '<div class="item"><b>' + esc(dt.ok === true ? '✓' : (dt.ok === false ? '✗' : '·')) + '</b>数据真相：' + esc(dt.last_run || '').replace('T',' ') + '</div>' +
+      '</div>' +
+      card('自动同步 auto_sync', as.ok, '最近运行', as.last_run, as.recent, 4) +
+      card('看门狗 watchdog', wd.ok, '最近巡检', wd.last_run, wd.recent, 3) +
+      card('知识蒸馏 distill', di.ok, '最近蒸馏', di.last_run, di.recent, 3) +
+      card('Vault 知识库', va.ok, '最近同步', va.last_refresh, va.recent, 3) +
+      card('数据真相检查 data_truth', dt.ok, '最近检查', dt.last_run, dt.recent, 3) +
+      '</div>';
+    wrap.innerHTML = html;
+  }).catch(function(){
+    wrap.innerHTML = '';
+    StateUI.error(wrap, '请求失败，请确认服务器运行中', load);
+  });
+}
+load();
+setInterval(load, 30000);
+</script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
+</body>
+</html>

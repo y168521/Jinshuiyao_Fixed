@@ -53,6 +53,7 @@ _PAGE_ROUTES = {
     '/showcase':           'showcase.html',
     '/system-tools':       'system-tools.html',
     '/daily-report':       'daily-report.html',
+    '/automation-status':  'automation-status.html',
 }
 
 # 外部页面路由（不在 HTML_DIR 内的独立仪表板页面）

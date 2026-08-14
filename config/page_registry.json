@@ -349,6 +349,12 @@
       "route": "/daily-report",
       "category": "ai",
       "desc": "大脑日报：玩法健康度/自动调整结论/AI复盘（每日自动生成）"
+    },
+    {
+      "path": "jinshuiyao-guide/automation-status.html",
+      "route": "/automation-status",
+      "category": "system",
+      "desc": "自动化运行状态：同步/看门狗/蒸馏/Vault/数据真相"
     }
   ]
 }
