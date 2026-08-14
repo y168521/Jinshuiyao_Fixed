@@ -451,6 +451,11 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
             h_static.handle_frontend_errors(self)
             return
 
+        # /api/daily-report — 大脑日报读取（列表/指定日期/默认最新）
+        if parsed.path == '/api/daily-report':
+            h_static.handle_daily_report(self)
+            return
+
         # 已知页面路由（批量查表）
         if h_static.handle_page(self, parsed.path):
             return

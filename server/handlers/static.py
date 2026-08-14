@@ -52,6 +52,7 @@ _PAGE_ROUTES = {
     '/prediction-tracker': 'prediction-tracker.html',
     '/showcase':           'showcase.html',
     '/system-tools':       'system-tools.html',
+    '/daily-report':       'daily-report.html',
 }
 
 # 外部页面路由（不在 HTML_DIR 内的独立仪表板页面）
@@ -606,6 +607,45 @@ def handle_frontend_errors(handler):
         handler._send_json({'ok': True, 'total': total, 'errors': rows[-limit:]})
     except Exception as e:
         handler._send_json({'ok': False, 'message': '读取错误日志失败：%s' % e, 'total': 0, 'errors': []})
+
+
+def handle_daily_report(handler):
+    """GET /api/daily-report[?date=YYYY-MM-DD][&list=1] — 大脑日报读取
+
+    list=1 返回全部日报日期列表；否则返回指定日期（默认最新）日报的 markdown 原文。
+    """
+    import datetime
+    LOG_DIR = os.path.join(BASE_DIR, '金水谣数据', 'log')
+    q = urllib.parse.parse_qs(urllib.parse.urlparse(handler.path).query)
+    if q.get('list', [''])[0]:
+        dates = []
+        try:
+            for name in sorted(os.listdir(LOG_DIR)):
+                if name.startswith('大脑日报_') and name.endswith('.md'):
+                    dates.append(name[5:-3])
+        except Exception:
+            pass
+        handler._send_json({'ok': True, 'dates': dates})
+        return
+    date = q.get('date', [''])[0]
+    if date:
+        date = os.path.basename(date)  # 防路径穿越
+    if not date:
+        try:
+            from engines.brain_daily import _today
+            date = _today()
+        except Exception:
+            date = datetime.datetime.now().strftime('%Y-%m-%d')
+    p = os.path.join(LOG_DIR, '大脑日报_%s.md' % date)
+    if not os.path.isfile(p):
+        handler._send_json({'ok': True, 'date': date, 'exists': False, 'markdown': ''})
+        return
+    try:
+        with open(p, encoding='utf-8', errors='replace') as f:
+            md = f.read()
+        handler._send_json({'ok': True, 'date': date, 'exists': True, 'markdown': md})
+    except Exception as e:
+        handler._send_json({'ok': False, 'message': '读取日报失败：%s' % e})
 
 
 def handle_run_tests(handler):

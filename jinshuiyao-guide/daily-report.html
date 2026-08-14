@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 大脑日报</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+  :root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:16px; }
+  .bar { display:flex; gap:8px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+  select { padding:6px 10px; border-radius:6px; border:1px solid var(--border); background:#0F2238; color:var(--txt); font-size:13px; }
+  .btn { padding:6px 16px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--txt); font-size:13px; cursor:pointer; }
+  .btn:hover { border-color:#C9A96E; color:#C9A96E; }
+  .report { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:22px 26px; line-height:1.9; font-size:14px; }
+  .report h1 { font-size:19px; margin:0 0 10px; }
+  .report h2 { font-size:16px; margin:22px 0 8px; color:#C9A96E; border-bottom:1px solid rgba(201,169,110,.2); padding-bottom:4px; }
+  .report h3 { font-size:14px; margin:16px 0 6px; }
+  .report blockquote { margin:8px 0; padding:8px 14px; border-left:3px solid rgba(201,169,110,.5); background:rgba(201,169,110,.06); border-radius:0 6px 6px 0; color:var(--muted); }
+  .report table { border-collapse:collapse; margin:10px 0; width:100%; font-size:13px; }
+  .report th, .report td { border:1px solid rgba(201,169,110,.25); padding:6px 10px; text-align:left; }
+  .report th { background:rgba(201,169,110,.1); color:#C9A96E; font-weight:600; }
+  .report ul { margin:6px 0; padding-left:22px; }
+  .report li { margin:3px 0; }
+  .report strong { color:#C9A96E; }
+  .report hr { border:none; border-top:1px solid rgba(201,169,110,.15); margin:16px 0; }
+</style>
+</head>
+<body>
+  <div style="margin-bottom:10px;"><a href="/control-center" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回控制中心</a></div>
+  <h1>🧠 大脑日报</h1>
+  <div class="sub">智能大脑每日简报 — 玩法健康度 · 自动调整结论 · AI 复盘总结（每日自动生成）</div>
+
+  <div class="bar">
+    <select id="dateSel" onchange="loadReport(this.value)"><option value="">加载日期…</option></select>
+    <button class="btn" onclick="downloadMd()">下载 Markdown</button>
+    <button class="btn" onclick="loadList(true)">刷新</button>
+    <span id="genInfo" style="font-size:12px;color:var(--muted);"></span>
+  </div>
+  <div id="reportWrap"></div>
+
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/toast.js"></script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/state-ui.js"></script>
+<script>
+var currentDate = '';
+var currentMd = '';
+function esc(v){
+  return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function mdRender(md){
+  var lines = String(md||'').split('\n');
+  var html = [], i = 0, inTable = false;
+  function closeTable(){ if(inTable){ html.push('</tbody></table>'); inTable = false; } }
+  function inline(t){
+    t = esc(t);
+    t = t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    t = t.replace(/`([^`]+)`/g, '<code>$1</code>');
+    return t;
+  }
+  for(i=0;i<lines.length;i++){
+    var l = lines[i];
+    if(/^\s*\|/.test(l)){
+      var cells = l.split('|').slice(1,-1).map(function(c){ return c.trim(); });
+      if(!inTable){ inTable = true; html.push('<table><thead><tr>' + cells.map(function(c){ return '<th>'+inline(c)+'</th>'; }).join('') + '</tr></thead><tbody>'); }
+      else if(cells.length && /^[\s:|-]+$/.test(cells.join(''))){ /* 分隔行跳过 */ }
+      else { html.push('<tr>' + cells.map(function(c){ return '<td>'+inline(c)+'</td>'; }).join('') + '</tr>'); }
+      continue;
+    }
+    closeTable();
+    if(/^#{3}\s+/.test(l)) html.push('<h3>' + inline(l.replace(/^#{3}\s+/,'')) + '</h3>');
+    else if(/^#{2}\s+/.test(l)) html.push('<h2>' + inline(l.replace(/^#{2}\s+/,'')) + '</h2>');
+    else if(/^#{1}\s+/.test(l)) html.push('<h1>' + inline(l.replace(/^#{1}\s+/,'')) + '</h1>');
+    else if(/^>\s?/.test(l)) html.push('<blockquote>' + inline(l.replace(/^>\s?/,'')) + '</blockquote>');
+    else if(/^\s*[-*]\s+/.test(l)) html.push('<li>' + inline(l.replace(/^\s*[-*]\s+/,'')) + '</li>');
+    else if(/^\s*---+\s*$/.test(l)) html.push('<hr>');
+    else if(/^\s*$/.test(l)) html.push('');
+    else html.push('<p>' + inline(l) + '</p>');
+  }
+  closeTable();
+  return html.join('\n');
+}
+function loadReport(date){
+  currentDate = date;
+  var wrap = document.getElementById('reportWrap');
+  StateUI.loading(wrap, '加载日报…');
+  fetch('/api/daily-report' + (date ? '?date=' + encodeURIComponent(date) : '')).then(function(r){ return r.json(); }).then(function(d){
+    if(!d.ok){ wrap.innerHTML = ''; StateUI.error(wrap, d.message || '读取失败', function(){ loadReport(date); }); return; }
+    if(!d.exists){
+      wrap.innerHTML = '';
+      StateUI.empty(wrap, '没有找到 ' + d.date + ' 的日报', '日报每天自动生成；若系统刚上线可能暂无当日文件');
+      return;
+    }
+    currentMd = d.markdown;
+    wrap.innerHTML = '<div class="report">' + mdRender(d.markdown) + '</div>';
+  }).catch(function(){
+    wrap.innerHTML = '';
+    StateUI.error(wrap, '网络错误，请确认服务器运行中', function(){ loadReport(date); });
+  });
+}
+function loadList(selectNewest){
+  fetch('/api/daily-report?list=1').then(function(r){ return r.json(); }).then(function(d){
+    var sel = document.getElementById('dateSel');
+    if(!d.ok || !d.dates || !d.dates.length){
+      sel.innerHTML = '<option value="">暂无日报</option>';
+      document.getElementById('genInfo').textContent = '（日报未生成——请确认智能大脑定时任务运行）';
+      document.getElementById('reportWrap').innerHTML = '';
+      StateUI.empty(document.getElementById('reportWrap'), '暂无日报', '检查 金水谣数据/log/大脑日报_*.md 或智能大脑调度');
+      return;
+    }
+    var opts = d.dates.slice().reverse().map(function(dt){ return '<option value="' + dt + '">' + dt + '</option>'; }).join('');
+    sel.innerHTML = opts;
+    sel.value = currentDate || d.dates[d.dates.length-1];
+    document.getElementById('genInfo').textContent = '共 ' + d.dates.length + ' 份';
+    loadReport(sel.value);
+  }).catch(function(){});
+}
+function downloadMd(){
+  if(!currentMd){ showToast('当前没有可下载的日报','warn'); return; }
+  var blob = new Blob([currentMd], { type:'text/markdown;charset=utf-8;' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '大脑日报_' + currentDate + '.md';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  showToast('已下载','success');
+}
+loadList();
+</script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
+</body>
+</html>

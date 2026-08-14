@@ -343,6 +343,12 @@
       "route": "/system-tools",
       "category": "system",
       "desc": "系统工具箱：一键备份+前端错误日志"
+    },
+    {
+      "path": "jinshuiyao-guide/daily-report.html",
+      "route": "/daily-report",
+      "category": "ai",
+      "desc": "大脑日报：玩法健康度/自动调整结论/AI复盘（每日自动生成）"
     }
   ]
 }
