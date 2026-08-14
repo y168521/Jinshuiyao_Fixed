@@ -43,17 +43,18 @@
   <div class="grid">
     <div class="card">
       <h2>📊 数据源熔断状态</h2>
-      <div class="scroll-x"><table><thead><tr><th>数据源</th><th>状态</th><th>连续失败</th><th>成功/失败</th><th>最近失败</th></tr></thead>
+      <div class="scroll-x"><table id="srcTable"><thead><tr><th>数据源</th><th>状态</th><th>连续失败</th><th>成功/失败</th><th>最近失败</th></tr></thead>
       <tbody id="srcBody"><tr><td colspan="5" class="muted">加载中…</td></tr></tbody></table></div>
     </div>
     <div class="card">
       <h2>🗄️ 各彩种数据新鲜度</h2>
-      <table><thead><tr><th>彩种</th><th>数据年龄</th><th>状态</th></tr></thead>
+      <table id="lotTable"><thead><tr><th>彩种</th><th>数据年龄</th><th>状态</th></tr></thead>
       <tbody id="lotBody"><tr><td colspan="3" class="muted">加载中…</td></tr></tbody></table>
     </div>
   </div>
   <div id="errBox"></div>
 
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/table-enhance.js"></script>
 <script>
 function fmtTs(t){ if(!t) return '—'; const d=new Date(t*1000); return d.toLocaleTimeString('zh-CN',{hour12:false}); }
 function ageStr(m){ if(m===null||m===undefined) return '无数据'; if(m<60) return m+' 分钟'; if(m<1440) return Math.floor(m/60)+' 小时'; return Math.floor(m/1440)+' 天'; }
@@ -83,6 +84,7 @@ async function refresh(){
              `<td><span class="badge ${stale?'b-stale':'b-fresh'}">${stale?'陈旧':'新鲜'}</span></td></tr>`;
     }).join('');
     document.getElementById('ts').textContent = '更新于 '+new Date(j.generated_at*1000).toLocaleTimeString('zh-CN',{hour12:false});
+    if (window.enhanceTable) { enhanceTable(document.getElementById('srcTable')); enhanceTable(document.getElementById('lotTable')); }
   }catch(e){
     document.getElementById('errBox').innerHTML = '<p class="err">刷新失败：'+e+'（server 可能未启动）</p>';
   }

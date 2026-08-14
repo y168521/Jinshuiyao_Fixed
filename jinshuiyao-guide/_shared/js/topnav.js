@@ -226,3 +226,24 @@
   pollHealth();
   setInterval(pollHealth, 30000);
 })();
+
+/* Ctrl+K 全局页面搜索（懒加载 quick-search.js，避免阻塞首屏） */
+(function () {
+  var loaded = false;
+  function load() {
+    if (loaded) return;
+    loaded = true;
+    var s = document.createElement("script");
+    s.src = "/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/quick-search.js";
+    s.async = true;
+    document.head.appendChild(s);
+  }
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey && e.key.toLowerCase() === "k") load();
+  });
+  if (document.readyState === "complete" || document.readyState === "interactive") {
+    load();
+  } else {
+    document.addEventListener("DOMContentLoaded", load);
+  }
+})();

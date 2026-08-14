@@ -192,6 +192,7 @@ class JinshuiyaoScheduler(TaskScheduler):
             except Exception as e:
                 logger.warning("[%s] 注册失败（不影响其余定时任务）: %s", _name, e)
 
+    @staticmethod
     def _task_data_refresh():
         """数据刷新任务 - 抓取最新彩票/股票/足彩数据
 

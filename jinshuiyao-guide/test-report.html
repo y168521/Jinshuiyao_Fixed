@@ -408,7 +408,8 @@
     </div>
   </div>
 
-  <script>
+  <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/toast.js"></script>
+<script>
     // ===== 当前测试数据（全局变量）=====
     var currentLogContent = '';
 
@@ -643,18 +644,7 @@
     }
 
     // ===== Toast提示 =====
-    function showToast(message, type) {
-      var toast = document.createElement('div');
-      toast.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;transition:opacity 0.5s;';
-      toast.style.background = type === 'success' ? '#2D8B7E' : '#C8755A';
-      toast.style.color = '#fff';
-      toast.textContent = message;
-      document.body.appendChild(toast);
-      setTimeout(function() {
-        toast.style.opacity = '0';
-        setTimeout(function() { toast.remove(); }, 500);
-      }, 3000);
-    }
+    
 
     // 页面加载时获取数据
     loadTestResults();
