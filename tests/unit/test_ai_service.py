@@ -134,10 +134,13 @@ class TestAIServiceChatWithMock(unittest.TestCase):
 
     def test_chat_http_error(self):
         """API HTTP错误时返回空字符串并记录失败"""
+        from core import ai_service as m
         mock_resp = _make_error_response(429, "Rate limit")
 
         with patch.object(self.svc._session, 'post', return_value=mock_resp):
-            result = self.svc.chat("sys", "usr")
+            # 禁用fallback链，隔离单次调用的失败计数
+            result = self.svc.chat("sys", "usr",
+                                   _fallback_depth=len(m.FALLBACK_CHAIN))
             self.assertEqual(result, "")
             self.assertEqual(self.svc._fail_count, 1)
 
@@ -273,11 +276,13 @@ class TestAIServiceCircuitBreaker(unittest.TestCase):
 
     def test_circuit_breaker_resets_on_success(self):
         """成功调用后重置熔断计数"""
-        # 先失败3次
+        from core import ai_service as m
+        # 先失败3次（禁用fallback链，隔离单次调用的失败计数）
         mock_err = _make_error_response(500, "Server Error")
         with patch.object(self.svc._session, 'post', return_value=mock_err):
             for i in range(3):
-                self.svc.chat("sys", f"失败{i}")
+                self.svc.chat("sys", f"失败{i}",
+                              _fallback_depth=len(m.FALLBACK_CHAIN))
         self.assertEqual(self.svc._fail_count, 3)
 
         # 成功1次
@@ -324,13 +329,53 @@ class TestAIServiceFallbackOnError(unittest.TestCase):
             result = self.svc.chat("sys", "test")
             self.assertEqual(result, "")
 
+    def test_fallback_chain_advances_past_self(self):
+        """当前供应商为链首时失败，链仍须推进尝试下一供应商(JS-20260814-01)
+
+        修复前：provider==FALLBACK_CHAIN[0] 时 fallback 直接断头返回空，
+        整条链对默认供应商形同虚设。
+        """
+        import tempfile, shutil
+        import requests as req_lib
+        from core import ai_service as m
+        self.assertEqual(self.svc.provider, m.FALLBACK_CHAIN[0])
+        tmpdir = tempfile.mkdtemp()
+        old_secrets = m._SECRETS_DIR
+        m._SECRETS_DIR = tmpdir  # 空密钥目录：zhipu/dashscope 无密钥被跳过
+        try:
+            self.svc._retry_count = 0   # 不做同供应商重试，加速测试
+            self.svc._min_interval = 0
+            switched = []
+            real_switch = self.svc.switch_provider
+
+            def spy_switch(provider):
+                switched.append(provider)
+                return real_switch(provider)
+
+            with patch.object(self.svc._session, 'post',
+                              side_effect=req_lib.exceptions.ConnectionError("x")), \
+                 patch.object(self.svc, 'switch_provider',
+                              side_effect=spy_switch):
+                result = self.svc.chat("sys", "test")
+
+            self.assertEqual(result, "")
+            # 链推进到了下一个供应商（deepseek-reasoner），而非断头
+            self.assertIn(m.FALLBACK_CHAIN[1], switched)
+        finally:
+            m._SECRETS_DIR = old_secrets
+            shutil.rmtree(tmpdir, ignore_errors=True)
+
     def test_stats_track_failures(self):
         """统计信息正确追踪失败"""
         import requests as req_lib
+        from core import ai_service as m
         with patch.object(self.svc._session, 'post',
                           side_effect=req_lib.exceptions.ConnectionError("error")):
-            self.svc.chat("sys", "test1")
-            self.svc.chat("sys", "test2")
+            # 禁用fallback链，隔离单次调用的统计
+            self.svc.chat("sys", "test1",
+                          _fallback_depth=len(m.FALLBACK_CHAIN))
+            self.svc.chat("sys", "test2",
+                          _fallback_depth=len(m.FALLBACK_CHAIN))
 
         stats = self.svc.stats
         self.assertEqual(stats["total_calls"], 2)

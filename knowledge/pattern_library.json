@@ -155,7 +155,7 @@
       ],
       "source": "编码规范",
       "evidence": {
-        "source_count": 3,
+        "source_count": 4,
         "source_js": [
           "JS-20260723-29",
           "JS-20260723-34",
@@ -188,7 +188,7 @@
       ],
       "source": "编码规范",
       "evidence": {
-        "source_count": 3,
+        "source_count": 4,
         "source_js": [
           "JS-20260723-29",
           "JS-20260723-34",
@@ -224,7 +224,7 @@
       ],
       "source": "编码规范",
       "evidence": {
-        "source_count": 3,
+        "source_count": 4,
         "source_js": [
           "JS-20260723-29",
           "JS-20260723-34",
@@ -354,7 +354,7 @@
       ],
       "source": "编码规范",
       "evidence": {
-        "source_count": 6,
+        "source_count": 7,
         "source_js": [
           "JS-20260723-37",
           "JS-20260723-42",
@@ -390,7 +390,7 @@
       ],
       "source": "Python 最佳实践",
       "evidence": {
-        "source_count": 6,
+        "source_count": 7,
         "source_js": [
           "JS-20260723-37",
           "JS-20260723-42",
@@ -732,7 +732,7 @@
   ],
   "metadata": {
     "updated_at": "2026-07-29T23:00:00",
-    "evidence_extracted_at": "2026-08-12T14:23:30",
-    "evidence_source_cards": 63
+    "evidence_extracted_at": "2026-08-13T19:24:28",
+    "evidence_source_cards": 64
   }
 }

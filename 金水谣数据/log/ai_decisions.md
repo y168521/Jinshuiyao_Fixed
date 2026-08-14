@@ -951,3 +951,17 @@
 - **被否决方案**：把 review-dashboard 加进 static.py _PAGE_ROUTES —— 否决:router.py:320 已先响应 return, static 注册成永远走不到的死条目(债务-014 教训同类)。刷新 tools/.wrapup_baseline.txt 绕过地图检查 —— 否决:违背"新增文件强制登记"铁律, 治标不治本。
 - **成熟度**：高
 - **置信度**：高 —— 双真源模型有 router.py:320-322 实测支撑, 补登前后 check_file_map 输出 FAIL 变 PASS 直接证明。
+
+### 2026-08-14 ai_service 递归/fallback链死胡同/watcher自停止 三处修复 + 链推进回归测试（JS-20260814-01）
+
+- **属主**：Qoder
+- **做了什么**：全面复查修复3处逻辑BUG并收口级联问题: (1)core/ai_service.py 离线模式+Ollama 无限递归——offline 分支递归守卫加 `self.provider != "ollama"` 判定; (2)core/ai_service.py fallback 链自匹配死胡同——原 `if fallback_provider != self.provider` 为 False 时整块跳过直接 return ""，默认供应商 deepseek==链首导致整条链形同虚设，改为 while 循环跳过链中与当前供应商相同的位次再进入切换重试（不重复执行相同的失败请求）; (3)core/exp_box_extractor.py stop_experience_box_watcher 自 join 防护——join 前校验非当前线程。级联收口: 3 个按旧"链首断头"行为断言的单测改按既有惯例传 `_fallback_depth=len(FALLBACK_CHAIN)` 显式禁用链隔离单调用统计; 新增回归测试 test_fallback_chain_advances_past_self 钉死"链首失败必须推进到下一供应商"。
+- **为什么根因**：递归重入守卫只看模式不看"当前是否已在目标状态"，offline+ollama 时无限重入; fallback 链按 index 推进却在自匹配分支"跳过但不推进"，是重试链的典型断头漏洞; 线程 stop 无差别 join 在自线程内调用必 RuntimeError。三处共性: 守卫条件必须覆盖"已在目标态/已是自身"的退化情形。
+- **验证**：py_compile+ast.parse 全过; tests/unit/test_ai_service.py 36 passed（含新增回归测试）; tests/unit/test_fund_data_manager.py 33 passed; gate --check 红灯项逐个转绿后复跑。
+- **坑**：首版 else 分支 depth+1 递归虽能推进链，但会让同一供应商重复执行一次相同的失败请求，且激活链后 3 个旧单测红灯（它们依赖"链首断头=不重试"的旧行为断言失败计数）——修复行为变更必须同步审查依赖旧行为的测试; 改 fallback/重试链前先想清楚每个分支是否推进或终止。
+- **有效方法**：while 跳过自身位次比 else 递归少一次无效请求且语义更直白; 单测隔离 fallback 用 `_fallback_depth=len(FALLBACK_CHAIN)` 已是本库既有惯例(test_chat_dashscope_adaptive_model_switch); 行为修复配套回归测试用 switch_provider 探针记录切换序列，空密钥临时目录排除无关供应商干扰。
+- **关联文件**：`core/ai_service.py`(offline守卫 L803 / fallback while-skip L913起) · `core/exp_box_extractor.py`(stop自join防护) · `tests/unit/test_ai_service.py`(3测试隔离 + 1回归测试) · `启动提示词.txt`(gate.py纯标准库说明消歧)
+- **关联总索引**：JS-20260814-01
+- **被否决方案**：保留 else 分支 depth+1 递归推进 —— 否决:会对同一供应商重发一次相同的失败请求，浪费调用且污染失败统计; while 跳过自身位次更优。把 3 个红灯单测的断言数字直接改大 —— 否决:这些测试的意图是"单调用统计/熔断计数"，改数字等于让测试跟随实现漂移失去隔离价值，显式禁用链才保住断言语义。
+- **成熟度**：高
+- **置信度**：高 —— 回归测试直接证明链首失败后 switch 到 FALLBACK_CHAIN[1]，修复前该路径实测断头。

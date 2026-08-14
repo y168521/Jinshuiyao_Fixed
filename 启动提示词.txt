@@ -28,6 +28,6 @@
 > - 千万别用 py -3 / py -3.14 跑测试（系统Python缺依赖！必须用venv）
 > - 项目: C:\Users\Administrator\Nutstore\1\我的坚果云\模型\Jinshuiyao_Fixed\
 > - 端口: 18888 | 启动: 双击 启动金水谣助手.bat | ruff: ruff check
-> - 收工: py -3.14 tools/gate.py --check
+> - 收工: py -3.14 tools/gate.py --check（gate.py纯标准库，系统Python即可；pytest才需venv）
 
 > ⚠️ 原 11 份规范文档已合并为纲/契/录三层。旧文件（编码规范/模块契约/优化防乱/全视角审查/AI协作规范_完整版等）已归档，内容以三层为准。

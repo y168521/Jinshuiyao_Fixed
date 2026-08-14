@@ -1,7 +1,7 @@
 {
-  "_generated": "2026-08-12",
+  "_generated": "2026-08-13",
   "_schema": "v2",
-  "_count": 549,
+  "_count": 554,
   "_note": "文件→关联知识反向索引。由 tools/knowledge_index.py v2 自动生成，请勿手动编辑。",
   "entries": {
     "*_cookie.txt": [
@@ -2264,6 +2264,14 @@
         "source": "工作留痕总索引(表)"
       }
     ],
+    "domains/football/domain.py": [
+      {
+        "type": "exp",
+        "id": "EXP-112",
+        "summary": "基金系统三问题：3套名单打架 + 缓存过期不失效 + 关注列表无删除 [基金][缓存TTL][单一真源][数据更新]",
+        "source": "经验收集箱"
+      }
+    ],
     "domains/fund/analyzer.py": [
       {
         "type": "ad",
@@ -2630,6 +2638,12 @@
         "id": "JS-20260802-04",
         "summary": "全自动同步方案（省心模式）",
         "source": "工作留痕总索引"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-112",
+        "summary": "基金系统三问题：3套名单打架 + 缓存过期不失效 + 关注列表无删除 [基金][缓存TTL][单一真源][数据更新]",
+        "source": "经验收集箱"
       }
     ],
     "engines/killer.py": [
@@ -2708,6 +2722,14 @@
         "id": "PAT-009",
         "summary": "[PAT-009] 重复代码块（同逻辑多处复制）: 7 彩种三套重复抓取循环（~130行），加新源须改三处",
         "source": "pattern_library"
+      }
+    ],
+    "engines/lottery_stats.py": [
+      {
+        "type": "exp",
+        "id": "EXP-112",
+        "summary": "基金系统三问题：3套名单打架 + 缓存过期不失效 + 关注列表无删除 [基金][缓存TTL][单一真源][数据更新]",
+        "source": "经验收集箱"
       }
     ],
     "engines/math_selector/__init__.py": [
@@ -3616,6 +3638,14 @@
         "id": "JS-20260728-13",
         "summary": "WorkBuddy)",
         "source": "工作留痕总索引(dot)"
+      }
+    ],
+    "jinshuiyao/data/matches_supplemented.csv": [
+      {
+        "type": "exp",
+        "id": "EXP-112",
+        "summary": "基金系统三问题：3套名单打架 + 缓存过期不失效 + 关注列表无删除 [基金][缓存TTL][单一真源][数据更新]",
+        "source": "经验收集箱"
       }
     ],
     "jinshuiyao/data_fetcher.py": [
@@ -5374,6 +5404,12 @@
         "id": "EXP-067",
         "summary": "2026-07-23 WorkBuddy 的经验（彩票抓取 Layer1 S5+S6 实施 + 正反推导方法论补齐）[代",
         "source": "经验收集箱"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-112",
+        "summary": "基金系统三问题：3套名单打架 + 缓存过期不失效 + 关注列表无删除 [基金][缓存TTL][单一真源][数据更新]",
+        "source": "经验收集箱"
       }
     ],
     "server/handlers/lottery.py:68": [
@@ -5657,6 +5693,12 @@
         "type": "exp",
         "id": "EXP-073",
         "summary": "2026-07-23 WorkBuddy 的预测置信度 API 经验 [后端] [可视化] [API]",
+        "source": "经验收集箱"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-113",
+        "summary": "2026-08-13 gate 收尾红灯辨识:双真源路由检查器 + AGENTS.md 20 文件补登 [验收工具][文",
         "source": "经验收集箱"
       }
     ],
@@ -6408,6 +6450,12 @@
         "id": "JS-20260729-05",
         "summary": "知识索引系统 + 前瞻议程 + 开工雷达 + 全场扫描",
         "source": "工作留痕总索引"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-112",
+        "summary": "基金系统三问题：3套名单打架 + 缓存过期不失效 + 关注列表无删除 [基金][缓存TTL][单一真源][数据更新]",
+        "source": "经验收集箱"
       }
     ],
     "tools/page_api_lint.py": [
@@ -6465,6 +6513,12 @@
         "type": "exp",
         "id": "EXP-107",
         "summary": "2026-08-07 智能探路引擎·链路地图（W63补55 / JS-20260807-04）[探路][链路地图][诊断",
+        "source": "经验收集箱"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-112",
+        "summary": "基金系统三问题：3套名单打架 + 缓存过期不失效 + 关注列表无删除 [基金][缓存TTL][单一真源][数据更新]",
         "source": "经验收集箱"
       }
     ],
@@ -7524,6 +7578,14 @@
         "source": "经验收集箱"
       }
     ],
+    "让 agenda 保持新鲜（交接中心已列入收工动作可选）。\n## 2026-08-12 纯清理批次e：ast扫未用import+大函数拆分（拆2评2留12） [清理][大函数][ast工具]\n\n- **做了什么**：①自写 ast 脚本扫 server/handlers 全部未用 import（不依赖 pyflakes 安装）：9 个候选，核实上下文后删 7 处——chainmap/sys、filter/urllib.parse、lottery/base_dir（保留 html_dir）、prediction/threading+log、quant/log、review/json+log、trend/json；**保留 2 处**——football.py:76（poissonmodel）与 sync.py:25（device_sync）是\"探测性惰性 import\"：函数内 try import 判断功能可用性，ast 只数名字出现次数会误报未用，删了就破坏探测逻辑。②债务-215 拆分策略：dispatch_system（285 行）16 个 action 分支全提取为独立 _do_xxx helper + _handlers 字典分发，主函数 30 行；_register_default_tasks（193 行）改类级数据表 _tasks_always(11)/_tasks_conditional(3)/_tasks_safe(2) + 循环注册，实例化实测 29 任务（16 原生+13 镜像）与审计基线一致。③评估不拆：ai_agent.chat(208)/ai_service.chat(180) 读后判定已是方法化编排（_build_payload/_call_api/_dispatch_* 全独立），大行数是\"流程+注释\"自然结果，强拆只加间接层——审计点名的 4 个优先项完成 2 拆 2 评，其余 12 个线性/编排型转 p3 观察。\n- **踩过的坑**：①**ast 扫描 import 有盲区**——函数内\"探测性惰性 import\"（try import 判可用性）会被误报未用，删前必须逐个 grep 上下文核对，football/sync 就是反例；②**删 import 行要看清该行是否含多符号**——lottery.py": [
+      {
+        "type": "exp",
+        "id": "EXP-112",
+        "summary": "基金系统三问题：3套名单打架 + 缓存过期不失效 + 关注列表无删除 [基金][缓存TTL][单一真源][数据更新]",
+        "source": "经验收集箱"
+      }
+    ],
     "运行日志与临时文件/kb_lint_20260728.py": [
       {
         "type": "js",
@@ -8324,6 +8386,14 @@
         "id": "AD-JS-20260727-30 · 本地助手进化终局补齐：主动",
         "summary": "JS-20260727-30 · 本地助手进化终局补齐：主动提醒引擎 + 多角色生成/复核",
         "source": "ai_decisions.md"
+      }
+    ],
+    "；④数据表驱动重构后必须**实测注册数**（实例化调度器数任务），光靠编译/import 不保险。\n- **有效方法**：①ast 静态扫描写进 temp 一次性脚本（含 alias/asname 处理），比手 grep 快且全；②大函数先读结构再定策略——\"分支分发型\"（if/elif 树）提取 helper 最机械安全；\"数据表驱动型\"（重复注册块）提取数据表+循环；\"流程编排型\"（每步已方法化）不拆；③每类改动配专属验证：删 import→import 冒烟；调度器重构→实例化数任务数对比审计基线。\n- **下次注意**：①债务-215 剩余 12 个 p3 观察项（file_organizer 158/148、data_maintenance 148/106、scheduler 152/113、tk_style 138、pipeline_state 134、三个 extractor 127/120/117），除非有真实改动需求否则不动；②债务-110 顶层仪表盘等用户确认；③p1/p2 批债务 100-111/200-215 已全清，下次开工可直查登记册 p3 批。\n## 2026-08-12 探路闭环：e6假红口径修正+format_gen none崩溃根治 [探路][none防御][假红]\n\n- **做了什么**：①重跑 tools/route_probe.py 实测 5 通 1 断：e6\"足彩数据未接入(目录不存在)\"是**探测口径错误假红**——domains/football/domain.py 真实数据在 jinshuiyao/data/matches_supplemented.csv 等 4 份（域单例实测可用），探路却探测 金水谣数据/football/（从不存在的目录）。修 football_at() 改为 import domain 常量 matches_csv/fallback/real 逐个探测实际 csv + 数行数，重跑 6 链路 31 节点全通、0 失败 0 阻断——**探路闭环达成**。②探路 e 链路真实 generate 时炸出真 bug：engines/format_gen.py": [
+      {
+        "type": "exp",
+        "id": "EXP-112",
+        "summary": "基金系统三问题：3套名单打架 + 缓存过期不失效 + 关注列表无删除 [基金][缓存TTL][单一真源][数据更新]",
+        "source": "经验收集箱"
       }
     ]
   }

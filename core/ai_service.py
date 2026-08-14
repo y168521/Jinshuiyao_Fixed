@@ -801,7 +801,7 @@ class AIService:
 
         # 本地模式：尝试使用Ollama
         if self._mode == "offline":
-            if self._ollama_available:
+            if self._ollama_available and self.provider != "ollama":
                 old_provider = self.provider
                 self.switch_provider("ollama")
                 logger.debug("[ai_service] 离线模式，使用Ollama")
@@ -910,28 +910,32 @@ class AIService:
                             pass
             except Exception:
                 pass
+        # 当前供应商若就是链中下一项，先跳过自身位次
+        # （避免重复执行一次相同的失败请求，也避免链在此处断头）
+        while (_fallback_depth < len(FALLBACK_CHAIN)
+               and FALLBACK_CHAIN[_fallback_depth] == self.provider):
+            _fallback_depth += 1
         if _fallback_depth < len(FALLBACK_CHAIN):
             fallback_provider = FALLBACK_CHAIN[_fallback_depth]
-            if fallback_provider != self.provider:
-                # 跳过未配置密钥的远程供应商（避免在它处断链空手返回；
-                # deepseek 系保留环境变量回退，不受此限制）
-                _kf = PROVIDER_KEY_FILES.get(fallback_provider, "")
-                if _kf and _kf != "deepseek_key.txt" and not os.path.isfile(
-                        os.path.join(_SECRETS_DIR, _kf)):
-                    return self.chat(
-                        system_prompt, user_prompt, temperature, max_tokens,
-                        _fallback_depth=_fallback_depth + 1)
-                logger.info("[ai_service] 尝试fallback到: %s", fallback_provider)
-                old_provider = self.provider
-                self.switch_provider(fallback_provider)
-                try:
-                    result = self.chat(system_prompt, user_prompt,
-                                       temperature, max_tokens,
-                                       _fallback_depth=_fallback_depth + 1)
-                finally:
-                    # 恢复原供应商
-                    self.switch_provider(old_provider)
-                return result
+            # 跳过未配置密钥的远程供应商（避免在它处断链空手返回；
+            # deepseek 系保留环境变量回退，不受此限制）
+            _kf = PROVIDER_KEY_FILES.get(fallback_provider, "")
+            if _kf and _kf != "deepseek_key.txt" and not os.path.isfile(
+                    os.path.join(_SECRETS_DIR, _kf)):
+                return self.chat(
+                    system_prompt, user_prompt, temperature, max_tokens,
+                    _fallback_depth=_fallback_depth + 1)
+            logger.info("[ai_service] 尝试fallback到: %s", fallback_provider)
+            old_provider = self.provider
+            self.switch_provider(fallback_provider)
+            try:
+                result = self.chat(system_prompt, user_prompt,
+                                   temperature, max_tokens,
+                                   _fallback_depth=_fallback_depth + 1)
+            finally:
+                # 恢复原供应商
+                self.switch_provider(old_provider)
+            return result
 
         return ""
 

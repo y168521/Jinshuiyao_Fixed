@@ -130,6 +130,10 @@
 - [x] `GuideHandler._errors_recent`（server/router.py L48/L75-77/L482-484）加线程锁保护 —— **已收口：W63补81 / JS-20260813-02（2026-08-13 提交 31cb439）**。另注：同次审查的 `_send_json 未定义` 经核实为**误报**（定义在 GuideHandler L840，全项目 handler 统一收 GuideHandler 实例）
 
 ### 已完成 (近期)
+- [x] **ai_service.py 两处逻辑BUG修复**（2026-08-14 Qoder）：①离线模式+Ollama无限递归（加provider!=ollama守卫）②fallback链自匹配死胡同——默认供应商deepseek==链首导致整条链失效，改为while跳过自身位次再推进（不重发相同请求）；同步隔离3个依赖旧行为的单测+新增回归测试test_fallback_chain_advances_past_self，test_ai_service.py 36项全绿
+- [x] **exp_box_extractor.py watcher自停止保护**（2026-08-14 Qoder）：stop()加current_thread守卫防RuntimeError
+- [x] **启动提示词.txt歧义消除**（2026-08-14 Qoder）：收工行加"gate.py纯标准库"说明，消除与"别用py-3.14跑测试"的表面矛盾
+- [x] **关键文件哈希基线刷新**（2026-08-14 Qoder）：ai_service.py 为合法修复改动，跑 `wrapup_check.py --update-file-hash` 刷新360文件基线
 - [x] **基金详情页** `/fund/detail`：单只基金全景分析（净值走势+业绩指标+策略回测），TradingView 图表
 - [x] **定投模拟器** `/fund/dca`：基金定投模拟（每期金额/频率/费率可调，净值vs平均成本曲线）
 - [x] **基金持仓管理** `/fund/portfolio`：个人持仓增删查改 + 盈亏概览，API 对接 `FundDataManager`

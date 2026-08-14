@@ -270,7 +270,9 @@ def stop_experience_box_watcher() -> None:
             _watcher_stop.set()
             # join 确保旧线程真正退出，防止 stop→start 快速调用时
             # 新 start() 的 clear() 让旧线程误以为未停止而继续运行
-            _watcher_thread.join(timeout=5)
+            # 但不能 join 当前线程自身（会 RuntimeError）
+            if _watcher_thread is not threading.current_thread():
+                _watcher_thread.join(timeout=5)
             logger.info("[经验监听] 已停止监听线程")
         _watcher_thread = None
 
