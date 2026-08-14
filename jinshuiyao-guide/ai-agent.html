@@ -2889,7 +2889,74 @@
     })();
   </script>
 
-<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
+<script>
+(function () {
+  var PRESETS = [
+    { label: '分析福彩3D', text: '分析福彩3D最近30期的走势，给出本期推荐号码及理由' },
+    { label: '分析排列三', text: '分析排列三最近30期的走势，给出本期推荐号码及理由' },
+    { label: '分析双色球', text: '分析双色球最近30期走势，给出本期推荐组合及理由' },
+    { label: '分析大乐透', text: '分析大乐透最近30期走势，给出本期推荐组合及理由' },
+    { label: '复盘上一期', text: '复盘最近一期开奖：对比预测与实际开奖，评估命中情况并总结经验' },
+    { label: '生成定投方案', text: '为沪深300指数设计一份定投方案（金额/频率/止盈策略）' },
+    { label: '多因子选股', text: '用多因子模型筛选当前值得关注的A股，说明评分依据' },
+    { label: '引擎效果汇报', text: '汇总各预测引擎最近一周的效果表现' },
+    { label: '数据源健康检查', text: '检查各数据源健康状况，汇报异常和最近失败' }
+  ];
+  var box = document.getElementById('inputBox');
+  if (!box) return;
+  var menu = document.createElement('div');
+  menu.id = 'jsy-prompt-menu';
+  menu.style.cssText = 'position:absolute;left:0;right:0;bottom:100%;margin-bottom:4px;background:#0B1A2F;border:1px solid rgba(201,169,110,.4);border-radius:8px;box-shadow:0 -6px 24px rgba(0,0,0,.5);max-height:300px;overflow-y:auto;z-index:50;display:none;font-size:13px;';
+  box.style.position = 'relative';
+  box.parentNode.style.position = box.parentNode.style.position || 'relative';
+  box.parentNode.appendChild(menu);
+  var cur = -1;
+  function show(items) {
+    if (!items.length) { menu.style.display = 'none'; return; }
+    menu.innerHTML = items.map(function (it, i) {
+      return '<div data-i="' + i + '" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid rgba(201,169,110,.12);color:#D8DEE9;">' +
+        '<span style="color:#C9A96E;font-weight:600;">/' + it.label + '</span>' +
+        '<div style="color:#8A94A6;font-size:12px;margin-top:2px;">' + it.text + '</div></div>';
+    }).join('');
+    menu.style.display = 'block';
+    var divs = menu.querySelectorAll('[data-i]');
+    for (var i = 0; i < divs.length; i++) {
+      (function (d, item) {
+        d.addEventListener('click', function () {
+          box.value = item.text; box.focus(); menu.style.display = 'none';
+        });
+      })(divs[i], items[i]);
+    }
+  }
+  function currentItems() {
+    var v = box.value.trim();
+    if (v.length < 2 || v[0] !== '/') return null;
+    var q = v.slice(1).toLowerCase();
+    return PRESETS.filter(function (p) { return p.label.toLowerCase().indexOf(q) > -1 || p.text.toLowerCase().indexOf(q) > -1; });
+  }
+  box.addEventListener('input', function () {
+    var items = currentItems();
+    if (items) show(items); else menu.style.display = 'none';
+  });
+  box.addEventListener('keydown', function (e) {
+    var items = currentItems();
+    if (!items || !items.length) return;
+    var divs = menu.querySelectorAll('[data-i]');
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault(); e.stopImmediatePropagation();
+      cur = (cur + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+      for (var i = 0; i < divs.length; i++) divs[i].style.background = i === cur ? 'rgba(201,169,110,.18)' : '';
+    } else if (e.key === 'Enter' && cur >= 0 && cur < items.length) {
+      e.preventDefault(); e.stopImmediatePropagation();
+      box.value = items[cur].text; box.focus(); menu.style.display = 'none'; cur = -1;
+    } else if (e.key === 'Escape') {
+      menu.style.display = 'none'; cur = -1;
+    }
+  });
+  box.addEventListener('blur', function () { setTimeout(function () { menu.style.display = 'none'; }, 150); });
+})();
+</script>
+  <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
 <script src="_shared/js/error-monitor.js"></script>
 </body>
 </html>

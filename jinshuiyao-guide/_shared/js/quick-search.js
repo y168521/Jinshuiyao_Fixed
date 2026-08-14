@@ -190,4 +190,34 @@ window.JSY_SEARCH_INDEX = [
       open();
     }
   });
+
+  /* ===== 快捷键帮助面板（按 ? 呼出）===== */
+  var helpBox = null;
+  function openHelp() {
+    if (helpBox) { helpBox.style.display = 'block'; return; }
+    helpBox = document.createElement('div');
+    helpBox.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);width:440px;max-width:92vw;z-index:99999;background:#0B1A2F;border:1px solid rgba(201,169,110,.4);border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.6);padding:16px;color:#D8DEE9;font-size:13px;';
+    helpBox.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(201,169,110,.25);padding-bottom:10px;margin-bottom:12px;">' +
+      '<b style="color:#C9A96E;font-size:14px;">⌨ 快捷键帮助</b>' +
+      '<span style="color:#5B6B81;font-size:11px;">Esc 关闭</span></div>' +
+      '<table style="width:100%;border-collapse:collapse;font-size:12.5px;">' +
+      '<tr><td style="padding:6px 4px;"><kbd style="background:rgba(201,169,110,.15);border:1px solid rgba(201,169,110,.4);border-radius:4px;padding:1px 7px;font-size:11px;">Ctrl</kbd> + <kbd style="background:rgba(201,169,110,.15);border:1px solid rgba(201,169,110,.4);border-radius:4px;padding:1px 7px;font-size:11px;">K</kbd></td><td style="padding:6px 4px;color:#8A94A6;">全局搜索（54 个页面）</td></tr>' +
+      '<tr><td style="padding:6px 4px;"><kbd style="background:rgba(201,169,110,.15);border:1px solid rgba(201,169,110,.4);border-radius:4px;padding:1px 7px;font-size:11px;">?</kbd></td><td style="padding:6px 4px;color:#8A94A6;">本帮助面板</td></tr>' +
+      '<tr><td style="padding:6px 4px;"><kbd style="background:rgba(201,169,110,.15);border:1px solid rgba(201,169,110,.4);border-radius:4px;padding:1px 7px;font-size:11px;">/</kbd></td><td style="padding:6px 4px;color:#8A94A6;">AI 助手内快捷指令（如 /分析3D）</td></tr>' +
+      '<tr><td style="padding:6px 4px;"><kbd style="background:rgba(201,169,110,.15);border:1px solid rgba(201,169,110,.4);border-radius:4px;padding:1px 7px;font-size:11px;">↑</kbd><kbd style="background:rgba(201,169,110,.15);border:1px solid rgba(201,169,110,.4);border-radius:4px;padding:1px 7px;font-size:11px;">↓</kbd></td><td style="padding:6px 4px;color:#8A94A6;">搜索列表选择</td></tr>' +
+      '<tr><td style="padding:6px 4px;"><kbd style="background:rgba(201,169,110,.15);border:1px solid rgba(201,169,110,.4);border-radius:4px;padding:1px 7px;font-size:11px;">Enter</kbd></td><td style="padding:6px 4px;color:#8A94A6;">跳转选中项</td></tr>' +
+      '<tr><td style="padding:6px 4px;"><kbd style="background:rgba(201,169,110,.15);border:1px solid rgba(201,169,110,.4);border-radius:4px;padding:1px 7px;font-size:11px;">Esc</kbd></td><td style="padding:6px 4px;color:#8A94A6;">关闭弹层</td></tr>' +
+      '</table>';
+    document.body.appendChild(helpBox);
+    document.addEventListener('mousedown', function (e) {
+      if (helpBox && !helpBox.contains(e.target)) helpBox.style.display = 'none';
+    });
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === '?') {
+      e.preventDefault();
+      openHelp();
+    }
+  });
 })();

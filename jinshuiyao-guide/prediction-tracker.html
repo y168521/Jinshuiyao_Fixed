@@ -81,6 +81,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
 <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/jinshuiyao-echarts-theme.js"></script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/chart-export.js"></script>
 <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/state-ui.js"></script>
 <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/table-enhance.js"></script>
 <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/toast.js"></script>
@@ -151,6 +152,7 @@ function renderTrend(trend){
   const el = document.getElementById('trendChart');
   if(!window.echarts){ el.innerHTML='<div class="muted" style="padding:40px;text-align:center;">图表库未加载（需联网）</div>'; return; }
   if(!trendChart) trendChart = echarts.init(el, 'jinshuiyao');
+  if (window.bindChartExport && !el.dataset.exportBound) { el.dataset.exportBound = '1'; bindChartExport(el, trendChart, '命中率趋势.png'); }
   trendChart.setOption({
     grid:{left:40,right:16,top:20,bottom:28},
     tooltip:{trigger:'axis', formatter:function(ps){ const p=ps[0]; const d=trend[p.dataIndex]; return (d.date||'')+'<br/>预测 '+d.total+' 条 · 命中 '+d.hits+' 条<br/>命中率 '+(p.value==null?'—':p.value+'%'); }},
