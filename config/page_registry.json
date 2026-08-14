@@ -325,6 +325,12 @@
       "route": "/prediction-tracker",
       "category": "lottery",
       "desc": "预测结果追踪·准确率看板"
+    },
+    {
+      "path": "jinshuiyao-guide/showcase.html",
+      "route": "/showcase",
+      "category": "dev",
+      "desc": "组件库展示·统一组件用法"
     }
   ]
 }

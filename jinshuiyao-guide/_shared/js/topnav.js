@@ -247,3 +247,21 @@
     document.addEventListener("DOMContentLoaded", load);
   }
 })();
+
+/* 顶部加载进度条：页面资源加载完成前显示细进度条，load 后淡出 */
+(function () {
+  var pb = document.createElement("div");
+  pb.id = "jsy-progress-bar";
+  pb.style.cssText = "position:fixed;top:0;left:0;height:2px;width:20%;background:#C9A96E;z-index:100000;transition:width .5s ease,opacity .4s ease;opacity:0.9;";
+  document.body.appendChild(pb);
+  if (document.readyState === "complete") {
+    pb.style.width = "100%";
+    setTimeout(function () { pb.style.opacity = "0"; }, 300);
+  } else {
+    requestAnimationFrame(function () { pb.style.width = "80%"; });
+    window.addEventListener("load", function () {
+      pb.style.width = "100%";
+      setTimeout(function () { pb.style.opacity = "0"; }, 350);
+    });
+  }
+})();

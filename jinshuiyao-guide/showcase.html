@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 组件库展示</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+  :root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:18px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media(max-width:1000px){ .grid{ grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; }
+  .card h2 { font-size:15px; margin:0 0 12px; display:flex; align-items:center; gap:8px; }
+  .card h2 .tag { font-size:10px; color:var(--muted); font-weight:400; }
+  .demo { padding:14px; border:1px dashed rgba(201,169,110,.35); border-radius:8px; margin-bottom:12px; }
+  code { background:rgba(201,169,110,.1); border:1px solid rgba(201,169,110,.25); border-radius:4px; padding:1px 6px; font-size:12px; color:#C9A96E; }
+  .usage { font-size:12px; color:var(--muted); line-height:1.8; }
+  .usage b { color:var(--txt); }
+  .sw { display:inline-block; width:72px; height:40px; border-radius:8px; margin:6px; vertical-align:top; border:1px solid rgba(255,255,255,.12); }
+  .sw div { font-size:10px; padding:2px 4px; color:#D8DEE9; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th,td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--border); }
+  th { color:var(--muted); font-weight:600; font-size:12px; }
+  .btn { padding:6px 16px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--txt); font-size:13px; cursor:pointer; margin-right:8px; }
+  .btn:hover { border-color:#C9A96E; color:#C9A96E; }
+  .btn-primary { background:rgba(201,169,110,.85); border-color:#C9A96E; color:#0B1A2F; font-weight:600; }
+  .btn-primary:hover { background:#C9A96E; color:#0B1A2F; }
+  .btn-danger { border-color:rgba(200,117,90,.7); color:#C8755A; }
+  .btn-danger:hover { background:rgba(200,117,90,.15); }
+  .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; font-weight:600; margin-right:6px; }
+  .b-gold { background:rgba(201,169,110,.18); color:#C9A96E; }
+  .b-green { background:rgba(45,139,126,.15); color:#2D8B7E; }
+  .b-red { background:rgba(200,117,90,.15); color:#C8755A; }
+  .b-blue { background:rgba(59,130,246,.15); color:#3B82F6; }
+  .b-gray { background:rgba(139,148,166,.15); color:#8A94A6; }
+  .scroll-x { overflow-x:auto; }
+</style>
+</head>
+<body>
+  <div style="margin-bottom:10px;"><a href="/control-center" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回控制中心</a></div>
+  <h1>🧩 金水谣组件库 · 展示与用法</h1>
+  <div class="sub">共享组件一览 — 新页面开发直接照抄本节用法，保证全站视觉一致 · 全部组件位于 <code>jinshuiyao-guide/_shared/js/</code></div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>🎨 七色体系（theme.css 变量）<span class="tag">全部页面自动可用</span></h2>
+      <div class="demo">
+        <span class="sw" style="background:var(--deep);"><div>--deep 底色</div></span>
+        <span class="sw" style="background:var(--card-bg);"><div>--card-bg 卡片</div></span>
+        <span class="sw" style="background:#C9A96E;"><div>--gold 金主色</div></span>
+        <span class="sw" style="background:var(--ok);"><div>--ok 成功绿</div></span>
+        <span class="sw" style="background:var(--warn);"><div>--warn 警示金</div></span>
+        <span class="sw" style="background:var(--err);"><div>--err 错误红</div></span>
+        <span class="sw" style="background:var(--ice);"><div>--ice 冷蓝</div></span>
+      </div>
+      <div class="usage"><b>用法</b>：任何页面 <code>&lt;link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css"&gt;</code> 后直接用 <code>var(--deep)</code> 等变量，深浅色自动一致。</div>
+    </div>
+
+    <div class="card">
+      <h2>🔘 按钮 <span class="tag">无依赖，直接写 class</span></h2>
+      <div class="demo">
+        <button class="btn">默认</button>
+        <button class="btn btn-primary">主要操作</button>
+        <button class="btn btn-danger">危险操作</button>
+        <button class="btn" disabled style="opacity:.5;">禁用</button>
+      </div>
+      <div class="usage"><b>注意</b>：危险操作必须配 <code>confirm()</code> 二次确认（铁律 9.2）。</div>
+    </div>
+
+    <div class="card">
+      <h2>🔔 Toast 提示 <span class="tag">toast.js</span></h2>
+      <div class="demo">
+        <button class="btn" onclick="showToast('保存成功', 'success')">成功</button>
+        <button class="btn" onclick="showToast('接口失败，请重试', 'error')">失败</button>
+        <button class="btn" onclick="showToast('参数异常', 'warn')">警告</button>
+        <button class="btn" onclick="showToast('正在处理…', 'info')">信息</button>
+      </div>
+      <div class="usage"><b>用法</b>：页面加 <code>&lt;script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/toast.js"&gt;&lt;/script&gt;</code>，调 <code>showToast(消息, 'success'|'error'|'warn'|'info')</code>。禁止页面内再写本地 showToast。</div>
+    </div>
+
+    <div class="card">
+      <h2>📦 状态组件 <span class="tag">state-ui.js</span></h2>
+      <div class="demo" id="stateDemo" style="min-height:90px;"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn" onclick="StateUI.loading(document.getElementById('stateDemo'),'加载中…')">加载中</button>
+        <button class="btn" onclick="StateUI.error(document.getElementById('stateDemo'),'网络异常',function(){alert('点击了重试');})">失败+重试</button>
+        <button class="btn" onclick="StateUI.empty(document.getElementById('stateDemo'),'暂无数据','去 AI 助手提问，系统自动收录')">空态</button>
+      </div>
+      <div class="usage" style="margin-top:10px;"><b>用法</b>：<code>StateUI.loading(el, 文案)</code> / <code>StateUI.error(el, 原因, 重试回调)</code> / <code>StateUI.empty(el, 文案, 引导)</code>。统一覆盖加载/失败/空态。</div>
+    </div>
+
+    <div class="card">
+      <h2>📊 表格增强 <span class="tag">table-enhance.js</span></h2>
+      <div class="demo scroll-x">
+        <table id="demoTable"><thead><tr><th>彩种</th><th>近10期遗漏</th><th>命中率</th><th>状态</th></tr></thead>
+        <tbody>
+          <tr><td>福彩3D</td><td>12</td><td>43.2%</td><td>正常</td></tr>
+          <tr><td>排列三</td><td>6</td><td>51.8%</td><td>热</td></tr>
+          <tr><td>双色球</td><td>23</td><td>28.4%</td><td>冷</td></tr>
+          <tr><td>大乐透</td><td>—</td><td>35.0%</td><td>正常</td></tr>
+        </tbody></table>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" onclick="exportTableCsv(document.getElementById('demoTable'),'演示.csv')">导出CSV</button>
+      </div>
+      <div class="usage" style="margin-top:10px;"><b>用法</b>：<code>enhanceTable(表格元素)</code> 表头点击排序（排序记忆自动，同 id 表重开保持）；<code>exportTableCsv(表格, 文件名)</code> 导出 Excel 兼容 CSV。</div>
+    </div>
+
+    <div class="card">
+      <h2>🗂 徽标 Badge</h2>
+      <div class="demo">
+        <span class="badge b-gold">金色警示</span>
+        <span class="badge b-green">状态正常</span>
+        <span class="badge b-red">错误/冷</span>
+        <span class="badge b-blue">信息</span>
+        <span class="badge b-gray">未判定</span>
+      </div>
+      <div class="usage"><b>语义约定</b>：绿=正常/命中，红=异常/未命中，金=警告，蓝=信息，灰=未知。状态表达请同时配文字，不只靠颜色（色盲友好）。</div>
+    </div>
+
+    <div class="card">
+      <h2>⌨ 全局快捷键 <span class="tag">quick-search.js（topnav 自动加载）</span></h2>
+      <div class="demo">
+        <p style="margin:4px 0;"><kbd><code>Ctrl+K</code></kbd> 全局搜索（54 个页面，含最近访问）</p>
+        <p style="margin:4px 0;"><kbd><code>?</code></kbd> 快捷键帮助面板</p>
+        <p style="margin:4px 0;"><kbd><code>/</code></kbd> AI 助手内快捷指令菜单</p>
+        <p style="margin:4px 0;"><kbd><code>Esc</code></kbd> 关闭所有弹层</p>
+      </div>
+      <div class="usage"><b>注意</b>：所有引用了 <code>topnav.js</code> 的页面自动具备，无需额外引入。</div>
+    </div>
+
+    <div class="card">
+      <h2>⤓ 图表存图 <span class="tag">chart-export.js</span></h2>
+      <div class="demo">
+        <p style="margin:4px 0;color:var(--muted);">echarts 图表右上角自动出现"存图"按钮，或代码调用：</p>
+        <p style="margin:4px 0;"><code>saveChartImage(chart实例, '文件名.png')</code></p>
+        <p style="margin:4px 0;"><code>bindChartExport(chart容器, chart实例, '文件名')</code></p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🛡 顶栏 & 导航 <span class="tag">topnav.js</span></h2>
+      <div class="demo">
+        <p style="margin:4px 0;color:var(--muted);">页面底部 <code>&lt;script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"&gt;&lt;/script&gt;</code></p>
+        <p style="margin:4px 0;color:var(--muted);">自动获得：品牌 Logo、四子系统入口（当前页金色高亮）、AI助手、更多下拉、健康指示灯（30s 轮询）、返回门户。</p>
+        <p style="margin:4px 0;color:var(--muted);">子页面顶部须保留 back-link 回上级（导航完备性铁律）。</p>
+      </div>
+    </div>
+  </div>
+
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/toast.js"></script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/state-ui.js"></script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/table-enhance.js"></script>
+<script>
+StateUI.empty(document.getElementById('stateDemo'), '点击上方按钮预览三种状态', '加载/失败+重试/空态');
+enhanceTable(document.getElementById('demoTable'));
+</script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
+</body>
+</html>

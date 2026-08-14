@@ -50,6 +50,7 @@ _PAGE_ROUTES = {
     '/chain-map':          'chain-map.html',
     '/agent-pipeline':     'agent-pipeline-visualizer.html',
     '/prediction-tracker': 'prediction-tracker.html',
+    '/showcase':           'showcase.html',
 }
 
 # 外部页面路由（不在 HTML_DIR 内的独立仪表板页面）

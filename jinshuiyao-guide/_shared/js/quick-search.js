@@ -52,7 +52,8 @@ window.JSY_SEARCH_INDEX = [
   {"n": "金水谣 · 股票分析仪表盘", "r": "/stock/dashboard", "d": "股票分析仪表盘", "c": "stock"},
   {"n": "金水谣 · 足彩分析中心", "r": "/football", "d": "足彩分析中心(Hub)", "c": "football"},
   {"n": "金水谣足彩预测 - AI赛前模拟", "r": "/football/dashboard", "d": "足彩分析仪表盘", "c": "football"},
-  {"n": "金水谣 · 预测结果追踪 · 准确率看板", "r": "/prediction-tracker", "d": "预测结果追踪·准确率看板", "c": "lottery"}
+  {"n": "金水谣 · 预测结果追踪 · 准确率看板", "r": "/prediction-tracker", "d": "预测结果追踪·准确率看板", "c": "lottery"},
+  {"n": "金水谣 · 组件库展示", "r": "/showcase", "d": "组件库展示·统一组件用法", "c": "dev"}
 ];
 
 (function () {

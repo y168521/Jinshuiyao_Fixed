@@ -1711,6 +1711,7 @@
           addMessage('ai', humanizeReply(d.reply) || '请求失败，请稍后重试');
         }
         isSending = false;
+        if (window.notifyAnswerDone) notifyAnswerDone(true, text);
         sendBtn.disabled = false;
         inputBox.focus();
       })
@@ -1718,6 +1719,7 @@
         typingEl.remove();
         addMessage('ai', '网络错误，请确认导航服务器正在运行。');
         isSending = false;
+        if (window.notifyAnswerDone) notifyAnswerDone(false, text);
         sendBtn.disabled = false;
       });
     }
@@ -2891,7 +2893,7 @@
 
 <script>
 (function () {
-  var PRESETS = [
+  var DEFAULT_PRESETS = [
     { label: '分析福彩3D', text: '分析福彩3D最近30期的走势，给出本期推荐号码及理由' },
     { label: '分析排列三', text: '分析排列三最近30期的走势，给出本期推荐号码及理由' },
     { label: '分析双色球', text: '分析双色球最近30期走势，给出本期推荐组合及理由' },
@@ -2902,6 +2904,24 @@
     { label: '引擎效果汇报', text: '汇总各预测引擎最近一周的效果表现' },
     { label: '数据源健康检查', text: '检查各数据源健康状况，汇报异常和最近失败' }
   ];
+  var CUSTOM_KEY = 'jsy_custom_commands';
+  function getCustom() {
+    try { var a = JSON.parse(localStorage.getItem(CUSTOM_KEY) || '[]'); return Array.isArray(a) ? a : []; }
+    catch (e) { return []; }
+  }
+  function getPresets() { return DEFAULT_PRESETS.concat(getCustom()); }
+  window.notifyAnswerDone = function (ok, question) {
+    if (!document.hidden || !window.Notification) return;
+    if (Notification.permission === 'default') {
+      Notification.requestPermission().then(function (p) {
+        if (p === 'granted') new Notification(ok ? 'AI 分析完成' : 'AI 分析失败', { body: String(question || '').slice(0, 40) });
+      });
+      return;
+    }
+    if (Notification.permission === 'granted') {
+      try { new Notification(ok ? 'AI 分析完成' : 'AI 分析失败', { body: String(question || '').slice(0, 40) }); } catch (e) {}
+    }
+  };
   var box = document.getElementById('inputBox');
   if (!box) return;
   var menu = document.createElement('div');
@@ -2913,11 +2933,15 @@
   var cur = -1;
   function show(items) {
     if (!items.length) { menu.style.display = 'none'; return; }
-    menu.innerHTML = items.map(function (it, i) {
+    var html = items.map(function (it, i) {
+      var isCustom = it._custom;
       return '<div data-i="' + i + '" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid rgba(201,169,110,.12);color:#D8DEE9;">' +
         '<span style="color:#C9A96E;font-weight:600;">/' + it.label + '</span>' +
+        (isCustom ? '<span style="color:#5B6B81;font-size:10px;margin-left:6px;">自定义</span>' : '') +
         '<div style="color:#8A94A6;font-size:12px;margin-top:2px;">' + it.text + '</div></div>';
-    }).join('');
+    }).join('') +
+      '<div data-save="1" style="padding:8px 12px;cursor:pointer;color:#5B6B81;font-size:12px;border-top:1px dashed rgba(201,169,110,.2);">＋ 将当前内容存为自定义指令（共 ' + getPresets().length + ' 条）</div>';
+    menu.innerHTML = html;
     menu.style.display = 'block';
     var divs = menu.querySelectorAll('[data-i]');
     for (var i = 0; i < divs.length; i++) {
@@ -2927,12 +2951,29 @@
         });
       })(divs[i], items[i]);
     }
+    var save = menu.querySelector('[data-save]');
+    save.addEventListener('click', function () {
+      var v = box.value.trim();
+      if (v.length < 3 || v[0] !== '/') { menu.style.display = 'none'; return; }
+      var label = v.slice(1).split(/[ ？?\n]/)[0].slice(0, 12);
+      if (!label) label = '自定义' + (getCustom().length + 1);
+      var custom = getCustom();
+      custom.push({ label: label, text: v.slice(1) });
+      try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(custom)); } catch (e) {}
+      show(getPresets().filter(function (p) { return p.label.toLowerCase().indexOf(v.slice(1).toLowerCase()) > -1 || p.text.toLowerCase().indexOf(v.slice(1).toLowerCase()) > -1; }));
+    });
   }
   function currentItems() {
     var v = box.value.trim();
     if (v.length < 2 || v[0] !== '/') return null;
     var q = v.slice(1).toLowerCase();
-    return PRESETS.filter(function (p) { return p.label.toLowerCase().indexOf(q) > -1 || p.text.toLowerCase().indexOf(q) > -1; });
+    var hits = getPresets().filter(function (p) { return p.label.toLowerCase().indexOf(q) > -1 || p.text.toLowerCase().indexOf(q) > -1; });
+    hits.forEach(function (h) { h._custom = false; });
+    var customs = getCustom();
+    var byLabel = {};
+    hits.forEach(function (h) { byLabel[h.label] = h; });
+    customs.forEach(function (c) { if (byLabel[c.label]) byLabel[c.label]._custom = true; });
+    return hits;
   }
   box.addEventListener('input', function () {
     var items = currentItems();
