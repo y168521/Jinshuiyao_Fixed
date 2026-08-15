@@ -978,3 +978,16 @@
 - **被否决方案**：①托盘/全局快捷键/文件关联等桌面级集成 —— 否决：本项目是浏览器 Web 形态，浏览器页面无法注册全局快捷键，工程量大收益低；②同步冲突自动合并/冲突历史 —— 否决：坚果云双机 + git 已有冲突防线，自动合并风险高；③知识图谱可视化 —— 否决：需图数据库与前端渲染框架，工程量过大；④定时任务 Cron 可视化编辑 —— 否决：调度器按 interval 分钟注册，无 Cron 语义，改造成本高；⑤错误码体系化 —— 否决：后端无错误码枚举，逐处埋点成本高，先做"聚合诊断"满足排查需求。
 - **成熟度**：中
 - **置信度**：中 —— 冒烟与契约全过，浏览器交互（看板日志联动/全屏 Esc/诊断复制）待用户实测。
+
+### 2026-08-15 豆包清单收官：顶栏同步时间 + 更新日志页（opencode）
+- **属主**：opencode
+- **做了什么**：`jinshuiyao-guide/_shared/js/topnav.js` 健康指示灯 ok 分支新增 fetchSyncTime()（异步读 /api/automation-status 的 auto_sync.last_run，拼入 dot.title，_syncHintLoaded 防重复）；`jinshuiyao-guide/changelog.html` 更新日志页 + `server/handlers/static.py::handle_changelog` 新增 GET /api/changelog（subprocess git log --pretty=%h|%ad|%s --date=short -30，只读本地仓库，timeout=10）。
+- **为什么根因**：豆包补充篇 45 项评估后剩余"同步延迟提示"（轻量版=健康灯 title）与"更新日志可视化"（git 提交即版本历史，多 AI 协作需要"最近改了什么"的可视入口）成本可控且真有用；其余候选（彩蛋/打印/内存）价值过低不值得做。
+- **验证**：pyjsparser ES5 ALL PASS；check_consistency PASS；page_api_lint 契约 OK（62 页 108 API）；重启后冒烟 5 端点 200（/api/changelog total=30，首条 8e6818c）。
+- **坑**：PowerShell 内联 python -c 含引号+中文再次解析失败——必须临时脚本；git subprocess 需 encoding='utf-8', errors='replace' 防中文提交信息解码异常。
+- **有效方法**：只读 API 一律 subprocess timeout 防挂；title 提示异步拼接不阻塞；注册链一次走完（registry+路由+控制中心+导航指南+quick-search）。
+- **关联文件**：`jinshuiyao-guide/_shared/js/topnav.js` · `jinshuiyao-guide/changelog.html` · `server/handlers/static.py` · `server/router.py`
+- **关联总索引**：JS-20260815-03
+- **被否决方案**：空状态彩蛋/打印样式/错误人话化逐页/内存监控卡 —— 否决：价值过低或被既有功能（一键诊断 W63补94）覆盖。
+- **成熟度**：中
+- **置信度**：中 —— 冒烟与契约全过，浏览器交互（健康灯 hover 提示、日志页渲染）待用户实测。

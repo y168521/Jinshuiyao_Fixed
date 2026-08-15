@@ -455,6 +455,10 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
         # /api/knowledge/list — 知识卡片浏览（分页/子系统筛选/关键词）
         if parsed.path == '/api/knowledge/list':
             h_static.handle_knowledge_list(self)
+        # /api/changelog — 最近更新日志（git log）
+        if parsed.path == '/api/changelog':
+            h_static.handle_changelog(self)
+            return
             return
 
         if parsed.path == '/api/daily-report':

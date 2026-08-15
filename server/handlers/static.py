@@ -56,6 +56,7 @@ _PAGE_ROUTES = {
     '/automation-status':  'automation-status.html',
     '/scheduler-board':    'scheduler-board.html',
     '/knowledge-browser':  'knowledge-browser.html',
+    '/changelog':          'changelog.html',
 }
 
 # 外部页面路由（不在 HTML_DIR 内的独立仪表板页面）
@@ -700,6 +701,26 @@ def handle_knowledge_list(handler):
             'created': str(created)[:19] if created else '',
         })
     handler._send_json({'ok': True, 'total': total, 'subsystems': subs, 'cards': rows})
+
+
+def handle_changelog(handler):
+    """GET /api/changelog — 最近更新日志（git log 最近 30 条提交）
+
+    纯只读本仓库 git 历史，返回 hash/日期/提交信息，供前端展示"最近改了什么"。
+    """
+    import subprocess
+    try:
+        r = subprocess.run(
+            ['git', '-C', BASE_DIR, 'log', '--pretty=%h|%ad|%s', '--date=short', '-30'],
+            capture_output=True, timeout=10, encoding='utf-8', errors='replace')
+        rows = []
+        for line in (r.stdout or '').strip().splitlines():
+            parts = line.split('|', 2)
+            if len(parts) >= 3:
+                rows.append({'hash': parts[0], 'date': parts[1], 'msg': parts[2]})
+        handler._send_json({'ok': True, 'total': len(rows), 'logs': rows})
+    except Exception as e:
+        handler._send_json({'ok': False, 'message': '读取 git 日志失败：%s' % e, 'total': 0, 'logs': []})
 
 
 def handle_run_tests(handler):

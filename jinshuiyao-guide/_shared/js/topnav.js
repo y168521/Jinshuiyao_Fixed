@@ -17,6 +17,28 @@
   /* ====== 健康状态指示器 ====== */
   var _healthStatus = "unknown"; // unknown | ok | degraded | error
   var _healthDetail = "";
+  var _syncHintLoaded = false;
+
+  function fetchSyncTime() {
+    if (_syncHintLoaded) return;
+    var xhr = new XMLHttpRequest();
+    xhr.timeout = 6000;
+    xhr.open("GET", "/api/automation-status?t=" + Date.now(), true);
+    xhr.onload = function () {
+      try {
+        if (xhr.status !== 200) return;
+        var d = JSON.parse(xhr.responseText);
+        var t = d.auto_sync && d.auto_sync.last_run;
+        if (!t) return;
+        _syncHintLoaded = true;
+        var dot = document.getElementById("ts-health-dot");
+        if (!dot) return;
+        var txt = String(t).replace("T", " ").slice(0, 19);
+        dot.title = (dot.title ? dot.title + "\n" : "") + "自动同步最近：" + txt;
+      } catch (e) { /* 静默失败，下次再试 */ }
+    };
+    xhr.send(null);
+  }
 
   function updateHealthDot(status, detail) {
     _healthStatus = status || "unknown";
@@ -28,6 +50,7 @@
     dot.title = status === "ok"
       ? "服务器运行正常"
       : "服务器状态: " + status + (detail ? "\n" + detail : "");
+    if (status === "ok") fetchSyncTime();
   }
 
   function pollHealth() {

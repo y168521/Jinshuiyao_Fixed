@@ -367,6 +367,12 @@
    "route": "/knowledge-browser",
    "category": "ai",
    "desc": "知识库浏览：全部知识卡片分类筛选+搜索+分页"
+  },
+  {
+   "path": "jinshuiyao-guide/changelog.html",
+   "route": "/changelog",
+   "category": "system",
+   "desc": "更新日志：git 最近30次提交一览"
   }
  ]
 }

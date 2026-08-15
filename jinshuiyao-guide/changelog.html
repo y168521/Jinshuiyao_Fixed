@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 更新日志</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+  :root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:16px; }
+  .bar { display:flex; gap:8px; align-items:center; margin-bottom:14px; }
+  .btn { padding:6px 16px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--txt); font-size:13px; cursor:pointer; }
+  .btn:hover { border-color:#C9A96E; color:#C9A96E; }
+  .stats { display:flex; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+  .stat { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:10px 16px; font-size:13px; color:var(--muted); }
+  .stat b { color:var(--txt); font-size:17px; margin-right:4px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin-bottom:10px; display:flex; gap:14px; align-items:flex-start; }
+  .hash { font-size:11px; color:#C9A96E; background:rgba(201,169,110,.1); border-radius:6px; padding:2px 8px; white-space:nowrap; margin-top:2px; }
+  .msg { font-size:13px; color:var(--txt); line-height:1.6; flex:1; }
+  .date { font-size:12px; color:var(--muted); white-space:nowrap; margin-top:2px; }
+  .muted { color:var(--muted); }
+  .today { box-shadow:inset 3px 0 0 #C9A96E; }
+</style>
+</head>
+<body>
+  <div style="margin-bottom:10px;"><a href="/control-center" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回控制中心</a></div>
+  <h1>🕒 更新日志</h1>
+  <div class="sub">最近 30 次代码提交 — 多 AI 协作的每一次改动都可追溯（数据源：git log，只读）</div>
+
+  <div class="bar">
+    <button class="btn" onclick="load()">刷新</button>
+    <span id="updated" class="muted" style="font-size:12px;"></span>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div id="listWrap">
+    <div class="muted" style="padding:20px;text-align:center;">加载中…</div>
+  </div>
+
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/toast.js"></script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/state-ui.js"></script>
+<script>
+function esc(v){
+  return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function load(){
+  var wrap = document.getElementById('listWrap');
+  fetch('/api/changelog').then(function(r){ return r.json(); }).then(function(d){
+    if(!d.ok){ wrap.innerHTML=''; StateUI.error(wrap, d.message || '读取失败', load); return; }
+    var logs = d.logs || [];
+    document.getElementById('updated').textContent = '刷新时间：' + new Date().toLocaleTimeString();
+    if(!logs.length){ wrap.innerHTML=''; StateUI.empty(wrap, '暂无提交记录', '仓库还没有 git 提交'); return; }
+    var today = new Date().toISOString().slice(0,10);
+    var todayN = 0, weekN = 0;
+    var weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-7);
+    var weekAgoS = weekAgo.toISOString().slice(0,10);
+    logs.forEach(function(l){
+      if(l.date === today) todayN++;
+      if(l.date >= weekAgoS) weekN++;
+    });
+    document.getElementById('stats').innerHTML =
+      '<div class="stat"><b>' + logs.length + '</b>最近提交</div>' +
+      '<div class="stat"><b>' + todayN + '</b>今日提交</div>' +
+      '<div class="stat"><b>' + weekN + '</b>近 7 天</div>';
+    var html = '';
+    logs.forEach(function(l){
+      html += '<div class="card' + (l.date === today ? ' today' : '') + '">' +
+        '<span class="hash">' + esc(l.hash) + '</span>' +
+        '<span class="msg">' + esc(l.msg) + '</span>' +
+        '<span class="date">' + esc(l.date) + '</span></div>';
+    });
+    wrap.innerHTML = html;
+  }).catch(function(){
+    wrap.innerHTML='';
+    StateUI.error(wrap, '请求失败，请确认服务器运行中', load);
+  });
+}
+load();
+</script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
+</body>
+</html>
