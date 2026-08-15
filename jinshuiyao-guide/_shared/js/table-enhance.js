@@ -50,10 +50,54 @@
   window.enhanceTable = function (table, opts) {
     if (!table) return;
     opts = opts || {};
-    var state = { key: -1, asc: true };
+    var state = { key: -1, asc: true, page: 1, q: "" };
+    var pageSize = opts.pageSize || 20;
     var thead = table.querySelector("thead");
     if (!thead) return;
     var ths = thead.querySelectorAll("th");
+    var filterWrap = null, filterInp = null, hintEl = null, pagerEl = null, rowsCache = null;
+
+    function visibleRows() {
+      if (!rowsCache || rowsCache.length !== table.querySelectorAll("tbody tr").length) {
+        rowsCache = Array.prototype.slice.call(table.querySelectorAll("tbody tr"));
+      }
+      return rowsCache;
+    }
+
+    function render() {
+      var rows = visibleRows();
+      var q = state.q;
+      var matched = [];
+      for (var i = 0; i < rows.length; i++) {
+        var hit = !q || (rows[i].textContent || "").toLowerCase().indexOf(q) > -1;
+        rows[i].style.display = "none";
+        if (hit) matched.push(rows[i]);
+      }
+      if (opts.pagination && matched.length > pageSize) {
+        var total = matched.length;
+        var pages = Math.ceil(total / pageSize);
+        if (state.page > pages) state.page = pages;
+        if (state.page < 1) state.page = 1;
+        var from = (state.page - 1) * pageSize;
+        var to = Math.min(from + pageSize, total);
+        for (var p = from; p < to; p++) matched[p].style.display = "";
+        if (pagerEl) pagerEl.innerHTML = pagerHtml(state.page, pages, total);
+      } else {
+        state.page = 1;
+        for (var m = 0; m < matched.length; m++) matched[m].style.display = "";
+        if (pagerEl) pagerEl.innerHTML = "";
+      }
+      if (hintEl) hintEl.textContent = q ? "匹配 " + matched.length + " / " + rows.length + " 行" : "";
+    }
+
+    function pagerHtml(page, pages, total) {
+      var bstyle = 'style="margin-left:8px;padding:3px 12px;border-radius:6px;border:1px solid rgba(201,169,110,.35);background:transparent;color:#D8DEE9;font-size:12px;cursor:pointer;"';
+      var h = '<span style="color:var(--muted);font-size:12px;">共 ' + total + ' 条 · 第 ' + page + ' / ' + pages + ' 页</span> ';
+      h += '<button type="button" data-pg="prev" ' + bstyle + '>‹ 上一页</button>';
+      h += '<button type="button" data-pg="next" ' + bstyle + '>下一页 ›</button>';
+      return h;
+    }
+
     for (var i = 0; i < ths.length; i++) {
       (function (idx, th) {
         th.style.cursor = "pointer";
@@ -65,6 +109,8 @@
           if (state.key === idx) { state.asc = !state.asc; } else { state.key = idx; state.asc = true; }
           applySort(table, ths, idx, state.asc);
           saveSort(table, idx, state.asc);
+          rowsCache = null;
+          render();
         });
       })(i, ths[i]);
     }
@@ -79,40 +125,54 @@
       }
     }
     if (opts.filter) {
-      var prevWrap = table.previousElementSibling;
-      if (!(prevWrap && prevWrap.className === "jsy-table-filter")) {
-        var wrap = document.createElement("div");
-        wrap.className = "jsy-table-filter";
-        wrap.style.cssText = "margin-bottom:8px;position:relative;";
-        var inp = document.createElement("input");
-        inp.type = "text";
-        inp.placeholder = "🔍 输入关键字过滤（支持表内任意列，不区分大小写）";
-        inp.style.cssText = "width:100%;padding:6px 10px;border-radius:6px;border:1px solid rgba(201,169,110,.35);background:rgba(0,0,0,.25);color:inherit;font-size:12px;";
-        var hint = document.createElement("div");
-        hint.className = "jsy-filter-hint";
-        hint.style.cssText = "position:absolute;right:8px;top:7px;font-size:11px;color:rgba(232,236,241,.4);pointer-events:none;";
-        var doFilter = function () {
-          var q = inp.value.trim().toLowerCase();
-          var rows = table.querySelectorAll("tbody tr");
-          var vis = 0;
-          for (var r = 0; r < rows.length; r++) {
-            var hit = !q || (rows[r].textContent || "").toLowerCase().indexOf(q) > -1;
-            rows[r].style.display = hit ? "" : "none";
-            if (hit) vis++;
-          }
-          hint.textContent = q ? "匹配 " + vis + " / " + rows.length + " 行" : "";
-        };
-        inp.addEventListener("input", doFilter);
-        wrap.appendChild(inp);
-        wrap.appendChild(hint);
-        table.parentNode.insertBefore(wrap, table);
+      filterWrap = table.previousElementSibling;
+      if (!(filterWrap && filterWrap.className === "jsy-table-filter")) {
+        filterWrap = document.createElement("div");
+        filterWrap.className = "jsy-table-filter";
+        filterWrap.style.cssText = "margin-bottom:8px;position:relative;";
+        filterInp = document.createElement("input");
+        filterInp.type = "text";
+        filterInp.placeholder = "🔍 输入关键字过滤（支持表内任意列，不区分大小写）";
+        filterInp.style.cssText = "width:100%;padding:6px 10px;border-radius:6px;border:1px solid rgba(201,169,110,.35);background:rgba(0,0,0,.25);color:inherit;font-size:12px;";
+        hintEl = document.createElement("div");
+        hintEl.className = "jsy-filter-hint";
+        hintEl.style.cssText = "position:absolute;right:8px;top:7px;font-size:11px;color:rgba(232,236,241,.4);pointer-events:none;";
+        filterInp.addEventListener("input", function () {
+          state.q = filterInp.value.trim().toLowerCase();
+          state.page = 1;
+          render();
+        });
+        filterWrap.appendChild(filterInp);
+        filterWrap.appendChild(hintEl);
+        table.parentNode.insertBefore(filterWrap, table);
+      } else {
+        filterInp = filterWrap.querySelector("input");
+        hintEl = filterWrap.querySelector(".jsy-filter-hint");
+      }
+    }
+    if (opts.pagination) {
+      pagerEl = table.nextElementSibling;
+      if (!(pagerEl && pagerEl.className === "jsy-pager")) {
+        pagerEl = document.createElement("div");
+        pagerEl.className = "jsy-pager";
+        pagerEl.style.cssText = "margin-top:8px;text-align:right;font-size:12px;";
+        pagerEl.addEventListener("click", function (e) {
+          var btn = e.target;
+          if (!btn || !btn.getAttribute || !btn.getAttribute("data-pg")) return;
+          if (btn.getAttribute("data-pg") === "prev" && state.page > 1) state.page--;
+          if (btn.getAttribute("data-pg") === "next") state.page++;
+          render();
+        });
+        table.parentNode.insertBefore(pagerEl, table.nextSibling);
       }
     }
     var remembered = loadSort(table);
     if (remembered && remembered.c < ths.length) {
       state.key = remembered.c; state.asc = !!remembered.a;
       applySort(table, ths, remembered.c, state.asc);
+      rowsCache = null;
     }
+    render();
   };
 
   function esc(v) {

@@ -193,7 +193,7 @@ function renderDetails(){
     '<td class="q" title="'+esc(x.answer)+'">'+esc(x.answer)+'</td>'+
     '<td>'+outcomeBadge(x.outcome)+'</td>'+
     '<td>'+markBtns(x)+'</td></tr>').join('');
-  if (window.enhanceTable) enhanceTable(document.getElementById('detailTable'), { filter: true });
+  if (window.enhanceTable) enhanceTable(document.getElementById('detailTable'), { filter: true, pagination: true, pageSize: 15 });
 }
 function markBtns(x){
   if(!x.id) return '<span class="muted">—</span>';
