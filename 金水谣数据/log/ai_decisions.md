@@ -965,3 +965,16 @@
 - **被否决方案**：保留 else 分支 depth+1 递归推进 —— 否决:会对同一供应商重发一次相同的失败请求，浪费调用且污染失败统计; while 跳过自身位次更优。把 3 个红灯单测的断言数字直接改大 —— 否决:这些测试的意图是"单调用统计/熔断计数"，改数字等于让测试跟随实现漂移失去隔离价值，显式禁用链才保住断言语义。
 - **成熟度**：高
 - **置信度**：高 —— 回归测试直接证明链首失败后 switch 到 FALLBACK_CHAIN[1]，修复前该路径实测断头。
+
+### 2026-08-15 豆包清单第三批：看板/知识库/诊断/全屏（opencode）
+- **属主**：opencode
+- **做了什么**：依据豆包补充篇 45 项筛选后落地 4 项——①`jinshuiyao-guide/scheduler-board.html` 定时任务看板（纯前端复用 `/api/scheduler/status` 29 任务 + `/api/scheduler/log` 联动，失败红点 + 30s 刷新，零后端改动）；②`jinshuiyao-guide/knowledge-browser.html` 知识库浏览 + `server/handlers/static.py::handle_knowledge_list` 新增 `/api/knowledge/list`（读 mirofish_db 全 276 卡，subsystem 筛选/关键词/分页 20，subsystems 动态生成下拉）；③`system-tools.html` 一键诊断卡（前端 Promise.all 聚合 automation-status/scheduler-status/frontend-errors/backup 生成可复制诊断报告）；④`_shared/js/chart-export.js` 存图旁新增全屏按钮（克隆容器 + echarts 重渲染 + Esc 退出）。
+- **为什么根因**：豆包 45 项中桌面级（托盘/全局快捷键/文件关联）、冲突处理、知识图谱、工作流编排等对浏览器 Web 形态不适用或工程量过大，且顶栏健康灯/备份/通知已覆盖同步与备份；真正缺口是"任务状态不可见、知识库不可浏览、报错不可诊断"。
+- **验证**：pyjsparser ES5 全 PASS；check_consistency PASS；page_api_lint 契约 OK（63 页 108 API）；重启后 urllib 冒烟 10 端点全 200（知识 list total=276、subsystems={global:255, lottery:21}、q=预测=7）。
+- **坑**：`server/router.py` 为 CRLF 换行，PowerShell 内联 python -c 多行 replace 锚点失效（曾误报成功实际未写入）→ 改按行定位插入并用 find 二次确认；`/api/knowledge/list` 在 router 知识库段已有 knowledge.py 版（POST 语义），GET 分支必须插在 daily-report 之后，否则落入静态层 403"不支持的文件类型"。
+- **有效方法**：先探测现有 API 再决定做不做（/api/scheduler/status 早已存在）；新页面走注册链（registry + 路由表 + 控制中心 + 导航指南 + quick-search 索引 + back-link）；知识分类用 API 动态返回而非写死。
+- **关联文件**：`server/handlers/static.py` · `server/router.py` · `config/page_registry.json` · `jinshuiyao-guide/scheduler-board.html` · `jinshuiyao-guide/knowledge-browser.html` · `jinshuiyao-guide/system-tools.html` · `jinshuiyao-guide/_shared/js/chart-export.js`
+- **关联总索引**：JS-20260815-02
+- **被否决方案**：①托盘/全局快捷键/文件关联等桌面级集成 —— 否决：本项目是浏览器 Web 形态，浏览器页面无法注册全局快捷键，工程量大收益低；②同步冲突自动合并/冲突历史 —— 否决：坚果云双机 + git 已有冲突防线，自动合并风险高；③知识图谱可视化 —— 否决：需图数据库与前端渲染框架，工程量过大；④定时任务 Cron 可视化编辑 —— 否决：调度器按 interval 分钟注册，无 Cron 语义，改造成本高；⑤错误码体系化 —— 否决：后端无错误码枚举，逐处埋点成本高，先做"聚合诊断"满足排查需求。
+- **成熟度**：中
+- **置信度**：中 —— 冒烟与契约全过，浏览器交互（看板日志联动/全屏 Esc/诊断复制）待用户实测。

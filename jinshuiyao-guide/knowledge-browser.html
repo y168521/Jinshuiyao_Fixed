@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 知识库浏览</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+  :root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:16px; }
+  .bar { display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+  .btn { padding:6px 16px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--txt); font-size:13px; cursor:pointer; }
+  .btn:hover { border-color:#C9A96E; color:#C9A96E; }
+  .input { padding:6px 12px; border-radius:6px; border:1px solid var(--border); background:rgba(0,0,0,.25); color:var(--txt); font-size:13px; width:240px; }
+  .sel { padding:6px 10px; border-radius:6px; border:1px solid var(--border); background:#0F2238; color:var(--txt); font-size:13px; }
+  .stats { font-size:12px; color:var(--muted); margin-bottom:12px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media(max-width:900px){ .grid{ grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px 14px; }
+  .card h3 { font-size:14px; margin:0 0 6px; color:#C9A96E; }
+  .card .meta { font-size:11px; color:var(--muted); margin-bottom:6px; }
+  .card .meta span { margin-right:10px; }
+  .card .content { font-size:12px; color:var(--muted); line-height:1.7; max-height:72px; overflow:hidden; }
+  .tag { display:inline-block; padding:1px 8px; border-radius:8px; font-size:11px; background:rgba(201,169,110,.1); color:#C9A96E; margin:0 4px 4px 0; }
+  .pager { margin-top:14px; text-align:right; font-size:12px; color:var(--muted); }
+  .pager button { padding:3px 12px; border-radius:6px; border:1px solid rgba(201,169,110,.35); background:transparent; color:#D8DEE9; font-size:12px; cursor:pointer; margin-left:8px; }
+  .muted { color:var(--muted); }
+</style>
+</head>
+<body>
+  <div style="margin-bottom:10px;"><a href="/ai-agent" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回 AI 助手</a></div>
+  <h1>📚 知识库浏览</h1>
+  <div class="sub">直接浏览系统积累的全部知识卡片 — 按领域筛选、关键词搜索、点卡片看全文</div>
+
+  <div class="bar">
+    <input class="input" id="kw" placeholder="🔍 关键词（标题/标签）" onkeydown="if(event.key==='Enter'){page=0;load();}">
+    <select class="sel" id="subSel" onchange="page=0;load();"><option value="">全部领域</option></select>
+    <button class="btn" onclick="page=0;load();">搜索</button>
+    <span id="stats" class="stats" style="margin:0;"></span>
+  </div>
+  <div id="gridWrap"></div>
+  <div class="pager" id="pager"></div>
+
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/toast.js"></script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/state-ui.js"></script>
+<script>
+var page = 0;
+var pageSize = 20;
+var total = 0;
+function esc(v){
+  return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function load(){
+  var kw = document.getElementById('kw').value.trim();
+  var sub = document.getElementById('subSel').value;
+  var url = '/api/knowledge/list?limit=' + pageSize + '&offset=' + (page * pageSize);
+  if(sub) url += '&subsystem=' + encodeURIComponent(sub);
+  if(kw) url += '&q=' + encodeURIComponent(kw);
+  var wrap = document.getElementById('gridWrap');
+  fetch(url).then(function(r){ return r.json(); }).then(function(d){
+    if(!d.ok){ wrap.innerHTML=''; StateUI.error(wrap, d.message || '读取失败', load); return; }
+    var sel = document.getElementById('subSel');
+    var subs = d.subsystems || {};
+    if(sel.options.length <= 1){
+      sel.innerHTML = '<option value="">全部领域（' + Object.keys(subs).length + '）</option>' +
+        Object.keys(subs).sort().map(function(k){ return '<option value="' + esc(k) + '">' + esc(k) + '（' + subs[k] + '）</option>'; }).join('');
+    }
+    total = d.total;
+    document.getElementById('stats').textContent = '共 ' + total + ' 张卡片';
+    var cards = d.cards || [];
+    if(!cards.length){
+      wrap.innerHTML = '';
+      StateUI.empty(wrap, '没有匹配的卡片', '换个关键词或领域试试，也可去 AI 助手提问让它收录');
+      document.getElementById('pager').innerHTML = '';
+      return;
+    }
+    var html = '<div class="grid">';
+    cards.forEach(function(c){
+      html += '<div class="card"><h3>' + esc(c.title || '(无标题)') + '</h3>' +
+        '<div class="meta"><span>领域：' + esc(c.subsystem) + '</span><span>来源：' + esc(c.source || '—') + '</span><span>创建：' + esc(c.created || '—') + '</span>' +
+        (c.score != null ? '<span>评分：' + esc(c.score) + '</span>' : '') + '</div>' +
+        '<div class="content">' + esc(c.content || c.title || '') + '</div>' +
+        '<div style="margin-top:6px;">' + (c.tags || []).map(function(t){ return '<span class="tag">' + esc(t) + '</span>'; }).join('') + '</div></div>';
+    });
+    html += '</div>';
+    wrap.innerHTML = html;
+    var pages = Math.max(1, Math.ceil(total / pageSize));
+    document.getElementById('pager').innerHTML =
+      '第 ' + (page+1) + ' / ' + pages + ' 页' +
+      (page > 0 ? '<button onclick="page--;load();">‹ 上一页</button>' : '') +
+      (page+1 < pages ? '<button onclick="page++;load();">下一页 ›</button>' : '');
+  }).catch(function(){
+    wrap.innerHTML='';
+    StateUI.error(wrap, '请求失败，请确认服务器运行中', load);
+  });
+}
+load();
+</script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
+</body>
+</html>

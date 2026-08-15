@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 定时任务看板</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+  :root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:16px; }
+  .bar { display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+  .btn { padding:6px 16px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--txt); font-size:13px; cursor:pointer; }
+  .btn:hover { border-color:#C9A96E; color:#C9A96E; }
+  .stats { display:flex; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+  .stat { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:10px 16px; font-size:13px; color:var(--muted); }
+  .stat b { color:var(--txt); font-size:17px; margin-right:4px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th,td { text-align:left; padding:7px 9px; border-bottom:1px solid var(--border); }
+  th { color:var(--muted); font-weight:600; font-size:12px; position:sticky; top:0; background:#0F2238; }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+  .dot-err { background:#C8755A; box-shadow:0 0 6px rgba(200,117,90,.9); }
+  .dot-zero { background:#5B6B81; }
+  .dot-ok { background:#2D8B7E; }
+  .badge-err { display:inline-block; background:rgba(200,117,90,.15); color:#C8755A; border-radius:8px; padding:1px 8px; font-size:11px; margin-left:6px; }
+  .log-panel { background:var(--card); border:1px solid var(--border); border-radius:10px; margin-top:14px; padding:12px 14px; font-size:12px; color:var(--muted); max-height:260px; overflow-y:auto; display:none; }
+  .log-panel div { padding:2px 0; border-bottom:1px dashed rgba(201,169,110,.1); }
+  .log-panel .fail { color:#C8755A; }
+  .muted { color:var(--muted); }
+  .freq { font-size:12px; color:var(--muted); }
+</style>
+</head>
+<body>
+  <div style="margin-bottom:10px;"><a href="/automation-status" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回自动化状态</a></div>
+  <h1>⏱ 定时任务看板</h1>
+  <div class="sub">29 个后台任务一览 — 上次执行结果、下次执行时间、失败红色告警（每 30 秒自动刷新）</div>
+
+  <div class="bar">
+    <button class="btn" onclick="load()">刷新</button>
+    <span id="updated" class="muted" style="font-size:12px;"></span>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div id="tableWrap"></div>
+  <div class="log-panel" id="logPanel"></div>
+
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/toast.js"></script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/state-ui.js"></script>
+<script>
+var tasks = [];
+function esc(v){
+  return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function fmtTime(t){
+  if(!t) return '—';
+  return String(t).replace('T',' ').slice(0,16);
+}
+function freqText(min){
+  if(min <= 0) return '一次性';
+  if(min < 60) return '每 ' + min + ' 分钟';
+  if(min % 1440 === 0) return '每 ' + (min/1440) + ' 天';
+  if(min % 60 === 0) return '每 ' + (min/60) + ' 小时';
+  return '每 ' + min + ' 分钟';
+}
+function load(){
+  fetch('/api/scheduler/status').then(function(r){ return r.json(); }).then(function(d){
+    if(!d.ok){ showToast(d.error || '读取失败','error'); return; }
+    tasks = d.tasks || [];
+    document.getElementById('updated').textContent = '刷新时间：' + new Date().toLocaleTimeString() + '（30 秒自动）';
+    render();
+  }).catch(function(){ showToast('请求失败，请确认服务器运行中','error'); });
+}
+function render(){
+  var errN = tasks.filter(function(t){ return t.last_error; }).length;
+  var zeroN = tasks.filter(function(t){ return (t.run_count || 0) === 0; }).length;
+  document.getElementById('stats').innerHTML =
+    '<div class="stat"><b>' + tasks.length + '</b>个任务</div>' +
+    '<div class="stat"><b>' + errN + '</b>最近失败</div>' +
+    '<div class="stat"><b>' + zeroN + '</b>未运行过</div>';
+  if(!tasks.length){
+    document.getElementById('tableWrap').innerHTML = '';
+    StateUI.empty(document.getElementById('tableWrap'), '暂无任务', '调度器未启动或服务器刚重启');
+    return;
+  }
+  var html = '<table><thead><tr><th>任务</th><th>周期</th><th>上次执行</th><th>下次执行</th><th>累计次数</th><th>状态</th><th>日志</th></tr></thead><tbody>';
+  tasks.forEach(function(t, idx){
+    var dot = t.last_error ? 'dot-err' : ((t.run_count||0)===0 ? 'dot-zero' : 'dot-ok');
+    var status = t.last_error ? '<span class="dot dot-err"></span>失败' : ((t.run_count||0)===0 ? '<span class="dot dot-zero"></span>待运行' : '<span class="dot dot-ok"></span>正常');
+    if(t.last_error) status += '<span class="badge-err">' + esc(String(t.last_error).slice(0,40)) + '</span>';
+    html += '<tr><td>' + esc(t.name) + (t.enabled === false ? ' <span class="muted">(停用)</span>' : '') +
+      '</td><td class="freq">' + freqText(t.interval_minutes) +
+      '</td><td>' + fmtTime(t.last_run) +
+      '</td><td>' + fmtTime(t.next_run) +
+      '</td><td>' + (t.run_count || 0) +
+      '</td><td>' + status +
+      '</td><td><button class="btn" style="padding:2px 10px;font-size:12px;" onclick="showLog(' + idx + ')">查看</button></td></tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('tableWrap').innerHTML = html;
+}
+function showLog(idx){
+  var t = tasks[idx];
+  var panel = document.getElementById('logPanel');
+  if(panel.dataset.name === t.name && panel.style.display === 'block'){
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = 'block';
+  panel.dataset.name = t.name;
+  panel.innerHTML = '<b style="color:var(--txt);">' + esc(t.name) + '</b> 最近执行日志（点击任务名可关闭）：';
+  fetch('/api/scheduler/log?limit=30').then(function(r){ return r.json(); }).then(function(d){
+    var logs = (d.logs || []).filter(function(l){ return l.name === t.name; }).slice(0, 12);
+    if(!logs.length){ panel.innerHTML += '<div>（暂无该任务的执行记录）</div>'; return; }
+    panel.innerHTML += logs.map(function(l){
+      return '<div class="' + (l.success ? '' : 'fail') + '">' + esc(String(l.timestamp).replace('T',' ').slice(0,19)) +
+        ' | ' + (l.success ? '成功' : '失败') +
+        (l.duration_ms != null ? ' | ' + l.duration_ms + 'ms' : '') +
+        (l.error ? ' | ' + esc(String(l.error).slice(0,80)) : '') + '</div>';
+    }).join('');
+  }).catch(function(){ panel.innerHTML += '<div>日志读取失败</div>'; });
+}
+load();
+setInterval(load, 30000);
+</script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
+</body>
+</html>

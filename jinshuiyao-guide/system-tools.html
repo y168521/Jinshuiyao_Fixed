@@ -53,11 +53,77 @@
       </div>
       <div class="tip">💡 由各页面 error-monitor.js 自动上报，仅存最近记录；导出 CSV 可用 Excel 打开。空列表 = 没有前端错误，正常。</div>
     </div>
+
+    <div class="card">
+      <h2>🔬 一键诊断</h2>
+      <button class="btn btn-primary" onclick="diag()" id="diagBtn">运行诊断</button>
+      <button class="btn" onclick="copyDiag()">复制报告</button>
+      <div class="info" id="diagInfo">自动检查：服务器存活 · 自动化模块状态 · 定时任务失败 · 前端错误 · 数据备份存在性，生成一份可复制粘贴的诊断报告。</div>
+    </div>
   </div>
 
 <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/toast.js"></script>
 <script>
 var lastErrors = [];
+var lastDiag = '';
+function diag(){
+  var btn = document.getElementById('diagBtn');
+  btn.disabled = true;
+  btn.textContent = '诊断中…';
+  var info = document.getElementById('diagInfo');
+  info.innerHTML = '正在检查…';
+  var report = [];
+  report.push('金水谣系统诊断报告 ' + new Date().toLocaleString('zh-CN'));
+  report.push('='.repeat(40));
+  Promise.all([
+    fetch('/api/automation-status').then(function(r){ return r.json(); }).catch(function(){ return null; }),
+    fetch('/api/scheduler/status').then(function(r){ return r.json(); }).catch(function(){ return null; }),
+    fetch('/api/frontend-errors?limit=5').then(function(r){ return r.json(); }).catch(function(){ return null; }),
+    fetch('/api/system/backup?latest=1').then(function(r){ return r.json(); }).catch(function(){ return null; })
+  ]).then(function(res){
+    var auto = res[0], sch = res[1], err = res[2], bak = res[3];
+    if(auto && auto.server){
+      report.push('[服务器] 存活 ' + (auto.server.alive ? '✓' : '✗') + '（端口 ' + auto.server.port + '）');
+      report.push('[自动同步] ' + (auto.auto_sync && auto.auto_sync.ok ? '✓' : '✗') + (auto.auto_sync && auto.auto_sync.last_run ? ' 最近 ' + String(auto.auto_sync.last_run).slice(0,19).replace('T',' ') : ''));
+      report.push('[看门狗] ' + (auto.watchdog && auto.watchdog.ok ? '✓' : '✗'));
+      report.push('[蒸馏] ' + (auto.distill && auto.distill.ok ? '✓' : '✗'));
+      report.push('[Vault] ' + (auto.vault && auto.vault.ok ? '✓' : '✗'));
+      report.push('[数据真相] ' + (auto.data_truth && auto.data_truth.ok ? '✓' : '✗'));
+    } else {
+      report.push('[服务器] ✗ 自动化状态接口不可用');
+    }
+    if(sch && sch.tasks){
+      var errTasks = sch.tasks.filter(function(t){ return t.last_error; });
+      report.push('[定时任务] 共 ' + sch.tasks.length + ' 个，最近失败 ' + errTasks.length + ' 个');
+      errTasks.slice(0,5).forEach(function(t){ report.push('   ✗ ' + t.name + ': ' + String(t.last_error).slice(0,60)); });
+    } else {
+      report.push('[定时任务] ✗ 状态接口不可用');
+    }
+    if(err && err.ok){
+      report.push('[前端错误] 共 ' + err.total + ' 条' + (err.total ? '（最近：' + String(err.errors[0].message || '').slice(0,60) + '）' : ''));
+    } else {
+      report.push('[前端错误] ✗ 读取失败');
+    }
+    report.push('[数据备份] ' + (bak && bak.ok && bak.latest ? '✓ 最近快照 ' + bak.latest : '✗ 无快照'));
+    report.push('='.repeat(40));
+    report.push('生成时间：' + new Date().toLocaleString('zh-CN'));
+    lastDiag = report.join('\n');
+    btn.disabled = false;
+    btn.textContent = '运行诊断';
+    info.innerHTML = '<pre style="font-size:12px;line-height:1.8;white-space:pre-wrap;background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:8px;padding:12px;margin:8px 0 0;">' + esc(lastDiag) + '</pre>';
+    showToast('诊断完成','success');
+  });
+}
+function copyDiag(){
+  if(!lastDiag){ showToast('请先运行诊断','warn'); return; }
+  var ta = document.createElement('textarea');
+  ta.value = lastDiag;
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); showToast('诊断报告已复制','success'); }
+  catch(e){ showToast('复制失败，请手动选中复制','error'); }
+  ta.remove();
+}
 function doBackup(){
   var btn = document.getElementById('backupBtn');
   btn.disabled = true;

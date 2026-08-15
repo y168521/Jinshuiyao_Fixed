@@ -54,6 +54,8 @@ _PAGE_ROUTES = {
     '/system-tools':       'system-tools.html',
     '/daily-report':       'daily-report.html',
     '/automation-status':  'automation-status.html',
+    '/scheduler-board':    'scheduler-board.html',
+    '/knowledge-browser':  'knowledge-browser.html',
 }
 
 # 外部页面路由（不在 HTML_DIR 内的独立仪表板页面）
@@ -647,6 +649,57 @@ def handle_daily_report(handler):
         handler._send_json({'ok': True, 'date': date, 'exists': True, 'markdown': md})
     except Exception as e:
         handler._send_json({'ok': False, 'message': '读取日报失败：%s' % e})
+
+
+def handle_knowledge_list(handler):
+    """GET /api/knowledge/list[?q=&subsystem=&limit=&offset=] — 知识卡片浏览（分页/筛选/搜索）
+
+    读取 knowledge/mirofish_db.json 全部知识卡片，按 subsystem 筛选、关键词匹配标题+标签。
+    """
+    q = urllib.parse.parse_qs(urllib.parse.urlparse(handler.path).query)
+    limit, offset = 50, 0
+    try:
+        limit = min(max(int(q.get('limit', ['50'])[0]), 1), 200)
+        offset = max(int(q.get('offset', ['0'])[0]), 0)
+    except Exception:
+        pass
+    sub = q.get('subsystem', [''])[0]
+    kw = q.get('q', [''])[0].strip().lower()
+    try:
+        from knowledge.mirofish_db import MiroFishDB
+        import datetime
+        cards = MiroFishDB()._data.get('cards', [])
+    except Exception as e:
+        handler._send_json({'ok': False, 'message': '读取知识库失败：%s' % e, 'total': 0, 'cards': []})
+        return
+    subs = {}
+    filtered = []
+    for c in cards:
+        csub = c.get('subsystem') or c.get('category') or '其他'
+        subs[csub] = subs.get(csub, 0) + 1
+        if sub and csub != sub:
+            continue
+        if kw:
+            hay = ((c.get('title') or '') + ' ' + ' '.join(c.get('tags') or [])).lower()
+            if kw not in hay:
+                continue
+        filtered.append(c)
+    total = len(filtered)
+    page = filtered[offset:offset + limit]
+    rows = []
+    for c in page:
+        created = c.get('created_at') or c.get('create_time') or ''
+        rows.append({
+            'id': c.get('id', ''),
+            'title': c.get('title', ''),
+            'content': (c.get('content') or '')[:400],
+            'source': c.get('source', ''),
+            'subsystem': c.get('subsystem') or c.get('category') or '其他',
+            'tags': c.get('tags') or [],
+            'score': c.get('score'),
+            'created': str(created)[:19] if created else '',
+        })
+    handler._send_json({'ok': True, 'total': total, 'subsystems': subs, 'cards': rows})
 
 
 def handle_run_tests(handler):

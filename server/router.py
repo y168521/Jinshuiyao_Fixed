@@ -452,6 +452,11 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         # /api/daily-report — 大脑日报读取（列表/指定日期/默认最新）
+        # /api/knowledge/list — 知识卡片浏览（分页/子系统筛选/关键词）
+        if parsed.path == '/api/knowledge/list':
+            h_static.handle_knowledge_list(self)
+            return
+
         if parsed.path == '/api/daily-report':
             h_static.handle_daily_report(self)
             return

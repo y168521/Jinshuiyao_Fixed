@@ -57,7 +57,9 @@ window.JSY_SEARCH_INDEX = [
   {"n": "金水谣 · 号码组合计算器", "r": "/lottery/combo-calculator", "d": "号码组合计算器：和值/跨度/012路/奇偶大小/形态/AC值", "c": "lottery"},
   {"n": "金水谣 · 系统工具箱", "r": "/system-tools", "d": "系统工具箱：一键备份+前端错误日志", "c": "system"},
   {"n": "金水谣 · 大脑日报", "r": "/daily-report", "d": "大脑日报：玩法健康度/自动调整结论/AI复盘（每日自动生成）", "c": "ai"},
-  {"n": "金水谣 · 自动化运行状态", "r": "/automation-status", "d": "自动化运行状态：同步/看门狗/蒸馏/Vault/数据真相", "c": "system"}
+  {"n": "金水谣 · 自动化运行状态", "r": "/automation-status", "d": "自动化运行状态：同步/看门狗/蒸馏/Vault/数据真相", "c": "system"},
+  {"n": "金水谣 · 定时任务看板", "r": "/scheduler-board", "d": "定时任务看板：29个后台任务状态+失败告警+执行日志", "c": "system"},
+  {"n": "金水谣 · 知识库浏览", "r": "/knowledge-browser", "d": "知识库浏览：全部知识卡片分类筛选+搜索+分页", "c": "ai"}
 ];
 
 (function () {
