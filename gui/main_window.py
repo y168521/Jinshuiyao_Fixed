@@ -960,6 +960,8 @@ class App:
         self._build_action_buttons()
         self._build_table()
         self._build_log_area()
+        # 启动后自动加载公告栏最新开奖（不依赖手动抓取）
+        self.root.after(300, self._refresh_notice_from_data)
 
     # ------------------------------------------------------------------
     # UI子方法（全部留在类内，零风险结构优化）
@@ -1223,6 +1225,9 @@ class App:
                  fg=T.GOLD, bg=T.BG_CARD).pack(side=tk.LEFT)
         notice_btn_frame = tk.Frame(notice_header, bg=T.BG_CARD)
         notice_btn_frame.pack(side=tk.RIGHT)
+        tk.Button(notice_btn_frame, text="刷新", font=(T.FONT_FAMILY, 8),
+                  fg=T.TEXT_MUTED, bg=T.BG_HOVER, bd=0, padx=6, cursor='hand2',
+                  command=self._refresh_notice_from_data).pack(side=tk.LEFT, padx=2)
         tk.Button(notice_btn_frame, text="清空", font=(T.FONT_FAMILY, 8),
                   fg=T.TEXT_MUTED, bg=T.BG_HOVER, bd=0, padx=6, cursor='hand2',
                   command=self.clear_notice_text).pack(side=tk.LEFT, padx=2)
@@ -1408,6 +1413,26 @@ class App:
             text: 公告内容
         """
         self.notice_text.config(text=str(text))
+
+    def _refresh_notice_from_data(self):
+        """从本地数据刷新公告栏：显示各彩种最新开奖（不依赖抓取动作）"""
+        try:
+            lots = LOT_ALL if LOT_ALL else ["双色球", "大乐透", "福彩3D", "排列三", "七乐彩", "快乐8"]
+            notice_lines = []
+            for lot in lots:
+                arr = Data.load(lot)
+                if arr:
+                    latest = arr[-1]
+                    per = latest.get("period", "")
+                    nums = latest.get("nums", "")
+                    notice_lines.append(f"{lot} 第{fmt_period(lot, per)}期: {nums}")
+            if notice_lines:
+                summary = "最新开奖汇总 | " + " | ".join(notice_lines[:4])
+            else:
+                summary = "暂无开奖数据，请点击「抓取数据」获取最新开奖"
+            self.update_notice(summary)
+        except Exception as e:
+            self.log(f"公告栏刷新失败: {e}", "WARNING")
 
     # ------------------------------------------------------------------
     # 导入彩票数据
@@ -1747,22 +1772,9 @@ class App:
         Data.invalidate_cache()
         self.log(f"数据抓取完成: 成功 {success_count} 个彩种, 失败 {fail_count} 个")
 
-        # 更新公告栏：显示各彩种最新开奖结果
+        # 更新公告栏：抓取成功后刷新各彩种最新开奖汇总
         if success_count > 0:
-            try:
-                notice_lines = []
-                for lot in lots:
-                    arr = Data.load(lot)
-                    if arr:
-                        latest = arr[-1]
-                        per = latest.get("period", "")
-                        nums = latest.get("nums", "")
-                        notice_lines.append(f"{lot} 第{fmt_period(lot, per)}期: {nums}")
-                if notice_lines:
-                    summary = "最新开奖汇总 | " + " | ".join(notice_lines[:4])
-                    self.root.after(0, lambda: self.update_notice(summary))
-            except Exception:
-                pass
+            self.root.after(0, self._refresh_notice_from_data)
 
         self.set_btns_state('normal')
 
