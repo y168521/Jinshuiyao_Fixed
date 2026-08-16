@@ -65,6 +65,75 @@ def handle_sources_health(handler):
         handler._send_json({"ok": False, "error": f"获取数据源健康失败: {e}", "sources": [], "lotteries": []}, 500)
 
 
+def handle_data_volume(handler):
+    """GET /api/lottery/data-volume — 各彩种数据规模（期数/占用空间）与总量
+
+    返回:
+    {
+        "ok": true,
+        "lotteries": [{"name": "双色球", "periods": 846, "size_bytes": 107445}, ...],
+        "total_periods": 3390, "total_size_bytes": 430000
+    }
+    """
+    try:
+        import json as _json
+        from config import DATA_SAVE, LOT_ALL
+
+        items = []
+        total_periods = 0
+        total_size = 0
+        for name in LOT_ALL:
+            path = os.path.join(DATA_SAVE, f"{name}.json")
+            if os.path.exists(path):
+                size = os.path.getsize(path)
+                total_size += size
+                periods = 0
+                try:
+                    with open(path, encoding="utf-8") as f:
+                        data = _json.load(f)
+                    periods = len(data) if isinstance(data, list) else 0
+                except Exception:
+                    periods = -1
+                if periods > 0:
+                    total_periods += periods
+                items.append({"name": name, "periods": periods, "size_bytes": size})
+            else:
+                items.append({"name": name, "periods": 0, "size_bytes": 0})
+
+        handler._send_json({
+            "ok": True,
+            "lotteries": items,
+            "total_periods": total_periods,
+            "total_size_bytes": total_size,
+        })
+    except Exception as e:
+        log(f"[lottery-data-volume] 获取数据规模失败: {e}")
+        handler._send_json({"ok": False, "error": f"获取数据规模失败: {e}", "lotteries": []}, 500)
+
+
+def handle_hot_rank(handler):
+    """GET /api/lottery/hot-rank?lot=双色球&count=30 — 冷热动态排行榜
+
+    返回: {"ok": true, "window": 30, "rank": [{number, count, trend}, ...]}
+    """
+    try:
+        import urllib.parse as _up
+        from engines.lottery_stats import hot_rank
+        from models.lottery_data import Data
+
+        q = _up.parse_qs(_up.urlparse(handler.path).query)
+        lot = (q.get("lot", [""])[0] or "双色球").strip()
+        count = int(q.get("count", ["30"])[0] or 30)
+        history = Data.load(lot) or []
+        result = hot_rank(history, count)
+        result["ok"] = True
+        result["lot"] = lot
+        handler._send_json(result)
+    except Exception as e:
+        log(f"[lottery-hot-rank] 获取冷热榜失败: {e}")
+        handler._send_json({"ok": False, "error": f"获取冷热榜失败: {e}", "rank": []}, 500)
+
+
 def handle_reference(handler):
     """GET /api/lottery/reference?lot=福彩3D — 多维参考特征 + SQI（不生成号码）
 

@@ -17,7 +17,7 @@ from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from engines.lottery_stats import (number_follow_up, omission_table,
+from engines.lottery_stats import (hot_rank, number_follow_up, omission_table,
                                    trend_classification)
 from server.handlers import lottery as h_lottery
 
@@ -174,6 +174,37 @@ class TestLotteryStatsHandlers(unittest.TestCase):
         h = _call(h_lottery.handle_omission_table, {})
         self.assertEqual(h.code, 400)
         self.assertFalse(h.payload["ok"])
+
+
+class TestHotRankEngine(unittest.TestCase):
+    """冷热动态排行榜（W63补98 / JS-20260816-03）"""
+
+    def test_window_counts_sorted(self):
+        r = hot_rank(SSQ_HISTORY, 5)
+        self.assertEqual(r["window"], 5)
+        self.assertTrue(r["rank"])
+        counts = [x["count"] for x in r["rank"]]
+        self.assertEqual(counts, sorted(counts, reverse=True))
+        # 窗口=最后5条(2026002~2024126)：12 出现2次（2026002/2026003），15 出现2次（2026002/2026004）
+        by_num = {x["number"]: x for x in r["rank"]}
+        self.assertEqual(by_num[12]["count"], 2)
+        self.assertEqual(by_num[15]["count"], 2)
+
+    def test_trend_direction(self):
+        r = hot_rank(SSQ_HISTORY, 5)
+        by_num = {x["number"]: x for x in r["rank"]}
+        # 07 当前窗口2次(2026002/2026003) vs 前一窗口1次(2026001) → up
+        self.assertEqual(by_num[7]["trend"], "up")
+        self.assertIn(by_num[12]["trend"], ("up", "down", "flat", "new"))
+
+    def test_empty_history(self):
+        r = hot_rank([], 30)
+        self.assertEqual(r["rank"], [])
+
+    def test_window_capped(self):
+        r = hot_rank(SSQ_HISTORY, 999)
+        self.assertEqual(r["window"], 500)
+        self.assertTrue(r["rank"])
 
 
 if __name__ == "__main__":

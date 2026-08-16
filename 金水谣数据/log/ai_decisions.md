@@ -1017,3 +1017,16 @@
 - **被否决方案**：控制中心加供应商手动切换UI —— 否决：熔断自动回退已够用，避免误切到付费；DeepSeek 完全禁用 —— 否决：保留作付费备胎，链内第二位；默认切 dashscope —— 否决：智谱免费额度更大。
 - **成熟度**：高
 - **置信度**：高
+
+### 2026-08-16 豆包深度篇第十三批：彩票业务深度+微交互+长期体验（opencode）
+- **属主**：opencode
+- **做了什么**：①遗漏表格遗漏值智能提醒（≥80%25历史最大标黄+接近最大徽标，达最大标红+即将回补徽标，提醒卡汇总）；②新增 /lottery/hot-rank 冷热动态排行榜（近5/10/30/100期切换、↑↓→/新趋势、纯函数 hot_rank 可单测）；③/api/lottery/data-volume 数据规模提示（sources-health 卡）；④/api/system/time-check 系统时间偏差检测（HTTP Date 头，离线降级）接入一键诊断；⑤fallback 链免费优先（zhipu→dashscope→deepseek→reasoner→ollama）；⑥interaction-kit.js 公共微交互（debounce/防重复提交/回到顶部）。
+- **为什么根因**：豆包深度篇 50 项评估：28 节彩票功能近半已存在（遗漏表/同期/跟随/AC/复盘看板），缺的是提醒层与排行榜；微交互 29 节全站无公共防抖/modal 组件；长期体验 30 节缺数据规模可见性；边缘 35 节缺系统时间检测。
+- **验证**：单测 21 passed（含 hot_rank 4 条）；一致性 PASS；重启冒烟 hot-rank=30 号码/data-volume=3391期433KB/time-check 正常/页面 200；gate 全绿。
+- **坑**：Edit 双行锚点误删 docstring 首行致 SyntaxError；测试断言按乱序数据手数次数两次出错。
+- **有效方法**：新功能全走"纯函数引擎+薄 handler+前端页+注册链"四件套；公共组件 ES5 独立文件一次接入多页；新 API 带离线降级。
+- **关联文件**：engines/lottery_stats.py、server/handlers/lottery.py、static.py、router.py、frontend/lottery/hot-rank.html 等 13 个
+- **关联总索引**：JS-20260816-03
+- **被否决方案**：选号池管理（新数据模型留待后续）；准确率排行榜（prediction-tracker 已有）；AI 流式输出（编排层改造独立批次）；每日签到/使用报告（习惯养成类，价值低）。
+- **成熟度**：高
+- **置信度**：高

@@ -180,6 +180,46 @@ def number_follow_up(history, gap=1, lot_type=""):
     return data
 
 
+def hot_rank(history, count=30):
+    """冷热动态排行榜：最近 count 期各号码出现次数 + 与前一窗口对比趋势。
+
+    返回: {
+        "window": count,
+        "rank": [{"number": 1, "count": 5, "trend": "up|down|flat|new"}, ...] 按 count 降序
+    }
+    trend: up=比前一窗口多, down=少, flat=持平, new=前一窗口未出现（新冒头）
+    """
+    def _counts(seq):
+        c = {}
+        for rec in seq:
+            nums_str = str(rec.get("nums", ""))
+            reds, blues = split_nums(nums_str)
+            for n in reds + (blues or []):
+                c[n] = c.get(n, 0) + 1
+        return c
+
+    count = max(1, min(int(count), 500))
+    total = len(history)
+    if total == 0:
+        return {"window": count, "rank": []}
+    win = min(count, total)
+    cur_seq = history[-win:]
+    prev_win = min(win, total - win)
+    prev_seq = history[-win - prev_win:-win] if prev_win > 0 else []
+
+    cur = _counts(cur_seq)
+    prev = _counts(prev_seq)
+    seen = set(cur) | set(prev)
+    rank = []
+    for n in seen:
+        c = cur.get(n, 0)
+        p = prev.get(n, 0)
+        trend = "up" if (c > p and p > 0) else ("down" if c < p else ("new" if p == 0 and c > 0 else "flat"))
+        rank.append({"number": n, "count": c, "trend": trend})
+    rank.sort(key=lambda x: (-x["count"], x["number"]))
+    return {"window": count, "rank": rank}
+
+
 def trend_classification(history, count=30):
     """近期开奖序列：最近 count 期，每期 {drawNum, numbers}。"""
     count = max(1, min(int(count or 30), 500))

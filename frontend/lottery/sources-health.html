@@ -51,6 +51,12 @@
       <table id="lotTable"><thead><tr><th>彩种</th><th>数据年龄</th><th>状态</th></tr></thead>
       <tbody id="lotBody"><tr><td colspan="3" class="muted">加载中…</td></tr></tbody></table>
     </div>
+    <div class="card">
+      <h2>📦 数据规模</h2>
+      <table id="volTable"><thead><tr><th>彩种</th><th>期数</th><th>占用空间</th></tr></thead>
+      <tbody id="volBody"><tr><td colspan="3" class="muted">加载中…</td></tr></tbody></table>
+      <div id="volTotal" class="muted" style="margin-top:8px;font-size:12px;"></div>
+    </div>
   </div>
   <div id="errBox"></div>
 
@@ -83,6 +89,20 @@ async function refresh(){
       return `<tr><td>${l.name}</td><td>${ageStr(l.data_age_min)}</td>`+
              `<td><span class="badge ${stale?'b-stale':'b-fresh'}">${stale?'陈旧':'新鲜'}</span></td></tr>`;
     }).join('');
+    // data volume
+    try{
+      const vr = await fetch('/api/lottery/data-volume', {cache:'no-store'});
+      const vj = await vr.json();
+      if(vj.ok){
+        const vb = document.getElementById('volBody');
+        vb.innerHTML = vj.lotteries.map(v=>{
+          const size = v.size_bytes>=1048576?(v.size_bytes/1048576).toFixed(1)+' MB':Math.round(v.size_bytes/1024)+' KB';
+          return `<tr><td>${v.name}</td><td>${v.periods>0?v.periods+' 期':'—'}</td><td>${size}</td></tr>`;
+        }).join('');
+        document.getElementById('volTotal').textContent = '共 '+vj.total_periods+' 期数据，占用 '+
+          (vj.total_size_bytes>=1048576?(vj.total_size_bytes/1048576).toFixed(1)+' MB':Math.round(vj.total_size_bytes/1024)+' KB')+' · 历史数据按需归档，长期使用不卡顿';
+      }
+    }catch(e){ /* 数据规模接口失败不阻断主视图 */ }
     document.getElementById('ts').textContent = '更新于 '+new Date(j.generated_at*1000).toLocaleTimeString('zh-CN',{hour12:false});
     if (window.enhanceTable) { enhanceTable(document.getElementById('srcTable'), { filter: true }); enhanceTable(document.getElementById('lotTable'), { filter: true }); }
   }catch(e){

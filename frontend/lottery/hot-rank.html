@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 号码冷热动态排行榜</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+  :root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim);
+          --c-up:var(--copper); --c-down:var(--jade); --c-flat:var(--ice); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:18px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
+  .flex { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  select,button { background:var(--deep); color:var(--txt); border:1px solid var(--border); border-radius:6px; padding:5px 12px; font-size:12px; }
+  button { cursor:pointer; }
+  button.primary { background:var(--c-up); color:var(--deep); border:none; font-weight:600; padding:5px 14px; }
+  .muted { color:var(--muted); }
+  .bar-row { display:flex; align-items:center; gap:8px; margin:4px 0; font-size:13px; }
+  .num { width:34px; text-align:right; font-weight:700; font-variant-numeric:tabular-nums; }
+  .bar-track { flex:1; background:rgba(255,255,255,.05); border-radius:4px; height:20px; overflow:hidden; }
+  .bar-fill { height:100%; border-radius:4px; transition:width .4s; }
+  .bar-count { width:30px; text-align:right; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .trend { width:22px; text-align:center; font-weight:700; }
+  .t-up { color:var(--c-up); } .t-down { color:var(--c-down); } .t-flat { color:var(--muted); }
+  .legend { font-size:12px; color:var(--muted); display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; }
+  .legend span b { font-size:13px; }
+  @media(max-width:600px){ body{ padding:12px; } }
+</style>
+</head>
+<body>
+<div style="margin-bottom:10px;"><a href="/lottery" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回彩票分析中心</a></div>
+<h1>🔥 号码冷热动态排行榜</h1>
+<div class="sub">近 N 期出现次数排行 · 与前一窗口对比趋势（↑ 升温 / ↓ 降温 / → 持平 / 新 新冒头）</div>
+
+<div class="card">
+  <div class="flex" style="margin-bottom:12px">
+    <select id="lotType"><option value="双色球">双色球</option><option value="大乐透">大乐透</option><option value="福彩3D">福彩3D</option><option value="排列三">排列三</option><option value="快乐8">快乐8</option><option value="七乐彩">七乐彩</option><option value="七星彩">七星彩</option></select>
+    <div class="flex" id="winBtns">
+      <button class="primary" data-w="5" onclick="setWin(5)">近5期</button>
+      <button data-w="10" onclick="setWin(10)">近10期</button>
+      <button data-w="30" onclick="setWin(30)">近30期</button>
+      <button data-w="100" onclick="setWin(100)">近100期</button>
+    </div>
+    <button onclick="loadRank()">刷新</button>
+    <span class="muted" id="status"></span>
+  </div>
+  <div class="legend">
+    <span><b style="color:var(--c-up)">↑</b> 较前一窗口升温</span>
+    <span><b style="color:var(--c-down)">↓</b> 降温</span>
+    <span><b style="color:var(--muted)">→</b> 持平</span>
+    <span><b style="color:var(--c-up)">新</b> 前一窗口未出现</span>
+    <span style="margin-left:auto">条形越长 = 出现次数越多（热号）</span>
+  </div>
+</div>
+
+<div class="card">
+  <h2 id="rankTitle" style="font-size:15px;margin:0 0 12px;">加载中…</h2>
+  <div id="rankWrap"></div>
+</div>
+
+<script>
+let win = 5;
+function setWin(w){
+  win = w;
+  document.querySelectorAll('#winBtns button').forEach(b=>b.classList.toggle('primary', +b.dataset.w===w));
+  loadRank();
+}
+async function loadRank(){
+  const lot = document.getElementById('lotType').value;
+  const status = document.getElementById('status');
+  status.textContent = '加载中...';
+  try{
+    const r = await fetch('/api/lottery/hot-rank?lot='+encodeURIComponent(lot)+'&count='+win, {cache:'no-store'});
+    const j = await r.json();
+    if(!j.ok){ status.textContent = '接口错误：'+(j.error||''); return; }
+    const rank = j.rank || [];
+    document.getElementById('rankTitle').textContent = lot+' · 近'+j.window+'期热号排行（共'+rank.length+'个号码出现）';
+    const maxC = rank.length ? rank[0].count : 1;
+    const wrap = document.getElementById('rankWrap');
+    if(!rank.length){ wrap.innerHTML = '<p class="muted" style="text-align:center;padding:20px">暂无数据</p>'; status.textContent='无数据'; return; }
+    wrap.innerHTML = rank.map(r=>{
+      const t = r.trend==='up'?'<span class="trend t-up">↑</span>':r.trend==='down'?'<span class="trend t-down">↓</span>':r.trend==='new'?'<span class="trend t-up">新</span>':'<span class="trend t-flat">→</span>';
+      const pct = Math.round(r.count/maxC*100);
+      const color = r.trend==='up'?'var(--c-up)':r.trend==='down'?'var(--c-down)':'var(--c-flat)';
+      return `<div class="bar-row">
+        <span class="num">${String(r.number).padStart(2,'0')}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+        <span class="bar-count">${r.count}</span>${t}</div>`;
+    }).join('');
+    status.textContent = '已更新 · 窗口对比基准为前一'+Math.min(win, rank.length)+'期';
+  }catch(e){
+    status.textContent = '加载失败：'+e;
+  }
+}
+document.getElementById('lotType').addEventListener('change', loadRank);
+loadRank();
+if (window.InteractionKit) { InteractionKit.initBackToTop(); }
+</script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/interaction-kit.js"></script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
+</body>
+</html>

@@ -29,6 +29,10 @@ button.primary:hover { opacity:.85; }
 #omissionTable td.cell-cold { color:var(--muted); }
 #omissionTable td.cell-hit { background:rgba(45,139,126,.2); color:var(--jade); font-weight:700; }
 #omissionTable td.cell-max { background:rgba(200,117,90,.15); border:2px solid var(--c-hot); }
+#omissionTable td.cell-near { background:rgba(201,169,110,.18); border:1px solid var(--gold); }
+.badge { display:inline-block; font-size:10px; padding:1px 6px; border-radius:8px; margin-left:4px; vertical-align:middle; }
+.badge-warn { background:rgba(201,169,110,.2); color:var(--gold); }
+.badge-danger { background:rgba(200,117,90,.25); color:var(--c-hot); font-weight:700; }
 .table-wrap { max-height:600px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; }
 .summary-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:8px; }
 .summary-item { text-align:center; padding:10px; background:var(--deep); border-radius:8px; border:1px solid var(--border); }
@@ -59,6 +63,14 @@ button.primary:hover { opacity:.85; }
   <div class="summary-grid" id="summaryGrid"></div>
 </div>
 
+<div class="card" id="alertCard" style="display:none;border-color:var(--gold);">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+    <b style="font-size:14px;">遗漏值智能提醒</b>
+    <span class="muted" style="font-size:12px;">遗漏 ≥ 历史最大 80% 标黄 · 达历史最大标红</span>
+  </div>
+  <div id="alertBody" style="font-size:13px;line-height:1.7;"></div>
+</div>
+
 <div class="card" id="tableCard" style="display:none;">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
     <b style="font-size:14px;">遗漏明细表</b>
@@ -69,6 +81,7 @@ button.primary:hover { opacity:.85; }
 </div>
 
 <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/table-enhance.js"></script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/interaction-kit.js"></script>
 <script>
 const BASE = window.location.origin;
 const LOT_CFG = { ssq:{range:33,name:'双色球'}, dlt:{range:35,name:'大乐透'}, fc3d:{range:10,name:'福彩3D'}, pl3:{range:10,name:'排列三'} };
@@ -98,12 +111,28 @@ function render(data){
   const maxCur = Math.max(...data.map(d=>d.current));
   const avgCur = +(data.reduce((s,d)=>s+d.current,0)/data.length).toFixed(1);
   const hotCount = data.filter(d=>d.current>maxCur*0.7).length;
+  const nearMax = data.filter(d=>d.max>0 && d.current>=d.max*0.8 && d.current<d.max);
+  const atMax = data.filter(d=>d.max>0 && d.current>=d.max);
 
   document.getElementById('summaryGrid').innerHTML = `
     <div class="summary-item"><div class="val" style="color:var(--jade)">${hits}</div><div class="lbl">本期开出的号码</div></div>
     <div class="summary-item"><div class="val" style="color:var(--c-hot)">${maxCur}</div><div class="lbl">最大遗漏（期）</div></div>
     <div class="summary-item"><div class="val" style="color:var(--gold)">${avgCur}</div><div class="lbl">平均遗漏（期）</div></div>
-    <div class="summary-item"><div class="val" style="color:var(--copper)">${hotCount}</div><div class="lbl">高遗漏号码 (&gt;${Math.round(maxCur*0.7)}期)</div></div>`;
+    <div class="summary-item"><div class="val" style="color:var(--copper)">${hotCount}</div><div class="lbl">高遗漏号码 (&gt;${Math.round(maxCur*0.7)}期)</div></div>
+    <div class="summary-item"><div class="val" style="color:var(--gold)">${nearMax.length}</div><div class="lbl">接近历史最大遗漏</div></div>
+    <div class="summary-item"><div class="val" style="color:var(--c-hot)">${atMax.length}</div><div class="lbl">已达历史最大（即将回补）</div></div>`;
+
+  if(nearMax.length||atMax.length){
+    const warn = nearMax.map(d=>String(d.number).padStart(2,'0')).join(', ');
+    const danger = atMax.map(d=>String(d.number).padStart(2,'0')).join(', ');
+    document.getElementById('alertCard').style.display='block';
+    document.getElementById('alertBody').innerHTML = `
+      ${danger?'<div><b style="color:var(--c-hot)">🔴 已达历史最大遗漏，关注回补：</b><span class="muted">'+danger+'</span></div>':''}
+      ${warn?'<div style="margin-top:4px"><b style="color:var(--gold)">🟡 接近历史最大遗漏（≥80%）：</b><span class="muted">'+warn+'</span></div>':''}
+      <div class="muted" style="margin-top:6px;font-size:12px">达到历史最大遗漏后继续走高的号码，历史上大概率在随后几期内回补。</div>`;
+  } else {
+    document.getElementById('alertCard').style.display='none';
+  }
 
   let sorted = [...data];
   if(sortKey){ sorted.sort((a,b)=>{ const va=a[sortKey], vb=b[sortKey]; return sortAsc?va-vb:vb-va; }); }
@@ -124,10 +153,13 @@ function render(data){
   html+='</tr></thead><tbody>';
   sorted.forEach(d=>{
     const isHit = d.current===0;
-    const isMax = d.current>=d.max*0.9;
+    const atMax = d.max>0 && d.current>=d.max;
+    const nearMax = d.max>0 && d.current>=d.max*0.8 && d.current<d.max;
     const cold = d.current<maxCur*0.3?'cell-cold':d.current<maxCur*0.7?'cell-warm':'cell-hot';
+    const badge = atMax?'<span class="badge badge-danger">即将回补</span>':nearMax?'<span class="badge badge-warn">接近最大</span>':'';
+    const cellCls = isHit?'cell-hit':atMax?'cell-max':nearMax?'cell-near':cold;
     html+=`<tr><th style="background:var(--card);font-weight:700">${String(d.number).padStart(2,'0')}</th>
-      <td class="${isHit?'cell-hit':cold}${isMax?' cell-max':''}">${isHit?'✓ 开出':d.current+'期'}</td>
+      <td class="${cellCls}">${isHit?'✓ 开出':d.current+'期'}${badge}</td>
       <td>${d.max}期</td><td>${d.avg}期</td>
       <td>${d.frequency}%</td><td>${d.lastAppear}天</td>
       <td style="color:${d.hotLevel==='极热'?'var(--c-hot)':d.hotLevel==='热'?'var(--gold)':d.hotLevel==='温'?'var(--ice)':'var(--muted)'}">${d.hotLevel}</td></tr>`;
@@ -182,6 +214,7 @@ async function loadData(){
 }
 
 loadData();
+if (window.InteractionKit) { InteractionKit.initBackToTop(); }
 </script>
   <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
 </body>

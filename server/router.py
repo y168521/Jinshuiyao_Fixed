@@ -288,6 +288,16 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
             h_lottery.handle_sources_health(self)
             return
 
+        # /api/lottery/data-volume — 各彩种数据规模（期数/占用空间）
+        if parsed.path == '/api/lottery/data-volume':
+            h_lottery.handle_data_volume(self)
+            return
+
+        # /api/lottery/hot-rank — 冷热动态排行榜（多窗口 + 趋势）
+        if parsed.path.startswith('/api/lottery/hot-rank'):
+            h_lottery.handle_hot_rank(self)
+            return
+
 
         # /api/lottery/reference — 福彩3D/排列三 多维参考特征 + SQI（不生成号码）
         if parsed.path.startswith('/api/lottery/reference'):
@@ -444,6 +454,11 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
         # /api/system/backup — 一键数据快照（复用 auto_backup.py）
         if parsed.path == '/api/system/backup':
             h_static.handle_backup(self)
+            return
+
+        # /api/system/time-check — 系统时间偏差检测
+        if parsed.path == '/api/system/time-check':
+            h_static.handle_time_check(self)
             return
 
         # /api/frontend-errors — 前端错误收集尾部查询

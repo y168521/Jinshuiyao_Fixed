@@ -325,12 +325,12 @@ PROVIDER_KEY_FILES = {
 }
 
 # 模型 fallback 链：当首选模型失败时按序尝试备选
-# 2026-08-16 调整：zhipu(glm-4.5-air)免费额度大优先，deepseek 作为付费回退（JS-20260816-02）
+# 2026-08-16 调整：免费额度优先链 zhipu→dashscope(自适应)→deepseek(付费)（JS-20260816-02/03）
 FALLBACK_CHAIN = [
     "zhipu",
+    "dashscope",
     "deepseek",
     "deepseek-reasoner",
-    "dashscope",
     "ollama",
 ]
 

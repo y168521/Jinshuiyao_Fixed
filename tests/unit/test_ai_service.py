@@ -359,8 +359,8 @@ class TestAIServiceFallbackOnError(unittest.TestCase):
                 result = self.svc.chat("sys", "test")
 
             self.assertEqual(result, "")
-            # 链推进到了下一个供应商（deepseek-reasoner），而非断头
-            self.assertIn(m.FALLBACK_CHAIN[1], switched)
+            # 链推进到了下一个可用的供应商（空密钥目录跳过 zhipu/dashscope，首个可切 deepseek），而非断头
+            self.assertIn("deepseek", switched)
         finally:
             m._SECRETS_DIR = old_secrets
             shutil.rmtree(tmpdir, ignore_errors=True)
@@ -563,11 +563,11 @@ class TestAIServiceDashscopeWiring(unittest.TestCase):
         self.assertTrue(m.PROVIDERS["moonshot"]["model"])
 
     def test_fallback_chain_order(self):
-        """fallback链顺序：智谱→deepseek→reasoner→百炼→ollama"""
+        """fallback链顺序：智谱→百炼→deepseek→reasoner→ollama（免费优先）"""
         from core import ai_service as m
         self.assertEqual(
             m.FALLBACK_CHAIN,
-            ["zhipu", "deepseek", "deepseek-reasoner", "dashscope", "ollama"])
+            ["zhipu", "dashscope", "deepseek", "deepseek-reasoner", "ollama"])
 
     def test_switch_zhipu_moonshot_key_isolation(self):
         """智谱/月之暗面密钥文件不存在时切换 api_key 为空（不回退）"""

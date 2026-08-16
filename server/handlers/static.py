@@ -97,6 +97,7 @@ _LOTTERY_ROUTES = {
     '/lottery/combo-calculator': os.path.join(BASE_DIR, 'frontend', 'lottery', 'combo-calculator.html'),
     '/lottery/trend-classification': os.path.join(BASE_DIR, 'frontend', 'lottery', 'trend-classification.html'),
     '/lottery/omission-table':    os.path.join(BASE_DIR, 'frontend', 'lottery', 'omission-table.html'),
+    '/lottery/hot-rank':          os.path.join(BASE_DIR, 'frontend', 'lottery', 'hot-rank.html'),
 }
 
 # 基金/股票/足彩 子系统路由
@@ -550,6 +551,42 @@ def handle_logs(handler):
 # ---------------------------------------------------------------------------
 # POST 路由处理函数
 # ---------------------------------------------------------------------------
+def handle_time_check(handler):
+    """GET /api/system/time-check — 系统时间偏差检测
+
+    用 HTTP 响应 Date 头（权威时间源）对比本机时钟；偏差 >24h 判定异常。
+    网络不可用时 checkable=false（跳过不告警，避免离线误报）。
+    """
+    try:
+        import time as _time
+        offset = None
+        try:
+            import requests
+            r = requests.head(
+                "https://www.baidu.com", timeout=6,
+                headers={"User-Agent": "Mozilla/5.0"})
+            if r.status_code < 500 and r.headers.get("Date"):
+                from email.utils import parsedate_to_datetime
+                net_ts = parsedate_to_datetime(r.headers["Date"]).timestamp()
+                offset = int(_time.time() - net_ts)
+        except Exception:
+            offset = None
+        if offset is None:
+            handler._send_json({"ok": True, "checkable": False,
+                                "message": "网络不可用，跳过时间校验"})
+            return
+        bad = abs(offset) > 86400
+        handler._send_json({
+            "ok": True, "checkable": True,
+            "offset_seconds": offset,
+            "bad": bad,
+            "message": ("⚠️ 本机时间与网络时间偏差 %d 秒，可能影响开奖数据抓取"
+                        % abs(offset) if bad else "本机时间正常"),
+        })
+    except Exception as e:
+        handler._send_json({"ok": False, "error": str(e)}, 500)
+
+
 def handle_backup(handler):
     """GET /api/system/backup — 一键创建数据快照（坚果云安全位置）
 

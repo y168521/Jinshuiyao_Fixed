@@ -58,7 +58,7 @@
       <h2>🔬 一键诊断</h2>
       <button class="btn btn-primary" onclick="diag()" id="diagBtn">运行诊断</button>
       <button class="btn" onclick="copyDiag()">复制报告</button>
-      <div class="info" id="diagInfo">自动检查：服务器存活 · 自动化模块状态 · 定时任务失败 · 前端错误 · 数据备份存在性，生成一份可复制粘贴的诊断报告。</div>
+      <div class="info" id="diagInfo">自动检查：服务器存活 · 自动化模块状态 · 定时任务失败 · 前端错误 · 数据备份存在性 · 系统时间偏差，生成一份可复制粘贴的诊断报告。</div>
     </div>
   </div>
 
@@ -79,9 +79,10 @@ function diag(){
     fetch('/api/automation-status').then(function(r){ return r.json(); }).catch(function(){ return null; }),
     fetch('/api/scheduler/status').then(function(r){ return r.json(); }).catch(function(){ return null; }),
     fetch('/api/frontend-errors?limit=5').then(function(r){ return r.json(); }).catch(function(){ return null; }),
-    fetch('/api/system/backup?latest=1').then(function(r){ return r.json(); }).catch(function(){ return null; })
+    fetch('/api/system/backup?latest=1').then(function(r){ return r.json(); }).catch(function(){ return null; }),
+    fetch('/api/system/time-check').then(function(r){ return r.json(); }).catch(function(){ return null; })
   ]).then(function(res){
-    var auto = res[0], sch = res[1], err = res[2], bak = res[3];
+    var auto = res[0], sch = res[1], err = res[2], bak = res[3], tc = res[4];
     if(auto && auto.server){
       report.push('[服务器] 存活 ' + (auto.server.alive ? '✓' : '✗') + '（端口 ' + auto.server.port + '）');
       report.push('[自动同步] ' + (auto.auto_sync && auto.auto_sync.ok ? '✓' : '✗') + (auto.auto_sync && auto.auto_sync.last_run ? ' 最近 ' + String(auto.auto_sync.last_run).slice(0,19).replace('T',' ') : ''));
@@ -105,6 +106,7 @@ function diag(){
       report.push('[前端错误] ✗ 读取失败');
     }
     report.push('[数据备份] ' + (bak && bak.ok && bak.latest ? '✓ 最近快照 ' + bak.latest : '✗ 无快照'));
+    report.push('[系统时间] ' + (tc && tc.checkable ? (tc.bad ? '✗ ' + tc.message : '✓ 与网络时间一致') : (tc ? '— 离线跳过' : '✗ 接口不可用')));
     report.push('='.repeat(40));
     report.push('生成时间：' + new Date().toLocaleString('zh-CN'));
     lastDiag = report.join('\n');
