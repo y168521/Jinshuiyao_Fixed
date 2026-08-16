@@ -403,8 +403,8 @@ class TestAIServiceProviderSwitch(unittest.TestCase):
 
     def test_provider_switch_mid_session(self):
         """运行中切换供应商"""
-        self.assertEqual(self.svc.provider, "deepseek")
-        self.assertEqual(self.svc._config["model"], "deepseek-chat")
+        self.assertEqual(self.svc.provider, "zhipu")
+        self.assertEqual(self.svc._config["model"], "glm-4.5-air")
 
         self.svc.switch_provider("deepseek-reasoner")
         self.assertEqual(self.svc.provider, "deepseek-reasoner")
@@ -563,11 +563,11 @@ class TestAIServiceDashscopeWiring(unittest.TestCase):
         self.assertTrue(m.PROVIDERS["moonshot"]["model"])
 
     def test_fallback_chain_order(self):
-        """fallback链顺序：deepseek→reasoner→智谱→百炼→ollama"""
+        """fallback链顺序：智谱→deepseek→reasoner→百炼→ollama"""
         from core import ai_service as m
         self.assertEqual(
             m.FALLBACK_CHAIN,
-            ["deepseek", "deepseek-reasoner", "zhipu", "dashscope", "ollama"])
+            ["zhipu", "deepseek", "deepseek-reasoner", "dashscope", "ollama"])
 
     def test_switch_zhipu_moonshot_key_isolation(self):
         """智谱/月之暗面密钥文件不存在时切换 api_key 为空（不回退）"""

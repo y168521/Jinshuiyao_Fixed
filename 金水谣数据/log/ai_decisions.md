@@ -1004,3 +1004,16 @@
 - **被否决方案**：启动同步加载阻塞 UI —— 否决：after(300) 异步延迟不阻塞；显示全部 7 彩种 —— 否决：空间有限，沿用前 4 彩种设计；抓取失败时公告栏提示失败 —— 否决：保持静默，日志记录即可。
 - **成熟度**：中
 - **置信度**：中 —— 逻辑层实测通过，GUI 视觉待用户重启确认。
+
+### 2026-08-16 默认AI供应商切智谱：免费额度大优先（opencode）
+- **属主**：opencode
+- **做了什么**：`core/ai_service.py` 默认 provider 由 deepseek 改为 zhipu（glm-4.5-air），FALLBACK_CHAIN 由 [deepseek, deepseek-reasoner, zhipu, dashscope, ollama] 调整为 [zhipu, deepseek, deepseek-reasoner, dashscope, ollama]；同步更新 `tests/unit/test_ai_service.py` 两处默认断言。get_ai_service()/AIService() 无参调用方自动生效。
+- **为什么根因**：默认硬编码 deepseek 且回退链把它放第一，智谱排第三，只有 DeepSeek 连续失败熔断才回退到智谱——免费额度大的 zhipu 长期闲置。
+- **验证**：智谱 key 真实请求 HTTP 200；AIService() 默认实例 chat 端到端返回"正常"；单测 63 passed（含 fallback 链顺序断言同步）；gate 38/38 全绿。
+- **坑**：改默认值前必须查测试断言依赖（test_ai_service 断言默认 provider 与链顺序）；glm-4.5-air 为推理模型，小 max_tokens 下 content 可能为空。
+- **有效方法**：供应商优先级=免费额度大优先、付费作备胎；默认实例全局生效，改动点仅 __init__ 默认参数 + fallback 链两处。
+- **关联文件**：`core/ai_service.py`、`tests/unit/test_ai_service.py`
+- **关联总索引**：JS-20260816-02
+- **被否决方案**：控制中心加供应商手动切换UI —— 否决：熔断自动回退已够用，避免误切到付费；DeepSeek 完全禁用 —— 否决：保留作付费备胎，链内第二位；默认切 dashscope —— 否决：智谱免费额度更大。
+- **成熟度**：高
+- **置信度**：高

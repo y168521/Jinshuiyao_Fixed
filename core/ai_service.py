@@ -325,10 +325,11 @@ PROVIDER_KEY_FILES = {
 }
 
 # 模型 fallback 链：当首选模型失败时按序尝试备选
+# 2026-08-16 调整：zhipu(glm-4.5-air)免费额度大优先，deepseek 作为付费回退（JS-20260816-02）
 FALLBACK_CHAIN = [
+    "zhipu",
     "deepseek",
     "deepseek-reasoner",
-    "zhipu",
     "dashscope",
     "ollama",
 ]
@@ -391,12 +392,12 @@ class AIService:
       - 模型 fallback 链（自动切换备选模型）
     """
 
-    def __init__(self, provider: str = "deepseek", api_key: str = "",
+    def __init__(self, provider: str = "zhipu", api_key: str = "",
                  key_file: str = ""):
         """初始化AI服务
 
         Args:
-            provider: 供应商名称，默认 deepseek
+            provider: 供应商名称，默认 zhipu（glm-4.5-air 免费额度大，优先用）
             api_key: API密钥，为空则自动从文件/环境变量读取
             key_file: 密钥文件路径，为空则自动查找
         """
