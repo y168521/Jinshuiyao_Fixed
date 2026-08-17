@@ -658,10 +658,9 @@ def test_security_system():
     print("=" * 60)
     
     try:
-        # 测试加密系统
-        print("🔐 测试加密系统...")
-        test_key = "test_master_key_1234567"
-        encryption = SensitiveDataEncryption(test_key)
+        # 自检演示用占位口令（非真实密钥，仅供加密解密功能自测）
+        _demo_seed = "demo_master_key_for_selftest_2026"
+        encryption = SensitiveDataEncryption(_demo_seed)
         
         test_data = "这是敏感测试数据：API_KEY_ABC123DEF456"
         encrypted = encryption.encrypt_data(test_data)
@@ -727,6 +726,8 @@ if __name__ == "__main__":
     # get 命令
     get_parser = subparsers.add_parser('get', help='获取密钥')
     get_parser.add_argument('key_name', help='密钥名称')
+    get_parser.add_argument('--reveal', action='store_true',
+                            help='显示密钥完整明文（默认仅前4位+掩码，防终端泄露）')
     
     # store 命令
     store_parser = subparsers.add_parser('store', help='存储密钥')
@@ -812,8 +813,11 @@ if __name__ == "__main__":
         key_value = km.get_key(args.key_name)
         
         if key_value:
+            shown = key_value if args.reveal else (key_value[:4] + "*" * (len(key_value) - 4))
             print(f"🔑 密钥 '{args.key_name}':")
-            print(f"  值: {key_value}")
+            print(f"  值: {shown}")
+            if not args.reveal:
+                print(f"  (已掩码，完整值请加 --reveal 查看——终端历史/屏幕录制会泄露密钥)")
         else:
             print(f"❌ 未找到密钥: {args.key_name}")
     

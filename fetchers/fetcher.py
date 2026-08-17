@@ -279,10 +279,10 @@ class Fetcher:
             "双色球": "https://datachart.500.com/ssq/history/newinc/history.php?start=21001&end=99999",
             "大乐透": "https://datachart.500.com/dlt/history/newinc/history.php?start=21001&end=99999",
             "福彩3D": "https://datachart.500.com/sd/history/newinc/history.php?start=21001&end=99999",
-            "排列三": "http://datachart.500.com/pls/history/inc/history.php?limit=200&start=26001&end=99999",
+            "排列三": "https://datachart.500.com/pls/history/inc/history.php?limit=200&start=26001&end=99999",
             "七星彩": [
                 "https://datachart.500.com/qxc/history/history.php?limit=200&start=21001&end=99999",
-                "http://datachart.500.com/qxc/history/inc/history.php?limit=200&start=21001&end=99999",
+                "https://datachart.500.com/qxc/history/inc/history.php?limit=200&start=21001&end=99999",
                 "https://datachart.500.com/qxc/history/newinc/history.php?start=21001&end=99999",
             ],
             "七乐彩": "https://datachart.500.com/qlc/history/newinc/history.php?start=21001&end=99999",
