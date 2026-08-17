@@ -196,3 +196,4 @@ knowledge/file_knowledge_index.json
 # 审计留痕运行时数据(不入库)
 金水谣数据/log/审计轨迹.jsonl
 金水谣数据/log/审计轨迹回放.md
+*.bak_cost_fix
