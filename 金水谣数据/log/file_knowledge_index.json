@@ -1,7 +1,7 @@
 {
-  "_generated": "2026-08-13",
+  "_generated": "2026-08-17",
   "_schema": "v2",
-  "_count": 554,
+  "_count": 565,
   "_note": "文件→关联知识反向索引。由 tools/knowledge_index.py v2 自动生成，请勿手动编辑。",
   "entries": {
     "*_cookie.txt": [
@@ -1002,9 +1002,21 @@
         "source": "工作留痕总索引"
       },
       {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      },
+      {
         "type": "ad",
         "id": "AD-2026-07-31 彩票P2/P3页面收尾 + 全路由注册",
         "summary": "2026-07-31 彩票P2/P3页面收尾 + 全路由注册 + 端到端验证 · JS-20260731-01",
+        "source": "ai_decisions.md"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-15 豆包清单第三批：看板/知识库/诊断/全",
+        "summary": "2026-08-15 豆包清单第三批：看板/知识库/诊断/全屏（opencode）",
         "source": "ai_decisions.md"
       },
       {
@@ -1338,6 +1350,18 @@
         "source": "ai_decisions.md"
       },
       {
+        "type": "ad",
+        "id": "AD-2026-08-14 ai_service 递归/fallb",
+        "summary": "2026-08-14 ai_service 递归/fallback链死胡同/watcher自停止 三处修复 + 链推进回",
+        "source": "ai_decisions.md"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-16 默认AI供应商切智谱：免费额度大优先（",
+        "summary": "2026-08-16 默认AI供应商切智谱：免费额度大优先（opencode）",
+        "source": "ai_decisions.md"
+      },
+      {
         "type": "pattern",
         "id": "PAT-006",
         "summary": "[PAT-006] 硬编码密钥或用户路径: 密钥/路径硬编码在源码中，换机器或泄露风险",
@@ -1574,6 +1598,12 @@
         "id": "JS-20260802-04",
         "summary": "全自动同步方案（省心模式）",
         "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-14 ai_service 递归/fallb",
+        "summary": "2026-08-14 ai_service 递归/fallback链死胡同/watcher自停止 三处修复 + 链推进回",
+        "source": "ai_decisions.md"
       }
     ],
     "core/free_model_pool.py": [
@@ -3150,6 +3180,12 @@
         "source": "ai_decisions.md"
       },
       {
+        "type": "ad",
+        "id": "AD-2026-08-16 GUI开奖公告栏修复：启动即显示最新开",
+        "summary": "2026-08-16 GUI开奖公告栏修复：启动即显示最新开奖（opencode）",
+        "source": "ai_decisions.md"
+      },
+      {
         "type": "exp",
         "id": "EXP-048",
         "summary": "2026-07-22 TRAE 的经验（GUI变量作用域bug + Python环境修复）[前端][踩坑][运维]",
@@ -3322,6 +3358,14 @@
         "source": "工作留痕总索引(表)"
       }
     ],
+    "jinshuiyao-guide/changelog.html": [
+      {
+        "type": "ad",
+        "id": "AD-2026-08-15 豆包清单收官：顶栏同步时间 + 更新日",
+        "summary": "2026-08-15 豆包清单收官：顶栏同步时间 + 更新日志页（opencode）",
+        "source": "ai_decisions.md"
+      }
+    ],
     "jinshuiyao-guide/control-center.html": [
       {
         "type": "js",
@@ -3456,6 +3500,20 @@
         "source": "ai_decisions.md"
       }
     ],
+    "jinshuiyao-guide/knowledge-browser.html": [
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-15 豆包清单第三批：看板/知识库/诊断/全",
+        "summary": "2026-08-15 豆包清单第三批：看板/知识库/诊断/全屏（opencode）",
+        "source": "ai_decisions.md"
+      }
+    ],
     "jinshuiyao-guide/launcher.py": [
       {
         "type": "exp",
@@ -3549,6 +3607,34 @@
         "type": "ad",
         "id": "AD-2026-07-31 彩票P2/P3页面收尾 + 全路由注册",
         "summary": "2026-07-31 彩票P2/P3页面收尾 + 全路由注册 + 端到端验证 · JS-20260731-01",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "jinshuiyao-guide/scheduler-board.html": [
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-15 豆包清单第三批：看板/知识库/诊断/全",
+        "summary": "2026-08-15 豆包清单第三批：看板/知识库/诊断/全屏（opencode）",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "jinshuiyao-guide/system-tools.html": [
+      {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-15 豆包清单第三批：看板/知识库/诊断/全",
+        "summary": "2026-08-15 豆包清单第三批：看板/知识库/诊断/全屏（opencode）",
         "source": "ai_decisions.md"
       }
     ],
@@ -4398,6 +4484,14 @@
         "id": "JS-20260725-41",
         "summary": "**时间**: 2026-07-25",
         "source": "工作留痕总索引(dot)"
+      }
+    ],
+    "predictions/predictions.json": [
+      {
+        "type": "exp",
+        "id": "EXP-124",
+        "summary": "2026-08-17 两处统计口径错误（引擎看板缺彩票数据 / 免费模型被计费） [后端][统计][踩坑]",
+        "source": "经验收集箱"
       }
     ],
     "preload.py": [
@@ -5532,9 +5626,43 @@
         "source": "工作留痕总索引"
       },
       {
+        "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      },
+      {
         "type": "ad",
         "id": "AD-2026-07-31 彩票P2/P3页面收尾 + 全路由注册",
         "summary": "2026-07-31 彩票P2/P3页面收尾 + 全路由注册 + 端到端验证 · JS-20260731-01",
+        "source": "ai_decisions.md"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-15 豆包清单第三批：看板/知识库/诊断/全",
+        "summary": "2026-08-15 豆包清单第三批：看板/知识库/诊断/全屏（opencode）",
+        "source": "ai_decisions.md"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-15 豆包清单收官：顶栏同步时间 + 更新日",
+        "summary": "2026-08-15 豆包清单收官：顶栏同步时间 + 更新日志页（opencode）",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "server/handlers/static.py::handle_changelog": [
+      {
+        "type": "ad",
+        "id": "AD-2026-08-15 豆包清单收官：顶栏同步时间 + 更新日",
+        "summary": "2026-08-15 豆包清单收官：顶栏同步时间 + 更新日志页（opencode）",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "server/handlers/static.py::handle_knowledge_list": [
+      {
+        "type": "ad",
+        "id": "AD-2026-08-15 豆包清单第三批：看板/知识库/诊断/全",
+        "summary": "2026-08-15 豆包清单第三批：看板/知识库/诊断/全屏（opencode）",
         "source": "ai_decisions.md"
       }
     ],
@@ -5613,6 +5741,12 @@
       },
       {
         "type": "js",
+        "id": "JS-20260802-04",
+        "summary": "全自动同步方案（省心模式）",
+        "source": "工作留痕总索引"
+      },
+      {
+        "type": "js",
         "id": "JS-20260725-42",
         "summary": "**时间**: 2026-07-25",
         "source": "工作留痕总索引(dot)"
@@ -5681,6 +5815,18 @@
         "type": "ad",
         "id": "AD-2026-07-29 自动化系统优化架构（成本熔断+限流+健",
         "summary": "2026-07-29 自动化系统优化架构（成本熔断+限流+健康闭环+遥测+并发门+影子测试 G1-G8）· JS-202",
+        "source": "ai_decisions.md"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-15 豆包清单第三批：看板/知识库/诊断/全",
+        "summary": "2026-08-15 豆包清单第三批：看板/知识库/诊断/全屏（opencode）",
+        "source": "ai_decisions.md"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-15 豆包清单收官：顶栏同步时间 + 更新日",
+        "summary": "2026-08-15 豆包清单收官：顶栏同步时间 + 更新日志页（opencode）",
         "source": "ai_decisions.md"
       },
       {
@@ -5778,6 +5924,14 @@
         "source": "经验收集箱"
       }
     ],
+    "static.py/router.py": [
+      {
+        "type": "exp",
+        "id": "EXP-118",
+        "summary": "2026-08-14 前端体验第二~八批: 批处理工具链的纪律 [前端][工具链][ES5][幂等]",
+        "source": "经验收集箱"
+      }
+    ],
     "stock/domain.py": [
       {
         "type": "exp",
@@ -5819,6 +5973,14 @@
         "type": "ad",
         "id": "AD-2026-07-23 非彩票功能安全/并发/健壮性优化（全模",
         "summary": "2026-07-23 非彩票功能安全/并发/健壮性优化（全模块深究+7文件修复）· JS-20260723-38",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "system-tools.html": [
+      {
+        "type": "ad",
+        "id": "AD-2026-08-15 豆包清单第三批：看板/知识库/诊断/全",
+        "summary": "2026-08-15 豆包清单第三批：看板/知识库/诊断/全屏（opencode）",
         "source": "ai_decisions.md"
       }
     ],
@@ -5991,6 +6153,20 @@
         "type": "ad",
         "id": "AD-2026-08-07 智能链路全线联通（W63补54 / J",
         "summary": "2026-08-07 智能链路全线联通（W63补54 / JS-20260807-03）",
+        "source": "ai_decisions.md"
+      }
+    ],
+    "tests/unit/test_ai_service.py": [
+      {
+        "type": "ad",
+        "id": "AD-2026-08-14 ai_service 递归/fallb",
+        "summary": "2026-08-14 ai_service 递归/fallback链死胡同/watcher自停止 三处修复 + 链推进回",
+        "source": "ai_decisions.md"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-16 默认AI供应商切智谱：免费额度大优先（",
+        "summary": "2026-08-16 默认AI供应商切智谱：免费额度大优先（opencode）",
         "source": "ai_decisions.md"
       }
     ],
@@ -6326,6 +6502,14 @@
         "id": "JS-20260720-02",
         "summary": "Qoder",
         "source": "工作留痕总索引(表)"
+      }
+    ],
+    "tools/encrypt_secrets.py": [
+      {
+        "type": "exp",
+        "id": "EXP-122",
+        "summary": "2026-08-16 GUI开奖公告栏修复（启动即显示） [GUI][UI][BUG]",
+        "source": "经验收集箱"
       }
     ],
     "tools/gate.py": [
@@ -7099,6 +7283,12 @@
         "type": "ad",
         "id": "AD-JS-20260727-15 · 道衍推导框架：生成式铁律取",
         "summary": "JS-20260727-15 · 道衍推导框架：生成式铁律取代孤立补丁",
+        "source": "ai_decisions.md"
+      },
+      {
+        "type": "ad",
+        "id": "AD-2026-08-14 ai_service 递归/fallb",
+        "summary": "2026-08-14 ai_service 递归/fallback链死胡同/watcher自停止 三处修复 + 链推进回",
         "source": "ai_decisions.md"
       }
     ],
@@ -8154,6 +8344,12 @@
         "id": "AD-2026-07-24 彩票命中率口径统一延伸至 GUI（双栏",
         "summary": "2026-07-24 彩票命中率口径统一延伸至 GUI（双栏直选/组选）· JS-20260724-02",
         "source": "ai_decisions.md"
+      },
+      {
+        "type": "exp",
+        "id": "EXP-124",
+        "summary": "2026-08-17 两处统计口径错误（引擎看板缺彩票数据 / 免费模型被计费） [后端][统计][踩坑]",
+        "source": "经验收集箱"
       }
     ],
     "金水谣数据/risk_register.json": [
