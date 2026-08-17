@@ -1031,11 +1031,24 @@
 - **成熟度**：高
 - **置信度**：高
 ## JS-20260816-04 第十四批：AI用量看板+健康增强+号码球+favicon+密钥加密
-- **背景**：豆包终极篇/AI专项/界面三批清单评估后，排除 30+ 已有项，缺且值得做的 5 项。
-- **决策过程**：①AI 用量看板——telemetry.jsonl 早已有 provider/model/cost/latency 明细，只差前端消费，成本低价值高；②/health 增强——资源指标缺失且无前端消费，加内存/磁盘/CPU（psutil 可选）；③号码球——界面 200 项里视觉提升最直接的组件化项，已有历史同期页样式可抽公共组件；④favicon——SVG data-URI 注入 topnav.js 一处生效 90+ 页面；⑤密钥加密——安全底线，威胁模型是"误同步/误备份外泄"，做 .enc 优先+明文回退自愈。
+- **为什么根因**：豆包终极篇/AI专项/界面三批清单评估后，排除 30+ 已有项，缺且值得做的 5 项。
+- **做了什么**：①AI 用量看板——telemetry.jsonl 早已有 provider/model/cost/latency 明细，只差前端消费，成本低价值高；②/health 增强——资源指标缺失且无前端消费，加内存/磁盘/CPU（psutil 可选）；③号码球——界面 200 项里视觉提升最直接的组件化项，已有历史同期页样式可抽公共组件；④favicon——SVG data-URI 注入 topnav.js 一处生效 90+ 页面；⑤密钥加密——安全底线，威胁模型是"误同步/误备份外泄"，做 .enc 优先+明文回退自愈。
 - **有效方法**：四件套（聚合纯函数+薄 handler+前端页+入口注册）；安全类改动三步链（加密-校验一致-才删明文）；惰性导入 cryptography 保 security.py 标准库纯净。
 - **关联文件**：core/telemetry.py、core/security.py、server/handlers/health.py、static.py、router.py、jinshuiyao-guide/ai-usage.html（新页）、_shared/js/ball-view.js（新组件）、tools/encrypt_secrets.py（新工具）、tests 4 处
 - **关联总索引**：JS-20260816-04
 - **被否决方案**：utils/security_tools 的 KeyManager（依赖环境变量且密钥库放项目内）；HTTP 耗时中间件（已有 LLM 级时延，收益低）；StateUI 空态重构（现状够用）；GUI 单实例互斥（端口抢占已兜底，tkinter 改造成本高）。
+- **成熟度**：高
+- **置信度**：高
+
+### 2026-08-17 引擎看板接入彩票预测 + glm-4.5-air 免费计费修正
+- **属主**：opencode
+- **为什么根因**：用户实测发现两处统计异常：①引擎效果看板"总预测数 6、命中率 0%"；②AI 用量看板 glm-4.5-air（智谱官方免费）1006 条全计费共 4.35 元。
+- **做了什么**：①看板只读 predictions/predictions.json（Q&A 沉淀仅 6 条），2132 条彩票预测在 金水谣数据/predictions.json 完全未接入——不合并存储（结构不同会污染 Q&A 列表），改为统计层合并读取 _load_all_records，彩票记录按 lot→domain、reviewed+hits→outcome 统一映射；②llm_budget 价格表仅 deepseek，未知 provider 静默回退默认价把免费模型按 0.5/4 每百万计费——按 provider:model 三级定价（精确键→provider 级→默认），glm-4.5-air 显式配 0/0，视觉模型 glm-4.1v/4.6v 保留近似计费，历史 telemetry 重算归零（备份 .bak_cost_fix）。
+- **验证**：新单测 6 条 test_llm_budget_pricing（免费/计费/回退/视觉/免费池/无 model）；全量 1036 passed；重启冒烟 stats=2138 条 9 域命中率 69.17%、dashboard glm-4.5-air 1019 次 cost=0 总成本 0.32 元免费占比 94.2%。
+- **坑**：系统存在两套 predictions.json（Q&A 沉淀 vs 彩票选号），统计前先确认数据源；免费优先策略必须配套显式免费价格，否则统计虚高。
+- **有效方法**：三级定价回退（provider:model 精确→provider→默认）既精确又不缺省；改历史日志前先备份、只动目标字段。
+- **关联文件**：server/handlers/prediction.py、core/llm_budget.py、core/free_model_pool.py、config/llm_budget.json、金水谣数据/telemetry.jsonl（重算）、tests/unit/test_llm_budget_pricing.py（新）
+- **关联总索引**：JS-20260817-01
+- **被否决方案**：彩票记录写入 predictions/predictions.json 统一存储——否决：两数据源结构不同，合并会污染 Q&A 列表接口；zhipu 整体免费——否决：视觉模型真实付费会被误算，必须 provider:model 精确。
 - **成熟度**：高
 - **置信度**：高

@@ -206,7 +206,8 @@ def _http_call(cfg, system_prompt, user_prompt, timeout=30, max_tokens=64, tempe
             _cost = 0.0
             if _in or _out:
                 from core.llm_budget import get_guard
-                _cost = get_guard().record(cfg.get("_provider"), _in, _out)
+                _cost = get_guard().record(cfg.get("_provider"), _in, _out,
+                                           model=cfg.get("_model_id"))
             from core.telemetry import record as _tel
             _tel(provider=cfg.get("_provider"), model=cfg.get("_model_id"),
                  in_tokens=_in, out_tokens=_out,

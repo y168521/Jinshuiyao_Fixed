@@ -111,14 +111,21 @@ class LLMBudgetGuard:
                 return False
             return True
 
-    def record(self, provider, in_tokens, out_tokens):
-        """记录一次实际花费（来自 API usage）。返回 cost（免费池为 0）。"""
+    def record(self, provider, in_tokens, out_tokens, model=None):
+        """记录一次实际花费（来自 API usage）。返回 cost（免费池为 0）。
+
+        W63补100 / JS-20260817-01：支持按 provider:model 精确定价（免费模型记 0），
+        价格解析三级回退：prices["provider:model"] → prices[provider] → DEFAULT。
+        """
         cfg = _load_cfg()
         if not cfg.get("enabled", True):
             return 0.0
-        if provider in ("siliconflow",) or provider is None:
+        if provider in ("siliconflow", "ollama") or provider is None:
             return 0.0
-        prices = cfg.get("prices", DEFAULT_PRICES).get(provider, DEFAULT_PRICES["deepseek"])
+        prices_cfg = cfg.get("prices", DEFAULT_PRICES)
+        key = f"{provider}:{model}" if model else provider
+        prices = (prices_cfg.get(key) or prices_cfg.get(provider)
+                  or DEFAULT_PRICES.get(provider) or DEFAULT_PRICES["deepseek"])
         cost = (in_tokens or 0) / 1e6 * prices["input_yuan_per_1m"] + \
                (out_tokens or 0) / 1e6 * prices["output_yuan_per_1m"]
         if cost <= 0:

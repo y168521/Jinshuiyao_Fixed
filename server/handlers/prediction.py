@@ -41,6 +41,49 @@ def _load_predictions():
     return []
 
 
+# W63补100 / JS-20260817-01：彩票选号预测记录（金水谣数据/predictions.json）
+# 与 Q&A 预测沉淀（predictions/predictions.json）是两个数据源，
+# 统计端点合并两者，避免引擎看板只显示 Q&A 的几条记录。
+_LOT_PREDICTION_FILE = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    '金水谣数据', 'predictions.json')
+
+
+def _load_lottery_predictions():
+    """读取彩票选号预测记录并统一为统计结构（lot → domain，reviewed+hits → outcome）"""
+    try:
+        if not os.path.isfile(_LOT_PREDICTION_FILE):
+            return []
+        with open(_LOT_PREDICTION_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        if not isinstance(data, list):
+            return []
+        out = []
+        for r in data:
+            if not isinstance(r, dict):
+                continue
+            rec = {
+                'id': f"LOT-{r.get('lot', '?')}-{r.get('period', '?')}",
+                'time': r.get('time') or '',
+                'domain': r.get('lot') or 'other',
+            }
+            reviewed = r.get('reviewed')
+            hits = int(r.get('hits') or 0)
+            if reviewed:
+                rec['outcome'] = 'hit' if hits > 0 else 'miss'
+            else:
+                rec['outcome'] = None
+            out.append(rec)
+        return out
+    except Exception:
+        return []
+
+
+def _load_all_records():
+    """统计口径统一读取：Q&A 预测沉淀 + 彩票选号预测（供 stats/history 聚合）"""
+    return _load_predictions() + _load_lottery_predictions()
+
+
 def _save_predictions(records):
     os.makedirs(PREDICTION_DIR, exist_ok=True)
     tmp = PREDICTION_FILE + '.tmp'
@@ -59,7 +102,7 @@ def _domain_confidence(domain, window=90):
     「历史同领域命中率」作为置信度代理——UI 据此展示可信档位，
     避免给用户虚假精度。这是诚实可落地的取值，而非凭空概率。
     """
-    records = _load_predictions()
+    records = _load_all_records()
     now = datetime.datetime.now()
     cutoff = now - datetime.timedelta(days=window)
 
@@ -187,9 +230,13 @@ def handle_prediction_outcome(handler):
 # GET 路由处理函数
 # ---------------------------------------------------------------------------
 def handle_prediction_stats(handler):
-    """GET /api/prediction/stats — 预测统计（按域聚合 + 趋势）"""
+    """GET /api/prediction/stats — 预测统计（按域聚合 + 趋势）
+
+    W63补100 / JS-20260817-01：合并彩票选号预测（金水谣数据/predictions.json），
+    避免看板只统计 Q&A 沉淀的少量记录。
+    """
     try:
-        records = _load_predictions()
+        records = _load_all_records()
 
         # 按 domain 聚合
         by_domain = {}
@@ -263,7 +310,7 @@ def handle_prediction_history(handler):
         days = max(7, min(days, 365))
 
         now = datetime.datetime.now()
-        records = _load_predictions()
+        records = _load_all_records()
 
         domains = sorted({r.get('domain') for r in records
                           if r.get('domain') and r.get('domain') != 'other'})
