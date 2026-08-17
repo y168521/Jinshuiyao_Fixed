@@ -171,6 +171,10 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
         if parsed.path == '/api/telemetry':
             h_health.handle_telemetry(self)
             return
+        # /api/telemetry/dashboard — 用量看板聚合（W63补99 / JS-20260816-04）
+        if parsed.path == '/api/telemetry/dashboard':
+            h_health.handle_telemetry_dashboard(self)
+            return
         # /api/pipeline/status — 多 Agent 流水线实时状态（前端轮询 / 连接探测）
         if parsed.path == '/api/pipeline/status':
             h_pipeline.handle_pipeline_status(self)

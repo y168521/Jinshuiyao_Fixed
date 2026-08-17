@@ -70,3 +70,47 @@ def test_dns_failure_rejected():
         ok, msg = is_safe_http_url("http://nonexistent.example.invalid/")
     assert ok is False
     assert "解析" in msg
+
+
+# ---------------------------------------------------------------------------
+# JS-20260816-04 · get_secret 加密存储（.enc AES-GCM 优先 + 明文回退自愈）
+# ---------------------------------------------------------------------------
+import os as _os
+import tempfile as _tf
+
+
+def _encrypt_with(plain, master="test-master-key-001"):
+    from tools.encrypt_secrets import _encrypt
+    return _encrypt(master, plain)
+
+
+def test_get_secret_enc_priority(tmp_path, monkeypatch):
+    """存在 .enc 时优先解密读取，返回与明文一致的内容"""
+    monkeypatch.setenv("TIANSHU_MASTER_KEY", "test-master-key-001")
+    monkeypatch.setattr("core.security._SECRETS_DIR", str(tmp_path))
+    plain = "sk-test-abcdef123456"
+    with open(tmp_path / "demo_key.txt.enc", "w", encoding="utf-8") as f:
+        f.write(_encrypt_with(plain))
+    from core.security import get_secret
+    assert get_secret("demo_key.txt") == plain
+
+
+def test_get_secret_decrypt_fail_fallback_plaintext(tmp_path, monkeypatch):
+    """.enc 解密失败（主密钥不对）时回退明文，保证系统可用"""
+    monkeypatch.setenv("TIANSHU_MASTER_KEY", "wrong-master-key")
+    monkeypatch.setattr("core.security._SECRETS_DIR", str(tmp_path))
+    with open(tmp_path / "demo_key.txt.enc", "w", encoding="utf-8") as f:
+        f.write(_encrypt_with("sk-aaa", master="right-master-key"))
+    with open(tmp_path / "demo_key.txt", "w", encoding="utf-8") as f:
+        f.write("sk-plaintext-fallback")
+    from core.security import get_secret
+    assert get_secret("demo_key.txt") == "sk-plaintext-fallback"
+
+
+def test_get_secret_plaintext_legacy(tmp_path, monkeypatch):
+    """无 .enc 时按原逻辑读明文（未迁移兼容）"""
+    monkeypatch.setattr("core.security._SECRETS_DIR", str(tmp_path))
+    with open(tmp_path / "old_key.txt", "w", encoding="utf-8") as f:
+        f.write("sk-legacy")
+    from core.security import get_secret
+    assert get_secret("old_key.txt") == "sk-legacy"

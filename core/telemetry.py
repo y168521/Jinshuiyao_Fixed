@@ -66,3 +66,72 @@ def summary(n=500):
         "avg_latency_ms": round(avg_lat, 1),
         "p95_latency_ms": round(p95_lat, 1),
     }
+
+
+def dashboard(days=14, max_events=3000):
+    """用量看板聚合（W63补99 / JS-20260816-04）：
+    返回 按日趋势 / 按供应商 / 按模型 / 总量 四维数据，供 /api/telemetry/dashboard。
+    纯函数、只读、异常静默——遥测失败绝不影响调用方。
+    """
+    try:
+        evs = recent(max_events)
+        if not evs:
+            return {"ok": True, "empty": True, "daily": [], "providers": [],
+                    "models": [], "totals": {"count": 0, "free_calls": 0,
+                                             "paid_calls": 0, "cost_yuan": 0.0}}
+        day_tok = {}
+        day_cnt = {}
+        day_cost = {}
+        prov = {}
+        mods = {}
+        tot_cost = 0.0
+        paid_calls = 0
+        for e in evs:
+            d = (e.get("ts") or "")[:10]
+            day_cnt[d] = day_cnt.get(d, 0) + 1
+            day_tok[d] = day_tok.get(d, 0) + int(e.get("in_tokens", 0) or 0) + int(e.get("out_tokens", 0) or 0)
+            c = float(e.get("cost_yuan", 0) or 0)
+            day_cost[d] = day_cost.get(d, 0) + c
+            tot_cost += c
+            if c > 0:
+                paid_calls += 1
+            p = e.get("provider") or "unknown"
+            pv = prov.setdefault(p, {"provider": p, "calls": 0, "cost_yuan": 0.0, "tokens": 0})
+            pv["calls"] += 1
+            pv["cost_yuan"] = round(pv["cost_yuan"] + c, 4)
+            pv["tokens"] += int(e.get("in_tokens", 0) or 0) + int(e.get("out_tokens", 0) or 0)
+            m = e.get("model") or "unknown"
+            mv = mods.setdefault(m, {"model": m, "calls": 0, "cost_yuan": 0.0, "latency_total": 0.0, "latency_n": 0})
+            mv["calls"] += 1
+            mv["cost_yuan"] = round(mv["cost_yuan"] + c, 4)
+            lat = e.get("latency_ms")
+            if lat is not None:
+                mv["latency_total"] += float(lat)
+                mv["latency_n"] += 1
+        daily = []
+        for d in sorted(day_cnt)[-days:]:
+            daily.append({"date": d, "calls": day_cnt[d], "tokens": day_tok[d],
+                          "cost_yuan": round(day_cost.get(d, 0), 4)})
+        for m in mods.values():
+            if m["latency_n"]:
+                m["avg_latency_ms"] = round(m["latency_total"] / m["latency_n"], 1)
+            m.pop("latency_total", None)
+            m.pop("latency_n", None)
+        return {
+            "ok": True,
+            "empty": False,
+            "days": len(daily),
+            "daily": daily,
+            "providers": sorted(prov.values(), key=lambda x: -x["calls"]),
+            "models": sorted(mods.values(), key=lambda x: -x["calls"])[:12],
+            "totals": {
+                "count": len(evs),
+                "free_calls": len(evs) - paid_calls,
+                "paid_calls": paid_calls,
+                "free_ratio": round((len(evs) - paid_calls) / len(evs), 3) if evs else 0,
+                "cost_yuan": round(tot_cost, 4),
+            },
+        }
+    except Exception:
+        return {"ok": False, "error": "遥测聚合失败", "daily": [], "providers": [], "models": [],
+                "totals": {"count": 0, "free_calls": 0, "paid_calls": 0, "cost_yuan": 0.0}}

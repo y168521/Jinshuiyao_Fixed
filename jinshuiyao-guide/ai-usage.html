@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · AI 用量看板</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/toast.js"></script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/state-ui.js"></script>
+<style>
+  :root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:16px; }
+  .bar { display:flex; gap:8px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+  .btn { padding:6px 16px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--txt); font-size:13px; cursor:pointer; }
+  .btn:hover { border-color:#C9A96E; color:#C9A96E; }
+  .cards { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:14px; }
+  @media(max-width:900px){ .cards{ grid-template-columns:repeat(2,1fr); } }
+  @media(max-width:600px){ .cards{ grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+  .kpi .v { font-size:24px; font-weight:700; color:#C9A96E; }
+  .kpi .l { font-size:12px; color:var(--muted); margin-top:2px; }
+  .kpi.free .v { color:#2D8B7E; }
+  .kpi.paid .v { color:#C8785A; }
+  .charts { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+  @media(max-width:900px){ .charts{ grid-template-columns:1fr; } }
+  .panel { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+  .panel h3 { font-size:14px; margin:0 0 8px; }
+  .chart { width:100%; height:260px; }
+  .table-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th,td { padding:7px 10px; text-align:left; border-bottom:1px solid rgba(201,169,110,.15); }
+  th { color:var(--muted); font-weight:600; font-size:12px; }
+  td.num, th.num { text-align:right; }
+  .muted { color:var(--muted); }
+  .tag { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; }
+  .tag-free { background:rgba(45,139,126,.2); color:#5FC0B0; }
+  .tag-paid { background:rgba(200,120,90,.2); color:#E09B7E; }
+</style>
+</head>
+<body>
+  <div style="margin-bottom:10px;"><a href="/control-center" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回控制中心</a></div>
+  <h1>📊 AI 用量看板</h1>
+  <div class="sub">每次 AI 调用的真实用量 · 供应商成本分布 · 模型时延 — 免费优先策略的量化看板</div>
+
+  <div class="bar">
+    <button class="btn" onclick="load()">刷新</button>
+    <span id="updated" class="muted"></span>
+  </div>
+
+  <div class="cards">
+    <div class="card kpi"><div class="v" id="k-calls">-</div><div class="l">AI 调用总数（近3000条）</div></div>
+    <div class="card kpi free"><div class="v" id="k-free">-</div><div class="l">免费调用（含占比）</div></div>
+    <div class="card kpi paid"><div class="v" id="k-cost">-</div><div class="l">付费花费（元）</div></div>
+    <div class="card kpi"><div class="v" id="k-models">-</div><div class="l">使用中的模型数</div></div>
+  </div>
+
+  <div class="charts">
+    <div class="panel"><h3>近 14 天调用量与花费趋势</h3><div id="c-trend" class="chart"></div></div>
+    <div class="panel"><h3>供应商调用占比（免费优先验证）</h3><div id="c-provider" class="chart"></div></div>
+    <div class="panel" style="grid-column:1/-1;"><h3>模型使用明细（按调用次数排序，免费在前）</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>模型</th><th class="num">调用次数</th><th class="num">花费（元）</th><th class="num">平均时延(ms)</th><th>类型</th></tr></thead>
+        <tbody id="t-models"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/jinshuiyao-echarts-theme.js"></script>
+<script>
+var _charts = [];
+function _mk(id){ var c = echarts.init(document.getElementById(id), 'jinshuiyao'); _charts.push(c); return c; }
+function load(){
+  fetch('/api/telemetry/dashboard').then(function(r){ return r.json(); }).then(function(d){
+    document.getElementById('updated').textContent = '更新于 ' + new Date().toLocaleTimeString();
+    var wrap = document.getElementById('t-models');
+    if(!d.ok || d.empty){
+      document.getElementById('k-calls').textContent = d.empty ? '暂无数据' : '失败';
+      wrap.innerHTML = '<tr><td colspan="5" class="muted">暂无遥测记录（首次使用后自动采集）</td></tr>';
+      return;
+    }
+    var t = d.totals;
+    document.getElementById('k-calls').textContent = t.count;
+    document.getElementById('k-free').textContent = t.free_calls + ' (' + Math.round(t.free_ratio*100) + '%)';
+    document.getElementById('k-cost').textContent = t.cost_yuan.toFixed(4);
+    document.getElementById('k-models').textContent = d.models.length;
+    _charts.forEach(function(c){ c.dispose(); }); _charts = [];
+    var trend = _mk('c-trend');
+    trend.setOption({
+      tooltip:{trigger:'axis'},
+      legend:{data:['调用量','花费(元)'], textStyle:{color:'#8A93A6'}},
+      grid:{left:40,right:20,top:32,bottom:24},
+      xAxis:{type:'category', data:d.daily.map(function(x){return x.date;}), axisLabel:{color:'#8A93A6'}},
+      yAxis:[{type:'value', axisLabel:{color:'#8A93A6'}}, {type:'value', axisLabel:{color:'#8A93A6'}}],
+      series:[
+        {name:'调用量', type:'bar', data:d.daily.map(function(x){return x.calls;}), itemStyle:{color:'#2D8B7E'}},
+        {name:'花费(元)', type:'line', yAxisIndex:1, smooth:true, data:d.daily.map(function(x){return x.cost_yuan;}), itemStyle:{color:'#C8785A'}}
+      ]
+    });
+    var prov = _mk('c-provider');
+    prov.setOption({
+      tooltip:{trigger:'item', formatter:'{b}<br/>{c} 次 ({d}%)'},
+      legend:{orient:'vertical', right:0, top:'middle', textStyle:{color:'#8A93A6'}, type:'scroll'},
+      series:[{type:'pie', radius:['38%','68%'], center:['38%','50%'],
+        data:d.providers.map(function(p){ return {name:p.provider, value:p.calls}; }),
+        label:{color:'#C9D3E4'}, itemStyle:{borderColor:'#0B1A2F', borderWidth:2}}]
+    });
+    var rows = d.models.map(function(m){
+      var paid = m.cost_yuan > 0;
+      return '<tr><td>' + m.model + '</td><td class="num">' + m.calls + '</td><td class="num">' + m.cost_yuan.toFixed(4) + '</td>'
+        + '<td class="num">' + (m.avg_latency_ms||'-') + '</td>'
+        + '<td><span class="tag ' + (paid?'tag-paid':'tag-free') + '">' + (paid?'付费':'免费') + '</span></td></tr>';
+    }).join('');
+    wrap.innerHTML = rows;
+  }).catch(function(){
+    document.getElementById('k-calls').textContent = '请求失败';
+    StateUI.error(document.getElementById('t-models'), '请求失败，请确认服务器运行中', load);
+  });
+}
+load();
+</script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
+</body>
+</html>

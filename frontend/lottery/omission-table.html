@@ -82,6 +82,7 @@ button.primary:hover { opacity:.85; }
 
 <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/table-enhance.js"></script>
 <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/interaction-kit.js"></script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/ball-view.js"></script>
 <script>
 const BASE = window.location.origin;
 const LOT_CFG = { ssq:{range:33,name:'双色球'}, dlt:{range:35,name:'大乐透'}, fc3d:{range:10,name:'福彩3D'}, pl3:{range:10,name:'排列三'} };
@@ -158,7 +159,7 @@ function render(data){
     const cold = d.current<maxCur*0.3?'cell-cold':d.current<maxCur*0.7?'cell-warm':'cell-hot';
     const badge = atMax?'<span class="badge badge-danger">即将回补</span>':nearMax?'<span class="badge badge-warn">接近最大</span>':'';
     const cellCls = isHit?'cell-hit':atMax?'cell-max':nearMax?'cell-near':cold;
-    html+=`<tr><th style="background:var(--card);font-weight:700">${String(d.number).padStart(2,'0')}</th>
+    html+=`<tr><th style="background:var(--card);font-weight:700">${window.BallView?BallView.balls(String(d.number).padStart(2,'0'),'',true):String(d.number).padStart(2,'0')}</th>
       <td class="${cellCls}">${isHit?'✓ 开出':d.current+'期'}${badge}</td>
       <td>${d.max}期</td><td>${d.avg}期</td>
       <td>${d.frequency}%</td><td>${d.lastAppear}天</td>
@@ -215,6 +216,7 @@ async function loadData(){
 
 loadData();
 if (window.InteractionKit) { InteractionKit.initBackToTop(); }
+if (window.BallView) { BallView.injectStyles(); }
 </script>
   <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
 </body>

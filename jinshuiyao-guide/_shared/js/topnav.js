@@ -6,6 +6,22 @@
    纯原生 JS，无任何依赖。 */
 (function () {
   "use strict";
+  /* ====== 全站 favicon（W63补99 / JS-20260816-04）：SVG 金字数据图标，无需 .ico 文件 ====== */
+  if (!document.querySelector('link[rel="icon"]')) {
+    var icon = document.createElement('link');
+    icon.rel = 'icon';
+    icon.type = 'image/svg+xml';
+    icon.href = 'data:image/svg+xml,' + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+      '<rect width="64" height="64" rx="14" fill="#0B1A2F"/>' +
+      '<circle cx="24" cy="26" r="9" fill="#C8785A"/>' +
+      '<circle cx="42" cy="26" r="9" fill="#C9A96E"/>' +
+      '<circle cx="18" cy="44" r="8" fill="#2D8B7E"/>' +
+      '<circle cx="34" cy="44" r="8" fill="#C9A96E"/>' +
+      '<circle cx="50" cy="44" r="8" fill="#3B82F6"/>' +
+      '</svg>');
+    document.head.appendChild(icon);
+  }
   var mode = (document.body && document.body.getAttribute("data-nav")) || "";
   if (!mode) {
     var p = location.pathname || "";

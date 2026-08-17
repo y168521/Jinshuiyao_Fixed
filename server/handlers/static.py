@@ -56,6 +56,7 @@ _PAGE_ROUTES = {
     '/automation-status':  'automation-status.html',
     '/scheduler-board':    'scheduler-board.html',
     '/knowledge-browser':  'knowledge-browser.html',
+    '/ai-usage':           'ai-usage.html',
     '/changelog':          'changelog.html',
 }
 

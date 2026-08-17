@@ -85,8 +85,9 @@ async function loadRank(){
       const t = r.trend==='up'?'<span class="trend t-up">↑</span>':r.trend==='down'?'<span class="trend t-down">↓</span>':r.trend==='new'?'<span class="trend t-up">新</span>':'<span class="trend t-flat">→</span>';
       const pct = Math.round(r.count/maxC*100);
       const color = r.trend==='up'?'var(--c-up)':r.trend==='down'?'var(--c-down)':'var(--c-flat)';
+      const ballHtml = window.BallView ? BallView.balls(r.number<10?('0'+r.number):''+r.number, '', true) : `<span class="num">${String(r.number).padStart(2,'0')}</span>`;
       return `<div class="bar-row">
-        <span class="num">${String(r.number).padStart(2,'0')}</span>
+        <span style="width:34px;text-align:right">${ballHtml}</span>
         <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
         <span class="bar-count">${r.count}</span>${t}</div>`;
     }).join('');
@@ -98,8 +99,10 @@ async function loadRank(){
 document.getElementById('lotType').addEventListener('change', loadRank);
 loadRank();
 if (window.InteractionKit) { InteractionKit.initBackToTop(); }
+if (window.BallView) { BallView.injectStyles(); }
 </script>
 <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/interaction-kit.js"></script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/ball-view.js"></script>
 <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
 </body>
 </html>

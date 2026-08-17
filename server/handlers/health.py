@@ -52,6 +52,42 @@ def handle_health(handler):
         health["ai_mode"] = "configured" if key_file else "no_key"
     except Exception:
         health["ai_mode"] = "error"
+    # 系统资源（内存/CPU/磁盘，W63补99 / JS-20260816-04 增强）
+    try:
+        import ctypes
+        class _MS(ctypes.Structure):
+            _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong),
+                        ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
+                        ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                        ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
+                        ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+        ms = _MS()
+        ms.dwLength = ctypes.sizeof(_MS)
+        if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(ms)):
+            mem_total = ms.ullTotalPhys
+            mem_avail = ms.ullAvailPhys
+            health["memory"] = {
+                "total_bytes": mem_total,
+                "available_bytes": mem_avail,
+                "used_percent": round((1 - mem_avail / max(mem_total, 1)) * 100, 1),
+            }
+    except Exception:
+        health["memory"] = None
+    try:
+        import psutil
+        health["cpu_percent"] = psutil.cpu_percent(interval=0.2)
+    except Exception:
+        health["cpu_percent"] = None
+    try:
+        import shutil
+        disk = shutil.disk_usage(_config.BASE_DIR)
+        health["disk"] = {
+            "total_bytes": disk.total,
+            "free_bytes": disk.free,
+            "used_percent": round(disk.used / max(disk.total, 1) * 100, 1),
+        }
+    except Exception:
+        health["disk"] = None
     # 检测知识库
     try:
         kb_dir = os.path.join(_config.BASE_DIR, 'knowledge', '用户知识库')
@@ -278,4 +314,14 @@ def handle_telemetry(handler):
         handler._send_json({"ok": True, "summary": summary(), "events": recent(200)})
     except Exception as e:
         log(f"[telemetry] 查询失败: {e}")
+        handler._send_json({"ok": False, "error": str(e)}, 500)
+
+
+def handle_telemetry_dashboard(handler):
+    """GET /api/telemetry/dashboard — 用量看板聚合（W63补99 / JS-20260816-04）"""
+    try:
+        from core.telemetry import dashboard
+        handler._send_json(dashboard())
+    except Exception as e:
+        log(f"[telemetry] 看板查询失败: {e}")
         handler._send_json({"ok": False, "error": str(e)}, 500)

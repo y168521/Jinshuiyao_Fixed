@@ -1030,3 +1030,12 @@
 - **被否决方案**：选号池管理（新数据模型留待后续）；准确率排行榜（prediction-tracker 已有）；AI 流式输出（编排层改造独立批次）；每日签到/使用报告（习惯养成类，价值低）。
 - **成熟度**：高
 - **置信度**：高
+## JS-20260816-04 第十四批：AI用量看板+健康增强+号码球+favicon+密钥加密
+- **背景**：豆包终极篇/AI专项/界面三批清单评估后，排除 30+ 已有项，缺且值得做的 5 项。
+- **决策过程**：①AI 用量看板——telemetry.jsonl 早已有 provider/model/cost/latency 明细，只差前端消费，成本低价值高；②/health 增强——资源指标缺失且无前端消费，加内存/磁盘/CPU（psutil 可选）；③号码球——界面 200 项里视觉提升最直接的组件化项，已有历史同期页样式可抽公共组件；④favicon——SVG data-URI 注入 topnav.js 一处生效 90+ 页面；⑤密钥加密——安全底线，威胁模型是"误同步/误备份外泄"，做 .enc 优先+明文回退自愈。
+- **有效方法**：四件套（聚合纯函数+薄 handler+前端页+入口注册）；安全类改动三步链（加密-校验一致-才删明文）；惰性导入 cryptography 保 security.py 标准库纯净。
+- **关联文件**：core/telemetry.py、core/security.py、server/handlers/health.py、static.py、router.py、jinshuiyao-guide/ai-usage.html（新页）、_shared/js/ball-view.js（新组件）、tools/encrypt_secrets.py（新工具）、tests 4 处
+- **关联总索引**：JS-20260816-04
+- **被否决方案**：utils/security_tools 的 KeyManager（依赖环境变量且密钥库放项目内）；HTTP 耗时中间件（已有 LLM 级时延，收益低）；StateUI 空态重构（现状够用）；GUI 单实例互斥（端口抢占已兜底，tkinter 改造成本高）。
+- **成熟度**：高
+- **置信度**：高
