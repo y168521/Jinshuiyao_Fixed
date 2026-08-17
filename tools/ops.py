@@ -40,6 +40,8 @@ if sys.platform == "win32":
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(BASE)
+if BASE not in sys.path:
+    sys.path.insert(0, BASE)
 MODEL = os.path.dirname(ROOT)
 SCRIPTS = os.path.join(ROOT, "scripts")
 
@@ -296,7 +298,7 @@ def _do_start(args, extra):
     print(f"{'='*60}\n")
     # 记录开工
     try:
-        from tools.audit_trail import log_event
+        from audit_trail import log_event
         log_event("session_start", detail="ops.py --start 开工令")
     except Exception:
         pass
@@ -386,7 +388,7 @@ def _do_close(args, extra):
 
     # 记录收工
     try:
-        from tools.audit_trail import log_event, write_replay
+        from audit_trail import log_event, write_replay
         ok = gate_code == 0 and max(codes) == 0
         log_event("session_close",
                    detail=f"收工令 {'成功' if ok else '有异常'}",
