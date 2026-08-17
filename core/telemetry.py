@@ -123,7 +123,7 @@ def dashboard(days=14, max_events=3000):
             "days": len(daily),
             "daily": daily,
             "providers": sorted(prov.values(), key=lambda x: -x["calls"]),
-            "models": sorted(mods.values(), key=lambda x: -x["calls"])[:12],
+            "models": sorted(mods.values(), key=lambda x: -x["calls"]),
             "totals": {
                 "count": len(evs),
                 "free_calls": len(evs) - paid_calls,
