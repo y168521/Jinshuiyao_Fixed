@@ -64,7 +64,7 @@ def _load_lottery_predictions():
                 continue
             rec = {
                 'id': f"LOT-{r.get('lot', '?')}-{r.get('period', '?')}",
-                'time': r.get('time') or '',
+                'time': r.get('time') or r.get('date') or '',
                 'domain': r.get('lot') or 'other',
             }
             reviewed = r.get('reviewed')
