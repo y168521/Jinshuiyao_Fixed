@@ -86,7 +86,8 @@ def add_to_pool_data(pool, lot, period, nums, date_str=None):
         "lot": lot,
         "period": period,
         "nums": nums,
-        "date": date_str or datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+        "date": date_str or datetime.datetime.now().strftime('%Y-%m-%d %H:%M'),
+        "time": date_str or datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
     }
     pool.append(entry)
     return pool

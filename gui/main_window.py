@@ -1855,6 +1855,7 @@ class App:
                                 "type": display_type,
                                 "confidence": sqi_display,
                                 "date": now_str,
+                                "time": now_str,
                                 "reviewed": False,
                                 "hits": 0
                             }
@@ -1873,6 +1874,7 @@ class App:
                                 "type": display_type,
                                 "confidence": sqi_display,
                                 "date": now_str,
+                                "time": now_str,
                                 "reviewed": False,
                                 "hits": 0
                             }
@@ -2030,7 +2032,7 @@ class App:
                         entry = {"scheme": scheme, "lot": lot, "period": per,
                                  "nums": str(nums), "type": display_type,
                                  "confidence": sqi_display,
-                                 "date": now_str, "reviewed": False, "hits": 0}
+                                 "date": now_str, "time": now_str, "reviewed": False, "hits": 0}
                         self.preds.append(entry)
                         total_count += 1
                 # 兜底：如果tickets为空但all_nums有值
@@ -2040,7 +2042,7 @@ class App:
                         entry = {"scheme": scheme, "lot": lot, "period": per,
                                  "nums": str(nums), "type": display_type,
                                  "confidence": sqi_display,
-                                 "date": now_str, "reviewed": False, "hits": 0}
+                                 "date": now_str, "time": now_str, "reviewed": False, "hits": 0}
                         self.preds.append(entry)
                         total_count += 1
                 self.save_preds()

@@ -67,7 +67,7 @@ def omission_table(history, lot):
         nums_str = str(rec.get("nums", ""))
         reds, blues = split_nums(nums_str)
         nums = reds + (blues or [])
-        tm = rec.get("time", "")
+        tm = rec.get("time") or rec.get("date") or ""
         for n in set(nums):
             if n in num_occ:
                 num_occ[n] += 1
@@ -117,7 +117,7 @@ def historical_same_period(history, date_str, mode="date"):
     target_day = m.group(3)
     rows = []
     for rec in history:
-        tm = str(rec.get("time", ""))
+        tm = str(rec.get("time") or rec.get("date") or "")
         rm = _DATE_RE.search(tm)
         if not rm:
             continue
@@ -133,7 +133,7 @@ def historical_same_period(history, date_str, mode="date"):
 def _fmt_record(rec):
     reds, blues = split_nums(rec.get("nums", ""))
     return {
-        "date": rec.get("time", ""),
+        "date": rec.get("time") or rec.get("date") or "",
         "drawNum": str(rec.get("period", "")),
         "reds": reds,
         "blues": blues or [],

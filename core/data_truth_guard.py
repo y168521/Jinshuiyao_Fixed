@@ -632,6 +632,9 @@ class DataTruthGuard:
                 if not data:
                     return "warn", "predictions.json 为空（无预测记录）", "运行预测生成功能"
                 lot_names = {d.get("lot", "") for d in data if isinstance(d, dict) and d.get("lot")}
+                no_time = [d for d in data if isinstance(d, dict) and not d.get("time") and not d.get("date")]
+                if no_time:
+                    return "warn", f"predictions.json 有{len(no_time)}条记录缺时间字段(time/date均无) — 将丢失在趋势/冷热统计中", "检查预测生成写入端字段契约"
                 detail = f"包含{len(data)}条预测记录（{len(lot_names)}个彩种）"
                 return "pass", detail, None
 

@@ -1079,3 +1079,16 @@
 - **被否决方案**：①全量迁移数据到统一 time——否决：数据风险高收益低；②刷新数据源——否决：数据完好（总数/命中率正常），问题在统计口径。
 - **成熟度**：verified。
 - **置信度**：高。
+
+### 2026-08-18 预测字段契约根治：四件套而非补丁
+- **属主**：opencode
+- **做了什么**：①迁移 937 条有date无time记录补time（备份 .bak.field_migrate）；②GUI 写入端 5 处双写 time+date；③lottery_stats.py 3 处消费端 time or date 兜底；④data_truth_guard 自检加时间字段完整率 warn。
+- **为什么根因**：同文件两套时间字段（GUI 写 date、其他路径写 time），历次修复只补消费方（stats/trend），冷热/遗漏统计（lottery_stats）仍在丢 date 记录——修下游不修上游，同根源问题反复出现（W63补100、W63补102、W63补103 三次）。
+- **验证**：迁移后 0 条缺时间字段；自检 pass 2132 条/7 彩种；单测 45 passed；重启冒烟 stats total=2138 trend 23 天非零。
+- **坑**：gate 查流程留痕不查数据质量，字段分裂类问题无检查覆盖——必须自检兜底；补丁 vs 根治：第二次出现同根源即根治。
+- **有效方法**：写入端双写兼容零破坏；自检 warn 阈值 0 缺失。
+- **关联文件**：gui/main_window.py、gui/data_store.py、engines/lottery_stats.py、core/data_truth_guard.py、金水谣数据/predictions.json（迁移）
+- **关联总索引**：JS-20260818-02
+- **被否决方案**：①只改 date 为 time（写端改字段名不双写）——否决：读 date 的消费方（watchdog/前端）会丢，双写零破坏；②只迁移数据不统一写入端——否决：下次 GUI 生成又写 date，问题复现。
+- **成熟度**：verified
+- **置信度**：高
