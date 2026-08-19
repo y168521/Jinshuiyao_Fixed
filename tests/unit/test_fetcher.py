@@ -84,8 +84,14 @@ class TestNormalizeSymbol(unittest.TestCase):
 
     def test_normalize_shenzhen_code(self):
         """0/3开头自动添加sz前缀"""
-        self.assertEqual(self.fetcher._normalize_symbol("000001"), "sz000001")
+        self.assertEqual(self.fetcher._normalize_symbol("000858"), "sz000858")
         self.assertEqual(self.fetcher._normalize_symbol("300001"), "sz300001")
+
+    def test_normalize_index_code(self):
+        """指数裸代码特例：000001/000300→sh、399001→sz（前端约定）"""
+        self.assertEqual(self.fetcher._normalize_symbol("000001"), "sh000001")
+        self.assertEqual(self.fetcher._normalize_symbol("000300"), "sh000300")
+        self.assertEqual(self.fetcher._normalize_symbol("399001"), "sz399001")
 
     def test_normalize_beijing_code(self):
         """8/4开头自动添加bj前缀"""
@@ -345,10 +351,10 @@ class TestGetHistoryWithMock(unittest.TestCase):
         self.fetcher._fetch_from_akshare = MagicMock(return_value=mock_df)
         self.fetcher._has_akshare = True
 
-        self.fetcher.get_history("000001")  # 无前缀，应被标准化为 sz000001
+        self.fetcher.get_history("000858")  # 无前缀深市股票，应被标准化为 sz000858
         # 验证 _fetch_from_akshare 被调用时参数已标准化
         call_args = self.fetcher._fetch_from_akshare.call_args
-        self.assertEqual(call_args[0][0], "sz000001")
+        self.assertEqual(call_args[0][0], "sz000858")
 
     def test_get_history_writes_cache_on_success(self):
         """成功获取数据后写入缓存"""

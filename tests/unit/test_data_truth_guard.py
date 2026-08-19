@@ -162,7 +162,7 @@ class TestCheckOddsValidity(unittest.TestCase):
 
 
 class TestCheckHardcoded(unittest.TestCase):
-    """硬编码检测测试"""
+    """硬编码检测测试（检测 jinshuiyao/fetcher.py 残留的模拟兜底）"""
 
     def setUp(self):
         self.guard = DataTruthGuard.__new__(DataTruthGuard)
@@ -170,28 +170,16 @@ class TestCheckHardcoded(unittest.TestCase):
         self.tmpdir = tempfile.mkdtemp()
 
     def test_hardcoded_detected(self):
-        """检测到硬编码兜底逻辑"""
-        path = os.path.join(self.tmpdir, "data_fetcher.py")
+        """检测到模拟兜底逻辑"""
+        path = os.path.join(self.tmpdir, "fetcher.py")
         with open(path, "w", encoding="utf-8") as f:
             f.write("""
-def _generate_real_league_matches(self):
-    real_league_matches = [
-        ('英超', '曼城', '利物浦', 1, 2),
-        ('英超', '阿森纳', '曼联', 2, 3),
-        ('西甲', '皇马', '巴萨', 1, 2),
-        ('德甲', '拜仁', '多特', 1, 2),
-        ('意甲', '尤文', '国米', 2, 1),
-        ('法甲', '巴黎', '马赛', 1, 2),
-        ('欧冠', '曼城', '皇马', 1, 2),
-        ('欧冠', '拜仁', '米兰', 3, 5),
-        ('英超', '热刺', '切尔西', 4, 5),
-        ('西甲', '马竞', '瓦伦西亚', 3, 6),
-    ]
-    return []
+def fetch_today(self):
+    return self._generate_fallback_matches()
 
-def _generate_real_odds(self):
-    win = round(random.uniform(1.1, 4.0), 2)
-    odds = {'win': win}
+def _generate_fallback_matches(self):
+    import random
+    odds = {'win': round(random.uniform(1.1, 4.0), 2)}
     return odds
 """)
         self.guard._jinshuiyao_dir = self.tmpdir
@@ -200,8 +188,8 @@ def _generate_real_odds(self):
         self.assertIn("硬编码", detail)
 
     def test_clean_code_passes(self):
-        """无硬编码的代码通过"""
-        path = os.path.join(self.tmpdir, "data_fetcher.py")
+        """无模拟兜底的代码通过"""
+        path = os.path.join(self.tmpdir, "fetcher.py")
         with open(path, "w", encoding="utf-8") as f:
             f.write("""
 def fetch_from_api(self):

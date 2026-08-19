@@ -28,8 +28,6 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 os.makedirs(DATA_DIR, exist_ok=True)
 
-MATCHES_FILE = os.path.join(DATA_DIR, "matches.csv")
-ODDS_FILE = os.path.join(DATA_DIR, "odds.csv")
 TEAM_STATS_FILE = os.path.join(DATA_DIR, "team_stats.csv")
 
 # 每源超时（秒）
@@ -503,13 +501,11 @@ class FootballFetcher:
                 self.log(f"  [!] {name} 异常: {type(e).__name__}: {e}")
                 continue
 
-        # 兜底：所有源都失败 → 生成模拟数据
+        # 所有源均失败 → 返回空（不再生成模拟数据）
         if not all_matches:
-            self.log("  [!] 所有源均无数据，生成模拟数据兜底...")
-            all_matches = self._generate_fallback_matches()
-            source_name = "fallback"
-            if all_matches:
-                self.log(f"  [兜底] 生成 {len(all_matches)} 场模拟比赛")
+            self.log("  [!] 所有源均无数据，本次抓取为空（不做模拟兜底）")
+            self.matches_data = []
+            return {'total': 0, 'with_odds': 0, 'matches': [], 'source': 'none'}
         else:
             # ── 全局校验：过滤所有无效比赛 ──
             from .match_validator import filter_matches_lenient
@@ -526,37 +522,12 @@ class FootballFetcher:
                  f"{len(all_matches)}场/含赔率{with_odds}场 | 源: {source_name} ==========")
 
         self.matches_data = all_matches
-        try:
-            self._save_csv()
-        except Exception as e:
-            self.log(f"  [!] CSV 保存失败: {e}")
-
         return {
             'total': len(all_matches),
             'with_odds': with_odds,
             'matches': all_matches,
             'source': source_name,
         }
-
-    def _save_csv(self):
-        with open(MATCHES_FILE, 'w', encoding='utf-8-sig', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(['match_id', 'home', 'away', 'league', 'match_time',
-                             'odds_win', 'odds_draw', 'odds_lose'])
-            for m in self.matches_data:
-                writer.writerow([
-                    m.get('match_id', ''), m.get('home', ''), m.get('away', ''),
-                    m.get('league', ''), m.get('match_time', ''),
-                    m.get('odds_win', 0), m.get('odds_draw', 0), m.get('odds_lose', 0),
-                ])
-        with open(ODDS_FILE, 'w', encoding='utf-8-sig', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(['match_id', 'home_win', 'draw', 'away_win'])
-            for m in self.matches_data:
-                writer.writerow([
-                    m.get('match_id', ''),
-                    m.get('odds_win', 0), m.get('odds_draw', 0), m.get('odds_lose', 0),
-                ])
 
     def load_local_matches(self) -> list:
         matches = []
@@ -634,71 +605,6 @@ class FootballFetcher:
     @staticmethod
     def _default_team_stats() -> dict:
         return {'goals_scored_avg': 1.3, 'goals_conceded_avg': 1.3}
-
-    def _generate_fallback_matches(self) -> list:
-        """所有数据源失败时，生成基于近期热门赛事的模拟数据兜底"""
-        import random
-        random.seed(int(time.time()) % 10000)
-        
-        # 近期热门联赛和球队
-        leagues = [
-            ("英超", [
-                ("曼城", "利物浦"), ("阿森纳", "切尔西"),
-                ("热刺", "纽卡斯尔"), ("曼联", "阿斯顿维拉"),
-            ]),
-            ("西甲", [
-                ("皇马", "巴萨"), ("马竞", "皇家社会"),
-                ("塞维利亚", "皇家贝蒂斯"),
-            ]),
-            ("德甲", [
-                ("拜仁", "多特蒙德"), ("莱比锡", "勒沃库森"),
-                ("斯图加特", "法兰克福"),
-            ]),
-            ("意甲", [
-                ("国米", "AC米兰"), ("尤文", "那不勒斯"),
-                ("罗马", "拉齐奥"),
-            ]),
-            ("法甲", [
-                ("巴黎", "马赛"), ("里昂", "摩纳哥"),
-                ("里尔", "尼斯"),
-            ]),
-            ("中超", [
-                ("上海海港", "山东泰山"), ("北京国安", "上海申花"),
-                ("成都蓉城", "浙江队"),
-            ]),
-        ]
-        
-        today = datetime.date.today()
-        matches = []
-        
-        for league_name, teams in leagues:
-            random.shuffle(teams)
-            count = random.randint(1, 2)
-            for i in range(min(count, len(teams))):
-                home, away = teams[i]
-                hour = random.choice([15, 18, 19, 20, 21, 23])
-                minute = random.choice([00, 15, 30, 45])
-                match_time = f"{today.strftime('%Y-%m-%d')} {hour:02d}:{minute:02d}"
-                
-                # 生成合理赔率
-                base_win = round(random.uniform(1.3, 3.5), 2)
-                base_draw = round(random.uniform(2.8, 3.8), 2)
-                base_lose = round(random.uniform(1.5, 5.0), 2)
-                
-                matches.append({
-                    'match_id': f"fb_{len(matches)}",
-                    'home': home,
-                    'away': away,
-                    'league': league_name,
-                    'match_time': match_time,
-                    'odds_win': base_win,
-                    'odds_draw': base_draw,
-                    'odds_lose': base_lose,
-                    'source': '离线兜底-模拟数据(所有数据源失败时生成)',
-                })
-        
-        random.shuffle(matches)
-        return matches[:12]
 
 
 # ================================================================

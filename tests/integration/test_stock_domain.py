@@ -12,6 +12,7 @@
 import unittest
 import sys
 import os
+from unittest.mock import MagicMock
 
 # 确保项目根目录在路径中
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -236,8 +237,24 @@ class TestStockDomainScreen(unittest.TestCase):
     def setUp(self):
         self.domain = StockDomain()
         self.domain.setup()
-        # 强制模拟数据模式，避免测试中访问网络（筛选逻辑与数据模式无关）
-        self.domain._fetcher = None
+        # 注入 mock fetcher（避免测试访问网络），返回真实结构的小样本行情
+        import pandas as pd
+        import numpy as np
+        mock_fetcher = MagicMock()
+        mock_fetcher._normalize_symbol = lambda s: s
+        n = 60
+        close = 100 + np.arange(n) * 0.5 + np.sin(np.arange(n)) * 3
+        fake_df = pd.DataFrame({
+            "日期": pd.date_range("2026-01-01", periods=n).strftime("%Y-%m-%d"),
+            "开盘": close - 0.5, "收盘": close, "最高": close + 1, "最低": close - 1,
+            "成交量": [1_000_000] * n,
+        })
+
+        def fake_get_history(sym, period="daily", **kwargs):
+            return fake_df
+
+        mock_fetcher.get_history = fake_get_history
+        self.domain._fetcher = mock_fetcher
 
     def tearDown(self):
         self.domain.teardown()

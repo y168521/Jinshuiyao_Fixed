@@ -1092,3 +1092,16 @@
 - **被否决方案**：①只改 date 为 time（写端改字段名不双写）——否决：读 date 的消费方（watchdog/前端）会丢，双写零破坏；②只迁移数据不统一写入端——否决：下次 GUI 生成又写 date，问题复现。
 - **成熟度**：verified
 - **置信度**：高
+
+### 2026-08-19 足彩真实数据全接线+全项目虚假数据剔除+股票多源兜底
+- **属主**：opencode
+- **做了什么**：①足彩三层（domain/GUI/定时调度）全部接线体彩官方 sporttery 真实 API，新建 domains/football/fetcher.py（主源+500 兜底），数据落 football_matches.json（11 场真实赛事）；②全项目虚假数据剔除：删假 CSV 全套+_generate_fallback_matches+stock mock_fallback+前端假指数/正弦曲线/loadMock，降级路径改诚实"暂无数据"；③股票三源链（东财→腾讯→新浪）防断连；④修复 /api/stock/detail 404（handler 查错返回层级+DataFrame 序列化）。
+- **为什么根因**：①足彩从建系统起就无真实数据源，假 CSV（虚假世界杯/联赛+随机赔率）被 GUI/调度/domain 全部消费；②akshare 东财被 IP 限流后无兜底，历史实现靠 mock 生成掩盖（用户明确要求剔除）；③detail 404 的根因是 handler 用 data.get(code) 查 fetch 返回值顶层（结构为 success/data/message/mode），恒 None→404→前端永久 mock 展示。
+- **验证**：全量 pytest 1037 passed 0 failed（修 6 个测试）；data_truth_guard 体检足彩全绿（真实 JSON 11 场+赔率正常+硬编码 0）；重启冒烟 football/matches count=11 source=sporttery、stock/detail 5 只全 mode=real。
+- **坑**：①删 mock 兜底后 6 个测试同批炸（夹具写死旧实现/断言与项目约定冲突/测试依赖 mock 数据），测试依赖必须同批清理；②not df 对 DataFrame 抛 ValueError；③PowerShell 内联 python 多行中文必炸，留痕一律临时脚本（本条自己又踩一次）。
+- **有效方法**：404→前端 mock 链路排查法（先查 handler 返回结构再查状态码）；多源兜底链实测法（真实请求验证腾讯/新浪可通）；data_truth_guard 体检+重启冒烟双验证。
+- **关联文件**：domains/football/fetcher.py、domains/football/domain.py、server/handlers/stock.py、domains/stock/fetcher.py、domains/stock/domain.py、domains/stock/stock_screener.py、jinshuiyao/fetcher.py、jinshuiyao/config.py、jinshuiyao/data_provider.py、jinshuiyao/backtester.py、jinshuiyao/football_gui.py、core/scheduler.py、core/data_truth_guard.py、fetchers/data_fetcher.py、tools/route_probe.py、frontend/stock/stock-dashboard.html、frontend/stock/stock-detail.html、tests/unit/test_data_truth_guard.py、tests/unit/test_fetcher.py、tests/integration/test_stock_domain.py
+- **关联总索引**：JS-20260819-01
+- **被否决方案**：①股票保留 mock 兜底——否决：用户明确要求剔除全系统假数据，降级改诚实提示；②裸代码 000001 解析为 sz000001（平安银行）——否决：项目前端约定 000001=上证指数（sh），按项目约定解析并同步改测试。
+- **成熟度**：verified
+- **置信度**：高

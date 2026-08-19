@@ -6,6 +6,7 @@
 import os
 import json
 import logging
+import re
 from utils.safe_json import safe_load_json, safe_write_json
 from datetime import datetime, timedelta
 
@@ -78,7 +79,7 @@ class StockFetcher:
                     pass
             else:
                 try:
-                    df = self._fetch_from_akshare(symbol, period, start, end)
+                    df = self._fetch_from_sources(symbol, period, start, end)
                     if df is not None and not df.empty:
                         if self._breaker:
                             self._breaker.record_success()
@@ -103,7 +104,7 @@ class StockFetcher:
                         pass
 
         # 降级：无数据可用
-        logger.warning("无法获取 %s 数据（无akshare且无缓存）", symbol)
+        logger.warning("无法获取 %s 数据（真实源均失败且无缓存，将降级模拟）", symbol)
         return None
 
     def get_realtime(self, symbol):
@@ -135,6 +136,11 @@ class StockFetcher:
         # 如果已经是 sh/sz 前缀，直接返回
         if symbol.startswith(("sh", "sz", "bj")):
             return symbol
+        # 指数特例（前端裸代码表示指数）：000001=上证 000300=沪深300 399001=深证成指
+        if symbol in ("000001", "000300"):
+            return f"sh{symbol}"
+        if symbol == "399001":
+            return f"sz{symbol}"
         # 6开头 = 上海，0/3开头 = 深圳，8/4开头 = 北京
         if symbol.startswith("6"):
             return f"sh{symbol}"
@@ -145,16 +151,13 @@ class StockFetcher:
         return symbol
 
     def _fetch_from_akshare(self, symbol, period, start, end):
-        """通过 akshare 获取数据"""
+        """通过 akshare 获取数据（东财源；仅指数或 akshare 可用时）"""
+        if not self._has_akshare or self._ak is None:
+            return None
         try:
             # 指数数据
             if symbol in ["sh000001", "sz399001", "sh000300"]:
-                if symbol == "sh000001":
-                    df = self._ak.stock_zh_index_daily(symbol="sh000001")
-                elif symbol == "sz399001":
-                    df = self._ak.stock_zh_index_daily(symbol="sz399001")
-                elif symbol == "sh000300":
-                    df = self._ak.stock_zh_index_daily(symbol="sh000300")
+                df = self._ak.stock_zh_index_daily(symbol=symbol)
             else:
                 # 个股数据
                 code = symbol.replace("sh", "").replace("sz", "").replace("bj", "")
@@ -164,12 +167,82 @@ class StockFetcher:
                                                adjust="qfq")
 
             if df is not None and not df.empty:
-                # 统一列名
                 df = self._standardize_columns(df)
                 return df
         except Exception as e:
-            logger.warning("akshare 获取 %s 失败: %s", symbol, e)
+            logger.warning("akshare(东财) 获取 %s 失败: %s", symbol, e)
         return None
+
+    def _fetch_from_tencent(self, symbol, period, start, end):
+        """腾讯财经日线接口（备用源，不受东财熔断影响）"""
+        import urllib.request
+        if period != "daily":
+            return None
+        try:
+            # 复权日线 qfqday；指数返回 day
+            url = (f"https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?"
+                   f"param={symbol},day,,,400,qfq")
+            req = urllib.request.Request(url, headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/126.0",
+                "Referer": "https://gu.qq.com/"})
+            with urllib.request.urlopen(req, timeout=15) as r:
+                j = json.loads(r.read().decode("utf-8", "replace"))
+            data = (j.get("data") or {}).get(symbol) or {}
+            rows = data.get("qfqday") or data.get("day") or []
+            if not rows:
+                return None
+            import pandas as pd
+            df = pd.DataFrame([{
+                "date": r[0], "open": float(r[1]), "close": float(r[2]),
+                "high": float(r[3]), "low": float(r[4]),
+                "volume": float(r[5]) if len(r) > 5 else 0,
+            } for r in rows])
+            return self._standardize_columns(df)
+        except Exception as e:
+            logger.warning("腾讯源 获取 %s 失败: %s", symbol, e)
+        return None
+
+    def _fetch_from_sina(self, symbol, period, start, end):
+        """新浪财经日线接口（备用源）"""
+        import urllib.request
+        if period != "daily":
+            return None
+        try:
+            url = ("https://quotes.sina.cn/cn/api/jsonp_v2.php/"
+                   f"var%20_{symbol}=/CN_MarketDataService.getKLineData?"
+                   f"symbol={symbol}&scale=240&ma=no&datalen=400")
+            req = urllib.request.Request(url, headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/126.0",
+                "Referer": "https://finance.sina.com.cn/"})
+            with urllib.request.urlopen(req, timeout=15) as r:
+                text = r.read().decode("utf-8", "replace")
+            m = re.search(r"=\s*(.*);?\s*$", text, re.S)
+            if not m:
+                return None
+            rows = json.loads(m.group(1))
+            if not rows:
+                return None
+            import pandas as pd
+            df = pd.DataFrame([{
+                "date": r["day"], "open": float(r["open"]), "close": float(r["close"]),
+                "high": float(r["high"]), "low": float(r["low"]),
+                "volume": float(r.get("volume", 0)),
+            } for r in rows])
+            return self._standardize_columns(df)
+        except Exception as e:
+            logger.warning("新浪源 获取 %s 失败: %s", symbol, e)
+        return None
+
+    def _fetch_from_sources(self, symbol, period, start, end):
+        """多源 fallback：东财(akshare) → 腾讯 → 新浪，任一成功即返回"""
+        df = self._fetch_from_akshare(symbol, period, start, end)
+        if df is not None:
+            return df
+        df = self._fetch_from_tencent(symbol, period, start, end)
+        if df is not None:
+            return df
+        df = self._fetch_from_sina(symbol, period, start, end)
+        return df
 
     def _standardize_columns(self, df):
         """统一DataFrame列名 + 转换日期类型"""

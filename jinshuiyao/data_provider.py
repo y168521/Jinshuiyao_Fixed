@@ -106,13 +106,13 @@ class CSVDataProvider(DataProvider):
         r = row.iloc[0]
         return MatchInfo(
             match_id=str(r.get('match_id', match_id)),
-            home_team_id=str(r.get('home_team_id', '')),
-            away_team_id=str(r.get('away_team_id', '')),
-            home_team_name=str(r.get('home_team_name', r.get('home_team', ''))),
-            away_team_name=str(r.get('away_team_name', r.get('away_team', ''))),
+            home_team_id=str(r.get('home_team_id', str(r.get('home', '')))),
+            away_team_id=str(r.get('away_team_id', str(r.get('away', '')))),
+            home_team_name=str(r.get('home_team_name', r.get('home', ''))),
+            away_team_name=str(r.get('away_team_name', r.get('away', ''))),
             league=str(r.get('league', '')),
-            date=str(r.get('date', '')),
-            kickoff_time=str(r.get('kickoff_time', '')),
+            date=str(r.get('date', r.get('match_time', '')))[:10],
+            kickoff_time=str(r.get('kickoff_time', r.get('match_time', ''))),
         )
 
     def get_recent_form(self, team_id: str, n: int = 10) -> pd.DataFrame:
@@ -128,21 +128,27 @@ class CSVDataProvider(DataProvider):
         return df.sort_values('date', ascending=False).head(n)
 
     def get_odds(self, match_id: str) -> Dict[str, float]:
-        """获取赔率"""
-        if self._odds is None or self._odds.empty:
-            return {'home_win': 2.0, 'draw': 3.2, 'away_win': 3.5}
-
-        row = self._odds[self._odds['match_id'] == match_id]
-        if row.empty:
-            logger.warning(f"未找到赔率: {match_id}")
-            return {'home_win': 2.0, 'draw': 3.2, 'away_win': 3.5}
-
-        r = row.iloc[0]
-        return {
-            'home_win': float(r.get('home_win', 2.0)),
-            'draw': float(r.get('draw', 3.2)),
-            'away_win': float(r.get('away_win', 3.5)),
-        }
+        """获取赔率（优先体彩官方真实赛事 JSON，缺数据返回空 dict 不伪造）"""
+        try:
+            import json as _json
+            json_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                     '金水谣数据', 'football_matches.json')
+            if os.path.exists(json_path):
+                with open(json_path, 'r', encoding='utf-8') as f:
+                    payload = _json.load(f)
+                for m in payload.get('matches', []):
+                    if m.get('match_id') == match_id:
+                        try:
+                            return {
+                                'home_win': float(m.get('odds_win', 0)),
+                                'draw': float(m.get('odds_draw', 0)),
+                                'away_win': float(m.get('odds_lose', 0)),
+                            }
+                        except (TypeError, ValueError):
+                            break
+        except Exception:
+            pass
+        return {}
 
     def get_result(self, match_id: str) -> str:
         """返回实际赛果：'win' / 'draw' / 'lose'"""

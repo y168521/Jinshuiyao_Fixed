@@ -3,13 +3,10 @@
 import json
 import urllib.parse
 import os
-import csv
 
 from ..utils import log
 
 _football_domain = None
-
-FOOTBALL_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'jinshuiyao', 'data')
 
 
 def get_football_domain():
@@ -46,20 +43,26 @@ def _parse_params(handler, parsed):
     return params
 
 
-def _load_csv_matches():
+def _load_matches():
+    """读取真实赛事缓存：金水谣数据/football_matches.json（体彩官方竞彩抓取）"""
     try:
-        csv_path = os.path.join(FOOTBALL_DATA_DIR, 'matches.csv')
-        if not os.path.exists(csv_path):
-            return None
-        matches = []
-        with open(csv_path, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                matches.append(dict(row))
-        return matches
+        json_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                                 '金水谣数据', 'football_matches.json')
+        if os.path.exists(json_path):
+            with open(json_path, 'r', encoding='utf-8') as f:
+                payload = json.load(f)
+            matches = payload.get('matches', [])
+            if matches:
+                return matches, payload.get('fetched_at', ''), payload.get('source', '')
     except Exception as e:
-        log(f"[football] 读取CSV失败: {e}")
-        return None
+        log(f"[football] 读取赛事缓存失败: {e}")
+    return None, '', ''
+
+
+def _refresh_matches():
+    """联网刷新真实赛事（体彩官方竞彩 API 主源 + 500.com 兜底）"""
+    from domains.football.fetcher import fetch_matches
+    return fetch_matches(force_refresh=True)
 
 
 def handle_status(handler, parsed):
@@ -69,9 +72,11 @@ def handle_status(handler, parsed):
     try:
         if domain:
             st = domain.status()
-        matches = _load_csv_matches()
+        matches, fetched_at, source = _load_matches()
         st["csv_data"] = matches is not None and len(matches) > 0
         st["csv_count"] = len(matches) if matches else 0
+        st["fetched_at"] = fetched_at
+        st["source"] = source
         try:
             from jinshuiyao.models.poisson_model import PoissonModel
             st["engine_ready"] = True
@@ -84,18 +89,26 @@ def handle_status(handler, parsed):
 
 
 def handle_matches(handler, parsed):
-    """GET/POST /api/football/matches — 获取比赛列表"""
+    """GET/POST /api/football/matches — 获取比赛列表（真实数据）；force_refresh=1 时联网更新"""
     params = _parse_params(handler, parsed)
     league = params.get("league", "").strip()
     limit = int(params.get("limit", 50))
+    force = str(params.get("force_refresh", "")).lower() in ("1", "true", "yes")
     try:
-        matches = _load_csv_matches()
+        if force:
+            try:
+                _refresh_matches()
+            except Exception as e:
+                log(f"[football-matches] 联网刷新失败，使用缓存: {e}")
+        matches, fetched_at, source = _load_matches()
         if matches is None:
-            matches = _mock_matches()
+            handler._send_json({"ok": False, "error": "暂无赛事数据，请先刷新（体彩官方竞彩接口）"}, 404)
+            return
         if league:
             matches = [m for m in matches if league.lower() in (m.get('league', '') + m.get('competition', '')).lower()]
         matches = matches[:limit]
-        handler._send_json({"ok": True, "matches": matches, "count": len(matches)}, 200)
+        handler._send_json({"ok": True, "matches": matches, "count": len(matches),
+                            "fetched_at": fetched_at, "source": source}, 200)
     except Exception as e:
         log(f"[football-matches] 异常: {e}")
         handler._send_json({"ok": False, "error": str(e)}, 500)
@@ -146,16 +159,3 @@ def handle_predict(handler, parsed):
     except Exception as e:
         log(f"[football-predict] 异常: {e}")
         handler._send_json({"ok": False, "error": str(e)}, 500)
-
-
-def _mock_matches():
-    return [
-        {"home": "曼城", "away": "阿森纳", "league": "英超", "date": "2026-08-02", "home_odds": "1.85", "draw_odds": "3.50", "away_odds": "4.00"},
-        {"home": "巴萨", "away": "皇马", "league": "西甲", "date": "2026-08-03", "home_odds": "2.10", "draw_odds": "3.30", "away_odds": "3.60"},
-        {"home": "拜仁", "away": "多特", "league": "德甲", "date": "2026-08-03", "home_odds": "1.70", "draw_odds": "3.80", "away_odds": "4.50"},
-        {"home": "巴黎", "away": "马赛", "league": "法甲", "date": "2026-08-04", "home_odds": "1.55", "draw_odds": "3.90", "away_odds": "5.50"},
-        {"home": "国米", "away": "AC米兰", "league": "意甲", "date": "2026-08-04", "home_odds": "2.20", "draw_odds": "3.20", "away_odds": "3.40"},
-        {"home": "利物浦", "away": "切尔西", "league": "英超", "date": "2026-08-05", "home_odds": "1.95", "draw_odds": "3.40", "away_odds": "3.80"},
-        {"home": "勒沃库森", "away": "莱比锡", "league": "德甲", "date": "2026-08-05", "home_odds": "2.05", "draw_odds": "3.50", "away_odds": "3.50"},
-        {"home": "尤文", "away": "那不勒斯", "league": "意甲", "date": "2026-08-06", "home_odds": "2.30", "draw_odds": "3.10", "away_odds": "3.20"},
-    ]

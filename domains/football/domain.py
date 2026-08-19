@@ -15,9 +15,24 @@ from core.context import run_in_subsystem
 logger = logging.getLogger(__name__)
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'jinshuiyao', 'data')
-MATCHES_CSV = os.path.join(DATA_DIR, "matches_supplemented.csv")
-MATCHES_FALLBACK_CSV = os.path.join(DATA_DIR, "matches.csv")
+REAL_JSON = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                         '金水谣数据', 'football_matches.json')
+# 历史真实赛果 CSV 仅作回测/复盘素材
 REAL_CSV = os.path.join(DATA_DIR, "matches_real.csv")
+
+
+def _load_real_matches():
+    """读取真实赛事（金水谣数据/football_matches.json，体彩官方竞彩抓取）"""
+    try:
+        if os.path.exists(REAL_JSON):
+            with open(REAL_JSON, 'r', encoding='utf-8') as f:
+                payload = json.load(f)
+            matches = payload.get('matches', [])
+            if matches:
+                return matches
+    except Exception:
+        pass
+    return []
 
 
 def _load_csv(csv_path):
@@ -116,11 +131,11 @@ class FootballDomain(DomainBase):
         return True
 
     def fetch(self, **kwargs):
-        """抓取比赛数据（从CSV）"""
+        """抓取比赛数据（真实数据：金水谣数据/football_matches.json，体彩官方竞彩）"""
         try:
-            matches = _load_csv(MATCHES_CSV) or _load_csv(MATCHES_FALLBACK_CSV) or []
+            matches = _load_real_matches()
             return {"success": True, "count": len(matches), "data": matches,
-                    "message": f"加载 {len(matches)} 条比赛记录"}
+                    "message": f"加载 {len(matches)} 条真实比赛记录"}
         except Exception as e:
             return {"success": False, "data": [], "message": str(e)}
 
@@ -138,8 +153,8 @@ class FootballDomain(DomainBase):
             if not home or not away:
                 return {"status": "error", "message": "需要 home 和 away"}
 
-            # 1. 加载CSV匹配数据
-            matches = _load_csv(MATCHES_CSV) or _load_csv(MATCHES_FALLBACK_CSV) or []
+            # 1. 加载真实比赛数据
+            matches = _load_real_matches()
             match_row = _lookup_match(home, away, matches)
             odds_input = data.get('odds', {})
             if not odds_input and match_row:
@@ -368,7 +383,7 @@ class FootballDomain(DomainBase):
 
     def status(self):
         """健康状态"""
-        matches = _load_csv(MATCHES_CSV) or _load_csv(MATCHES_FALLBACK_CSV) or []
+        matches = _load_real_matches()
         real_matches = _load_csv(REAL_CSV) or []
         return {
             "ready": self._initialized,

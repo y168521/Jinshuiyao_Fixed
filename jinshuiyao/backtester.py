@@ -117,7 +117,8 @@ class JinshuiyaoBacktester:
 
                 if won:
                     odds_key = self._recommendation_to_odds_key(rec.recommendation)
-                    profit = stake * (odds[odds_key] - 1.0)
+                    odd_val = odds.get(odds_key, 2.0) or 2.0
+                    profit = stake * (odd_val - 1.0)
                 else:
                     profit = -stake
 

@@ -207,32 +207,45 @@ class DataTruthGuard:
         """
         checks = []
         today = datetime.now().strftime("%Y-%m-%d")
-        # 主数据是 matches_supplemented.csv（含未来赛程+历史赛果）；matches.csv 仅为兜底
-        primary_csv = os.path.join(self._jinshuiyao_dir, "data", "matches_supplemented.csv")
-        fallback_csv = os.path.join(self._jinshuiyao_dir, "data", "matches.csv")
+        # 主数据是体彩官方抓取的真实赛事（金水谣数据/football_matches.json）；matches_real.csv 为历史赛果回测素材
+        real_json = os.path.join(os.path.dirname(self._jinshuiyao_dir), "金水谣数据", "football_matches.json")
+        if not os.path.exists(real_json):
+            real_json = None
+        primary_csv = os.path.join(self._jinshuiyao_dir, "data", "matches_real.csv")
+        fallback_csv = os.path.join(self._jinshuiyao_dir, "data", "matches_supplemented.csv")
         csv_path = primary_csv if os.path.exists(primary_csv) else fallback_csv
 
-        # ---- 检测1: CSV比赛时效性 ----
-        csv_status, csv_source, csv_detail, csv_action = self._check_csv_matches(csv_path, today)
+        # ---- 检测1: 赛事数据时效性（真实 JSON 优先） ----
+        if real_json:
+            csv_status, csv_source, csv_detail, csv_action = self._check_real_json(real_json, today)
+            total_count = self._count_real_json(real_json)
+        else:
+            csv_status, csv_source, csv_detail, csv_action = self._check_csv_matches(csv_path, today)
+            total_count = sum(1 for _ in self._iter_csv_matches(csv_path))
         checks.append({
-            "name": "CSV比赛时效性",
+            "name": "赛事数据时效性",
             "status": csv_status,
             "source": csv_source,
             "detail": csv_detail,
             "action": csv_action,
-            "count": sum(1 for _ in self._iter_csv_matches(csv_path)),
+            "count": total_count,
         })
 
         # ---- 检测2: 赔率合理性 ----
-        odds_path = os.path.join(self._jinshuiyao_dir, "data", "odds.csv")
-        odds_status, odds_detail, odds_action = self._check_odds_validity(odds_path)
+        if real_json:
+            odds_status, odds_detail, odds_action = self._check_real_odds(real_json)
+            odds_count = self._count_real_json(real_json)
+        else:
+            odds_path = os.path.join(self._jinshuiyao_dir, "data", "odds.csv")
+            odds_status, odds_detail, odds_action = self._check_odds_validity(odds_path)
+            odds_count = sum(1 for _ in self._iter_csv_rows(odds_path))
         checks.append({
             "name": "赔率合理性",
             "status": odds_status,
             "source": csv_source,  # 和CSV同源
             "detail": odds_detail,
             "action": odds_action,
-            "count": sum(1 for _ in self._iter_csv_rows(odds_path)),
+            "count": odds_count,
         })
 
         # ---- 检测3: 硬编码检测 ----
@@ -251,6 +264,64 @@ class DataTruthGuard:
         ss_status = "fail" if "fail" in statuses else ("warn" if "warn" in statuses else "pass")
 
         return {"status": ss_status, "checks": checks}
+
+    def _check_real_json(self, json_path: str, today: str):
+        """检查体彩官方抓取的真实赛事 JSON 时效性"""
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+            matches = payload.get("matches") or []
+            if not matches:
+                return "warn", SOURCE_UNKNOWN, f"真实赛事 JSON 为空（{json_path}）", "执行足彩数据刷新"
+            source = payload.get("source", "sporttery")
+            total = len(matches)
+            expired = future = today_matches = 0
+            for m in matches:
+                mt = str(m.get("match_time", "") or "")
+                date = mt[:10]
+                if not date:
+                    continue
+                if date < today:
+                    expired += 1
+                elif date == today:
+                    today_matches += 1
+                else:
+                    future += 1
+            if future or today_matches:
+                return "pass", SOURCE_CACHE, f"共{total}场真实赛事（{source}），未来/今日{today_matches + future}场，历史{expired}场", None
+            return "warn", SOURCE_CACHE, f"共{total}场真实赛事（{source}），全部已过期，请刷新", "执行足彩数据刷新"
+        except Exception as e:
+            return "warn", SOURCE_UNKNOWN, f"真实赛事 JSON 读取失败: {e}", None
+
+    def _count_real_json(self, json_path: str) -> int:
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+            return len(payload.get("matches") or [])
+        except Exception:
+            return 0
+
+    def _check_real_odds(self, json_path: str):
+        """检查真实赛事赔率合理性（胜平负在合理区间）"""
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+            matches = payload.get("matches") or []
+            bad = []
+            for m in matches:
+                try:
+                    w, d, l = float(m.get("odds_win", 0)), float(m.get("odds_draw", 0)), float(m.get("odds_lose", 0))
+                    if w < 1.01 or d < 1.01 or l < 1.01:
+                        bad.append(m.get("match_id", "?"))
+                except (TypeError, ValueError):
+                    bad.append(m.get("match_id", "?"))
+            if not matches:
+                return "warn", "真实赛事 JSON 为空，无赔率可检", None
+            if bad:
+                return "warn", f"{len(bad)} 场比赛赔率异常（<1.01）: {bad[:5]}", None
+            return "pass", f"{len(matches)} 场赔率均正常（体彩官方源）", None
+        except Exception as e:
+            return "warn", f"赔率检查失败: {e}", None
 
     def _check_csv_matches(self, csv_path: str, today: str):
         """检查CSV比赛数据的时效性"""
@@ -352,41 +423,22 @@ class DataTruthGuard:
         return "pass", f"{len(rows)}组赔率均在合理范围内", None
 
     def _check_hardcoded_football(self):
-        """检测足彩模块是否存在大量硬编码兜底数据"""
-        # 检查 data_fetcher.py 中 _generate_real_league_matches 的硬编码比赛数
-        fetcher_path = os.path.join(self._jinshuiyao_dir, "data_fetcher.py")
+        """检测足彩模块是否存在硬编码/模拟兜底数据（演示数据已全部剔除）"""
+        # 旧演示生成器已删除；检查 jinshuiyao/fetcher.py 是否残留模拟兜底
+        fetcher_path = os.path.join(self._jinshuiyao_dir, "fetcher.py")
         if not os.path.exists(fetcher_path):
-            return "warn", "data_fetcher.py 不存在，无法检测", "检查足彩数据抓取器是否安装"
-
+            return "warn", "fetcher.py 不存在，无法检测", None
         try:
             with open(fetcher_path, "r", encoding="utf-8") as f:
                 content = f.read()
-
-            # 检测硬编码特征
-            hardcode_signs = []
-            if "_generate_real_league_matches" in content:
-                # 统计硬编码的比赛对数（通过元组数量估算）
-                import re
-                tuples = re.findall(r"\('.*?',\s*'.*?',\s*\d+,\s*\d+\)", content)
-                if len(tuples) >= 10:
-                    hardcode_signs.append(f"联赛硬编码{len(tuples)}组固定对阵")
-
+            signs = []
             if "_generate_fallback_matches" in content:
-                hardcode_signs.append("存在备用数据生成函数")
-
+                signs.append("存在备用数据生成函数")
             if "random.uniform" in content and "odds" in content.lower():
-                hardcode_signs.append("赔率使用随机生成(random.uniform)")
-
-            if hardcode_signs:
-                detail = "检测到硬编码兜底逻辑: " + "; ".join(hardcode_signs)
-                # 兜底数据若已带 source 来源标记，则如实标注来源，不算异常
-                if "'source'" in content or '"source"' in content:
-                    detail += "；兜底数据已带source来源标记"
-                    return "pass", detail, None
-                return "warn", detail, "当网络API失败时会自动降级到硬编码数据，建议增加数据来源标记"
-
-            return "pass", "未检测到异常硬编码逻辑", None
-
+                signs.append("赔率使用随机生成")
+            if signs:
+                return "warn", "检测到硬编码兜底逻辑: " + "; ".join(signs), "删除模拟兜底，改用真实数据源"
+            return "pass", "未检测到硬编码/模拟兜底逻辑（演示数据已剔除）", None
         except Exception as e:
             return "warn", f"检测失败: {str(e)}", None
 

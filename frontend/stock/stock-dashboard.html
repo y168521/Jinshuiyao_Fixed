@@ -134,6 +134,7 @@ const API_STOCK_STATUS = '/api/stock/status';
 const API_STOCK_SCREEN = '/api/stock/screen';
 const API_STOCK_FACTORS = '/api/stock/factors';
 const API_STOCK_BACKTEST = '/api/stock/backtest';
+const API_STOCK_DETAIL = '/api/stock/detail';
 
 function fmtTs(){ const d=new Date(); return d.toLocaleTimeString('zh-CN',{hour12:false}); }
 function fmtNum(n){ if(n==null) return '—'; return Number(n).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -149,16 +150,10 @@ async function loadOverview(){
         return `<div class="card idx-card"><div class="name">${i.name||i.symbol}</div><div class="price">${fmtNum(i.price)}</div><div class="chg ${chgCls}">${fmtPct(i.change)}</div></div>`;
       }).join('');
     } else {
-      // Mock data for display
-      document.getElementById('idxGrid').innerHTML = [
-        {name:'上证指数',price:3280.15,change:1.25},{name:'沪深300',price:3920.50,change:-0.38},{name:'深证成指',price:10950.80,change:0.92},{name:'创业板指',price:2180.45,change:-0.15}
-      ].map(i => {
-        const chgCls = i.change>=0 ? 'chg-up' : 'chg-down';
-        return `<div class="card idx-card"><div class="name">${i.name}</div><div class="price">${fmtNum(i.price)}</div><div class="chg ${chgCls}">${fmtPct(i.change)}</div></div>`;
-      }).join('');
+      document.getElementById('idxGrid').innerHTML = '<div class="card idx-card"><div class="name">暂无指数数据</div><div class="price">—</div><div class="chg">数据源不可用</div></div>';
     }
   } catch(e){
-    document.getElementById('idxGrid').innerHTML = '<div class="card"><p class="err">接口暂不可用，显示示例数据</p></div>';
+    document.getElementById('idxGrid').innerHTML = '<div class="card idx-card"><div class="name">暂无指数数据</div><div class="price">—</div><div class="chg">接口暂不可用</div></div>';
   }
 }
 
@@ -172,9 +167,7 @@ async function loadFactors(){
       ).join('');
     }
   } catch(e){
-    document.getElementById('factorGrid').innerHTML = ['市盈率','市净率','ROE','营收增长','净利润增长','股息率','换手率','波动率'].map(f =>
-      `<div class="factor-tag" onclick="this.classList.toggle('active')">${f}</div>`
-    ).join('');
+    document.getElementById('factorGrid').innerHTML = '<span class="muted">因子接口暂不可用</span>';
   }
 }
 
@@ -230,7 +223,7 @@ document.querySelectorAll('.tab').forEach(tab => {
 });
 
 let lcChart = null, lcSeries = null;
-function drawPriceChart(){
+async function drawPriceChart(){
   if(!lcChart){
     lcChart = LightweightCharts.createChart(document.getElementById('chartWrap'), {
       layout: { textColor: '#7a8499', background: { type: 'solid', color: '#131a2a' } },
@@ -247,22 +240,24 @@ function drawPriceChart(){
   }
   const sym = document.getElementById('chartSym').value;
   const period = document.getElementById('chartPeriod').value;
-  const points = period==='1d'?48:period==='5d'?240:period==='1m'?480:1440;
-  const base = sym==='sh000001'?3280:sym==='sh000300'?3920:10950;
-  const now = new Date();
-  const step = period==='1d'?10:period==='5d'?30:period==='1m'?60:180;
-  const data = Array.from({length:points},(_,i)=>{
-    const t = i/points;
-    const dt = new Date(now - (points-1-i)*step*60000);
-    const val = base * (1 + Math.sin(t*Math.PI*4)*0.02 + Math.cos(t*Math.PI*1.3)*0.015 + (Math.random()-0.5)*0.005 * (1-t));
-    return { time: Math.floor(dt/1000), value: val };
-  });
-  lcSeries.setData(data);
-  const close = data[data.length-1].value;
-  const isUp = close >= data[0].value;
-  lcSeries.applyOptions({ topColor: isUp?'rgba(200,117,90,0.25)':'rgba(45,139,126,0.25)', bottomColor: isUp?'rgba(200,117,90,0.01)':'rgba(45,139,126,0.01)' });
-  lcChart.timeScale().fitContent();
-  document.getElementById('chartLegend').innerHTML = `<span class="legend-item"><span class="legend-dot" style="background:${isUp?'#c8755a':'#2d8b7e'}"></span>${sym} · ${isUp?'涨':'跌'}${Math.abs(((close/data[0].value)-1)*100).toFixed(2)}%</span>`;
+  try{
+    const r = await fetch(API_STOCK_DETAIL, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:sym})});
+    const j = await r.json();
+    const navs = (j.ok && j.data && j.data.navs) || [];
+    if(!navs.length) throw new Error('no data');
+    const step = period==='1d'?1:period==='5d'?1:period==='1m'?5:20;
+    const data = navs.filter((_,i)=>i%step===0).map(v=>({ time: String(v.date).replace(/-/g,'/'), value: Number(v.close) }));
+    lcSeries.setData(data);
+    const close = data[data.length-1].value, first = data[0].value;
+    const isUp = close >= first;
+    lcSeries.applyOptions({ topColor: isUp?'rgba(200,117,90,0.25)':'rgba(45,139,126,0.25)', bottomColor: isUp?'rgba(200,117,90,0.01)':'rgba(45,139,126,0.01)' });
+    lcChart.timeScale().fitContent();
+    document.getElementById('chartLegend').innerHTML = `<span class="legend-item"><span class="legend-dot" style="background:${isUp?'#c8755a':'#2d8b7e'}"></span>${sym} · ${isUp?'涨':'跌'}${Math.abs(((close/first)-1)*100).toFixed(2)}%</span>`;
+  }catch(e){
+    lcSeries.setData([]);
+    lcChart.timeScale().fitContent();
+    document.getElementById('chartLegend').innerHTML = '<span class="legend-item">暂无行情数据（数据源不可用）</span>';
+  }
 }
 
 let autoTimer = null;

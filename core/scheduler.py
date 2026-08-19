@@ -234,16 +234,15 @@ class JinshuiyaoScheduler(TaskScheduler):
         except Exception as e:
             logger.error("[数据刷新] 股票数据刷新异常: %s", e)
 
-        # 3) 足彩数据刷新
+        # 3) 足彩数据刷新（体彩官方竞彩 API 主源 + 500.com 兜底，真实赛事）
         try:
-            from jinshuiyao.data_fetcher import DataFetcher
-            foot_df = DataFetcher()
+            from domains.football.fetcher import fetch_matches
             try:
-                matches = foot_df.fetch_worldcup_matches()
+                matches = fetch_matches(force_refresh=True)
                 if matches:
-                    logger.info("[数据刷新] 足彩: 获取到 %d 场比赛数据", len(matches))
+                    logger.info("[数据刷新] 足彩: 获取到 %d 场真实赛事", len(matches))
             except Exception as e:
-                logger.warning("[数据刷新] 足彩数据抓取失败: %s", e)
+                logger.warning("[数据刷新] 足彩真实赛事抓取失败: %s", e)
         except Exception as e:
             logger.error("[数据刷新] 足彩模块加载失败: %s", e)
 

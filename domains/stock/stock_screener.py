@@ -69,7 +69,6 @@ class StockScreener:
 
     def __init__(self, weights=None):
         self.weights = weights or FACTOR_WEIGHTS
-        self._seed_used = False
 
     def screen(self, stock_data, analysis_results, top_n=10,
                min_score=0, require_technical=True):
@@ -292,31 +291,19 @@ class StockScreener:
         return self._mock_sentiment_score(symbol, df)
 
     def _mock_growth_score(self, symbol, df):
-        if not self._seed_used:
-            random.seed(abs(hash(symbol + "g")) % (2**31))
-        base = 40 + random.random() * 40
-        if df is not None and hasattr(df, "columns") and "close" in df.columns:
-            closes = df["close"].tolist()
-            if len(closes) > 126:
-                ret_6m = (closes[-1] - closes[-126]) / closes[-126] if closes[-126] else 0
-                base += ret_6m * 50
-            elif len(closes) > 60:
-                ret_3m = (closes[-1] - closes[-63]) / closes[-63] if len(closes) > 63 and closes[-63] else 0
-                base += ret_3m * 30
-        return max(10, min(90, base))
+        # 无真实财务数据 → 中性分（不随机伪造）
+        return 50.0
 
     def _mock_value_score(self, symbol, df):
-        if not self._seed_used:
-            random.seed(abs(hash(symbol + "v")) % (2**31))
-        return max(10, min(90, 30 + random.random() * 50))
+        # 无真实财务数据 → 中性分（不随机伪造）
+        return 50.0
 
     def _mock_quality_score(self, symbol, df):
-        if not self._seed_used:
-            random.seed(abs(hash(symbol + "q")) % (2**31))
-        return max(10, min(90, 40 + random.random() * 40))
+        # 无真实财务数据 → 中性分（不随机伪造）
+        return 50.0
 
     def _mock_sentiment_score(self, symbol, df):
-        return 50
+        return 50.0
 
     def _try_financial_indicator(self, symbol, factor_type):
         """尝试从akshare获取真实财务因子（留扩展点）"""

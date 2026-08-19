@@ -367,16 +367,22 @@ def _build_e():
 
 
 def football_at():
-    """足彩数据探测（探路口径对齐 domain 实际数据路径，勿用 金水谣数据/football/）"""
+    """足彩数据探测（真实赛事：金水谣数据/football_matches.json 主源，matches_real.csv 回测素材）"""
     try:
-        from domains.football.domain import MATCHES_CSV, MATCHES_FALLBACK_CSV, REAL_CSV
-        for p in (MATCHES_CSV, MATCHES_FALLBACK_CSV, REAL_CSV):
-            if os.path.isfile(p):
-                import csv as _csv
-                with open(p, "r", encoding="utf-8") as f:
-                    n = sum(1 for _ in _csv.DictReader(f))
-                return n > 0, f"足彩赛事 {p} 共 {n} 场"
-        return False, "足彩数据文件缺失(domain 三 csv 均不存在)"
+        real_json = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                 '金水谣数据', 'football_matches.json')
+        if os.path.isfile(real_json):
+            import json as _json
+            with open(real_json, "r", encoding="utf-8") as f:
+                n = len((_json.load(f).get("matches") or []))
+            return n > 0, f"足彩真实赛事 {real_json} 共 {n} 场"
+        from domains.football.domain import REAL_CSV
+        if os.path.isfile(REAL_CSV):
+            import csv as _csv
+            with open(REAL_CSV, "r", encoding="utf-8") as f:
+                n = sum(1 for _ in _csv.DictReader(f))
+            return n > 0, f"足彩历史赛果 {REAL_CSV} 共 {n} 场"
+        return False, "足彩真实数据缺失（无 football_matches.json）"
     except Exception as e:
         return False, f"足彩数据探测异常: {e}"
 

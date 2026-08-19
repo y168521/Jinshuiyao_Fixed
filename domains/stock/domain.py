@@ -139,7 +139,6 @@ class StockDomain(DomainBase):
         """
         target = symbols or self.DEFAULT_INDEXES
         results = {}
-        mock_fallback = False
 
         try:
             if self._fetcher:
@@ -148,21 +147,19 @@ class StockDomain(DomainBase):
                     if df is not None and not df.empty:
                         results[sym] = df
                         self._data_cache[sym] = df
+                        # 兼容 sh/sz 前缀与裸代码两种查询方式（真实数据 key 已规范化）
+                        norm = self._fetcher._normalize_symbol(sym)
+                        if norm != sym:
+                            results[norm] = df
 
-            # 如果真实数据源未获取到任何数据，回退到模拟数据
+            # 真实数据源未获取到任何数据 → 如实返回空（不做模拟兜底）
             if not results:
-                mock_fallback = True
-                logger.info("真实数据源未返回数据，回退到模拟数据模式")
-                for sym in target:
-                    df = self._generate_mock_data(sym)
-                    results[sym] = df
-                    self._data_cache[sym] = df
-
+                logger.warning("真实数据源未返回任何数据（东财/腾讯/新浪均失败且无缓存）")
             return {
                 "success": True,
                 "data": results,
                 "message": f"获取 {len(results)}/{len(target)} 只股票数据",
-                "mode": "mock" if mock_fallback else "real",
+                "mode": "real",
             }
         except Exception as e:
             logger.error("股票数据抓取失败: %s", e)
@@ -291,7 +288,7 @@ class StockDomain(DomainBase):
             fetch_res = self.fetch(codes)
             if not fetch_res.get("success") or not fetch_res.get("data"):
                 return {"success": False, "message": "无法获取股票池数据", "status": "no_data"}
-            mode = fetch_res.get("mode", "mock")
+            mode = fetch_res.get("mode", "real")
 
             analysis = self.analyze(fetch_res["data"])
             results = analysis.get("results", {})
@@ -477,38 +474,8 @@ class StockDomain(DomainBase):
         }
 
     # ------------------------------------------------------------------
-    # 内部方法（降级模式支持）
+    # 内部方法（基础指标计算）
     # ------------------------------------------------------------------
-
-    def _generate_mock_data(self, symbol, days=250):
-        """生成模拟K线数据（降级模式）"""
-        import random
-        import pandas as pd
-
-        base_price = random.uniform(10, 100)
-        dates = pd.date_range(end=datetime.now(), periods=days, freq="B")
-        data = []
-
-        for i, date in enumerate(dates):
-            change = random.gauss(0, 0.02)  # 2% 日波动
-            if i > 0:
-                base_price = data[-1]["close"] * (1 + change)
-            open_p = base_price * (1 + random.gauss(0, 0.005))
-            close_p = base_price * (1 + random.gauss(0, 0.005))
-            high_p = max(open_p, close_p) * (1 + abs(random.gauss(0, 0.01)))
-            low_p = min(open_p, close_p) * (1 - abs(random.gauss(0, 0.01)))
-            vol = int(random.uniform(1e6, 1e8))
-
-            data.append({
-                "date": date.strftime("%Y-%m-%d"),
-                "open": round(open_p, 2),
-                "close": round(close_p, 2),
-                "high": round(high_p, 2),
-                "low": round(low_p, 2),
-                "volume": vol,
-            })
-
-        return pd.DataFrame(data)
 
     def _calc_basic_indicators(self, df):
         """基础指标计算（纯Python，无外部依赖）"""

@@ -6,7 +6,6 @@ import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
 import threading
 import datetime
-import random
 
 # 确保导入路径正确（兼容直接运行和包模式导入）
 _this_dir = os.path.dirname(os.path.abspath(__file__))
@@ -23,73 +22,53 @@ except ImportError:
     HAS_PANDAS = False
     print(f"[WARN] 无法导入pandas")
 
-# 导入真实数据抓取器
-try:
-    from jinshuiyao.data_fetcher import data_fetcher
-    HAS_REAL_DATA = True
-    print("[INFO] 已加载真实数据抓取器")
-except ImportError:
-    try:
-        from data_fetcher import data_fetcher
-        HAS_REAL_DATA = True
-        print("[INFO] 已加载真实数据抓取器")
-    except ImportError as e:
-        HAS_REAL_DATA = False
-        print(f"[WARN] 无法导入数据抓取器: {e}")
-
 from core.theme import Theme
 
 
 def load_match_data():
-    """加载比赛数据 - 从CSV文件加载，避免启动时网络请求"""
-    import csv
+    """加载比赛数据 - 真实赛事（金水谣数据/football_matches.json，体彩官方竞彩抓取）"""
     import os
-    
+    import json
+
     matches = []
-    csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'matches.csv')
-    
-    if os.path.exists(csv_path):
+    json_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                             '金水谣数据', 'football_matches.json')
+
+    if os.path.exists(json_path):
         try:
-            with open(csv_path, 'r', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    matches.append({
-                        'match_id': row.get('match_id', ''),
-                        'home': row.get('home', ''),
-                        'away': row.get('away', ''),
-                        'league': row.get('league', ''),
-                        'date': row.get('match_time', '')[:10],
-                        'time': row.get('match_time', '')[11:] if len(row.get('match_time', '')) > 10 else '',
-                        'odds': {
-                            'win': float(row.get('odds_win', 2.0)),
-                            'draw': float(row.get('odds_draw', 3.2)),
-                            'lose': float(row.get('odds_lose', 3.5)),
-                        }
-                    })
-            print(f"[SUCCESS] 从CSV加载 {len(matches)} 场比赛数据")
+            with open(json_path, 'r', encoding='utf-8') as f:
+                payload = json.load(f)
+            for row in payload.get('matches', []):
+                mt = row.get('match_time', '')
+                matches.append({
+                    'match_id': row.get('match_id', ''),
+                    'home': row.get('home', ''),
+                    'away': row.get('away', ''),
+                    'league': row.get('league', ''),
+                    'date': mt[:10],
+                    'time': mt[11:16] if len(mt) > 10 else '',
+                    'odds': {
+                        'win': float(row.get('odds_win', 2.0) or 2.0),
+                        'draw': float(row.get('odds_draw', 3.2) or 3.2),
+                        'lose': float(row.get('odds_lose', 3.5) or 3.5),
+                    }
+                })
+            print(f"[SUCCESS] 加载 {len(matches)} 场真实比赛数据（体彩官方竞彩）")
         except Exception as e:
-            print(f"[WARN] 从CSV加载数据失败: {e}")
-    
-    if not matches:
-        matches = _generate_fallback_matches()
-        print(f"[INFO] 使用备用数据: {len(matches)} 场")
-    
+            print(f"[WARN] 加载真实赛事数据失败: {e}")
+
     matches.sort(key=lambda x: (x['date'], x['time']))
     return matches
 
 
-def _generate_fallback_matches():
-    """生成备用比赛数据（当CSV无数据时）"""
-    return [
-        {'match_id': 'demo_001', 'home': '法国', 'away': '西班牙', 'league': '世界杯半决赛',
-         'date': '2026-07-15', 'time': '03:00', 'odds': {'win': 2.80, 'draw': 3.10, 'lose': 2.45}},
-        {'match_id': 'demo_002', 'home': '英格兰', 'away': '阿根廷', 'league': '世界杯半决赛',
-         'date': '2026-07-16', 'time': '03:00', 'odds': {'win': 2.60, 'draw': 3.20, 'lose': 2.70}},
-        {'match_id': 'demo_003', 'home': '杰尔', 'away': '雷克雅未克维京人', 'league': '欧冠资格赛',
-         'date': '2026-07-14', 'time': '22:00', 'odds': {'win': 1.85, 'draw': 3.40, 'lose': 3.60}},
-        {'match_id': 'demo_004', 'home': '新圣徒', 'away': '萨巴赫', 'league': '欧冠资格赛',
-         'date': '2026-07-14', 'time': '22:00', 'odds': {'win': 2.10, 'draw': 3.30, 'lose': 3.15}},
-    ]
+def _refresh_real_matches():
+    """联网刷新真实赛事（体彩官方竞彩 API 主源 + 500.com 兜底）"""
+    try:
+        from domains.football.fetcher import fetch_matches
+        return fetch_matches(force_refresh=True)
+    except Exception as e:
+        print(f"[WARN] 真实赛事刷新失败: {e}")
+        return []
 
 
 MATCH_DATA = []
@@ -1414,13 +1393,14 @@ class FootballApp:
         self.match_table.yview(*args)
     
     def _refresh_data(self):
-        """刷新数据"""
-        self.log("正在刷新数据...")
+        """刷新数据 - 联网拉取体彩官方竞彩真实赛事"""
+        self.log("正在联网刷新真实赛事数据...")
         global MATCH_DATA
+        _refresh_real_matches()
         MATCH_DATA = load_match_data()
         self.match_table.load_matches()
         self.league_filter.count_label.config(text=f"({len(MATCH_DATA)}场)")
-        self.log("数据刷新完成")
+        self.log(f"数据刷新完成（{len(MATCH_DATA)} 场真实赛事）")
     
     def log(self, msg):
         """记录日志到状态栏"""

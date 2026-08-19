@@ -158,6 +158,53 @@ def handle_factors(handler, parsed):
         handler._send_json({"ok": False, "error": str(e)}, 500)
 
 
+def _to_frontend(detail_df, analysis_item):
+    """DataFrame + 分析结果 → 前端 stock-detail.html 期望格式"""
+    rows = detail_df.to_dict("records") if hasattr(detail_df, "to_dict") else list(detail_df or [])
+    closes = [float(r.get("close", 0)) for r in rows if r.get("close") is not None]
+    price = closes[-1] if closes else 0
+    change_pct = (price / closes[-2] - 1) * 100 if len(closes) > 1 and closes[-2] else 0
+    ind = (analysis_item or {}).get("indicators") or {}
+    trend = (analysis_item or {}).get("trend") or {}
+    ma = ind.get("ma") or {}
+    macd = ind.get("macd") or {}
+    kdj = ind.get("kdj") or {}
+    rsi = ind.get("rsi") or {}
+    boll = ind.get("bollinger") or {}
+    technical = {}
+    if isinstance(ma, dict) and ma.get("ma5") is not None:
+        technical["ma"] = float(ma["ma5"])
+    if macd.get("dif") is not None:
+        technical["macd"] = float(macd["dif"])
+    if kdj.get("k") is not None:
+        technical["kdj_k"] = float(kdj["k"])
+        technical["kdj_d"] = float(kdj.get("d", 0))
+        technical["kdj_j"] = float(kdj.get("j", 0))
+    if rsi.get("rsi6") is not None:
+        technical["rsi"] = float(rsi["rsi6"])
+    elif isinstance(rsi, dict) and rsi.get("value") is not None:
+        technical["rsi"] = float(rsi["value"])
+    if boll.get("upper") is not None:
+        technical["boll_upper"] = float(boll["upper"])
+        technical["boll_mid"] = float(boll.get("mid", 0))
+        technical["boll_lower"] = float(boll.get("lower", 0))
+    score = 0
+    if isinstance(ind.get("composite"), dict):
+        score = float(ind["composite"].get("score", 0))
+    direction = trend.get("direction", "unknown")
+    signal_text = {"up": "看多", "down": "看空", "mixed": "震荡", "unknown": "中性"}.get(direction, "中性")
+    return {
+        "price": price,
+        "change_pct": round(change_pct, 2),
+        "name": None,
+        "navs": [{"date": str(r.get("date", "")), "close": float(r.get("close", 0))} for r in rows],
+        "technical": technical,
+        "signal": {"direction": direction, "strength": float(trend.get("strength", 0) or 0)},
+        "score": round(score, 1),
+        "signal_text": signal_text,
+    }
+
+
 def handle_detail(handler, parsed):
     """GET/POST /api/stock/detail — 单只股票详情（行情+技术指标+评分）"""
     params = _parse_params(handler, parsed)
@@ -173,17 +220,17 @@ def handle_detail(handler, parsed):
 
     try:
         data = domain.fetch([code])
-        if not data or not data.get(code):
+        detail_data = (data or {}).get("data") or {}
+        df = detail_data.get(code)
+        if df is None or (hasattr(df, "empty") and df.empty):
             handler._send_json({"ok": False, "error": f"未获取到 {code} 的数据"}, 404)
             return
 
-        analysis = domain.analyze(data, [code])
-        result = {
-            "code": code,
-            "data": data.get(code, {}),
-            "analysis": analysis.get(code, {}) if analysis else {},
-        }
-        handler._send_json({"ok": True, **result}, 200)
+        analysis = domain.analyze(detail_data, [code]) or {}
+        an_item = (analysis.get("results") or {}).get(code) or {}
+        frontend = _to_frontend(df, an_item)
+        frontend["mode"] = data.get("mode", "real")
+        handler._send_json({"ok": True, "code": code, "data": frontend}, 200)
     except Exception as e:
         log(f"[stock-detail] 异常: {e}")
         handler._send_json({"ok": False, "error": str(e)}, 500)

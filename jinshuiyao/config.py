@@ -7,9 +7,9 @@
 import os
 _DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 DATA_DIR = _DATA_DIR
-MATCHES_CSV = os.path.join(_DATA_DIR, "matches.csv")
+MATCHES_CSV = os.path.join(_DATA_DIR, "matches_real.csv")  # 历史真实赛果（回测/H2H 素材）
 TEAM_STATS_CSV = os.path.join(_DATA_DIR, "team_stats.csv")
-ODDS_CSV = os.path.join(_DATA_DIR, "odds.csv")
+ODDS_CSV = os.path.join(_DATA_DIR, "matches_real.csv")  # 真实赛果无赔率列，赔率走模型/接口
 RESULTS_CSV = os.path.join(_DATA_DIR, "results.csv")
 
 # ============================================================
