@@ -13,6 +13,7 @@
 import json
 import os
 import re
+import subprocess
 import sys
 import time
 import urllib.request
@@ -42,11 +43,38 @@ def _safe_odds(d, key):
         return ''
 
 
+def _urlopen_with_dns_heal(req, timeout=TIMEOUT, max_retries=3):
+    """urllib 请求 + Windows DNS 缓存损坏自愈（flushdns 后重试）。
+
+    本机曾因 Windows DNS 缓存损坏导致整晚抓取失败（getaddrinfo failed），
+    但 PowerShell/其他进程解析正常，flushdns 即可恢复。仅 Windows 生效，静默失败不致命。
+    逻辑对齐 fetchers/fetcher.py._request_with_retry 的 DNS 自愈分支。
+    """
+    last = None
+    for attempt in range(max_retries):
+        try:
+            return urllib.request.urlopen(req, timeout=timeout)
+        except Exception as e:
+            last = e
+            if os.name == "nt" and ("getaddrinfo failed" in str(e) or "NameResolutionError" in str(e)):
+                try:
+                    subprocess.run(["ipconfig", "/flushdns"],
+                                   capture_output=True, timeout=10,
+                                   creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+                    _log("DNS 缓存异常，已自动 flushdns，重试")
+                except Exception:
+                    pass
+                time.sleep(2)
+        if attempt < max_retries - 1:
+            time.sleep(min(1 * (2 ** attempt), 8))
+    raise last
+
+
 def fetch_from_sporttery():
     """体彩官方竞彩足球接口：真实赛程+赔率"""
     req = urllib.request.Request(SPORTTERY_URL, headers={
         'User-Agent': UA, 'Referer': 'https://m.sporttery.cn/'})
-    with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+    with _urlopen_with_dns_heal(req) as r:
         j = json.loads(r.read().decode('utf-8', 'replace'))
     if not j.get('success'):
         raise RuntimeError(f'体彩接口返回失败: {j.get("errorMessage")}')
@@ -82,7 +110,7 @@ def fetch_from_500():
     """500.com 竞彩足球页兜底（HTML 解析）"""
     req = urllib.request.Request('https://trade.500.com/jczq/', headers={
         'User-Agent': UA, 'Referer': 'https://500.com/'})
-    with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+    with _urlopen_with_dns_heal(req) as r:
         html = r.read().decode('gb2312', 'replace')
     matches = []
     # 500 竞彩页每场结构：<tr id="tr_0"> ... 主队/客队/联赛/赔率 单元格
@@ -137,6 +165,16 @@ def fetch_matches(force_refresh=True):
         errs.append('500.com 返回空')
     except Exception as e:
         errs.append(f'500.com 失败: {type(e).__name__} {str(e)[:80]}')
+    # 双源都失败：若本地已有真实缓存，回退返回缓存（不刷错误日志，仪表盘仍显示上一期真实数据）
+    if os.path.exists(OUT_FILE):
+        try:
+            with open(OUT_FILE, encoding='utf-8') as f:
+                cached = json.load(f).get('matches', [])
+            if cached:
+                _log(f'双源抓取失败，回退本地缓存 {len(cached)} 场: {"; ".join(errs)}')
+                return cached
+        except Exception:
+            pass
     raise RuntimeError('; '.join(errs))
 
 

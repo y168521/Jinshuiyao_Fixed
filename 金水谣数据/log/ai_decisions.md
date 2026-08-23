@@ -1105,3 +1105,16 @@
 - **被否决方案**：①股票保留 mock 兜底——否决：用户明确要求剔除全系统假数据，降级改诚实提示；②裸代码 000001 解析为 sz000001（平安银行）——否决：项目前端约定 000001=上证指数（sh），按项目约定解析并同步改测试。
 - **成熟度**：verified
 - **置信度**：高
+
+### 2026-08-21 足彩抓取器补 DNS 自愈+缓存回退
+- **属主**：opencode
+- **做了什么**：domains/football/fetcher.py 新增 _urlopen_with_dns_heal（对齐主彩票 fetcher 的 Windows DNS 缓存损坏自愈：getaddrinfo failed→ipconfig /flushdns→重试），替换两处直接 urlopen；fetch_matches 双源全失败时回退返回已有本地缓存（不抛异常、不刷错误日志）。
+- **为什么根因**：新建足彩抓取器时只抄了业务解析，漏了主 fetcher 的公共健壮性代码；本机 DNS 缓存又损坏（W63补19/40 同款），足彩一遇即挂，彩票靠自愈翻盘。
+- **验证**：清 DNS+重启后体彩源一次拉到 54 场真实赛事，运行中 API count=50 source=sporttery 实时刷新成功（原先报抓取失败）；临时单测确认 flushdns 重试+缓存回退；29 个足球/数据真实性单测全过。
+- **坑**：独立 urllib 抓取器易漏抄公共自愈/缓存逻辑，上线前必须模拟 getaddrinfo failed 验证。
+- **有效方法**：所有 HTTP 抓取器统一内置 DNS 自愈 + 失败回退缓存；本机 getaddrinfo failed 跑一次 ipconfig /flushdns 即恢复。
+- **关联文件**：domains/football/fetcher.py、fetchers/fetcher.py
+- **关联总索引**：JS-20260821-01
+- **被否决方案**：①双源失败直接报错——否决：已有缓存应降级显示；②足彩复用主 fetcher 的 requests 实例——否决：独立 urllib 实现，加对称辅助函数零耦合更清晰。
+- **成熟度**：verified
+- **置信度**：高
