@@ -68,6 +68,7 @@ GET_ENDPOINTS = [
     ("/api/fund-compare", "", "基金横向对比"),
     ("/api/prediction/stats", "", "预测统计"),
     ("/api/prediction/history", "", "预测历史"),
+    ("/api/prediction/hit-trend", "?window=30", "滚动命中率趋势"),
     ("/api/audit", "", "模型审查报告"),
 ]
 

@@ -18,7 +18,7 @@ from unittest import mock
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from engines.lottery_stats import (hot_rank, number_follow_up, omission_table,
-                                   trend_classification)
+                                   rolling_hit_trend, trend_classification)
 from server.handlers import lottery as h_lottery
 
 SSQ_HISTORY = [
@@ -205,6 +205,107 @@ class TestHotRankEngine(unittest.TestCase):
         r = hot_rank(SSQ_HISTORY, 999)
         self.assertEqual(r["window"], 500)
         self.assertTrue(r["rank"])
+
+
+PRED_FIXTURE = [
+    # 双色球 3 期递增（2026004 未复盘必须剔除）
+    {"lot": "双色球", "period": 2026001, "hits": 1, "coverage": 0.14, "reviewed": True},
+    {"lot": "双色球", "period": 2026002, "hits": 2, "coverage": 0.29, "reviewed": True},
+    {"lot": "双色球", "period": 2026003, "hits": 4, "coverage": 0.57, "reviewed": True},
+    {"lot": "双色球", "period": 2026004, "hits": 7, "coverage": 1.0, "reviewed": False},
+    # coverage 缺失 → hits/号码数兜底（3 码 → 1/3）
+    {"lot": "福彩3D", "period": 2026217, "hits": 1, "nums": "02,03,05", "reviewed": True},
+    # 无 period / 无 lot → 剔除
+    {"lot": "快乐8", "hits": 2, "coverage": 0.1, "reviewed": True},
+    {"period": 2026001, "hits": 2, "coverage": 0.1, "reviewed": True},
+]
+
+
+class TestRollingHitTrend(unittest.TestCase):
+    """滚动命中率趋势（W63补107 / JS-20260823-01）"""
+
+    def test_groups_periods_ascending_and_filters(self):
+        r = rolling_hit_trend(PRED_FIXTURE, window=30)
+        self.assertIn("双色球", r)
+        ssq = r["双色球"]
+        self.assertEqual([s["period"] for s in ssq["series"]], [2026001, 2026002, 2026003])
+        self.assertEqual(ssq["latest_period"], 2026003)
+        self.assertEqual(ssq["reviewed_total"], 3)
+        self.assertNotIn("快乐8", r)  # 无 period 被剔除
+
+    def test_coverage_fallback_from_nums(self):
+        r = rolling_hit_trend(PRED_FIXTURE, window=30)
+        d = r["福彩3D"]["series"][0]
+        self.assertAlmostEqual(d["avg"], round(1 / 3, 4))
+        self.assertEqual(d["count"], 1)
+
+    def test_trend_up_down_flat(self):
+        rising = [{"lot": "A", "period": i, "coverage": c, "reviewed": True}
+                  for i, c in zip(range(2026001, 2026005), [0.1, 0.1, 0.5, 0.5])]
+        falling = [{"lot": "B", "period": i, "coverage": c, "reviewed": True}
+                   for i, c in zip(range(2026001, 2026005), [0.5, 0.5, 0.1, 0.1])]
+        flat = [{"lot": "C", "period": i, "coverage": 0.3, "reviewed": True}
+                for i in range(2026001, 2026005)]
+        r = rolling_hit_trend(rising + falling + flat, window=2)
+        self.assertEqual(r["A"]["trend"], "up")
+        self.assertEqual(r["B"]["trend"], "down")
+        self.assertEqual(r["C"]["trend"], "flat")
+        self.assertEqual(r["A"]["delta"], round(0.5 - 0.1, 4))
+
+    def test_insufficient_when_single_window(self):
+        only_two = [{"lot": "A", "period": i, "coverage": 0.3, "reviewed": True}
+                    for i in range(2026001, 2026003)]
+        r = rolling_hit_trend(only_two, window=30)
+        self.assertEqual(r["A"]["trend"], "insufficient")
+        self.assertIsNone(r["A"]["avg_prev"])
+
+    def test_adaptive_halving_when_history_short(self):
+        recs = [{"lot": "A", "period": i, "coverage": c, "reviewed": True}
+                for i, c in zip(range(2026001, 2026006), [0.1, 0.1, 0.5, 0.5, 0.5])]
+        r = rolling_hit_trend(recs, window=30)
+        self.assertEqual(r["A"]["window"], 2)  # 5期不足两窗 → 折半
+        self.assertEqual(r["A"]["trend"], "up")
+        self.assertIsNotNone(r["A"]["avg_prev"])
+
+    def test_window_truncation_keeps_latest(self):
+        many = [{"lot": "A", "period": i, "coverage": 0.3, "reviewed": True}
+                for i in range(2026001, 2026011)]  # 10 期
+        r = rolling_hit_trend(many, window=4)
+        self.assertEqual(len(r["A"]["series"]), 4)
+        self.assertEqual(r["A"]["series"][-1]["period"], 2026010)
+
+    def test_empty_input(self):
+        self.assertEqual(rolling_hit_trend([], 30), {})
+        self.assertEqual(rolling_hit_trend(None, 30), {})
+
+
+class TestPredictionHitTrendHandler(unittest.TestCase):
+    """GET /api/prediction/hit-trend FakeHandler 契约"""
+
+    def test_handler_contract(self):
+        from server.handlers import prediction as h_pred
+        with mock.patch.object(h_pred, "_load_lottery_predictions_raw",
+                               return_value=PRED_FIXTURE):
+            h = FakeHandler()
+            h.path = "/api/prediction/hit-trend?window=30"
+            h_pred.handle_prediction_hit_trend(h)
+        self.assertEqual(h.code, 200)
+        self.assertTrue(h.payload["ok"])
+        self.assertIn("双色球", h.payload["lots"])
+        lot = h.payload["lots"]["双色球"]
+        for key in ("window", "series", "avg_recent", "trend", "reviewed_total"):
+            self.assertIn(key, lot)
+
+    def test_handler_bad_window_defaults(self):
+        from server.handlers import prediction as h_pred
+        with mock.patch.object(h_pred, "_load_lottery_predictions_raw",
+                               return_value=PRED_FIXTURE):
+            h = FakeHandler()
+            h.path = "/api/prediction/hit-trend?window=abc"
+            h_pred.handle_prediction_hit_trend(h)
+        self.assertEqual(h.code, 200)
+        self.assertTrue(h.payload["ok"])
+        self.assertEqual(h.payload["window"], 30)
 
 
 if __name__ == "__main__":

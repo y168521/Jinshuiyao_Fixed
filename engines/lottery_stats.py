@@ -231,3 +231,86 @@ def trend_classification(history, count=30):
             "numbers": reds + (blues or []),
         })
     return rows
+
+
+def rolling_hit_trend(pred_records, window=30):
+    """各彩种滚动命中率趋势（预测复盘数据，W63补107 / JS-20260823-01）。
+
+    输入: 金水谣数据/predictions.json 记录列表
+      {lot, period, hits, coverage, reviewed, nums, time|date, ...}
+    口径:
+      - 仅统计 reviewed 且能算出覆盖率的记录；coverage 缺失/越界时用 hits/投注号码数兜底
+      - 按 (lot, period) 聚合取期内均值（每期一条，避免单注/复式条数失衡）
+      - 最近 window 期均值的均值 vs 前一窗口 → delta/trend（阈值 ±0.02）
+
+    返回: {lot: {window, latest_period, series:[{period,avg,count}],
+                 avg_recent, avg_prev, delta, trend, reviewed_total}}
+      trend ∈ up/down/flat/insufficient；series 按期号升序、最多 window 条
+    """
+    try:
+        window = max(2, min(int(window or 30), 365))
+    except Exception:
+        window = 30
+
+    per_lot = {}
+    for rec in pred_records or []:
+        if not isinstance(rec, dict) or not rec.get("reviewed"):
+            continue
+        lot = str(rec.get("lot") or "").strip()
+        if not lot:
+            continue
+        try:
+            period = int(rec.get("period"))
+        except Exception:
+            continue
+        rate = None
+        try:
+            f = float(rec.get("coverage"))
+            if 0.0 <= f <= 1.0:
+                rate = f
+        except Exception:
+            pass
+        if rate is None:
+            reds, blues = split_nums(rec.get("nums", ""))
+            n = len(reds) + (len(blues) if blues else 0)
+            if n > 0:
+                rate = max(0.0, min(1.0, float(rec.get("hits") or 0) / n))
+        if rate is None:
+            continue
+        per_lot.setdefault(lot, {}).setdefault(period, []).append(rate)
+
+    result = {}
+    for lot, by_period in per_lot.items():
+        series_all = [
+            {"period": p, "avg": round(sum(v) / len(v), 4), "count": len(v)}
+            for p, v in sorted(by_period.items())
+        ]
+        total = len(series_all)
+        # 总期数不足两个完整窗口时自动折半（后半段 vs 前半段），保证尽量给出趋势信号
+        eff = window if total >= 2 * window else max(2, total // 2)
+        t_recent = series_all[-eff:]
+        t_prev = series_all[max(0, total - 2 * eff):-eff]
+
+        def _mean(rows):
+            if not rows:
+                return None
+            return round(sum(r["avg"] for r in rows) / len(rows), 4)
+
+        avg_recent = _mean(t_recent)
+        avg_prev = _mean(t_prev)
+        delta = None
+        trend = "insufficient"
+        if avg_recent is not None and avg_prev is not None:
+            delta = round(avg_recent - avg_prev, 4)
+            trend = "up" if delta >= 0.02 else ("down" if delta <= -0.02 else "flat")
+        result[lot] = {
+            "window": len(t_recent),
+            "latest_period": series_all[-1]["period"],
+            "series": series_all[-window:],
+            "avg_recent": avg_recent,
+            "avg_prev": avg_prev,
+            "delta": delta,
+            "trend": trend,
+            "reviewed_total": sum(len(v) for v in by_period.values()),
+        }
+    return result

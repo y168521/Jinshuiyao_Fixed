@@ -60,6 +60,22 @@
     </div>
   </div>
 
+  <div class="card" style="margin-bottom:18px;">
+    <h2 style="font-size:15px;margin:0 0 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      🎯 各彩种滚动命中率趋势
+      <select id="htWin" class="btn" style="margin-left:auto;">
+        <option value="10">近10期</option>
+        <option value="20">近20期</option>
+        <option value="30" selected>近30期</option>
+        <option value="50">近50期</option>
+      </select>
+    </h2>
+    <div class="scroll-x">
+      <table id="hitTrendTable"><thead><tr><th>彩种</th><th>近窗均率</th><th>前窗均率</th><th>变化</th><th>趋势</th><th>逐期走势</th><th>最新期</th></tr></thead>
+      <tbody id="hitTrendBody"><tr><td colspan="7" class="muted">加载中…</td></tr></tbody></table>
+    </div>
+    <div style="margin-top:8px;font-size:12px;color:var(--muted);">💡 口径：每期所有已复盘预测条「覆盖率(命中数÷投注号码数)」的期均；趋势=最近窗口 vs 前一窗口，±2个百分点内视为持平。小样本波动大，仅作参考勿过度解读。</div>
+  </div>
   <div class="card">
     <h2 style="font-size:15px;margin:0 0 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       🗒 预测明细（按时间倒序）
@@ -165,6 +181,53 @@ function renderTrend(trend){
   });
 }
 
+const LOT_ORDER = ['双色球','大乐透','福彩3D','排列三','七乐彩','七星彩','快乐8'];
+async function loadHitTrend(){
+  const wrap = document.getElementById('hitTrendBody');
+  StateUI.loading(wrap, '趋势加载中…');
+  try{
+    const win = document.getElementById('htWin').value;
+    const r = await fetch('/api/prediction/hit-trend?window='+win, {cache:'no-store'});
+    const j = await r.json();
+    if(!j.ok) throw new Error(j.error||'接口错误');
+    renderHitTrend(j.lots||{});
+  }catch(e){
+    StateUI.error(wrap, '趋势加载失败：'+esc(e.message), loadHitTrend);
+  }
+}
+function trendBadge(t){
+  if(t==='up') return '<span class="badge b-hit">↑ 变好</span>';
+  if(t==='down') return '<span class="badge b-miss">↓ 走低</span>';
+  if(t==='flat') return '<span class="badge b-pend">→ 持平</span>';
+  return '<span class="badge b-none">样本不足</span>';
+}
+function sparkline(series){
+  if(!series || !series.length) return '<span class="muted">—</span>';
+  const bars = series.map(s=>{
+    const h = Math.min(28, Math.max(2, Math.round((s.avg||0)*100)));
+    return '<span title="期'+esc(String(s.period))+'：'+((s.avg||0)*100).toFixed(1)+'%" style="display:inline-block;width:5px;height:'+h+'px;background:#C9A96E;border-radius:1px;margin-right:1px;opacity:.85;"></span>';
+  }).join('');
+  return '<span style="display:inline-flex;align-items:flex-end;height:28px;">'+bars+'</span>';
+}
+function renderHitTrend(lots){
+  const keys = Object.keys(lots).sort((a,b)=>{
+    const ia=LOT_ORDER.indexOf(a), ib=LOT_ORDER.indexOf(b);
+    return (ia<0?99:ia)-(ib<0?99:ib) || a.localeCompare(b,'zh');
+  });
+  const wrap = document.getElementById('hitTrendBody');
+  if(!keys.length){ StateUI.empty(wrap, '暂无已复盘预测', '等待开奖复盘后自动生成趋势'); return; }
+  wrap.innerHTML = keys.map(k=>{
+    const d=lots[k];
+    const deltaStr = d.delta==null?'—':((d.delta>=0?'+':'')+(d.delta*100).toFixed(1)+'pp');
+    const dc = d.delta==null?'var(--muted)':(d.delta>=0.02?'var(--c-ok)':(d.delta<=-0.02?'var(--bad)':'var(--muted)'));
+    return '<tr><td>'+esc(k)+'</td>'+
+      '<td>'+rateStr(d.avg_recent)+'</td><td class="muted">'+rateStr(d.avg_prev)+'</td>'+
+      '<td style="color:'+dc+';">'+deltaStr+'</td><td>'+trendBadge(d.trend)+'</td>'+
+      '<td>'+sparkline(d.series)+'</td><td class="muted">'+esc(String(d.latest_period||'—'))+'</td></tr>';
+  }).join('');
+  if (window.enhanceTable) enhanceTable(document.getElementById('hitTrendTable'), { filter: false });
+}
+
 async function loadDetails(){
   const wrap = document.getElementById('detailBody');
   StateUI.loading(wrap, '明细加载中…');
@@ -218,8 +281,10 @@ function exportCsv(){
   showToast('已导出 CSV', 'success');
 }
 document.getElementById('flt').addEventListener('change', renderDetails);
-loadStats(); loadDetails();
+document.getElementById('htWin').addEventListener('change', loadHitTrend);
+loadStats(); loadDetails(); loadHitTrend();
 setInterval(loadStats, 60000);
+setInterval(loadHitTrend, 120000);
 </script>
 <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
 </body>

@@ -8,6 +8,11 @@
   /api/prediction/record   — 保存一条预测记录
   /api/prediction/list     — 列出历史预测
   /api/prediction/outcome  — 更新预测结果标注
+
+路由（GET）：
+  /api/prediction/stats    — 预测统计（按域聚合 + 按天趋势）
+  /api/prediction/history  — 各域逐日命中率 + 置信度
+  /api/prediction/hit-trend — 各彩种滚动命中率趋势（W63补107）
 """
 import os
 import json
@@ -49,34 +54,38 @@ _LOT_PREDICTION_FILE = os.path.join(
     '金水谣数据', 'predictions.json')
 
 
-def _load_lottery_predictions():
-    """读取彩票选号预测记录并统一为统计结构（lot → domain，reviewed+hits → outcome）"""
+def _load_lottery_predictions_raw():
+    """读取彩票选号预测原始记录列表（保留 coverage/hits 等字段，供滚动命中率计算）"""
     try:
         if not os.path.isfile(_LOT_PREDICTION_FILE):
             return []
         with open(_LOT_PREDICTION_FILE, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        if not isinstance(data, list):
-            return []
-        out = []
-        for r in data:
-            if not isinstance(r, dict):
-                continue
-            rec = {
-                'id': f"LOT-{r.get('lot', '?')}-{r.get('period', '?')}",
-                'time': r.get('time') or r.get('date') or '',
-                'domain': r.get('lot') or 'other',
-            }
-            reviewed = r.get('reviewed')
-            hits = int(r.get('hits') or 0)
-            if reviewed:
-                rec['outcome'] = 'hit' if hits > 0 else 'miss'
-            else:
-                rec['outcome'] = None
-            out.append(rec)
-        return out
+        return data if isinstance(data, list) else []
     except Exception:
         return []
+
+
+def _load_lottery_predictions():
+    """读取彩票选号预测记录并统一为统计结构（lot → domain，reviewed+hits → outcome）"""
+    data = _load_lottery_predictions_raw()
+    out = []
+    for r in data:
+        if not isinstance(r, dict):
+            continue
+        rec = {
+            'id': f"LOT-{r.get('lot', '?')}-{r.get('period', '?')}",
+            'time': r.get('time') or r.get('date') or '',
+            'domain': r.get('lot') or 'other',
+        }
+        reviewed = r.get('reviewed')
+        hits = int(r.get('hits') or 0)
+        if reviewed:
+            rec['outcome'] = 'hit' if hits > 0 else 'miss'
+        else:
+            rec['outcome'] = None
+        out.append(rec)
+    return out
 
 
 def _load_all_records():
@@ -345,3 +354,24 @@ def handle_prediction_history(handler):
         })
     except Exception as e:
         handler._send_json({"ok": False, "error": f"预测历史失败: {e}"}, 500)
+
+
+def handle_prediction_hit_trend(handler):
+    """GET /api/prediction/hit-trend?window=30 — 各彩种滚动命中率趋势
+
+    W63补107 / JS-20260823-01：按彩种×期号聚合复盘覆盖率（engines.lottery_stats.
+    rolling_hit_trend 纯计算），返回最近 window 期逐期均值序列 + 与前一窗口对比的
+    up/down/flat 趋势，用于区分「小样本运气波动」与「持续退化」。纯只读端点。
+    """
+    try:
+        from urllib.parse import urlparse, parse_qs
+        from engines.lottery_stats import rolling_hit_trend
+        qs = parse_qs(urlparse(handler.path).query)
+        try:
+            window = int((qs.get('window') or ['30'])[0])
+        except Exception:
+            window = 30
+        lots = rolling_hit_trend(_load_lottery_predictions_raw(), window)
+        handler._send_json({"ok": True, "window": window, "lots": lots})
+    except Exception as e:
+        handler._send_json({"ok": False, "error": f"滚动命中率趋势失败: {e}"}, 500)

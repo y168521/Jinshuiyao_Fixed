@@ -429,6 +429,11 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
             h_prediction.handle_prediction_history(self)
             return
 
+        # /api/prediction/hit-trend — 各彩种滚动命中率趋势（W63补107）
+        if parsed.path == '/api/prediction/hit-trend':
+            h_prediction.handle_prediction_hit_trend(self)
+            return
+
         # /open?file=xxx — 打开文件（返回JSON，前端fetch静默调用）
         # 注意：/open 路由必须在 / 之前检查，否则 / 路径中的 return 会导致此处死代码
         if parsed.path == '/open':

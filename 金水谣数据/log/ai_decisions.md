@@ -1118,3 +1118,15 @@
 - **被否决方案**：①双源失败直接报错——否决：已有缓存应降级显示；②足彩复用主 fetcher 的 requests 实例——否决：独立 urllib 实现，加对称辅助函数零耦合更清晰。
 - **成熟度**：verified
 - **置信度**：高
+### 2026-08-23 各彩种滚动命中率趋势 API+看板
+- **属主**：opencode
+- **做了什么**：engines/lottery_stats.py 新增 rolling_hit_trend（reviewed 记录按彩种×期号聚合，期内均值防单注/复式失衡；coverage 缺失用 hits÷投注号码数兜底；最近 window 期 vs 前一窗口 ±2pp 定趋势；不足两窗自动折半；展示序列最多 window 条与趋势窗口解耦）；server/handlers/prediction.py 拆 _load_lottery_predictions_raw 并新增 handle_prediction_hit_trend；router.py 挂 GET /api/prediction/hit-trend；frontend_health_probe.py 加探针；prediction-tracker.html 加趋势卡（固定彩种排序、pp 变化红绿着色、趋势徽标、CSS 迷你柱状逐期走势、窗口切换）。
+- **为什么根因**：用户连续追问「预测是变好还是变差」，而现有 stats 端点只有二元 hit/miss 与按天粒度，无法按彩种按期回答；小样本肉眼判断（8 天）与全历史滚动口径结论差异巨大（如双色球短期连降、长期持平），必须给系统化口径。
+- **验证**：新增 9 项单测全过；全量 pytest 1046 passed 0 failed（6:31）；重启 18888 后真实数据冒烟 7 彩种全部输出趋势（大乐透↑/七星彩↑/双色球→/福彩3D↓/排列三↓/快乐8↓/七乐彩↓）；页面 200 功能嵌入；py_compile 5 文件通过。
+- **坑**：split_nums 的 blues 可能为 None；折半逻辑曾截断展示序列；并行会话占用登记编号（W63补107/JS-20260823-01），占用前必须先读总索引尾部。
+- **有效方法**：契约先行（先写测试再修实现，三个 bug 当场暴露）；纯函数与 HTTP 壳分离保持可测；自适应降级（折半）让小历史彩种也有信号而非永远 insufficient。
+- **关联文件**：engines/lottery_stats.py、server/handlers/prediction.py、server/router.py、scripts/frontend_health_probe.py、jinshuiyao-guide/prediction-tracker.html、tests/unit/test_lottery_stats_engine.py
+- **关联总索引**：JS-20260823-02
+- **被否决方案**：①新建独立统计模块——复用 lottery_stats 更贴合分层；②ECharts 多子图——表格+迷你柱状信息密度更高；③insufficient 一票否决——折半降级更实用。
+- **成熟度**：verified
+- **置信度**：高
