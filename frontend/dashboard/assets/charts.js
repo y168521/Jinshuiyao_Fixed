@@ -541,7 +541,7 @@ function renderRadar(radarData, homeName, awayName) {
       splitNumber: 5,
       axisName: { color: muted, fontSize: 12 },
       splitLine: { lineStyle: { color: rule } },
-      splitArea: { show: true, areaStyle: { color: ['rgba(0,212,170,0.02)', 'rgba(59,130,246,0.02)'] } },
+      splitArea: { show: true, areaStyle: { color: ['rgba(0,212,170,0.02)', 'rgba(91,192,222,0.02)'] } },
       axisLine: { lineStyle: { color: rule } }
     },
     series: [{
@@ -560,7 +560,7 @@ function renderRadar(radarData, homeName, awayName) {
           name: awayName,
           value: radarData.away,
           lineStyle: { color: accent2, width: 2 },
-          areaStyle: { color: 'rgba(59,130,246,0.15)' },
+          areaStyle: { color: 'rgba(91,192,222,0.15)' },
           itemStyle: { color: accent2 },
           symbol: 'circle',
           symbolSize: 6
@@ -598,7 +598,7 @@ function renderAttackDefense(data, homeName, awayName) {
 
   var style = getComputedStyle(document.documentElement);
   var accent = style.getPropertyValue('--accent').trim() || '#00d4aa';
-  var accent2 = style.getPropertyValue('--accent2').trim() || '#3b82f6';
+  var accent2 = style.getPropertyValue('--accent2').trim() || '#5bc0de';
   var muted = style.getPropertyValue('--muted').trim() || '#8b949e';
   var rule = style.getPropertyValue('--rule').trim() || '#30363d';
 

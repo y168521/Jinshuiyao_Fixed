@@ -224,7 +224,17 @@ function showNoData(code) {
   document.getElementById('status').textContent = '暂无数据（真实数据源均不可用：东财限流、腾讯/新浪兜底失败）';
 }
 
-loadDetail();
+(function initFromQuery(){
+  const params = new URLSearchParams(location.search);
+  const code = params.get('code');
+  if (code) {
+    const sel = document.getElementById('codeSelect');
+    let found = false;
+    for (const opt of sel.options) { if (opt.value === code) { sel.value = code; found = true; break; } }
+    if (!found) { const o = document.createElement('option'); o.value = code; o.textContent = code; sel.appendChild(o); sel.value = code; }
+  }
+  loadDetail();
+})();
 window.addEventListener('resize', () => { if (chart) chart.resize(chart.chartElement().clientWidth, 400); });
 </script>
   <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>

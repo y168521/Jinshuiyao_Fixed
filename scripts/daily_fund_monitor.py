@@ -569,7 +569,7 @@ class ReportGenerator:
             --down: #C8755A;
             --warning: #f59e0b;
             --alert: #C8755A;
-            --info: #3b82f6;
+            --info: #5bc0de;
             --border: #334155;
             --radius: 12px;
         }}
@@ -700,7 +700,7 @@ class ReportGenerator:
         }}
         .signal.alert {{ background: rgba(200, 117, 90, 0.1); color: var(--alert); }}
         .signal.warning {{ background: rgba(245, 158, 11, 0.1); color: var(--warning); }}
-        .signal.info {{ background: rgba(59, 130, 246, 0.1); color: var(--info); }}
+        .signal.info {{ background: rgba(91, 192, 222, 0.1); color: var(--info); }}
         
         .market-section {{
             background: var(--bg-card);

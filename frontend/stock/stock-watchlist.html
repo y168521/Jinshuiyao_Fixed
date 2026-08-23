@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 自选股</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+  :root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim);
+          --c-up:var(--copper); --c-down:var(--jade); --c-info:var(--ice); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; max-width:1000px; margin:0 auto; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:16px; }
+  .back { margin-bottom:12px; }
+  .back a { color:var(--muted); font-size:13px; text-decoration:none; }
+  .back a:hover { color:var(--gold); }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; }
+  .add-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:6px; }
+  .add-row input { background:var(--deep); color:var(--txt); border:1px solid var(--border); border-radius:6px; padding:7px 12px; font-size:13px; }
+  .add-row input.code { width:120px; }
+  .add-row input.name { width:160px; }
+  button { cursor:pointer; font-size:13px; }
+  button.primary { background:var(--c-up); color:var(--deep); border:none; font-weight:600; padding:7px 16px; border-radius:6px; }
+  button.primary:hover { opacity:.88; }
+  button.ghost { background:transparent; color:var(--muted); border:1px solid var(--border); padding:7px 14px; border-radius:6px; }
+  button.ghost:hover { border-color:var(--c-up); color:var(--txt); }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th,td { text-align:left; padding:9px 10px; border-bottom:1px solid var(--border); }
+  th { color:var(--muted); font-weight:600; font-size:12px; }
+  .num { text-align:right; font-variant-numeric:tabular-nums; }
+  .up { color:var(--c-up); } .down { color:var(--c-down); }
+  .link { color:var(--ice); text-decoration:none; }
+  .link:hover { text-decoration:underline; }
+  .del { color:var(--muted); cursor:pointer; border:none; background:none; font-size:13px; }
+  .del:hover { color:var(--c-up); }
+  .muted { color:var(--muted); }
+  .empty { text-align:center; color:var(--muted); padding:40px 0; }
+  .pulse { width:8px; height:8px; border-radius:50%; background:var(--c-info); display:inline-block; animation:p 1.5s infinite; margin-right:6px; }
+  @keyframes p { 0%,100%{opacity:1} 50%{opacity:.3} }
+  @media(max-width:600px){ body{ padding:14px; } .card{ padding:12px; } }
+</style>
+</head>
+<body>
+<div class="back"><a href="/stock">&larr; 返回股票分析中心</a></div>
+<h1>自选股</h1>
+<div class="sub">本地保存 · 实时行情 · 工具性质，不构成投资建议</div>
+
+<div class="card">
+  <div class="add-row">
+    <input class="code" id="inCode" placeholder="6位代码 如 600519" maxlength="6">
+    <input class="name" id="inName" placeholder="名称（可选）">
+    <button class="primary" onclick="addStock()">+ 添加</button>
+    <button class="ghost" onclick="refreshAll()"><span class="pulse"></span>刷新行情</button>
+    <span class="muted" id="msg"></span>
+  </div>
+  <table>
+    <thead><tr><th>代码</th><th>名称</th><th class="num">最新价</th><th class="num">涨跌幅</th><th>操作</th></tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div class="empty" id="emptyTip">还没有自选股，添加一只开始监控吧。</div>
+</div>
+
+<script>
+const LS_KEY = 'js_stock_watchlist';
+const API = '/api/stock/detail';
+
+function load(){ try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch(e){ return []; } }
+function save(list){ localStorage.setItem(LS_KEY, JSON.stringify(list)); }
+function fmtNum(n){ if(n==null) return '—'; return Number(n).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtPct(n){ if(n==null) return '—'; const v=Number(n); return (v>=0?'+':'')+v.toFixed(2)+'%'; }
+
+function render(){
+  const list = load();
+  const tb = document.getElementById('tbody');
+  const empty = document.getElementById('emptyTip');
+  if(!list.length){ tb.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  tb.innerHTML = list.map((s,i)=>`
+    <tr data-i="${i}">
+      <td>${s.code}</td>
+      <td>${s.name||s.code}</td>
+      <td class="num" id="px-${i}">—</td>
+      <td class="num" id="chg-${i}">—</td>
+      <td>
+        <a class="link" href="/stock/detail?code=${s.code}" target="_blank">查看</a>
+        &nbsp; <button class="del" onclick="removeStock(${i})">删除</button>
+      </td>
+    </tr>`).join('');
+}
+
+function addStock(){
+  const code = document.getElementById('inCode').value.trim();
+  const name = document.getElementById('inName').value.trim();
+  const msg = document.getElementById('msg');
+  if(!/^\d{6}$/.test(code)){ msg.textContent='请输入6位数字代码'; return; }
+  let list = load();
+  if(list.some(s=>s.code===code)){ msg.textContent='已在自选股中'; return; }
+  list.push({code, name});
+  save(list);
+  document.getElementById('inCode').value='';
+  document.getElementById('inName').value='';
+  msg.textContent='';
+  render(); refreshOne(code, list.length-1);
+}
+
+function removeStock(i){
+  let list = load(); list.splice(i,1); save(list); render();
+}
+
+async function fetchQuote(code){
+  try{
+    const r = await fetch(API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({code})});
+    const j = await r.json();
+    if(j.ok && j.data){ return { price:j.data.price, change:j.data.change_pct }; }
+  }catch(e){}
+  return null;
+}
+
+async function refreshOne(code, i){
+  const q = await fetchQuote(code);
+  const px = document.getElementById('px-'+i), chg = document.getElementById('chg-'+i);
+  if(!px) return;
+  if(q){
+    px.textContent = fmtNum(q.price);
+    const v = Number(q.change);
+    chg.textContent = fmtPct(v);
+    chg.className = 'num ' + (v>=0?'up':'down');
+  } else {
+    px.textContent='—'; chg.textContent='数据源不可用'; chg.className='num muted';
+  }
+}
+
+async function refreshAll(){
+  const list = load();
+  for(let i=0;i<list.length;i++){ await refreshOne(list[i].code, i); }
+}
+
+render();
+refreshAll();
+</script>
+  <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金水谣 · 关注池榜单</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+<style>
+  :root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim);
+          --c-up:var(--copper); --c-down:var(--jade); --c-info:var(--ice); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); padding:20px; max-width:1000px; margin:0 auto; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:16px; }
+  .back { margin-bottom:12px; }
+  .back a { color:var(--muted); font-size:13px; text-decoration:none; }
+  .back a:hover { color:var(--gold); }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; }
+  .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
+  .tabs { display:flex; gap:4px; }
+  .tab { padding:6px 16px; border-radius:6px; font-size:13px; cursor:pointer; background:var(--deep); color:var(--muted); border:1px solid transparent; }
+  .tab.active { background:var(--c-up); color:var(--deep); border-color:var(--c-up); font-weight:600; }
+  .flex { display:flex; gap:8px; align-items:center; }
+  button.ghost { background:transparent; color:var(--muted); border:1px solid var(--border); padding:7px 14px; border-radius:6px; cursor:pointer; font-size:13px; }
+  button.ghost:hover { border-color:var(--c-up); color:var(--txt); }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th,td { text-align:left; padding:9px 10px; border-bottom:1px solid var(--border); }
+  th { color:var(--muted); font-weight:600; font-size:12px; }
+  .num { text-align:right; font-variant-numeric:tabular-nums; }
+  .up { color:var(--c-up); } .down { color:var(--c-down); }
+  .link { color:var(--ice); text-decoration:none; }
+  .link:hover { text-decoration:underline; }
+  .muted { color:var(--muted); }
+  .pulse { width:8px; height:8px; border-radius:50%; background:var(--c-info); display:inline-block; animation:p 1.5s infinite; }
+  @keyframes p { 0%,100%{opacity:1} 50%{opacity:.3} }
+  @media(max-width:600px){ body{ padding:14px; } .card{ padding:12px; } }
+</style>
+</head>
+<body>
+<div class="back"><a href="/stock">&larr; 返回股票分析中心</a></div>
+<h1>关注池榜单</h1>
+<div class="sub">跨行业龙头关注池（24只）· 按当日涨跌幅排序 — 工具性质，不构成投资建议</div>
+
+<div class="topbar">
+  <div class="tabs" id="tabs">
+    <div class="tab active" data-tab="up">涨幅榜</div>
+    <div class="tab" data-tab="down">跌幅榜</div>
+  </div>
+  <div class="flex"><span class="pulse"></span><button class="ghost" onclick="loadMovers()">刷新</button></div>
+</div>
+
+<div class="card">
+  <div id="status" class="muted" style="margin-bottom:10px;">加载中...</div>
+  <table>
+    <thead><tr><th>#</th><th>代码</th><th>名称</th><th class="num">最新价</th><th class="num">涨跌幅</th><th>查看</th></tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<script>
+// 与 domains/stock/domain.py 的 DEFAULT_STOCK_POOL 保持一致（跨行业龙头）
+const POOL = [
+  ["600519","贵州茅台"],["000858","五粮液"],["601318","中国平安"],["600036","招商银行"],
+  ["000333","美的集团"],["002594","比亚迪"],["300750","宁德时代"],["600276","恒瑞医药"],
+  ["601012","隆基绿能"],["000001","平安银行"],["600900","长江电力"],["601899","紫金矿业"],
+  ["002415","海康威视"],["600030","中信证券"],["601888","中国中免"],["603259","药明康德"],
+  ["688981","中芯国际"],["600887","伊利股份"],["601668","中国建筑"],["000651","格力电器"],
+  ["600009","上海机场"],["601398","工商银行"],["600585","海螺水泥"],["000725","京东方A"]
+];
+const API = '/api/stock/detail';
+let DATA = [];
+
+function fmtNum(n){ if(n==null) return '—'; return Number(n).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtPct(n){ if(n==null) return '—'; const v=Number(n); return (v>=0?'+':'')+v.toFixed(2)+'%'; }
+
+async function fetchQuote(code){
+  try{
+    const r = await fetch(API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({code})});
+    const j = await r.json();
+    if(j.ok && j.data){ return { price:j.data.price, change:j.data.change_pct }; }
+  }catch(e){}
+  return null;
+}
+
+async function loadMovers(){
+  document.getElementById('status').textContent = '抓取关注池行情中...';
+  const results = await Promise.all(POOL.map(async ([code,name])=>{
+    const q = await fetchQuote(code);
+    return { code, name, price: q?q.price:null, change: q?q.change:null };
+  }));
+  DATA = results.filter(r => r.price != null);
+  if(!DATA.length){
+    document.getElementById('status').textContent = '数据源暂不可用（东财/腾讯/新浪均失败），无法生成榜单';
+    document.getElementById('tbody').innerHTML = '';
+    return;
+  }
+  document.getElementById('status').textContent = '数据更新于 ' + new Date().toLocaleTimeString('zh-CN',{hour12:false}) + ' · 共 ' + DATA.length + ' 只可取';
+  render('up');
+}
+
+function render(tab){
+  const sorted = [...DATA].sort((a,b)=> (b.change||0) - (a.change||0));
+  const view = tab === 'down' ? [...sorted].reverse() : sorted;
+  document.getElementById('tbody').innerHTML = view.map((r,i)=>{
+    const v = Number(r.change||0);
+    return `<tr><td class="muted">${i+1}</td><td>${r.code}</td><td>${r.name}</td>
+      <td class="num">${fmtNum(r.price)}</td>
+      <td class="num ${v>=0?'up':'down'}">${fmtPct(v)}</td>
+      <td><a class="link" href="/stock/detail?code=${r.code}" target="_blank">查看</a></td></tr>`;
+  }).join('');
+}
+
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', function(){
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  this.classList.add('active');
+  render(this.dataset.tab);
+}));
+
+loadMovers();
+</script>
+  <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
+</body>
+</html>

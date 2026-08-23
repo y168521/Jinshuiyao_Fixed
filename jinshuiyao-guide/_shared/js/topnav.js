@@ -18,7 +18,7 @@
       '<circle cx="42" cy="26" r="9" fill="#C9A96E"/>' +
       '<circle cx="18" cy="44" r="8" fill="#2D8B7E"/>' +
       '<circle cx="34" cy="44" r="8" fill="#C9A96E"/>' +
-      '<circle cx="50" cy="44" r="8" fill="#3B82F6"/>' +
+      '<circle cx="50" cy="44" r="8" fill="#5BC0DE"/>' +
       '</svg>');
     document.head.appendChild(icon);
   }
