@@ -1130,3 +1130,15 @@
 - **被否决方案**：①新建独立统计模块——复用 lottery_stats 更贴合分层；②ECharts 多子图——表格+迷你柱状信息密度更高；③insufficient 一票否决——折半降级更实用。
 - **成熟度**：verified
 - **置信度**：高
+### 2026-08-23 模式库0字节事故根治（原子写改造）
+- **属主**：opencode
+- **做了什么**：tools/review_learning.py 的 _save_patterns/_save_metrics 从裸 open("w")+json.dump 改为 protected_write_json（全局租约锁+临时文件+fsync+os.replace 原子替换）；_load_patterns/_load_metrics 加 ValueError/OSError 容错（损坏降级空库/默认值并打印告警保留现场，不再炸初始化连累 /api/review/*）；git restore 恢复 pattern_library.json（21280 字节/22 模式）；新增 tests/unit/test_review_learning_atomic.py 4 项回归。
+- **为什么根因**：08-20 15:45:34 auto_review 定时任务触发 run_review._trigger_learning→_save_patterns 裸写，15:46 前后 launch.bat/GUI 重启杀掉进程，json.dump 未完成文件已截断成 0 字节；此后 _load_patterns 遇空文件必抛 JSONDecodeError，反馈类 API 全部 500，且无监控报警，悬置 3 天由用户点名才排查。
+- **验证**：根因三证闭环（scheduler_exec.jsonl+operation_log.jsonl+mtime 对齐）；恢复后实例化加载 22 模式、双保存方法往返无损重读解析成功；新回归 4 项过；全量 pytest 1050 passed 0 failed（10:38，gate 内置 10 分钟上限可能报超时红，以独立全量为准）。
+- **坑**：裸写截断发生在 open 时刻而非 dump 时刻，事后 try/except 救不了；知识库无"非空"健康检查导致静默丢库。
+- **有效方法**：审计日志三证定位法；原子写统一走 protected_write_json；回归测试锁行为。
+- **关联文件**：tools/review_learning.py、tests/unit/test_review_learning_atomic.py、knowledge/pattern_library.json、utils/shared_write.py
+- **关联总索引**：JS-20260823-03
+- **被否决方案**：①只恢复不改码——必复发；②dump 包 try/except——截断在 open 时刻兜不住；③自造 .bak 轮转——项目已有标准原子方案。
+- **成熟度**：verified
+- **置信度**：高

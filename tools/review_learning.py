@@ -18,7 +18,7 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
-from utils.shared_write import protected_write_text
+from utils.shared_write import protected_write_json, protected_write_text
 
 # ─── 数据路径 ───
 _REVIEW_DATA_DIR = os.path.join(_PROJECT_ROOT, "金水谣数据", "review")
@@ -39,33 +39,40 @@ class ReviewLearning:
         self.metrics = self._load_metrics()
 
     def _load_patterns(self):
-        """加载模式库"""
+        """加载模式库（空/损坏容错：降级空库并保留现场，不炸初始化）"""
         if not os.path.isfile(_PATTERN_LIB_PATH):
             return {}
-        with open(_PATTERN_LIB_PATH, "r", encoding="utf-8") as f:
-            data = json.load(f)
+        try:
+            with open(_PATTERN_LIB_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (ValueError, OSError) as e:
+            print("[review_learning] 模式库损坏，降级为空库（原文件已保留待人工恢复）: %s" % e)
+            return {}
         return {p["id"]: p for p in data.get("patterns", [])}
 
     def _save_patterns(self):
-        """保存模式库（线程安全）"""
+        """保存模式库（受保护原子写，防进程中途被杀截断丢库 JS-20260823-03）"""
         data = {"patterns": list(self.patterns.values()), "metadata": {"updated_at": time.strftime("%Y-%m-%dT%H:%M:%S")}}
-        with open(_PATTERN_LIB_PATH, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        protected_write_json(_PATTERN_LIB_PATH, data, intent="保存审查模式库")
 
     def _load_metrics(self):
-        """加载度量数据"""
+        """加载度量数据（损坏容错返回默认值）"""
+        default = {"total_reviews": 0, "total_feedbacks": 0,
+                   "false_positive_count": 0, "miss_count": 0,
+                   "accepted_count": 0, "rejected_count": 0,
+                   "weekly_stats": []}
         if not os.path.isfile(_METRICS_FILE):
-            return {"total_reviews": 0, "total_feedbacks": 0,
-                    "false_positive_count": 0, "miss_count": 0,
-                    "accepted_count": 0, "rejected_count": 0,
-                    "weekly_stats": []}
-        with open(_METRICS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+            return dict(default)
+        try:
+            with open(_METRICS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (ValueError, OSError) as e:
+            print("[review_learning] 度量文件损坏，重置为默认值: %s" % e)
+            return dict(default)
 
     def _save_metrics(self):
-        """保存度量数据"""
-        with open(_METRICS_FILE, "w", encoding="utf-8") as f:
-            json.dump(self.metrics, f, ensure_ascii=False, indent=2)
+        """保存度量数据（受保护原子写）"""
+        protected_write_json(_METRICS_FILE, self.metrics, intent="保存审查度量")
 
     def analyze_feedback(self, review_id, feedback):
         """
