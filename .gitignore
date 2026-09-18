@@ -197,3 +197,8 @@ knowledge/file_knowledge_index.json
 金水谣数据/log/审计轨迹.jsonl
 金水谣数据/log/审计轨迹回放.md
 *.bak_cost_fix
+
+# 运行时状态文件（JS-20260824-03 解除跟踪）
+tools/.wrapup_skip_count.txt
+金水谣数据/log/.ai_decisions_triple_retry_cooldown
+金水谣数据/log/.triple_retry_cooldown

@@ -2125,20 +2125,15 @@ class App:
                 p["draw_date"] = dt if dt else ""
                 pn = clean_nums(p["nums"])
                 ac = clean_nums(act)
-                hits = 0
-                if lot in ["福彩3D", "排列三"]:
-                    from collections import Counter as _Ctr
-                    pc = _Ctr(parse_reds(pn))
-                    ac_ctr = _Ctr(parse_reds(ac))
-                    hits = sum(min(pc[d], ac_ctr.get(d, 0)) for d in pc)
-                elif lot == "快乐8":
-                    hits = len(set(parse_reds(pn)) & set(parse_reds(ac)))
-                else:
-                    pr = pn.split("+")[0] if "+" in pn else pn
-                    ar = ac.split("+")[0] if "+" in ac else ac
-                    hits = len(set(parse_reds(pr)) & set(parse_reds(ar)))
-                    if "+" in pn and "+" in ac:
-                        hits += len(set(parse_reds(pn.split("+")[1])) & set(parse_reds(ac.split("+")[1])))
+                # 命中计数统一走单一真源（JS-20260917-02）：
+                # 3D/排列三 用多重集（组三/豹子号不去重）、七星彩用按位匹配
+                # （原走 else 分支按集合算，7 位数字随机也必中 → 命中率恒 100%）。
+                from utils.number_utils import count_match
+                hits, _ = count_match(lot, pn, ac)
+                # 多球种保留后区（蓝球）计数：本文件系统口径为「红+蓝」，
+                # 与 domains/lottery/domain.py 的纯前区口径存在既存差异，另行统一。
+                if lot not in ("福彩3D", "排列三", "七星彩", "快乐8") and "+" in pn and "+" in ac:
+                    hits += len(set(parse_reds(pn.split("+")[1])) & set(parse_reds(ac.split("+")[1])))
                 p["reviewed"] = True
                 p["hits"] = hits
                 # 命中类型判定（直选/组选/未中）—— JS-20260724-02 口径统一：与彩票看板口径一致

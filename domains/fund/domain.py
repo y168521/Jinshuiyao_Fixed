@@ -18,6 +18,7 @@ import json
 import logging
 from datetime import datetime
 from domains.base import DomainBase, project_data_dir
+from utils.safe_json import safe_write_json
 
 logger = logging.getLogger(__name__)
 
@@ -1129,7 +1130,6 @@ class FundDomain(DomainBase):
                 "review_count": self._review_count,
                 "last_run": self._last_run,
             }
-            with open(cache_file, "w", encoding="utf-8") as f:
-                json.dump(meta, f, ensure_ascii=False, indent=2)
+            safe_write_json(cache_file, meta)
         except Exception as e:
             logger.warning("缓存元数据保存失败: %s", e)

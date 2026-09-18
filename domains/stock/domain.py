@@ -18,6 +18,7 @@ import json
 import logging
 from datetime import datetime, timedelta
 from domains.base import DomainBase, project_data_dir
+from utils.safe_json import safe_write_json
 from core.context import run_in_subsystem
 
 logger = logging.getLogger(__name__)
@@ -597,7 +598,6 @@ class StockDomain(DomainBase):
                 "symbols": list(self._data_cache.keys()),
                 "count": len(self._data_cache),
             }
-            with open(cache_file, "w", encoding="utf-8") as f:
-                json.dump(meta, f, ensure_ascii=False, indent=2)
+            safe_write_json(cache_file, meta)
         except Exception as e:
             logger.warning("缓存元数据保存失败: %s", e)

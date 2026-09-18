@@ -145,26 +145,29 @@ class Data:
     def freshness_minutes(name, now=None):
         """数据距上次更新的分钟数（用于新鲜度门禁）。
 
-        主信号：数据文件 mtime（与 S6 /api/lottery/sources-health 一致，
-        避免“最新一期 time 缺失”导致误判陈旧）。time 字段仅作兜底。
+        JS-20260917-04：主信号改为「最新一期开奖 time」。
+        旧逻辑只看文件 mtime——抓取器若连抓失败却仍重写文件（哪怕写入相同
+        内容），mtime 照样刷新，门禁会误判“新鲜”放行陈旧预测（假新鲜）。
+        开奖 time 不随重写前进，故“期号停滞/日期不更新”能被正确判陈旧。
+        仅当 time 全空（历史兼容）才回退到文件 mtime。
         返回 None 表示无数据/无法解析。
         """
         import time as _time
         from config import DATA_SAVE
         now = now if now is not None else _time.time()
         path = os.path.join(DATA_SAVE, f"{name}.json")
-        if os.path.exists(path):
-            return int((now - os.path.getmtime(path)) / 60)
-        # 兜底：最新一期 time
         arr = Data.load(name)
         latest = None
         for d in arr:
             ts = _parse_time_to_ts(d.get("time"))
             if ts and (latest is None or ts > latest):
                 latest = ts
-        if latest is None:
-            return None
-        return int((now - latest) / 60)
+        if latest is not None:
+            return int((now - latest) / 60)
+        # 兜底：time 全空时退回文件 mtime
+        if os.path.exists(path):
+            return int((now - os.path.getmtime(path)) / 60)
+        return None
 
     @staticmethod
     def is_fresh(name, threshold_min=1440, now=None):

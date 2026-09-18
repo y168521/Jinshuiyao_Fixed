@@ -17,6 +17,8 @@ import json
 import logging
 from datetime import datetime
 
+from utils.safe_json import safe_write_json
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -441,9 +443,8 @@ class HealthChecker:
                     with open(backup_path, "r", encoding="utf-8") as f:
                         backup_data = json.load(f)
                     if isinstance(backup_data, dict):
-                        # 备份有效，覆盖原文件
-                        with open(filepath, "w", encoding="utf-8") as f:
-                            json.dump(backup_data, f, ensure_ascii=False, indent=2)
+                        # 备份有效，覆盖原文件（原子写防截断 JS-20260824-02）
+                        safe_write_json(filepath, backup_data)
                         logger.info("已从备份恢复 %s: %s", display_name, backup_path)
                         self._add_check("data", "warn", f"{display_name}自愈",
                                         f"文件已损坏，已从备份 {backup_path} 成功恢复",
@@ -465,8 +466,7 @@ class HealthChecker:
             if parent_dir and not os.path.exists(parent_dir):
                 os.makedirs(parent_dir, exist_ok=True)
 
-            with open(filepath, "w", encoding="utf-8") as f:
-                json.dump(empty_template, f, ensure_ascii=False, indent=2)
+            safe_write_json(filepath, empty_template)
             logger.warning("已重建空数据文件: %s", filepath)
             self._add_check("data", "warn", f"{display_name}重建",
                             f"文件不存在或损坏且无可用备份，已用空模板重建: {filepath}",

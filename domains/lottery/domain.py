@@ -306,22 +306,14 @@ class LotteryDomain(DomainBase):
                 pred_nums_str = pred.get("nums", "")
                 act_nums_str = actual.get("nums", "")
 
-                # 解析号码
-                from utils.number_utils import parse_reds
-                pred_nums = set(parse_reds(pred_nums_str.split("+")[0]) if "+" in pred_nums_str else parse_reds(pred_nums_str))
-                act_nums = set(parse_reds(act_nums_str.split("+")[0]) if "+" in act_nums_str else parse_reds(act_nums_str))
-
-                match_count = len(pred_nums & act_nums)
-                # 组选口径统一：与 GUI main_window.py 口径一致
-                # 福彩3D/排列三 = 3码多重集全中（hits>=3）
-                # 快乐8 = 命中5码以上（hits>=5）
-                # 其他多球种 = 任意1码命中（hits>0）
-                if lot in ("福彩3D", "排列三"):
-                    is_hit = match_count >= 3
-                elif lot == "快乐8":
-                    is_hit = match_count >= 5
-                else:
-                    is_hit = match_count > 0
+                # 命中计数统一走单一真源（JS-20260917-02）：
+                # ① 此前此处用 set 去重，与 gui/main_window.py 的多重集口径不一致，
+                #    导致 3D/排列三 的组三/豹子号（如 06,06,02）被误判为未命中；
+                # ② 七星彩沿用「任意1码命中」，7 位数字在 0–9 空间下随机也必中，
+                #    历史命中率恒 100%，指标完全失效。
+                # 现统一委托 utils.number_utils.count_match，禁止再各写一份。
+                from utils.number_utils import count_match
+                match_count, is_hit = count_match(lot, pred_nums_str, act_nums_str)
 
                 if is_hit:
                     hits += 1

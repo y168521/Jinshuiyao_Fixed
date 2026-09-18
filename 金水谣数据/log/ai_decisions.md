@@ -1130,7 +1130,7 @@
 - **被否决方案**：①新建独立统计模块——复用 lottery_stats 更贴合分层；②ECharts 多子图——表格+迷你柱状信息密度更高；③insufficient 一票否决——折半降级更实用。
 - **成熟度**：verified
 - **置信度**：高
-### 2026-08-23 模式库0字节事故根治（原子写改造）
+### 2026-08-24 模式库0字节事故根治（原子写改造）
 - **属主**：opencode
 - **做了什么**：tools/review_learning.py 的 _save_patterns/_save_metrics 从裸 open("w")+json.dump 改为 protected_write_json（全局租约锁+临时文件+fsync+os.replace 原子替换）；_load_patterns/_load_metrics 加 ValueError/OSError 容错（损坏降级空库/默认值并打印告警保留现场，不再炸初始化连累 /api/review/*）；git restore 恢复 pattern_library.json（21280 字节/22 模式）；新增 tests/unit/test_review_learning_atomic.py 4 项回归。
 - **为什么根因**：08-20 15:45:34 auto_review 定时任务触发 run_review._trigger_learning→_save_patterns 裸写，15:46 前后 launch.bat/GUI 重启杀掉进程，json.dump 未完成文件已截断成 0 字节；此后 _load_patterns 遇空文件必抛 JSONDecodeError，反馈类 API 全部 500，且无监控报警，悬置 3 天由用户点名才排查。
@@ -1138,7 +1138,31 @@
 - **坑**：裸写截断发生在 open 时刻而非 dump 时刻，事后 try/except 救不了；知识库无"非空"健康检查导致静默丢库。
 - **有效方法**：审计日志三证定位法；原子写统一走 protected_write_json；回归测试锁行为。
 - **关联文件**：tools/review_learning.py、tests/unit/test_review_learning_atomic.py、knowledge/pattern_library.json、utils/shared_write.py
-- **关联总索引**：JS-20260823-03
+- **关联总索引**：JS-20260824-01
 - **被否决方案**：①只恢复不改码——必复发；②dump 包 try/except——截断在 open 时刻兜不住；③自造 .bak 轮转——项目已有标准原子方案。
+- **成熟度**：verified
+- **置信度**：高
+### 2026-08-24 全库裸写JSON专项治理（13 处生产级清零）
+- **属主**：opencode
+- **做了什么**：自研扫描脚本定位全库 43 处裸写 JSON 嫌疑，人工分诊出 13 处生产级（长驻 server 进程或定时任务写关键状态），统一替换为 utils/safe_json.safe_write_json（临时文件+fsync+os.replace+自动备份）；trend_generator 因写 JS 文件改用等价的手工原子替换；复扫确认剩余 30 处均为低危并挂账。
+- **为什么根因**：JS-20260824-01 模式库 0 字节事故证明该 bug 类真实致灾，而全库同款还有 42 处；其中 health_check 的 _rebuild_file 尤其讽刺——自愈器自己用裸写重建文件，被杀瞬间会把"修复"变成第二次事故。
+- **验证**：py_compile 11 文件过；扫描前后对比 43→30 且余量逐条确认为低危；全量 pytest 1050 passed 0 failed；重启 18888 后 hit-trend 与 review-dashboard 双 API 冒烟通过。
+- **坑**：批量替换时三个文件（quant/run_review/daily_fund_monitor）原 except 吞异常语义要保留，不能让写失败把请求打成 500 之外的新行为；health.py 的通知写入改为失败显式 raise 走原有错误路径。
+- **有效方法**：标准件优先——项目已有 safe_write_json 就不要每处手写原子逻辑；扫描脚本留存可复跑防回潮。
+- **关联文件**：见总索引 JS-20260824-02 改动清单
+- **关联总索引**：JS-20260824-02
+- **被否决方案**：①全量 43 处一把梭——稀释验证强度；②lint 拦截规则——有价值但属基建改造，列遗留债务；③只修 server 不修 tools/scripts——定时任务同样会被杀，不彻底。
+- **成熟度**：verified
+- **置信度**：高
+### 2026-08-26 审查子进程ImportError根治（sys.path引导缺失）
+- **属主**：opencode
+- **做了什么**：给 tools/run_review.py 和 tools/sync_free_models.py 补 sys.path 引导块（`_PROJECT_ROOT` 5行，写在所有项目 import 之前），让它们作为独立子进程运行时能找到 utils/；sync_free_models.py 原 `_BASE = os.path.dirname(os.path.abspath(__file__))` 重复赋值合并为复用 `_PROJECT_ROOT`。
+- **为什么根因**：JS-20260824-02 全库裸写治理时给两个脚本加了 `from utils.safe_json import safe_write_json` 顶层导入，但这两个脚本的设计契约是支持子进程独立运行（run_review.py 文档明确写 `python tools/run_review.py --quick`；sync_free_models.py 有 `__main__` 入口），子进程 `sys.path[0]=tools/` 而非项目根 → ImportError → 审查 Pipeline returncode=1 → 服务器启动日志永远亮红灯。pytest 能过是因为 conftest 已预置好项目根，与真实调用路径不一致。
+- **验证**：子进程 `python tools/run_review.py --quick --no-learn` returncode=0（修复前 1）；重启 18888 launch.log 末尾120行 grep 红灯 = NO_RED_LIGHT；全量 pytest 1050 passed。
+- **坑**：同一个 import 语句在两种调用路径（服务器进程内 vs 子进程独立运行）行为完全不同；pytest 通过不代表真实场景通过——这是本次修复最关键的发现。
+- **有效方法**：改 tools/ 或 scripts/ 下的脚本后必须同时测试①作为模块 import ②作为子进程直接 `python xxx.py`，两种都过才算真过；sys.path 引导必须写在文件最前面、所有项目 import 之前。
+- **关联文件**：tools/run_review.py、tools/sync_free_models.py
+- **关联总索引**：JS-20260826-01
+- **被否决方案**：①改为函数内懒导入——不解决脚本独立运行时根本找不到 utils 的问题；②在 import 语句处 try/except——掩盖问题而非修复路径。
 - **成熟度**：verified
 - **置信度**：高

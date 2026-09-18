@@ -19,6 +19,13 @@ import time
 import argparse
 import traceback
 
+# 确保项目根目录在路径中（本脚本以 python tools/run_review.py 子进程方式运行）
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
+
+from utils.safe_json import safe_write_json
+
 # ─── Windows GBK 控制台兜底（JS-20260804-03）：强制 UTF-8 输出 ───
 # 之前 --quick 在 _print_human_report 打印 ✅/❌ 时触发
 # UnicodeEncodeError: 'gbk' codec can't encode character '\u2705'，审查 Pipeline 假红灯。
@@ -261,8 +268,7 @@ def _load_metrics():
 
 def _save_metrics(metrics):
     try:
-        with open(_METRICS_FILE, "w", encoding="utf-8") as f:
-            json.dump(metrics, f, ensure_ascii=False, indent=2)
+        safe_write_json(_METRICS_FILE, metrics)
     except Exception:
         pass
 

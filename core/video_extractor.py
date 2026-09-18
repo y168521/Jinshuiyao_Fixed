@@ -36,6 +36,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse, parse_qs
 from core.security import is_safe_http_url  # JS-20260807-01：SSRF 校验单一真源
+from utils.safe_json import safe_write_json
 
 logger = logging.getLogger(__name__)
 
@@ -353,8 +354,7 @@ class VideoExtractor:
         """保存提取结果到缓存"""
         cache_path = self._get_cache_path(url)
         try:
-            with open(cache_path, 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
+            safe_write_json(cache_path, data)
             logger.info("[video_extractor] 缓存已保存: %s", url[:50])
         except IOError as e:
             logger.warning("[video_extractor] 缓存保存失败: %s", e)

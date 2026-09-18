@@ -38,6 +38,8 @@ if _SCRIPT_DIR not in sys.path:
 import numpy as np
 import pandas as pd
 
+from utils.safe_json import safe_write_json
+
 # 设置日志
 logging.basicConfig(
     level=logging.INFO,
@@ -993,8 +995,7 @@ class DailyFundMonitor:
             }
             
             notif_path = os.path.join(_SCRIPT_DIR, "金水谣数据", "fund_reports", ".notification.json")
-            with open(notif_path, 'w', encoding='utf-8') as f:
-                json.dump(notification, f, ensure_ascii=False, indent=2)
+            safe_write_json(notif_path, notification)
             
             logger.info("通知标记已保存: %s", notif_path)
         except Exception as e:
@@ -1109,11 +1110,10 @@ $notify.Dispose()
                 "signals": self._clean_for_json(data.get("signals", {})),
             }
         
-        with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump({
-                "date": datetime.now().isoformat(),
-                "funds": serializable,
-            }, f, ensure_ascii=False, indent=2)
+        safe_write_json(filepath, {
+            "date": datetime.now().isoformat(),
+            "funds": serializable,
+        })
         
         return filepath
 

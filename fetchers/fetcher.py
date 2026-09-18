@@ -900,11 +900,43 @@ class Fetcher:
                     period = result
                 if not is_valid_period("排列三", period):
                     continue
-                out.append({"period": period, "lottery": "排列三", "nums": nums, "time": ""})
+                # 修复：原硬编码 time=""（同批 P0-3 只修了双色球/大乐透/七星彩/七乐彩，
+                # 排列三漏改，致 83% 历史记录无开奖日期）。500.com 每行自带日期列。
+                out.append({"period": period, "lottery": "排列三", "nums": nums, "time": _norm_draw_date(row)})
             return out
         except Exception as e:
             logger.warning("_fetch_500chart_pl3: 解析失败返回空: %s", e)
             return []
+
+    def _fill_missing_draw_dates(self, name, rows):
+        """补全缺失的开奖日期（当前仅排列三）：用福彩3D 同期号映射兜底。
+
+        背景：排列三有多个 HTML 源（体彩网/新浪/彩宝贝）的解析正则没有捕获日期列，
+        命中这些源时 time 全空（历史 248 期里 207 期为空）。
+        排列三与福彩3D 同为每日开奖、期号规则一致（YYYY+年内序号），
+        实测 2026 年 248 期期号完全对齐，故可安全映射。
+        该方法纯兜底：拿不到映射就原样返回，不影响任何抓取主流程。
+        """
+        if name != "排列三" or not rows:
+            return rows
+        if all(r.get("time") for r in rows):
+            return rows
+        try:
+            d3 = Data.load("福彩3D")
+            m = {r.get("period"): r.get("time", "")
+                 for r in d3 if r.get("period") and r.get("time")}
+            if not m:
+                return rows
+            filled = 0
+            for r in rows:
+                if not r.get("time") and r.get("period") in m:
+                    r["time"] = m[r["period"]]
+                    filled += 1
+            if filled:
+                logger.info("排列三开奖日期补全: %d 期（福彩3D 同期号映射）", filled)
+        except Exception as e:
+            logger.debug("排列三日期补全失败（降级跳过）: %s", e)
+        return rows
 
     def fetch(self, name):
         """抓取某彩种开奖数据：统一经 _fetch_from_sources 管道，按策略合并/择优。"""
@@ -924,6 +956,10 @@ class Fetcher:
                 ("体彩网(lottery.gov.cn)", self._fetch_tcaibei_pl3),
             ]
             ok, data = self._fetch_from_sources(name, source_list, "newer_than_local")
+            # 排列三多源中部分 HTML 源无日期列，统一在此兜底补全（防再犯）
+            if ok is not None and data:
+                data = self._fill_missing_draw_dates(name, data)
+            return ok, data
         else:
             sources = self._build_sources(name)
             strategy = "merge_all" if name in ["双色球", "大乐透", "七星彩"] else "first_success"

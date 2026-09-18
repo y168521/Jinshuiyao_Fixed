@@ -32,7 +32,14 @@ import json
 import time
 import urllib.request
 
-_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# 确保项目根目录在路径中（本工具按 python tools/sync_free_models.py 手动运行）
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
+
+from utils.safe_json import safe_write_json
+
+_BASE = _PROJECT_ROOT
 _CONFIG = os.path.join(_BASE, "config", "free_models.json")
 _STATUS = os.path.join(_BASE, "金水谣数据", "free_model_status.json")
 _SECRET_DIR = os.path.join(os.path.expanduser("~"), ".jinshuiyao-secrets")
@@ -238,8 +245,7 @@ def _load_existing():
 
 def _save(cfg):
     os.makedirs(os.path.dirname(_CONFIG), exist_ok=True)
-    with open(_CONFIG, "w", encoding="utf-8") as f:
-        json.dump(cfg, f, ensure_ascii=False, indent=2)
+    safe_write_json(_CONFIG, cfg)
 
 
 def main():

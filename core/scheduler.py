@@ -749,15 +749,23 @@ class JinshuiyaoScheduler(TaskScheduler):
 
     @staticmethod
     def _task_kb_lint():
-        """知识体检(Lint)任务 - 每月1号自动体检（孤儿卡片/空内容/缺字段）
+        """知识体检(Lint)任务 - 每月自动体检（孤儿卡片/空内容/缺字段）
 
-        调度器原生只支持「每 N 分钟」，这里用「每日触发 + 日期守卫」实现每月1号。
+        采用「跨月补跑」而非「认死 1 号」：记录上次体检月份，每次触发发现已跨月
+        就补跑一次。旧实现用 `now.day != 1` 守卫，若 1 号未开机则整月漏检——
+        实测 2026-09-01 全天未开机（watchdog 0 条巡检记录），导致 9 月体检被
+        永久跳过（C-017）。新实现只要当月任意一天开机运行，即自动补上当月体检。
         """
         now = datetime.now()
-        if now.day != 1:
-            logger.info("[知识体检] 跳过（非每月1号，当前为 %d 号）", now.day)
+        cur_month = now.strftime("%Y-%m")
+        last_month = _read_kb_lint_month()
+        if last_month == cur_month:
+            logger.info("[知识体检] 本月已体检（%s），跳过", cur_month)
             return
-        logger.info("[知识体检] 开始月度体检...")
+        logger.info(
+            "[知识体检] 开始体检（上次：%s，本次：%s）",
+            last_month or "从未体检", cur_month,
+        )
         try:
             import importlib
             mod = importlib.import_module("knowledge.用户知识库.lint_knowledge")
@@ -770,10 +778,11 @@ class JinshuiyaoScheduler(TaskScheduler):
                 "[知识体检] 完成 (卡片:%d, 错误:%d, 警告:%d)",
                 cards, len(errors), len(warns),
             )
-            if errors:
-                _write_kb_lint_log(rd)
+            # 无论是否有错都写日志：否则无法区分「跑过且健康」与「根本没跑」
+            _write_kb_lint_log(rd, month=cur_month)
+            _write_kb_lint_month(cur_month)
         except Exception as e:
-            logger.error("[知识体检] 执行异常: %s", e, exc_info=True)
+            logger.error("[知识体检] 执行异常（不写状态，下轮重试）: %s", e, exc_info=True)
 
     @staticmethod
     def _task_vector_index_rebuild():
@@ -961,8 +970,13 @@ class JinshuiyaoScheduler(TaskScheduler):
             logger.warning("[大脑日报] 执行失败（不影响其余定时任务）: %s", e)
 
 
-def _write_kb_lint_log(rd):
-    """把知识体检结果写入日志（便于追溯每月体检情况）"""
+def _write_kb_lint_log(rd, month=None):
+    """把知识体检结果写入日志（便于追溯每月体检情况）
+
+    无论体检是否发现问题都会写日志——否则无法区分「跑过且健康」与「根本没跑」。
+    旧实现仅在 `if errors:` 时才写，导致 kb_lint.jsonl 长期空白（C-017），
+    健康检查因此失去可观测性。status 字段显式标记 ok / error。
+    """
     try:
         import json as _json
         _log_dir = os.path.join(
@@ -973,16 +987,66 @@ def _write_kb_lint_log(rd):
         _log_path = os.path.join(_log_dir, "kb_lint.jsonl")
         from utils.log_rotation import check_and_rotate
         check_and_rotate(_log_path, max_size_mb=5)
+        _is_dict = isinstance(rd, dict)
+        _errors = rd.get("errors", []) if _is_dict else []
         _entry = {
             "timestamp": datetime.now().isoformat(),
-            "cards": rd.get("cards", 0),
-            "errors": rd.get("errors", []),
-            "warns": rd.get("warns", []),
+            "month": month or datetime.now().strftime("%Y-%m"),
+            "status": "error" if _errors else "ok",
+            "cards": rd.get("cards", 0) if _is_dict else 0,
+            "errors": _errors,
+            "warns": rd.get("warns", []) if _is_dict else [],
         }
         with open(_log_path, "a", encoding="utf-8") as _f:
             _f.write(_json.dumps(_entry, ensure_ascii=False) + "\n")
-    except Exception:
-        pass  # 日志写入失败不影响任务执行
+    except Exception as e:
+        # 不静默吞错：日志写不出来本身就是需要让人知道的问题
+        logger.warning("[知识体检] 日志写入失败（不影响任务执行）: %s", e)
+
+
+def _kb_lint_state_path():
+    """知识体检状态文件路径（记录上次体检的月份，用于跨月补跑判断）"""
+    return os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "金水谣数据", "log", "kb_lint_state.json",
+    )
+
+
+def _read_kb_lint_month():
+    """读取上次体检的月份（YYYY-MM），从未体检或读取失败返回 None
+
+    返回 None 时调用方按「未体检」处理，即本次触发会执行体检，
+    保证状态文件损坏/丢失时不会永久卡住不跑。
+    """
+    try:
+        from utils.safe_json import safe_load_json
+        _p = _kb_lint_state_path()
+        if not os.path.isfile(_p):
+            return None
+        data = safe_load_json(_p, default=None)
+        if not isinstance(data, dict):
+            return None
+        _m = data.get("last_run_month")
+        return _m if isinstance(_m, str) and _m else None
+    except Exception as e:
+        logger.warning("[知识体检] 状态读取失败，按未体检处理: %s", e)
+        return None
+
+
+def _write_kb_lint_month(month):
+    """写入本次体检的月份（原子写，避免进程被杀产生 0 字节文件）"""
+    try:
+        from utils.safe_json import safe_write_json
+        os.makedirs(os.path.dirname(_kb_lint_state_path()), exist_ok=True)
+        safe_write_json(
+            _kb_lint_state_path(),
+            {
+                "last_run_month": month,
+                "updated_at": datetime.now().isoformat(timespec="seconds"),
+            },
+        )
+    except Exception as e:
+        logger.warning("[知识体检] 状态写入失败（下轮会重复体检一次）: %s", e)
 
 
 # ================================================================

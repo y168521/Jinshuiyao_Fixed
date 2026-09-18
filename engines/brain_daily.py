@@ -21,6 +21,7 @@ from datetime import datetime
 
 # 单一真源（债务-203）：期望命中基准在 prediction_service.py 模块级维护，此处复用不再各自维护
 from engines.prediction_service import _PLAY_EXPECTED
+from utils.safe_json import safe_write_json
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +47,7 @@ def _load_json(path, default=None):
 def _save_json(path, data):
     try:
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        with io.open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=1)
+        safe_write_json(path, data)
     except Exception as e:
         logger.debug("brain_daily 写入失败 %s: %s", path, e)
 

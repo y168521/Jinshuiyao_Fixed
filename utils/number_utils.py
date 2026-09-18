@@ -52,6 +52,62 @@ def parse_reds(s):
     return nums
 
 
+def count_match(lot, pred_str, actual_str):
+    """命中计数单一真源 —— 返回 (match_count, is_hit)。
+
+    ⚠️ 全系统任何「预测 vs 开奖」的命中统计都必须调本函数，禁止各自写一份
+    （历史教训：domains/lottery/domain.py 用 set 去重、gui/main_window.py 用多重集、
+    backtesting/engine.py 又是第三套，三处口径打架导致复盘数据不可信，
+    见 JS-20260917-02）。
+
+    口径定义（按彩种）：
+      - 福彩3D / 排列三：match_count = 多重集匹配数（Counter 取 min）。
+        **不能用 set 去重**——组三/豹子号（如 06,06,02）含重复数字，
+        去重后命中数被少算，实测 3D 有 30.2%、排列三 32.3% 的开奖受影响。
+        is_hit = match_count >= 3（3 码全中 = 组选）。
+      - 七星彩：match_count = **按位匹配数**（同一位对上才算）。
+        该彩种 7 位数字在 0–9 空间取号，若沿用「任意 1 码命中」的集合口径，
+        随机瞎猜也必中（实测历史命中率恒 100%，纯属指标失效）。
+        is_hit = match_count >= 2（随机基线约 12.4%，Binomial(7,0.1)）。
+      - 快乐8：集合交集数（每期开出 20 个不重复号，无重复故集合=多重集）。
+        is_hit = match_count >= 5。
+      - 双色球 / 大乐透 / 七乐彩等：前区（红球）集合交集数。
+        is_hit = match_count > 0（任中 1 码；注意该口径随机基线高达 56–88%，
+        对外展示时须同时给出随机基线，否则会夸大效果）。
+
+    Args:
+        lot: 彩种名
+        pred_str: 预测号码串，如 "03,06,14,16,25,27+11"
+        actual_str: 开奖号码串，如 "01,02,03,04,05,06+07"
+
+    Returns:
+        (match_count: int, is_hit: bool)
+    """
+    from collections import Counter
+
+    def _front(s):
+        return parse_reds(s.split("+")[0] if "+" in s else s)
+
+    lot = lot or ""
+    try:
+        if lot in ("福彩3D", "排列三"):
+            pc = Counter(_front(pred_str))
+            ac = Counter(_front(actual_str))
+            n = sum(min(pc[k], ac.get(k, 0)) for k in pc)
+            return n, n >= 3
+        if lot == "七星彩":
+            pd_, ad = _front(pred_str), _front(actual_str)
+            n = sum(1 for a, b in zip(pd_, ad) if a == b)
+            return n, n >= 2
+        if lot == "快乐8":
+            n = len(set(_front(pred_str)) & set(_front(actual_str)))
+            return n, n >= 5
+        n = len(set(_front(pred_str)) & set(_front(actual_str)))
+        return n, n > 0
+    except Exception:
+        return 0, False
+
+
 def fmt_period(lot, period):
     try:
         p = int(period)

@@ -93,12 +93,16 @@ class TrendGenerator:
             except Exception as e:
                 logger.error("[%s] 走势生成异常: %s", lot_name, e)
 
-        # 写入 JS 文件
+        # 写入 JS 文件（临时文件+原子替换，防截断 JS-20260824-02）
         out_path = os.path.join(output_dir, "trend-data.js")
-        with open(out_path, "w", encoding="utf-8") as f:
+        tmp_path = out_path + ".tmp"
+        with open(tmp_path, "w", encoding="utf-8") as f:
             f.write("window.TREND_DATA = ")
             json.dump(all_data, f, ensure_ascii=False, indent=2)
             f.write(";")
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, out_path)
 
         logger.info("走势数据已写入 %s，共 %d 个彩种", out_path, len(all_data))
         return os.path.abspath(out_path)

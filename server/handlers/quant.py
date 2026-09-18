@@ -6,6 +6,8 @@
 import json, os, re
 from datetime import datetime
 
+from utils.safe_json import safe_write_json
+
 HERE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 CACHE_DIRS = [
     os.path.join(HERE, "stockcache"),
@@ -148,8 +150,7 @@ def _upsert_knowledge(card):
                       "created": now, "updated": now,
                       "subsystem": card.get("subsystem", "stock")})
     try:
-        with open(p, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        safe_write_json(p, data)
     except Exception as e:
         return {"error": "write failed: " + str(e)}
     return {"ok": True, "title": title, "total": len(cards), "upserted": True}

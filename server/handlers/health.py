@@ -20,6 +20,7 @@ import json
 
 from .. import config as _config
 from ..utils import log, get_local_ip
+from utils.safe_json import safe_write_json
 
 
 def handle_health(handler):
@@ -185,8 +186,8 @@ def handle_fund_notification_read(handler):
             with open(notif_path, 'r', encoding='utf-8') as f:
                 notification = json.load(f)
             notification["is_read"] = True
-            with open(notif_path, 'w', encoding='utf-8') as f:
-                json.dump(notification, f, ensure_ascii=False, indent=2)
+            if not safe_write_json(notif_path, notification):
+                raise IOError("safe_write_json 返回失败")
             handler._send_json({"ok": True})
         except Exception as e:
             handler._send_json({"ok": False, "error": str(e)})
