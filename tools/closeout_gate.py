@@ -6,8 +6,12 @@
   2. 经验收集箱.md        — 追加经验
   3. 工作留痕总索引.md     — 登记编号
   4. pre-commit hook 是否存活（缺失则自动安装）
+  5. 禁用色合规
+  6. 代码体检门禁（WARN-ONLY）
+  7. 金水谣数据完整性（WARN）
+  8. 本轮事项反向自查（tools/item_register.py）—— 防"排查/诊断类工作不留痕"
 
-三项缺一不可，硬阻断（exit=1）。可用 --override 紧急跳过。
+硬阻断项（FAIL 即禁止收工）：1-5、8；6/7 仅告警。可用 --override 紧急跳过。
 """
 
 import os
@@ -57,11 +61,15 @@ def check_file_updated(path, name):
             rf"^(?:###\s*)?\|?\s*JS-\d{{8}}-\d{{2}}\s*\|\s*(?:\d{{4}}-)?{re.escape(short_date)}(?:\s+\d{{1,2}}:\d{{2}}(?::\d{{2}})?)?\s*\|",
             re.MULTILINE)
     else:
-        pattern = re.compile(re.escape(today))
+        # 交接中心/经验箱：日期字面 或 当日 JS 编号（JS-20260920-03 也算当日登记）
+        # 背景（JS-20260920-03）：交接中心条目习惯只写「（JS-20260920-03）」不带日期字面，
+        # 旧门禁只匹配日期 → 整天都判 MISS，属误报。
+        compact = today.replace("-", "")
+        pattern = re.compile(r"(%s|JS-%s-\d{2})" % (re.escape(today), re.escape(compact)))
 
     if pattern.search(content):
         return True, f"已找到 {today} 登记"
-    return False, f"未找到 {today} 登记"
+    return False, f"未找到 {today} 登记（支持日期字面或当日 JS 编号）"
 
 def _find_git_dir():
     """从常见位置找 .git 目录"""
@@ -228,6 +236,26 @@ def main():
             print("  [WARN] ❌ 金水谣数据盲区: 数据文件缺失，请运行 scripts/quality_gate.py 查看详情")
     except Exception as e:
         print(f"  [WARN] 金水谣数据完整性: 检查不可用 ({e})")
+
+    # 8: 本轮事项反向自查（JS-20260920-03）
+    # 背景：JS-20260920-02 整轮漏登三件套 —— 原因是"排查/诊断类工作没改代码"，
+    #       就默认不用留痕；而旧门禁只查"今天有没有登记过"，当天有别的事登记就放行。
+    # 机制：干活前 tools/item_register.py add 申报 → 收工前 close <id> JS-编号 回填 →
+    #       此处校验：存在 open 或 done 但无编号的事项即 FAIL 阻断。
+    try:
+        import importlib.util as _ilu2
+        _spec2 = _ilu2.spec_from_file_location(
+            "item_register",
+            os.path.join(BASE_DIR, "tools", "item_register.py"),
+        )
+        _ir = _ilu2.module_from_spec(_spec2)
+        _spec2.loader.exec_module(_ir)
+        ok_ir, msg_ir, _, _ = _ir.check_items()
+        print(f"  [{'OK' if ok_ir else 'FAIL'}] 本轮事项反向自查: {msg_ir}")
+        if not ok_ir:
+            all_ok = False
+    except Exception as e:
+        print(f"  [WARN] 本轮事项反向自查: 检查不可用 ({e})")
 
     # 记录门禁结果
     try:

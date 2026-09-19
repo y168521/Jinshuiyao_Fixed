@@ -40,6 +40,17 @@ import pandas as pd
 
 from utils.safe_json import safe_write_json
 
+# 基金外围风险（基金经理变更 / 规模变化·清盘预警）——JS-20260920-04 新增
+# 依赖 requests（可选）：缺失时自动降级，报告该板块显示"暂缺"而非编造数据
+try:
+    from domains.fund.fund_profile_risk import build_profiles
+    PROFILE_AVAILABLE = True
+    PROFILE_IMPORT_ERR = ""
+except Exception as _e:  # pragma: no cover
+    build_profiles = None
+    PROFILE_AVAILABLE = False
+    PROFILE_IMPORT_ERR = str(_e)
+
 # 设置日志
 logging.basicConfig(
     level=logging.INFO,
@@ -444,14 +455,15 @@ class ReportGenerator:
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
 
-    def generate(self, monitor_data: Dict, market_indices: Dict) -> str:
+    def generate(self, monitor_data: Dict, market_indices: Dict,
+                 profiles: Optional[Dict] = None) -> str:
         """生成HTML报告，返回文件路径"""
         date_str = datetime.now().strftime("%Y-%m-%d")
         time_str = datetime.now().strftime("%H:%M")
         filename = f"fund_report_{date_str}.html"
         filepath = os.path.join(self.output_dir, filename)
 
-        html = self._build_html(date_str, time_str, monitor_data, market_indices)
+        html = self._build_html(date_str, time_str, monitor_data, market_indices, profiles)
         
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(html)
@@ -459,13 +471,18 @@ class ReportGenerator:
         logger.info("报告已生成: %s", filepath)
         return filepath
 
-    def _build_html(self, date_str: str, time_str: str, data: Dict, indices: Dict) -> str:
+    def _build_html(self, date_str: str, time_str: str, data: Dict, indices: Dict,
+                    profiles: Optional[Dict] = None) -> str:
         """构建HTML内容"""
         
         # 统计
         total_invest = sum(f["investment"] for f in FUND_CONFIG)
         take_profit_count = sum(1 for d in data.values() if d.get("signals", {}).get("take_profit", {}).get("signal", False))
         limit_count = sum(1 for d in data.values() if d.get("signals", {}).get("purchase_limit", {}).get("is_limited", False))
+        profiles = profiles or {}
+        manager_warn_count = sum(1 for p in profiles.values()
+                                 if p.get("manager", {}).get("level") in ("warn", "notice"))
+        scale_warn_count = sum(1 for p in profiles.values() if p.get("scale", {}).get("level") in ("warn", "danger"))
         
         # 基金卡片HTML
         fund_cards = []
@@ -549,6 +566,30 @@ class ReportGenerator:
                 <span class="index-name">{name}</span>
                 <span class="index-value">{idx.get('value', '--')}</span>
                 <span class="index-change {change_class}">{idx.get('change_pct', 0):+.2f}%</span>
+            </div>
+            """)
+        
+        # 外围风险HTML（基金经理变更 / 规模变化·清盘预警）
+        profile_items = []
+        for fund in FUND_CONFIG:
+            code = fund["code"]
+            p = profiles.get(code, {}) or {}
+            mgr = p.get("manager", {}) or {}
+            sc = p.get("scale", {}) or {}
+            stale_note = (' <span style="color:var(--text-secondary);font-size:12px;">'
+                          '（网络未通，展示缓存数据）</span>') if p.get("stale") else ""
+            mgr_level = mgr.get("level", "info") if mgr.get("ok") else "miss"
+            mgr_cls = {"info": "ok", "notice": "warn", "warn": "warn"}.get(mgr_level, "miss")
+            sc_level = sc.get("level", "miss") if sc.get("ok") else "miss"
+            sc_cls = {"safe": "ok", "warn": "warn", "danger": "danger"}.get(sc_level, "miss")
+            profile_items.append(f"""
+            <div class="profile-item">
+                <div class="profile-title">
+                    <span class="pname">{fund["name"]}</span>
+                    <span class="pcode">{code}</span>{stale_note}
+                </div>
+                <div class="profile-line {mgr_cls}">经理：{mgr.get("message", "暂缺：未取到基金经理数据")}</div>
+                <div class="profile-line {sc_cls}">规模：{sc.get("message", "暂缺：未取到规模数据")}</div>
             </div>
             """)
         
@@ -723,6 +764,31 @@ class ReportGenerator:
         .index-change.up {{ color: var(--up); }}
         .index-change.down {{ color: var(--down); }}
         
+        .profile-section {{
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+        }}
+        .profile-item {{
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border);
+        }}
+        .profile-item:last-child {{ border-bottom: none; }}
+        .profile-title {{ margin-bottom: 6px; }}
+        .profile-title .pname {{ font-size: 14px; font-weight: 600; }}
+        .profile-title .pcode {{
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-left: 8px;
+            font-family: monospace;
+        }}
+        .profile-line {{ font-size: 13px; margin-top: 4px; }}
+        .profile-line.danger {{ color: var(--alert); }}
+        .profile-line.warn {{ color: var(--warning); }}
+        .profile-line.ok {{ color: var(--up); }}
+        .profile-line.miss {{ color: var(--text-secondary); }}
+        
         .footer {{
             text-align: center;
             color: var(--text-secondary);
@@ -766,6 +832,14 @@ class ReportGenerator:
                 <div class="number" style="color: {'var(--warning)' if limit_count > 0 else 'var(--text-secondary)'}">{limit_count}</div>
                 <div class="label">限购基金数</div>
             </div>
+            <div class="summary-card">
+                <div class="number" style="color: {'var(--warning)' if manager_warn_count > 0 else 'var(--text-secondary)'}">{manager_warn_count}</div>
+                <div class="label">经理关注(变更/待核对)</div>
+            </div>
+            <div class="summary-card">
+                <div class="number" style="color: {'var(--alert)' if scale_warn_count > 0 else 'var(--text-secondary)'}">{scale_warn_count}</div>
+                <div class="label">规模/清盘预警</div>
+            </div>
         </div>
         
         <div class="section-title">持仓基金明细</div>
@@ -776,6 +850,11 @@ class ReportGenerator:
             {''.join(index_cards) if index_cards else '<div style="color:var(--text-secondary);text-align:center;">市场数据获取中...</div>'}
         </div>
         
+        <div class="section-title">基金经理变更 &amp; 规模·清盘预警</div>
+        <div class="profile-section">
+            {''.join(profile_items) if profile_items else '<div style="color:var(--text-secondary);text-align:center;">本轮未采集外围风险（可用 --no-profile 关闭该板块）</div>'}
+        </div>
+        
         <div class="legend">
             <strong>指标说明：</strong>
             最大回撤 = 一段时间内净值从最高点下跌的最大幅度，越小越好 |
@@ -783,10 +862,16 @@ class ReportGenerator:
             夏普比率 = 超额收益/风险，越大越好（>1优秀） |
             Calmar = 年化收益/最大回撤，越大越好 |
             90天收益 = 近90个交易日总收益率
+            <br><br>
+            <strong>外围风险口径：</strong>
+            基金经理变更 = 天天基金「本基金历任基金经理」最新一条起始期在 180 天内即视为近期变更；
+            规模为季报口径（期末净资产）；清盘线取 5000 万元（基金合同常见条款：连续 60 个工作日
+            资产净值低于 5000 万可终止合同），2 亿元以下标记为迷你基金。取不到数据时显示"暂缺"，
+            不用任何模拟值代替。
         </div>
         
         <div class="footer">
-            金水谣万物引擎 - 基金监控子系统 | 数据来源于东方财富(akshare) | 本报告仅供参考，不构成投资建议
+            金水谣万物引擎 - 基金监控子系统 | 净值数据来源于东方财富(akshare)，外围风险来源于天天基金公开页面 | 本报告仅供参考，不构成投资建议
         </div>
     </div>
 </body>
@@ -809,13 +894,16 @@ class DailyFundMonitor:
             output_dir=os.path.join(_SCRIPT_DIR, "金水谣数据", "fund_reports")
         )
         self.monitor_data = {}
+        self.profiles = {}
 
-    def run(self, export_historical: bool = False, force: bool = False) -> Dict:
+    def run(self, export_historical: bool = False, force: bool = False,
+            with_profile: bool = True) -> Dict:
         """执行完整监控流程
         
         Args:
             export_historical: 是否导出90天历史CSV
             force: 是否强制重新执行（即使今日报告已存在）
+            with_profile: 是否采集外围风险（基金经理变更 / 规模·清盘预警）
             
         Returns:
             Dict: 包含报告路径、数据路径和监控数据的字典
@@ -910,11 +998,19 @@ class DailyFundMonitor:
                 "config": fund,
             }
         
+        # 1.5 外围风险采集（基金经理变更 / 规模变化·清盘预警）
+        if with_profile:
+            self.profiles = self._collect_profiles()
+            for code, profile in self.profiles.items():
+                if code in self.monitor_data:
+                    self.monitor_data[code]["profile"] = profile
+        
         # 2. 获取市场指数
         market_indices = self.fetcher.get_market_indices()
         
         # 3. 生成HTML报告
-        report_path = self.report_gen.generate(self.monitor_data, market_indices)
+        report_path = self.report_gen.generate(
+            self.monitor_data, market_indices, self.profiles)
         
         # 4. 保存JSON数据
         json_path = self._save_json()
@@ -940,6 +1036,30 @@ class DailyFundMonitor:
             "monitor_data": self.monitor_data,
             "market_indices": market_indices,
         }
+
+    def _collect_profiles(self) -> Dict:
+        """采集基金外围风险（基金经理变更 / 规模变化·清盘预警）
+
+        数据源为天天基金公开页面，低速串行抓取；失败时该板块显示"暂缺"，不编造。
+        """
+        if not PROFILE_AVAILABLE:
+            logger.warning("外围风险模块不可用，跳过该板块: %s", PROFILE_IMPORT_ERR)
+            return {}
+        try:
+            logger.info("正在采集外围风险（基金经理变更 / 规模变动）...")
+            profiles = build_profiles(FUND_CONFIG)
+            mgr_warn = sum(1 for p in profiles.values()
+                           if p.get("manager", {}).get("level") == "warn")
+            mgr_notice = sum(1 for p in profiles.values()
+                             if p.get("manager", {}).get("level") == "notice")
+            scale_warn = sum(1 for p in profiles.values()
+                             if p.get("scale", {}).get("level") in ("warn", "danger"))
+            logger.info("外围风险采集完成：经理近期变更 %d 只，配置待核对 %d 只，规模预警 %d 只",
+                        mgr_warn, mgr_notice, scale_warn)
+            return profiles
+        except Exception as e:
+            logger.warning("外围风险采集失败，跳过该板块: %s", e)
+            return {}
 
     def _save_notification(self, report_path: str):
         """保存通知标记文件，供总控台检测未读日报"""
@@ -1108,11 +1228,13 @@ $notify.Dispose()
                 "snapshot": self._clean_for_json(data.get("snapshot", {})),
                 "risks": self._clean_for_json(data.get("risks", {})),
                 "signals": self._clean_for_json(data.get("signals", {})),
+                "profile": self._clean_for_json(data.get("profile", {})),
             }
         
         safe_write_json(filepath, {
             "date": datetime.now().isoformat(),
             "funds": serializable,
+            "profiles": self._clean_for_json(self.profiles or {}),
         })
         
         return filepath
@@ -1147,10 +1269,13 @@ def main():
     parser = argparse.ArgumentParser(description="金水谣每日基金监控")
     parser.add_argument("--historical", action="store_true", help="同时导出90天历史CSV")
     parser.add_argument("--force", action="store_true", help="强制重新执行（忽略今日已有报告）")
+    parser.add_argument("--no-profile", action="store_true",
+                        help="跳过外围风险采集（基金经理变更 / 规模·清盘预警）")
     args = parser.parse_args()
     
     monitor = DailyFundMonitor()
-    result = monitor.run(export_historical=args.historical, force=args.force)
+    result = monitor.run(export_historical=args.historical, force=args.force,
+                         with_profile=not args.no_profile)
     
     if result.get("skipped"):
         print("\n今日报告已存在，跳过重复执行。")
