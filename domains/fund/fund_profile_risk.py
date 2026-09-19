@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """基金「外围风险」采集与评估 —— 基金经理变更 + 规模变化/清盘预警
 
-补齐方向（JS-20260920-04）：项目原本只有净值类量化指标（回撤/波动/夏普/Calmar/
-止盈/限购），缺少「谁在管、盘子有多大」这两类持仓外围风险。本模块补这两块。
+补齐方向（JS-20260920-04 起，JS-20260920-08 扩限购额度 + 规模暴增）：
+  项目原本只有净值类量化指标（回撤/波动/夏普/Calmar/止盈/限购），本模块补「谁在管、
+  盘子多大、能买多少」三类持仓外围风险。
 
 数据源（全部为免费公开源，绝不接付费授权源）：
   1) 基金经理变动一览
@@ -12,6 +13,9 @@
   2) 规模变动（季度）
      https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=gmbd&code=<code>&page=1&per=20
      列：日期 / 期间申购(亿份) / 期间赎回(亿份) / 期末总份额(亿份) / 期末净资产(亿元) / 净资产变动率
+  3) 申购限额（限购额度）
+     https://fundf10.eastmoney.com/jjfl_<code>.html
+     页面内「交易状态」附近含「单日累计购买上限N元/万元」与「开放申购/暂停申购/限大额」
 
 合规与诚实度（项目铁律）：
   - 只抓公开页面、低速串行抓取（默认每个请求间隔 0.6s），标明来源；
@@ -62,18 +66,21 @@ SOURCE_TAG = "天天基金(fundf10.eastmoney.com)"
 MANAGER_URL = "http://fundf10.eastmoney.com/jjjl_{code}.html"
 SCALE_URL = ("https://fundf10.eastmoney.com/FundArchivesDatas.aspx"
              "?type=gmbd&code={code}&page=1&per=20")
+PURCHASE_LIMIT_URL = "https://fundf10.eastmoney.com/jjfl_{code}.html"
 
 DEFAULT_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/120.0 Safari/537.36")
 
-# 缓存 TTL：经理变动按天、规模按季度更新即可
+# 缓存 TTL：经理变动按天、规模按季度、限购按天更新即可
 MANAGER_TTL_HOURS = 24
 SCALE_TTL_DAYS = 7
+PURCHASE_TTL_HOURS = 24
 
 # 规模风险阈值（单位：亿元）
 SCALE_DANGER_YI = 0.5     # 5000 万清盘线
 SCALE_WARN_YI = 2.0       # 迷你基金线
 SCALE_DROP_WARN_PCT = -30.0  # 单季净资产跌幅预警线
+SCALE_SURGE_WARN_PCT = 100.0  # 单季净资产涨幅预警线（规模暴增，原只判下跌，JS-20260920-08 补）
 
 
 # ---------------------------------------------------------------------------
@@ -171,6 +178,63 @@ def _parse_date(text: str) -> Optional[datetime]:
     return None
 
 
+def parse_purchase_limit(html: str) -> Dict[str, object]:
+    """解析基金「申购限额 / 限购额度」
+
+    来源：fundf10 的 jjfl_<code>.html 页面（交易状态区）。
+    可解析出两类信息：
+      - 单日累计购买上限（元 / 万元），无该字样视为「无单日限额（或限额未公开）」
+      - 申购状态：开放申购 / 暂停申购 / 限大额
+
+    实测样本：
+      270042 → 单日累计购买上限2元            → daily_limit_yuan=2   status=限大额
+      005698 → 单日累计购买上限5000元         → daily_limit_yuan=5000 status=限大额
+      011369 → 单日累计购买上限200.00万元     → daily_limit_yuan=2000000 status=限大额
+      015942 → 交易状态：<span>开放申购</span> → daily_limit_yuan=None status=开放
+
+    Returns:
+        dict: ok / daily_limit_yuan(float|None) / status / status_text
+    """
+    if not html:
+        return {"ok": False, "daily_limit_yuan": None, "status": "", "status_text": ""}
+    s = html
+    # 单日累计购买上限N元 / N万元（数字与「万」之间允许空白）
+    m = re.search(r"单日累计购买上限[^0-9<]*?(\d+(?:\.\d+)?)\s*万?\s*元", s)
+    if m:
+        val = float(m.group(1))
+        if "万" in m.group(0):
+            val *= 10000.0
+        limit_yuan = val
+        status = "限大额"
+        status_text = "限大额申购"
+    else:
+        limit_yuan = None
+        if "暂停申购" in s:
+            status = "暂停"
+            status_text = "暂停申购"
+        elif "限大额" in s:
+            status = "限大额"
+            status_text = "限大额申购"
+        elif "开放申购" in s:
+            status = "开放"
+            status_text = "开放申购"
+        else:
+            status = "未知"
+            status_text = "未知"
+    return {"ok": True, "daily_limit_yuan": limit_yuan, "status": status, "status_text": status_text}
+
+
+def _format_yuan(yuan: Optional[float]) -> str:
+    """2000000 → '200.00万'；5000 → '5000'；2 → '2'"""
+    if yuan is None:
+        return "—"
+    if yuan >= 10000:
+        return "%.2f万" % (yuan / 10000.0)
+    if yuan == int(yuan):
+        return str(int(yuan))
+    return "%.2f" % yuan
+
+
 # ---------------------------------------------------------------------------
 # 评估（纯函数，不触网）
 # ---------------------------------------------------------------------------
@@ -241,7 +305,8 @@ def eval_manager_change(history: List[Dict[str, str]],
 def eval_scale_risk(history: List[Dict[str, str]],
                     danger_yi: float = SCALE_DANGER_YI,
                     warn_yi: float = SCALE_WARN_YI,
-                    drop_warn_pct: float = SCALE_DROP_WARN_PCT) -> Dict:
+                    drop_warn_pct: float = SCALE_DROP_WARN_PCT,
+                    surge_warn_pct: float = SCALE_SURGE_WARN_PCT) -> Dict:
     """评估规模变化与清盘风险
 
     Args:
@@ -318,6 +383,64 @@ def eval_scale_risk(history: List[Dict[str, str]],
             result["level"] = "warn"
         result["message"] += "；已连续 %d 个季度规模下滑" % result["consecutive_down"]
 
+    # 规模暴增（原只判下跌，JS-20260920-08 补）：单季环比大涨同样值得预警。
+    # 注意：规模普涨（全市场景气）也可能触发，故只给 warn 级别、由用户结合语境判断。
+    if pct is not None and pct >= surge_warn_pct:
+        if result["level"] == "safe":
+            result["level"] = "warn"
+        result["message"] += ("；最近一期环比 +%.2f%%，规模显著扩张（可能降低大资金操作灵活性）"
+                              % pct)
+
+    return result
+
+
+def eval_purchase_limit(limit: Dict[str, object],
+                         plan_investment_monthly: float = 3000,
+                         change: str = "same") -> Dict:
+    """评估申购限额对定投执行的影响
+
+    Args:
+        limit: parse_purchase_limit 结果（daily_limit_yuan / status / status_text）
+        plan_investment_monthly: 该基金配置的月度计划投入（元），用于推算计划日投
+        change: 与上次采集相比的变化：'same'/'tighter'/'loosened'/'new'/'changed'
+
+    Returns:
+        dict: ok / level('info'|'warn') / daily_limit_yuan / plan_daily / affected /
+              change / message
+    """
+    daily = limit.get("daily_limit_yuan")
+    status = limit.get("status", "")
+    plan_daily = round(plan_investment_monthly / 30.0)
+    result = {
+        "ok": bool(limit),
+        "level": "info",
+        "daily_limit_yuan": daily,
+        "status": status,
+        "plan_daily": plan_daily,
+        "affected": False,
+        "change": change,
+        "message": "",
+    }
+    if status == "暂停":
+        result["level"] = "warn"
+        result["message"] = "申购状态：暂停申购，定投无法执行"
+        return result
+    if daily is None:
+        result["message"] = "申购开放，无单日限额（或限额未公开）"
+        return result
+    if daily < plan_daily:
+        result["level"] = "warn"
+        result["affected"] = True
+        result["message"] = ("限购 %s 元/日，低于计划日投约 %s 元，日定投计划无法全额执行，"
+                             "差额建议通过同策略基金补足"
+                             % (_format_yuan(daily), plan_daily))
+    else:
+        result["message"] = "限购 %s 元/日，额度充裕（计划日投约 %s 元）" % (
+            _format_yuan(daily), plan_daily)
+    if change == "tighter":
+        result["message"] += "（较上次采集收紧）"
+    elif change == "loosened":
+        result["message"] += "（较上次采集放宽）"
     return result
 
 
@@ -455,19 +578,94 @@ class FundProfileFetcher:
         return {"ok": False, "rows": [], "source": SOURCE_TAG, "fetched_at": "",
                 "stale": False, "reason": reason}
 
+    def fetch_purchase_limit(self, code: str, use_cache: bool = True) -> Dict:
+        """返回 {'ok','daily_limit_yuan','status','status_text','source','fetched_at',
+        'stale','reason','change'}
+
+        变更检测：与上次成功采集的限购额对比，得出 same/tighter/loosened/changed/new。
+        """
+        code = str(code).strip()
+        # 先读旧缓存，用于变更对比
+        old_payload, _ = self._read_cache("limit", code, PURCHASE_TTL_HOURS * 3600)
+        old_parsed = None
+        if old_payload and isinstance(old_payload.get("rows"), list) and old_payload["rows"]:
+            old_parsed = old_payload["rows"][0]
+
+        if use_cache and old_parsed and not old_payload.get("_expired"):
+            out = dict(old_parsed)
+            out.update({"ok": True, "source": SOURCE_TAG,
+                        "fetched_at": old_payload.get("fetched_at", ""),
+                        "stale": False, "reason": "",
+                        "change": self._limit_change(old_parsed, old_parsed)})
+            return out
+
+        html = self._http_get(PURCHASE_LIMIT_URL.format(code=code),
+                              referer=PURCHASE_LIMIT_URL.format(code=code))
+        parsed = parse_purchase_limit(html) if html else {"ok": False,
+                                                          "daily_limit_yuan": None,
+                                                          "status": "", "status_text": ""}
+        if parsed.get("ok"):
+            change = self._limit_change(old_parsed, parsed)
+            self._write_cache("limit", code, [parsed], True)
+            return {"ok": True, "source": SOURCE_TAG,
+                    "fetched_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "stale": False, "reason": "", "change": change, **parsed}
+        reason = "网络抓取失败或页面结构变化"
+        if old_parsed:
+            old_parsed.update({"ok": True, "source": SOURCE_TAG,
+                               "fetched_at": old_payload.get("fetched_at", ""),
+                               "stale": True, "reason": reason + "（使用过期缓存）",
+                               "change": self._limit_change(old_parsed, old_parsed)})
+            return old_parsed
+        return {"ok": False, "daily_limit_yuan": None, "status": "",
+                "status_text": "", "source": SOURCE_TAG, "fetched_at": "",
+                "stale": False, "reason": reason, "change": "new"}
+
+    @staticmethod
+    def _limit_change(old: Optional[Dict], new: Optional[Dict]) -> str:
+        if not old:
+            return "new"
+        if not new:
+            return "changed"
+        ov = old.get("daily_limit_yuan")
+        nv = new.get("daily_limit_yuan")
+        if ov is None and nv is None:
+            return "same"
+        if ov is None or nv is None:
+            return "changed"
+        if abs(ov - nv) < 1e-6:
+            return "same"
+        return "tighter" if nv < ov else "loosened"
+
     def get_profile(self, code: str, config_manager: Optional[str] = None,
+                    plan_investment_monthly: float = 3000,
                     use_cache: bool = True) -> Dict:
         """一次取回该基金的外围风险档案（含评估结果）"""
         mgr = self.fetch_manager_history(code, use_cache=use_cache)
         scale = self.fetch_scale_history(code, use_cache=use_cache)
+        limit = self.fetch_purchase_limit(code, use_cache=use_cache)
+        limit_eval = eval_purchase_limit(
+            {"ok": limit.get("ok", False),
+             "daily_limit_yuan": limit.get("daily_limit_yuan"),
+             "status": limit.get("status", ""),
+             "status_text": limit.get("status_text", "")},
+            plan_investment_monthly=plan_investment_monthly,
+            change=limit.get("change", "same"))
         return {
             "code": code,
             "source": SOURCE_TAG,
             "manager_raw": mgr,
             "scale_raw": scale,
+            "limit_raw": {"ok": limit.get("ok", False),
+                          "daily_limit_yuan": limit.get("daily_limit_yuan"),
+                          "status": limit.get("status", ""),
+                          "status_text": limit.get("status_text", ""),
+                          "change": limit.get("change", "same")},
             "manager": eval_manager_change(mgr.get("rows") or [], config_manager),
             "scale": eval_scale_risk(scale.get("rows") or []),
-            "stale": bool(mgr.get("stale") or scale.get("stale")),
+            "limit": limit_eval,
+            "limit_change": limit.get("change", "same"),
+            "stale": bool(mgr.get("stale") or scale.get("stale") or limit.get("stale")),
             "fetched_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
 
@@ -487,7 +685,9 @@ def build_profiles(funds: List[Dict], delay: float = 0.6) -> Dict[str, Dict]:
         if not code:
             continue
         try:
-            out[code] = fetcher.get_profile(code, fund.get("manager"))
+            out[code] = fetcher.get_profile(
+                code, fund.get("manager"),
+                plan_investment_monthly=fund.get("investment", 3000))
         except Exception as e:  # 单只失败不影响整体
             logger.warning("基金 %s 外围风险采集失败: %s", code, e)
             out[code] = {
@@ -495,8 +695,12 @@ def build_profiles(funds: List[Dict], delay: float = 0.6) -> Dict[str, Dict]:
                 "source": SOURCE_TAG,
                 "manager_raw": {"ok": False, "rows": [], "reason": str(e)},
                 "scale_raw": {"ok": False, "rows": [], "reason": str(e)},
+                "limit_raw": {"ok": False, "rows": [], "reason": str(e)},
                 "manager": eval_manager_change([]),
                 "scale": eval_scale_risk([]),
+                "limit": eval_purchase_limit({"ok": False},
+                                            plan_investment_monthly=fund.get("investment", 3000)),
+                "limit_change": "new",
                 "stale": False,
                 "fetched_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             }
