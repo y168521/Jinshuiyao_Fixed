@@ -39,6 +39,24 @@ if (-not $git) {
 $env:PATH = (Split-Path -Parent $git) + ";" + $env:PATH
 function git { & $script:git @args }
 
+# 1.5) 补推「已手动 commit 但没 push」的提交（2026-09-20 修复 JS-20260920-06）
+#    原逻辑只在"有未暂存改动"时才 commit+push；AI 在会话里手动 commit 后工作区干净，
+#    分支走到 "nothing staged, skip commit" → 本地提交永远推不上去（曾滞留 4 个提交）。
+#    违反「git 别长期领先远端」铁律，故无改动时也要检查未推送提交并补推。
+function Push-Pending {
+    $pending = git -c core.quotepath=false log --oneline origin/master..HEAD 2>$null | Where-Object { $_ }
+    if (($pending | Measure-Object).Count -gt 0) {
+        $n = ($pending | Measure-Object).Count
+        git push origin master 2>&1 | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            Log "pushed $n pending commit(s): $(($pending | Select-Object -First 3) -join '; ')"
+        } else {
+            Log "push pending FAILED (network?), $n commit(s) still local"
+            Notify "有 $n 个本地提交推送失败（网络问题）。改动保留在本地，网络恢复后会自动补推。"
+        }
+    }
+}
+
 # 1) Pull remote first (laptop may have pushed).
 #    Stash unstaged changes if any (pull --rebase refuses otherwise), restore after.
 git stash push -u -m "auto-sync-tmp" 2>&1 | Out-Null
@@ -120,9 +138,11 @@ if ($candidates.Count -gt 0) {
         }
     } else {
         Log "nothing staged, skip commit"
+        Push-Pending
     }
 } else {
     Log "no source changes, skip"
+    Push-Pending
 }
 
 # 5) 顺带刷新 Obsidian vault(金水谣活文档 -> vault 副本, 只读联动)

@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-20 06:53:52",
+  "updated_at": "2026-09-20 07:13:44",
   "items": [
     {
       "id": 1,
@@ -16,6 +16,22 @@
       "js": "JS-20260920-04",
       "created_at": "2026-09-20 06:52:12",
       "closed_at": "2026-09-20 06:53:52"
+    },
+    {
+      "id": 3,
+      "title": "修 pre-commit hook 在非交互环境(dirname/git rev-parse 不可用)必然失败",
+      "status": "done",
+      "js": "JS-20260920-05",
+      "created_at": "2026-09-20 07:10:47",
+      "closed_at": "2026-09-20 07:13:44"
+    },
+    {
+      "id": 4,
+      "title": "修自动同步不推送已手动提交的 commit(补 Push-Pending 分支)",
+      "status": "done",
+      "js": "JS-20260920-06",
+      "created_at": "2026-09-20 07:10:47",
+      "closed_at": "2026-09-20 07:13:44"
     }
   ]
 }
