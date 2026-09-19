@@ -202,3 +202,6 @@ knowledge/file_knowledge_index.json
 tools/.wrapup_skip_count.txt
 金水谣数据/log/.ai_decisions_triple_retry_cooldown
 金水谣数据/log/.triple_retry_cooldown
+# JS-20260920-07 收工门禁计划任务日志/标记（运行时产物，不入库）
+金水谣数据/log/closeout_gate_task.log
+金水谣数据/log/closeout_gate_task.FAIL
