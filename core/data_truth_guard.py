@@ -87,10 +87,16 @@ class DataTruthGuard:
         subsystems["lottery"] = self._check_lottery()
 
         # 汇总数据来源分布
+        # 口径修正（JS-20260920）：只统计「数据型」检测项（counts_as_source=True），
+        # 元检测项/与其它项共用同一数据集的项一律不计，避免两处口径错误：
+        #   ① 把检测项自身的 source 标签当数据 → 「硬编码兜底检测」通过项被自计成「hardcoded 1 条」（实际 0 条）；
+        #   ② 同一数据集被多个检测项重复计 → 足彩 38 场被「时效性」+「赔率」各计一次。
         source_dist = {SOURCE_REAL_API: 0, SOURCE_CACHE: 0,
                        SOURCE_FALLBACK: 0, SOURCE_HARDCODED: 0, SOURCE_UNKNOWN: 0}
         for ss in subsystems.values():
             for chk in ss.get("checks", []):
+                if not chk.get("counts_as_source", True):
+                    continue
                 src = chk.get("source", SOURCE_UNKNOWN)
                 if src in source_dist:
                     source_dist[src] += chk.get("count", 1)
@@ -229,6 +235,7 @@ class DataTruthGuard:
             "detail": csv_detail,
             "action": csv_action,
             "count": total_count,
+            "counts_as_source": True,  # 数据型：实时赛事条数计入来源分布
         })
 
         # ---- 检测2: 赔率合理性 ----
@@ -246,6 +253,7 @@ class DataTruthGuard:
             "detail": odds_detail,
             "action": odds_action,
             "count": odds_count,
+            "counts_as_source": False,  # 与「赛事数据时效性」同一数据集，避免 38 场被重复计
         })
 
         # ---- 检测3: 硬编码检测 ----
@@ -256,7 +264,20 @@ class DataTruthGuard:
             "source": SOURCE_HARDCODED,
             "detail": hc_detail,
             "action": hc_action,
-            "count": 1,
+            "count": 0,
+            "counts_as_source": False,  # 元检测项：不是数据，避免通过项被自计成「hardcoded 1 条」
+        })
+
+        # ---- 检测4: 历史赛果新鲜度（matches_real.csv，堵自动更新盲区）----
+        hist_status, hist_detail, hist_action = self._check_history_freshness(primary_csv)
+        checks.append({
+            "name": "历史赛果新鲜度",
+            "status": hist_status,
+            "source": SOURCE_CACHE,
+            "detail": hist_detail,
+            "action": hist_action,
+            "count": 0,
+            "counts_as_source": False,  # 回测素材，不计入实时数据来源分布
         })
 
         # 汇总子系统状态
@@ -302,24 +323,60 @@ class DataTruthGuard:
             return 0
 
     def _check_real_odds(self, json_path: str):
-        """检查真实赛事赔率合理性（胜平负在合理区间）"""
+        """检查真实赛事赔率合理性（胜平负在合理区间）
+
+        口径修正（JS-20260920）：
+          - 「未开售/缺失」与「数值越界」必须分开：
+            体彩未开售盘口接口返回 -1，domains/football/fetcher.py::_safe_odds 规整为 ''。
+            旧实现 `float(m.get(key, 0))` 遇空串抛 ValueError 落进 except → 被误记成
+            「赔率异常（<1.01）」，3 场就能把整份报告判成 degraded（假告警）。
+          - 新口径：空串/None/-1/非正数 视为「无该盘口」→ 跳过，不计异常；
+            仅当赔率「存在但数值越界」（<1.01 或 >1000）时才判异常。
+
+        返回: (status, detail, action)
+        """
         try:
             with open(json_path, "r", encoding="utf-8") as f:
                 payload = json.load(f)
             matches = payload.get("matches") or []
-            bad = []
-            for m in matches:
-                try:
-                    w, d, l = float(m.get("odds_win", 0)), float(m.get("odds_draw", 0)), float(m.get("odds_lose", 0))
-                    if w < 1.01 or d < 1.01 or l < 1.01:
-                        bad.append(m.get("match_id", "?"))
-                except (TypeError, ValueError):
-                    bad.append(m.get("match_id", "?"))
             if not matches:
                 return "warn", "真实赛事 JSON 为空，无赔率可检", None
+
+            bad = []          # 存在但越界
+            checked = 0       # 至少有一个有效赔率值的比赛数
+            unsold = 0        # 无任何有效赔率（未开售/缺失）的比赛数
+
+            for m in matches:
+                mid = m.get("match_id", "?")
+                trio = []
+                for key in ("odds_win", "odds_draw", "odds_lose"):
+                    raw = m.get(key, None)
+                    if raw is None:
+                        continue
+                    if isinstance(raw, str) and raw.strip() in ("", "-1"):
+                        continue
+                    try:
+                        val = float(raw)
+                    except (TypeError, ValueError):
+                        continue
+                    if val <= 0:  # 0 / -1 等非正数 = 未开售或缺失哨兵值
+                        continue
+                    trio.append((key, val))
+                if not trio:
+                    unsold += 1
+                    continue
+                checked += 1
+                for key, val in trio:
+                    if val < 1.01 or val > 1000.0:
+                        bad.append(f"{mid}({key}={val})")
+
             if bad:
-                return "warn", f"{len(bad)} 场比赛赔率异常（<1.01）: {bad[:5]}", None
-            return "pass", f"{len(matches)} 场赔率均正常（体彩官方源）", None
+                return "warn", (f"{len(bad)} 处赔率数值异常（存在但越界，合理区间 1.01~1000）: "
+                                f"{bad[:5]}"), "检查赔率来源，更新为真实赔率数据"
+            detail = f"{checked} 场含赔率的比赛数值均正常（体彩官方源）"
+            if unsold:
+                detail += f"；{unsold} 场未开售/无胜平负盘口（正常，已跳过，不计异常）"
+            return "pass", detail, None
         except Exception as e:
             return "warn", f"赔率检查失败: {e}", None
 
@@ -441,6 +498,63 @@ class DataTruthGuard:
             return "pass", "未检测到硬编码/模拟兜底逻辑（演示数据已剔除）", None
         except Exception as e:
             return "warn", f"检测失败: {str(e)}", None
+
+    def _check_history_freshness(self, csv_path: str):
+        """检测历史赛果回测素材（matches_real.csv）的新鲜度
+
+        背景（JS-20260920）：matches_real.csv 是手工整理、WebSearch 核验过的真实赛果，
+        由 jinshuiyao/data/generate_real_dataset.py 写入，用于模型回测。它不在
+        _check_csv_matches / _check_real_odds 的检测范围内（那两个只看实时赛事 JSON/CSV），
+        所以一旦该文件停止补更，守卫会「漏报」——回测模型还在用早已冻结的旧赛季数据却无人察觉。
+
+        本检测专门堵这个盲区：
+          - 解析 match_time 列，取最新一场的日期；
+          - 与今天对比：>180天 → fail（赛季彻底过时，应暂停回测或补更）；
+                       >30天  → warn（有一阵子没补了，提醒补更）；
+                       否则    → pass。
+
+        返回: (status, detail, action)
+        """
+        if not os.path.exists(csv_path):
+            return "warn", f"历史赛果素材不存在（{csv_path}），无法检测新鲜度", "生成 matches_real.csv 回测素材"
+
+        try:
+            dates = []
+            total = 0
+            with open(csv_path, "r", encoding="utf-8-sig") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    total += 1
+                    mt = (row.get("match_time") or "").strip()
+                    if len(mt) >= 10:
+                        try:
+                            dates.append(datetime.strptime(mt[:10], "%Y-%m-%d"))
+                        except ValueError:
+                            continue
+
+            if not dates:
+                return "warn", f"历史赛果素材共{total}行，但 match_time 无可解析日期，无法判断新鲜度", "检查 match_time 字段格式"
+
+            newest = max(dates)
+            today = datetime.now()
+            age_days = (today - newest).days
+
+            if age_days > 180:
+                return ("fail",
+                        f"历史赛果素材最新一场为 {newest:%Y-%m-%d}（{age_days}天前），"
+                        f"已超过 180 天，回测数据严重过时",
+                        "补更最新赛季真实赛果，或暂停基于该素材的回测")
+            if age_days > 30:
+                return ("warn",
+                        f"历史赛果素材最新一场为 {newest:%Y-%m-%d}（{age_days}天前），"
+                        f"超过 30 天未补更，建议补充最新赛果",
+                        "将已完赛的真实结果追加进 matches_real.csv")
+            return ("pass",
+                    f"历史赛果素材最新一场为 {newest:%Y-%m-%d}（{age_days}天前），"
+                    f"共{total}行，新鲜度正常",
+                    None)
+        except Exception as e:
+            return "warn", f"历史赛果新鲜度检测失败: {e}", None
 
     # ================================================================
     # 股票子系统检测
