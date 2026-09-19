@@ -17,6 +17,28 @@ function Notify($msg) {
 Set-Location -LiteralPath $Repo
 function Log($m) { "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') $m" | Out-File -FilePath $Log -Append -Encoding utf8 }
 
+# 0) 定位 git（2026-09-19 修复 JS-20260919-07）：
+#    计划任务环境下 PortableGit 不在 PATH 上，裸 `git` 会静默失败 → pull 恒报 offline。
+#    改为候选路径探测，并把 git 所在目录临时加入 PATH（供 git 内部调用 ssh 等组件）。
+function Resolve-Git {
+    $cands = @()
+    $cands += (Get-ChildItem "$env:LOCALAPPDATA\..\.workbuddy\binaries\PortableGit\versions\*\cmd\git.exe" -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
+    $cands += "C:\Users\Administrator\.workbuddy\binaries\PortableGit\versions\1.2.0\cmd\git.exe"
+    $cands += "C:\Program Files\Git\cmd\git.exe"
+    $cands += "C:\Program Files (x86)\Git\cmd\git.exe"
+    foreach ($c in $cands) { if ($c -and (Test-Path -LiteralPath $c)) { return $c } }
+    $w = Get-Command git -ErrorAction SilentlyContinue
+    if ($w) { return $w.Source }
+    return $null
+}
+$git = Resolve-Git
+if (-not $git) {
+    Log "FATAL: 找不到 git.exe，同步中止"
+    exit 1
+}
+$env:PATH = (Split-Path -Parent $git) + ";" + $env:PATH
+function git { & $script:git @args }
+
 # 1) Pull remote first (laptop may have pushed).
 #    Stash unstaged changes if any (pull --rebase refuses otherwise), restore after.
 git stash push -u -m "auto-sync-tmp" 2>&1 | Out-Null
@@ -77,7 +99,8 @@ if ($candidates.Count -gt 0) {
                 "启动提示词.txt", "复制启动提示词.bat",
                 "金水谣_纲.md", "金水谣_契.md", "金水谣_录.md",
                 "AI协作交接中心.md", "工作留痕总索引.md",
-                "金水谣助手门户.html"
+                "金水谣助手门户.html",
+                "金水谣数据\log\经验收集箱.md"
             )
             $RootDir = Split-Path -Parent $Repo
             foreach ($kf in $keyFiles) {
@@ -106,13 +129,26 @@ if ($candidates.Count -gt 0) {
 & powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\Administrator\Nutstore\1\我的坚果云\模型\obsidian-vault\刷新vault.ps1" 2>&1 | Out-Null
 
 # 6) 自动蒸馏: 经验收集箱新条目 -> SKILL.md(幂等), 有改动下轮自动同步提交
-#    python 优先 LOCALAPPDATA venv（新环境），回退 D:\Project_Env 旧环境（迁移中，勿删）
-$py = "$env:LOCALAPPDATA\Jinshuiyao\venv\Scripts\python.exe"
-if (-not (Test-Path $py)) {
-    $py = "D:\Project_Env\jinshuiyao_env\Scripts\python.exe"
+#    2026-09-19 修复(JS-20260919-07): 原回退路径 %LOCALAPPDATA%\Jinshuiyao\venv 与 D:\Project_Env 均已不存在
+#    (系统重装 + 盘符变化)，导致步骤 6/7/8 静默跳过。改为「候选路径逐个探测」，并加写日志便于察觉。
+function Resolve-Py {
+    $cands = @(
+        "$env:LOCALAPPDATA\Jinshuiyao\venv\Scripts\python.exe",
+        "E:\Project_Env\jinshuiyao_env\Scripts\python.exe",
+        "D:\Project_Env\jinshuiyao_env\Scripts\python.exe",
+        "C:\Project_Env\jinshuiyao_env\Scripts\python.exe",
+        "E:\Python314\python.exe",
+        "C:\Python314\python.exe"
+    )
+    foreach ($c in $cands) { if (Test-Path -LiteralPath $c) { return $c } }
+    return $null
 }
-if (Test-Path $py) {
+$py = Resolve-Py
+if ($py) {
+    Log "step6/7/8 python = $py"
     & $py "$Repo\tools\auto_distill.py" 2>&1 | Out-Null
+} else {
+    Log "step6/7/8 SKIPPED: 找不到可用的 python.exe（候选路径全部不存在）"
 }
 
 # 7) 数据真实性自动守卫: 全量检测足彩/股票/彩票数据真实性, 结果写 data_truth.log
