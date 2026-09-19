@@ -175,6 +175,7 @@
 - [x] **探针巡检修复(GDK编码崩溃+只读瘦身, JS-20260810-06)**：启动日志发现 mirror_frontend_probe 子进程输出 UnicodeDecodeError(gbk)×2——core/automation_mirror.py subprocess.run(text=True) 未指定编码，Windows 默认 GBK 解码 UTF-8 输出致 _readerthread 崩溃，已加 encoding=utf-8+errors=replace；探针脚本 frontend_health_probe.py 的 POST 清单含写型端点(video/ingest、knowledge/add、backtest、chat、review/trigger 等)，每15分钟真写知识库(example.com卡片)、跑5980日回测、触发AI对话并因15s超时断开产生 ConnectionAbortedError 500噪音——已瘦身为4个只读端点，trend/data/crosslinks 补齐参数；验证：45端点44正常健康率97.8%、5xx=0/404=0/挂起=0、py_compile 过、服务器已重启
 
 - [x] **数据真实性守卫两处假红根治 + 历史赛果新鲜度盲区封堵 + 2026-27 真实赛果回填（JS-20260920-01）**：①`_check_real_odds` 旧 `float(m.get(key,0))` 遇体彩未开售盘口规整后的空串 `''` 抛 ValueError 被误记「赔率异常<1.01」，改空串/None/`-1`/非正数视为「无该盘口」跳过、仅越界(<1.01或>1000)才告警；②来源分布 `source_distribution` 把检测项自身 source 标签当数据累加(「硬编码兜底检测」通过项被自计成 `hardcoded 1 条`、同一数据集被时效性+赔率重复计)，新增 `counts_as_source` 标志逐检测项区分、聚合只计数据型项；③新增 `_check_history_freshness`+足彩第4项「历史赛果新鲜度」(>30天warn/>180天fail)封堵自动更新盲区——matches_real.csv 原本冻结在 2026-05-25 无人察觉；④回填 2026-27 真实赛果 50 场(英超第1/2轮、西甲第1/2/3轮，premierleague.com/laliga.com/AS.com/fbref/football.fm 多源交叉核验、零编造)，数据集143→193行、新鲜度→pass
+- [x] **智能链路地图卡死根因定性 + 误入仓库临时脚本清理（JS-20260920-02）**：①链路地图页卡在「正在探路中…」、`GET /api/chain-map` 返 500 `探路器未产出结果`/exit_code=1/stderr 空——经三证定性为**沙箱 `[safe-delete]` 删除守卫误杀探路子进程**（探路触发 A3 真实预测引擎，引擎内 `.bak` 备份轮转单回合删除 87~90 个 > 阈值 50 → 进程被中止 → 无 JSON → 500），页面与后端代码均无缺陷，手动直跑 `tools/route_probe.py` 15.7 秒正常产出（6 链路 5 通 1 断，断在 C2 号码偏差属真实数据未积累）；②排查时建的 10 个诊断临时脚本被自动同步在 554d5d9 误提交进仓库，已删除并提交 448b0c0，复查 `git ls-tree` 临时文件 0 残留。
 
 ---
 
