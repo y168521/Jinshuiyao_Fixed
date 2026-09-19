@@ -174,6 +174,8 @@
 - [x] **巡检归位: 流水线页面入仓库+入口补全+04登记恢复(JS-20260810-05)**：审查今早并发会话(JS-01~04)产物——发现 agent-pipeline-visualizer.html 建在仓库外根目录(模型/)、git 提交未含该文件、控制中心双副本无入口、页面无 back-link；已移入 jinshuiyao-guide/ 并注册 /agent-pipeline 路由、双副本控制中心侧边栏加「AI流水线」入口、页面顶部加返回控制中心链接；同时发现 JS-20260810-04 登记只写在根目录未进 repo（git 6a1a1ba 只改 router.py），处理中误将旧版覆盖根目录后按 git log+diff 重建恢复；验证：/agent-pipeline 与 /api/pipeline/status 均 200、py_compile 过、check_consistency PASS、零回归
 - [x] **探针巡检修复(GDK编码崩溃+只读瘦身, JS-20260810-06)**：启动日志发现 mirror_frontend_probe 子进程输出 UnicodeDecodeError(gbk)×2——core/automation_mirror.py subprocess.run(text=True) 未指定编码，Windows 默认 GBK 解码 UTF-8 输出致 _readerthread 崩溃，已加 encoding=utf-8+errors=replace；探针脚本 frontend_health_probe.py 的 POST 清单含写型端点(video/ingest、knowledge/add、backtest、chat、review/trigger 等)，每15分钟真写知识库(example.com卡片)、跑5980日回测、触发AI对话并因15s超时断开产生 ConnectionAbortedError 500噪音——已瘦身为4个只读端点，trend/data/crosslinks 补齐参数；验证：45端点44正常健康率97.8%、5xx=0/404=0/挂起=0、py_compile 过、服务器已重启
 
+- [x] **数据真实性守卫两处假红根治 + 历史赛果新鲜度盲区封堵 + 2026-27 真实赛果回填（JS-20260920-01）**：①`_check_real_odds` 旧 `float(m.get(key,0))` 遇体彩未开售盘口规整后的空串 `''` 抛 ValueError 被误记「赔率异常<1.01」，改空串/None/`-1`/非正数视为「无该盘口」跳过、仅越界(<1.01或>1000)才告警；②来源分布 `source_distribution` 把检测项自身 source 标签当数据累加(「硬编码兜底检测」通过项被自计成 `hardcoded 1 条`、同一数据集被时效性+赔率重复计)，新增 `counts_as_source` 标志逐检测项区分、聚合只计数据型项；③新增 `_check_history_freshness`+足彩第4项「历史赛果新鲜度」(>30天warn/>180天fail)封堵自动更新盲区——matches_real.csv 原本冻结在 2026-05-25 无人察觉；④回填 2026-27 真实赛果 50 场(英超第1/2轮、西甲第1/2/3轮，premierleague.com/laliga.com/AS.com/fbref/football.fm 多源交叉核验、零编造)，数据集143→193行、新鲜度→pass
+
 ---
 
 ## 一、项目基本情况（给AI看的背景）
