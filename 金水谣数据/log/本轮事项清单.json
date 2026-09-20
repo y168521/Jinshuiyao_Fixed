@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-20 14:59:00",
+  "updated_at": "2026-09-20 15:00:46",
   "items": [
     {
       "id": 1,
@@ -68,10 +68,10 @@
     {
       "id": 9,
       "title": "清门禁两处假红:明文密钥4处定性为误报(台账标注不改规则)+补建 music/creator_output 两 STRONG_DIRS 目录(带.gitkeep),数据完整性转OK",
-      "status": "open",
-      "js": null,
+      "status": "done",
+      "js": "JS-20260920-11",
       "created_at": "2026-09-20 14:56:26",
-      "closed_at": null
+      "closed_at": "2026-09-20 15:00:46"
     },
     {
       "id": 10,
