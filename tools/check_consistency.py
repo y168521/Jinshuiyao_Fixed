@@ -538,6 +538,97 @@ def check_doc_tables():
     return errors
 
 
+def _parse_code_consts(path):
+    """用 AST 提取模块级数值常量（只取 int/float 字面量，排除 bool）"""
+    import ast
+    out = {}
+    with open(path, 'r', encoding='utf-8', errors='replace') as f:
+        tree = ast.parse(f.read())
+    for node in tree.body:
+        # 同时支持 `X = 1.0`(Assign) 与 `X: float = 1.0`(AnnAssign)
+        # ——只认 Assign 会让带注解的常量被静默跳过，造成"闸门假绿"
+        targets, value = [], None
+        if isinstance(node, ast.Assign):
+            targets, value = node.targets, node.value
+        elif isinstance(node, ast.AnnAssign) and node.value is not None:
+            targets, value = [node.target], node.value
+        v = _num_value(value)
+        if v is None:
+            continue
+        for t in targets:
+            if isinstance(t, ast.Name):
+                out[t.id] = v
+    return out
+
+
+def _num_value(node):
+    """取数值字面量，含负号。
+    注意：`X = -30.0` 在 AST 里是 UnaryOp(USub, Constant(30.0)) 而**不是** Constant
+    ——只判 Constant 会让所有负数常量被静默漏掉，造成"闸门假绿"。"""
+    import ast as _ast
+    if isinstance(node, _ast.Constant):
+        v = node.value
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            return v
+        return None
+    if isinstance(node, _ast.UnaryOp) and isinstance(node.op, (_ast.USub, _ast.UAdd)):
+        v = _num_value(node.operand)
+        if v is None:
+            return None
+        return -v if isinstance(node.op, _ast.USub) else v
+    return None
+
+
+def _check_threshold_text(md_text, consts, watch, label):
+    """校验 md 文本中每个被 watch 的常量行，是否含有代码里的实际数值"""
+    errors = []
+    norm = lambda s: s.replace('\u2212', '-').replace('\u2013', '-').replace('\uff0d', '-')
+    lines = md_text.splitlines()
+    for name in watch:
+        if name not in consts:
+            continue
+        val = consts[name]
+        hit = [ln for ln in lines if name in ln]
+        if not hit:
+            errors.append("  STD-THRESHOLD: %s 未登记常量 %s（标准唯一真源 §三 阈值表应登记）" % (label, name))
+            continue
+        want = ('%g' % val) if isinstance(val, float) else str(val)
+        if not any(want in norm(ln) for ln in hit):
+            errors.append("  STD-THRESHOLD: %s 常量 %s 代码值=%s 与文档登记不一致 → 以代码为准，回来修 §三 阈值表"
+                          % (label, name, want))
+    return errors
+
+
+def check_std_thresholds():
+    """⑦ 标准唯一真源 §三「数值阈值表」 vs 代码常量 一致性
+    立标准最大的风险是文档漂移：改了代码不改文档，就又变成两套口径
+    （这正是"每个 AI 各有各的标准"的根因）。本检查让机器保证
+    「代码常量 = 唯一事实源，文档只能跟随」。
+    安全设计：本检查自身任何异常一律降级为跳过，绝不因它而阻断提交。"""
+    try:
+        code = os.path.join(BASE_DIR, 'Jinshuiyao_Fixed', 'domains', 'fund', 'fund_profile_risk.py')
+        if not os.path.isfile(code):
+            return []
+        consts = _parse_code_consts(code)
+        watch = ['SCALE_DANGER_YI', 'SCALE_WARN_YI', 'SCALE_DROP_WARN_PCT',
+                 'SCALE_SURGE_WARN_PCT', 'MANAGER_TTL_HOURS', 'SCALE_TTL_DAYS',
+                 'PURCHASE_TTL_HOURS']
+        errors = []
+        targets = [
+            (os.path.join(BASE_DIR, 'Jinshuiyao_Fixed', '金水谣_标准唯一真源.md'), '仓库真源'),
+            (os.path.join(BASE_DIR, '金水谣_标准唯一真源.md'), '根镜像'),
+        ]
+        for fp, label in targets:
+            if not os.path.isfile(fp):
+                continue
+            with open(fp, 'r', encoding='utf-8', errors='replace') as f:
+                errors.extend(_check_threshold_text(f.read(), consts, watch, label))
+        return errors
+    except Exception as e:  # 绝不因本检查阻断提交
+        print("  STD-THRESHOLD: 检查自身异常，已跳过（%s: %s）" % (type(e).__name__, e))
+        return []
+
+
 def run_all(changed_files=None):
     """运行全部检查。changed_files: pre-commit 增量模式的变更文件列表（相对 BASE_DIR）"""
     css_fn = check_css_classes
@@ -550,6 +641,7 @@ def run_all(changed_files=None):
         'HTML结构平衡': check_html_structure,
         'CSS类定义完整': lambda: css_fn(changed_files),
         '文档表格管道数': check_doc_tables,
+        '标准阈值-代码常量': check_std_thresholds,
     }
     all_ok = True
     report = []
