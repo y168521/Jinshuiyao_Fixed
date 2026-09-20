@@ -483,6 +483,9 @@ class ReportGenerator:
         manager_warn_count = sum(1 for p in profiles.values()
                                  if p.get("manager", {}).get("level") in ("warn", "notice"))
         scale_warn_count = sum(1 for p in profiles.values() if p.get("scale", {}).get("level") in ("warn", "danger"))
+        # JS-20260920-08：限购额度（含「低于计划日投」受限 + 本次采集到的收紧变化）
+        limit_warn_count = sum(1 for p in profiles.values() if p.get("limit", {}).get("level") == "warn")
+        limit_tighten_count = sum(1 for p in profiles.values() if p.get("limit_change") == "tighter")
         
         # 基金卡片HTML
         fund_cards = []
@@ -569,19 +572,28 @@ class ReportGenerator:
             </div>
             """)
         
-        # 外围风险HTML（基金经理变更 / 规模变化·清盘预警）
+        # 外围风险HTML（基金经理变更 / 规模变化·清盘预警 / 限购额度）
         profile_items = []
+        limit_items = []
+        CHANGE_TAG = {
+            "tighter": ' <span style="color:var(--alert);font-size:12px;">[较上次采集收紧]</span>',
+            "loosened": ' <span style="color:var(--up);font-size:12px;">[较上次采集放宽]</span>',
+            "new": ' <span style="color:var(--text-secondary);font-size:12px;">[首次采集]</span>',
+        }
         for fund in FUND_CONFIG:
             code = fund["code"]
             p = profiles.get(code, {}) or {}
             mgr = p.get("manager", {}) or {}
             sc = p.get("scale", {}) or {}
+            lim = p.get("limit", {}) or {}
             stale_note = (' <span style="color:var(--text-secondary);font-size:12px;">'
                           '（网络未通，展示缓存数据）</span>') if p.get("stale") else ""
             mgr_level = mgr.get("level", "info") if mgr.get("ok") else "miss"
             mgr_cls = {"info": "ok", "notice": "warn", "warn": "warn"}.get(mgr_level, "miss")
             sc_level = sc.get("level", "miss") if sc.get("ok") else "miss"
             sc_cls = {"safe": "ok", "warn": "warn", "danger": "danger"}.get(sc_level, "miss")
+            lim_level = lim.get("level", "info") if lim.get("ok") else "miss"
+            lim_cls = {"info": "ok", "warn": "warn"}.get(lim_level, "miss")
             profile_items.append(f"""
             <div class="profile-item">
                 <div class="profile-title">
@@ -590,6 +602,15 @@ class ReportGenerator:
                 </div>
                 <div class="profile-line {mgr_cls}">经理：{mgr.get("message", "暂缺：未取到基金经理数据")}</div>
                 <div class="profile-line {sc_cls}">规模：{sc.get("message", "暂缺：未取到规模数据")}</div>
+            </div>
+            """)
+            limit_items.append(f"""
+            <div class="profile-item">
+                <div class="profile-title">
+                    <span class="pname">{fund["name"]}</span>
+                    <span class="pcode">{code}</span>{CHANGE_TAG.get(p.get("limit_change", ""), "")}
+                </div>
+                <div class="profile-line {lim_cls}">限购：{lim.get("message", "暂缺：未取到限购额度数据")}</div>
             </div>
             """)
         
@@ -840,6 +861,10 @@ class ReportGenerator:
                 <div class="number" style="color: {'var(--alert)' if scale_warn_count > 0 else 'var(--text-secondary)'}">{scale_warn_count}</div>
                 <div class="label">规模/清盘预警</div>
             </div>
+            <div class="summary-card">
+                <div class="number" style="color: {'var(--alert)' if limit_warn_count > 0 else 'var(--text-secondary)'}">{limit_warn_count}</div>
+                <div class="label">限购影响定投{'（收紧' + str(limit_tighten_count) + '只）' if limit_tighten_count else ''}</div>
+            </div>
         </div>
         
         <div class="section-title">持仓基金明细</div>
@@ -854,6 +879,11 @@ class ReportGenerator:
         <div class="profile-section">
             {''.join(profile_items) if profile_items else '<div style="color:var(--text-secondary);text-align:center;">本轮未采集外围风险（可用 --no-profile 关闭该板块）</div>'}
         </div>
+
+        <div class="section-title">限购额度变化监控</div>
+        <div class="profile-section">
+            {''.join(limit_items) if limit_items else '<div style="color:var(--text-secondary);text-align:center;">本轮未采集限购额度（可用 --no-profile 关闭该板块）</div>'}
+        </div>
         
         <div class="legend">
             <strong>指标说明：</strong>
@@ -866,8 +896,10 @@ class ReportGenerator:
             <strong>外围风险口径：</strong>
             基金经理变更 = 天天基金「本基金历任基金经理」最新一条起始期在 180 天内即视为近期变更；
             规模为季报口径（期末净资产）；清盘线取 5000 万元（基金合同常见条款：连续 60 个工作日
-            资产净值低于 5000 万可终止合同），2 亿元以下标记为迷你基金。取不到数据时显示"暂缺"，
-            不用任何模拟值代替。
+            资产净值低于 5000 万可终止合同），2 亿元以下标记为迷你基金，单季环比 ≥ +100% 标记为规模显著扩张。
+            <strong>限购额度</strong>取自天天基金基金费率页「单日累计购买上限」，
+            与计划日投（月投入 ÷ 30）比较判断是否影响定投执行，并与上次采集对比标注收紧/放宽。
+            取不到数据时显示"暂缺"，不用任何模拟值代替。
         </div>
         
         <div class="footer">
@@ -903,7 +935,7 @@ class DailyFundMonitor:
         Args:
             export_historical: 是否导出90天历史CSV
             force: 是否强制重新执行（即使今日报告已存在）
-            with_profile: 是否采集外围风险（基金经理变更 / 规模·清盘预警）
+            with_profile: 是否采集外围风险（基金经理变更 / 规模·清盘预警 / 限购额度）
             
         Returns:
             Dict: 包含报告路径、数据路径和监控数据的字典
@@ -1038,7 +1070,7 @@ class DailyFundMonitor:
         }
 
     def _collect_profiles(self) -> Dict:
-        """采集基金外围风险（基金经理变更 / 规模变化·清盘预警）
+        """采集基金外围风险（基金经理变更 / 规模变化·清盘预警 / 限购额度）
 
         数据源为天天基金公开页面，低速串行抓取；失败时该板块显示"暂缺"，不编造。
         """
@@ -1046,7 +1078,7 @@ class DailyFundMonitor:
             logger.warning("外围风险模块不可用，跳过该板块: %s", PROFILE_IMPORT_ERR)
             return {}
         try:
-            logger.info("正在采集外围风险（基金经理变更 / 规模变动）...")
+            logger.info("正在采集外围风险（基金经理变更 / 规模变动 / 限购额度）...")
             profiles = build_profiles(FUND_CONFIG)
             mgr_warn = sum(1 for p in profiles.values()
                            if p.get("manager", {}).get("level") == "warn")
@@ -1054,8 +1086,13 @@ class DailyFundMonitor:
                              if p.get("manager", {}).get("level") == "notice")
             scale_warn = sum(1 for p in profiles.values()
                              if p.get("scale", {}).get("level") in ("warn", "danger"))
-            logger.info("外围风险采集完成：经理近期变更 %d 只，配置待核对 %d 只，规模预警 %d 只",
-                        mgr_warn, mgr_notice, scale_warn)
+            limit_warn = sum(1 for p in profiles.values()
+                             if p.get("limit", {}).get("level") == "warn")
+            limit_tighten = sum(1 for p in profiles.values()
+                                if p.get("limit_change") == "tighter")
+            logger.info("外围风险采集完成：经理近期变更 %d 只，配置待核对 %d 只，"
+                        "规模预警 %d 只，限购影响定投 %d 只（其中本次采集到收紧 %d 只）",
+                        mgr_warn, mgr_notice, scale_warn, limit_warn, limit_tighten)
             return profiles
         except Exception as e:
             logger.warning("外围风险采集失败，跳过该板块: %s", e)

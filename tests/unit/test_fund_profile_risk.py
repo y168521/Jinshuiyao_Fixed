@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""基金外围风险模块测试（JS-20260920-04）
+"""基金外围风险模块测试（JS-20260920-04 建，JS-20260920-08 扩）
 
 测试内容：
-  - HTML 解析：基金经理变动一览 / 规模变动
-  - 评估逻辑：经理变更预警、规模·清盘预警分级
+  - HTML 解析：基金经理变动一览 / 规模变动 / 申购限额（限购额度）
+  - 评估逻辑：经理变更预警、规模·清盘与暴增预警、限购对定投的影响与变化方向
   - 诚实度：数据缺失时必须 ok=False 并提示"暂缺"，不得编造
 """
 import os
@@ -18,10 +18,14 @@ if _SCRIPT_DIR not in sys.path:
 from domains.fund.fund_profile_risk import (
     parse_manager_history,
     parse_scale_history,
+    parse_purchase_limit,
     eval_manager_change,
     eval_scale_risk,
+    eval_purchase_limit,
+    FundProfileFetcher,
     SCALE_DANGER_YI,
     SCALE_WARN_YI,
+    SCALE_SURGE_WARN_PCT,
 )
 
 # 与线上页面结构一致的样本（class 为 "w782 comm jloff"）
@@ -175,6 +179,107 @@ class TestScaleEval(unittest.TestCase):
         # 5000 万清盘线 / 2 亿迷你基金线，口径不得漂移
         self.assertEqual(SCALE_DANGER_YI, 0.5)
         self.assertEqual(SCALE_WARN_YI, 2.0)
+        self.assertEqual(SCALE_SURGE_WARN_PCT, 100.0)
+
+
+# ===========================================================================
+# JS-20260920-08：限购额度解析/评估 + 规模暴增预警
+# ===========================================================================
+class TestPurchaseLimit(unittest.TestCase):
+    """限购额度：解析 + 定投影响评估 + 变化检测"""
+
+    def test_parse_yuan_cap(self):
+        """270042 型：<span>单日累计购买上限2元</span>"""
+        r = parse_purchase_limit('<span>单日累计购买上限2元</span>')
+        self.assertTrue(r["ok"])
+        self.assertAlmostEqual(r["daily_limit_yuan"], 2.0)
+        self.assertEqual(r["status"], "限大额")
+
+    def test_parse_wan_cap(self):
+        """011369 型：单日累计购买上限200.00万元 → 2,000,000 元"""
+        r = parse_purchase_limit('<span>单日累计购买上限200.00万元</span>')
+        self.assertAlmostEqual(r["daily_limit_yuan"], 2000000.0)
+
+    def test_parse_open_no_cap(self):
+        """无限额：走「开放申购」分支，daily_limit_yuan 必须是 None（不是 0）"""
+        r = parse_purchase_limit('交易状态：<span>开放申购</span>')
+        self.assertTrue(r["ok"])
+        self.assertIsNone(r["daily_limit_yuan"])
+        self.assertEqual(r["status"], "开放")
+
+    def test_parse_paused(self):
+        r = parse_purchase_limit('交易状态：<span>暂停申购</span>')
+        self.assertIsNone(r["daily_limit_yuan"])
+        self.assertEqual(r["status"], "暂停")
+
+    def test_parse_empty_html_is_not_ok(self):
+        r = parse_purchase_limit("")
+        self.assertFalse(r["ok"])
+
+    def test_eval_below_plan_is_warn(self):
+        """限购 2 元 < 计划日投 100 元 → 定投执行受影响"""
+        lim = {"ok": True, "daily_limit_yuan": 2, "status": "限大额"}
+        r = eval_purchase_limit(lim, plan_investment_monthly=3000)
+        self.assertEqual(r["level"], "warn")
+        self.assertTrue(r["affected"])
+        self.assertEqual(r["plan_daily"], 100)
+        self.assertIn("无法全额执行", r["message"])
+
+    def test_eval_sufficient_is_info(self):
+        lim = {"ok": True, "daily_limit_yuan": 5000, "status": "限大额"}
+        r = eval_purchase_limit(lim, plan_investment_monthly=3000)
+        self.assertEqual(r["level"], "info")
+        self.assertFalse(r["affected"])
+
+    def test_eval_open_is_info(self):
+        lim = {"ok": True, "daily_limit_yuan": None, "status": "开放"}
+        r = eval_purchase_limit(lim, plan_investment_monthly=10000)
+        self.assertEqual(r["level"], "info")
+        self.assertIn("无单日限额", r["message"])
+
+    def test_eval_paused_is_warn(self):
+        lim = {"ok": True, "daily_limit_yuan": None, "status": "暂停"}
+        r = eval_purchase_limit(lim)
+        self.assertEqual(r["level"], "warn")
+
+    def test_eval_change_note(self):
+        lim = {"ok": True, "daily_limit_yuan": 2, "status": "限大额"}
+        r = eval_purchase_limit(lim, plan_investment_monthly=3000, change="tighter")
+        self.assertIn("收紧", r["message"])
+
+    def test_limit_change_direction(self):
+        f = FundProfileFetcher(enabled=False)
+        self.assertEqual(f._limit_change(None, {"daily_limit_yuan": 2}), "new")
+        self.assertEqual(f._limit_change({"daily_limit_yuan": 10}, {"daily_limit_yuan": 2}),
+                         "tighter")
+        self.assertEqual(f._limit_change({"daily_limit_yuan": 10}, {"daily_limit_yuan": 5000}),
+                         "loosened")
+        self.assertEqual(f._limit_change({"daily_limit_yuan": 10}, {"daily_limit_yuan": 10}),
+                         "same")
+        self.assertEqual(f._limit_change({"daily_limit_yuan": None}, {"daily_limit_yuan": 2}),
+                         "changed")
+
+
+class TestScaleSurge(unittest.TestCase):
+    """规模暴增预警（原只判下跌，JS-20260920-08 补）"""
+
+    def test_surge_upgrade_to_warn(self):
+        rows = [{"日期": "2026-06-30", "期末净资产（亿元）": "90.16", "净资产变动率": "241.65%"}]
+        r = eval_scale_risk(rows)
+        self.assertEqual(r["level"], "warn")
+        self.assertIn("规模显著扩张", r["message"])
+
+    def test_moderate_growth_stays_safe(self):
+        rows = [{"日期": "2026-06-30", "期末净资产（亿元）": "53.03", "净资产变动率": "44.83%"}]
+        r = eval_scale_risk(rows)
+        self.assertEqual(r["level"], "safe")
+
+    def test_drop_still_wins(self):
+        """暴跌 + 仍在迷你线下：drop 分支不受暴增分支影响"""
+        rows = [{"日期": "2026-06-30", "期末净资产（亿元）": "1.2", "净资产变动率": "-40.00%"}]
+        r = eval_scale_risk(rows)
+        self.assertEqual(r["level"], "warn")
+        self.assertIn("赎回压力", r["message"])
 
 
 if __name__ == "__main__":
