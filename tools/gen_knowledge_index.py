@@ -91,6 +91,7 @@ def main():
     lines.append('')
     lines.append('| 文档 | 路径 | 用途 |')
     lines.append('|------|------|------|')
+    lines.append('| **① 标准唯一真源** | `模型/金水谣_标准唯一真源.md` | **最先读**：10个规则域"谁说了算" + 数值阈值总表 + 改标准的最小闭环 |')
     lines.append('| 交接中心 | `模型/AI协作交接中心.md` | 已完成/待办/环境，开工先读 |')
     lines.append('| 总索引 | `模型/工作留痕总索引.md` | 所有变更 JS-编号 倒查 |')
     lines.append('| 天·纲 | `模型/金水谣_纲.md` | 五铁律、代码审查Pipeline |')
