@@ -3,6 +3,11 @@ name: jinshuiyao-docs
 description: 金水谣文档登记与交接规范。Use when completing any task that should be recorded: 交接中心, 工作留痕总索引, 经验收集箱, JS-编号, 铁律0 完成即留存, W编号, or preparing for another AI session to take over. Triggers on 登记, 留痕, 交接, 经验沉淀, 收工, 总索引.
 ---
 
+> 🔗 **开工前先读**：`模型\金水谣_标准唯一真源.md` —— 它决定下面每条规则**谁说了算**（四副本单向，**改标准只能改 `Jinshuiyao_Fixed\` 里的真源**）。
+> 冲突裁决优先级（高→低）：**代码常量/脚本实际行为** ＞ 该文件的数值阈值表 ＞ 契·纲·录 ＞ 交接中心·总索引·经验箱 ＞ `MEMORY.md` ＞ **Skill 描述文（本文最低）**。
+> 本文只回答"怎么做"，不定义"标准是什么"；**若本文里的数值/规则与代码常量不一致，以代码为准并立刻回来修本文**。
+
+
 # 金水谣文档登记与交接规范（铁律 0 执行手册）
 
 > 铁律 0：完成即留存，最高优先级。每个任务做完一件事，当场立刻登记，不许拖到收工。
@@ -54,9 +59,9 @@ description: 金水谣文档登记与交接规范。Use when completing any task
 
 1. 更新交接中心已完成表
 2. 追加经验收集箱
-3. `py -3.14 tools/gate.py --check`（全绿=完成）
+3. `E:\Project_Env\jinshuiyao_env\Scripts\python.exe tools/gate.py --check`（全绿=完成）
 4. 总索引登记一条
-5. `py -3.14 tools/ops.py --close`
+5. `E:\Project_Env\jinshuiyao_env\Scripts\python.exe tools/ops.py --close`
 6. `git commit` 入库（pre-commit 自动记录）
 
 ## 自检问题（提交前问自己）

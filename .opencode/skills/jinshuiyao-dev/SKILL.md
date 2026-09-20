@@ -3,6 +3,11 @@ name: jinshuiyao-dev
 description: 金水谣开发协作与代码维护规范。Use when doing code review, merging/refactoring modules, editing large HTML/MD files, running tests, managing 多模型接力/启动器/备份, or dealing with 防乱机制. Triggers on 代码审查, 合并, 重构, Edit失败, 大文件, 测试, Lint, 快照, 备份, 覆盖率.
 ---
 
+> 🔗 **开工前先读**：`模型\金水谣_标准唯一真源.md` —— 它决定下面每条规则**谁说了算**（四副本单向，**改标准只能改 `Jinshuiyao_Fixed\` 里的真源**）。
+> 冲突裁决优先级（高→低）：**代码常量/脚本实际行为** ＞ 该文件的数值阈值表 ＞ 契·纲·录 ＞ 交接中心·总索引·经验箱 ＞ `MEMORY.md` ＞ **Skill 描述文（本文最低）**。
+> 本文只回答"怎么做"，不定义"标准是什么"；**若本文里的数值/规则与代码常量不一致，以代码为准并立刻回来修本文**。
+
+
 # 金水谣开发协作与代码维护规范
 
 > 来源：2026-07-21~07-24 历史经验蒸馏（WorkBuddy/opencode 会话），2026-08-02 整理入库。

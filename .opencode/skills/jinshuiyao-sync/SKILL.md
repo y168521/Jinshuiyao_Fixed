@@ -3,6 +3,11 @@ name: jinshuiyao-sync
 description: 金水谣自动同步与多机协作规范。Use when working with 自动同步.ps1, the Jinshuiyao自动同步 scheduled task, 刷新vault.ps1, Obsidian vault sync, GitHub push/pull between desktop and laptop, or when deciding what files may be auto-committed. Triggers on 自动同步, auto-sync, vault刷新, 计划任务, 笔记本同步, .gitignore 策略.
 ---
 
+> 🔗 **开工前先读**：`模型\金水谣_标准唯一真源.md` —— 它决定下面每条规则**谁说了算**（四副本单向，**改标准只能改 `Jinshuiyao_Fixed\` 里的真源**）。
+> 冲突裁决优先级（高→低）：**代码常量/脚本实际行为** ＞ 该文件的数值阈值表 ＞ 契·纲·录 ＞ 交接中心·总索引·经验箱 ＞ `MEMORY.md` ＞ **Skill 描述文（本文最低）**。
+> 本文只回答"怎么做"，不定义"标准是什么"；**若本文里的数值/规则与代码常量不一致，以代码为准并立刻回来修本文**。
+
+
 # 金水谣自动同步与多机协作规范（W63 系列落地，2026-08-02 固化）
 
 ## 系统架构

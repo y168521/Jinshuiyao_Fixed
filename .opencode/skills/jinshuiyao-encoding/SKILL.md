@@ -3,6 +3,11 @@ name: jinshuiyao-encoding
 description: Windows 脚本编码铁律。Use when creating or fixing .bat, .ps1, or any script that touches Chinese text or Chinese paths on this Windows machine. Triggers on 乱码, 不是内部或外部命令, 锟斤拷, GBK, UTF-8 BOM, chcp, clip, 中文路径.
 ---
 
+> 🔗 **开工前先读**：`模型\金水谣_标准唯一真源.md` —— 它决定下面每条规则**谁说了算**（四副本单向，**改标准只能改 `Jinshuiyao_Fixed\` 里的真源**）。
+> 冲突裁决优先级（高→低）：**代码常量/脚本实际行为** ＞ 该文件的数值阈值表 ＞ 契·纲·录 ＞ 交接中心·总索引·经验箱 ＞ `MEMORY.md` ＞ **Skill 描述文（本文最低）**。
+> 本文只回答"怎么做"，不定义"标准是什么"；**若本文里的数值/规则与代码常量不一致，以代码为准并立刻回来修本文**。
+
+
 # Windows 脚本编码铁律（本项目亲历验证，2026-08-02 固化）
 
 > 来源：JS-20260802-04 W63补4 全仓 bat 体检修复。三条铁律缺一不可，违反必出乱码。
