@@ -392,6 +392,9 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
         if parsed.path == '/api/fund/portfolio/remove':
             h_fund.handle_portfolio_remove(self, parsed)
             return
+        if parsed.path == '/api/fund/profile':
+            h_fund.handle_profile(self, parsed)
+            return
 
         # /api/football/* — 足彩子系统专用路由
         if parsed.path == '/api/football/status':
@@ -689,6 +692,9 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
             return
         if parsed.path == '/api/fund/portfolio/remove':
             h_fund.handle_portfolio_remove(self, parsed)
+            return
+        if parsed.path == '/api/fund/profile':
+            h_fund.handle_profile(self, parsed)
             return
 
         # /api/football/* — 足彩子系统专用路由（POST）

@@ -572,3 +572,161 @@ def handle_portfolio_remove(handler, parsed):
     except Exception as e:
         log(f"[fund-portfolio-remove] 异常: {e}")
         handler._send_json({"ok": False, "error": str(e)}, 500)
+
+
+# ---------------------------------------------------------------------------
+# 基金外围风险档案（经理变更 / 规模清盘 / 限购额度）— JS-20260921-01
+#
+# 领域层 domains/fund/fund_profile_risk.py 早已实现，日报也在用，但 Web 层
+# 一直取不到：这是「数据有了、界面看不见」的典型断点。
+#
+# 两条硬约束（合规 + 体验）：
+#   ① **默认只读缓存、绝不联网**——Web 请求必须秒回，且免费公开源严禁高频抓取；
+#      只有显式 refresh=1 才走网络。
+#   ② **取不到就标 unavailable，绝不编造**——与全项目"暂缺就写暂缺"的诚实口径一致。
+# ---------------------------------------------------------------------------
+
+# 档位排序：聚合时取三者中最严重的那个
+_LEVEL_ORDER = {"danger": 4, "warn": 3, "notice": 2, "safe": 1, "info": 1, "unknown": 0}
+
+
+def _load_monitor_config():
+    """读监控配置（code → name/manager/investment）。
+
+    唯一真源是 scripts/daily_fund_monitor.py 的 FUND_CONFIG（8 只基金的日投额与
+    配置经理名都在这里）。读不到就返回空 dict —— 调用方会退化为"只有代码、无配置"，
+    此时经理不符类提示不产生（没有配置就无从比对），但绝不影响其它两项评估。
+    """
+    try:
+        import importlib
+        mod = importlib.import_module("scripts.daily_fund_monitor")
+        cfg = {}
+        for f in getattr(mod, "FUND_CONFIG", []) or []:
+            code = str(f.get("code", "")).strip()
+            if code:
+                cfg[code] = f
+        return cfg
+    except Exception as e:
+        log(f"[fund-profile] 读取监控配置失败（退化为无配置）: {e}")
+        return {}
+
+
+def _default_profile_codes(config):
+    """未指定 codes 时的默认清单：监控配置里的基金（保序）"""
+    return list(config.keys())
+
+
+def _worst_level(levels):
+    """取最严重档位。info 与 safe 同义（都是"没事"），统一归一成 safe——
+    否则汇总里会多出一个 info 桶，前端的"正常"计数就漏了（实测踩到）。"""
+    best = "unknown"
+    for lv in levels:
+        norm = "safe" if lv == "info" else lv
+        if _LEVEL_ORDER.get(norm, 0) > _LEVEL_ORDER.get(best, 0):
+            best = norm
+    return "safe" if best == "info" else best
+
+
+def handle_profile(handler, parsed):
+    """GET/POST /api/fund/profile — 基金外围风险档案（经理变更 / 规模清盘 / 限购额度）
+
+    参数:
+      codes   : 逗号分隔的基金代码；缺省 = 监控配置里的全部基金
+      refresh : '1' 才强制联网重抓（慢，串行限速）；默认只读缓存
+
+    返回:
+      {ok, count, summary:{danger,warn,notice,safe,unknown,stale,unavailable},
+       profiles:[{code, name, manager, scale, limit, limit_change,
+                  level, stale, unavailable, fetched_at}]}
+    """
+    params = _parse_params(handler, parsed)
+    config = _load_monitor_config()
+    codes = _parse_codes(params.get("codes")) or _default_profile_codes(config)
+    if not codes:
+        handler._send_json({
+            "ok": False, "error": "未指定基金代码，且未能读到监控配置",
+            "hint": "用 ?codes=005698,270042 指定，或先配置 scripts/daily_fund_monitor.py 的 FUND_CONFIG",
+        }, 400)
+        return
+
+    refresh = str(params.get("refresh", "")).strip().lower() in ("1", "true", "yes")
+    if refresh:
+        log(f"[fund-profile] refresh=1，将联网重抓 {len(codes)} 只（串行限速）")
+
+    try:
+        from domains.fund.fund_profile_risk import FundProfileFetcher
+    except Exception as e:
+        log(f"[fund-profile] 领域模块不可用: {e}")
+        handler._send_json({"ok": False, "error": "基金外围风险模块不可用"}, 503)
+        return
+
+    try:
+        # enabled=False ⇒ _http_get 直接返回 None，即"只走缓存"；
+        # 缓存过期时会返回带 stale=True 的旧数据（诚实标注），不会静默假装新鲜。
+        fetcher = FundProfileFetcher(delay=0.6, enabled=bool(refresh))
+    except Exception as e:
+        log(f"[fund-profile] 采集器初始化失败: {e}")
+        handler._send_json({"ok": False, "error": str(e)}, 500)
+        return
+
+    profiles = []
+    summary = {"danger": 0, "warn": 0, "notice": 0, "safe": 0,
+               "unknown": 0, "stale": 0, "unavailable": 0}
+    for code in codes:
+        cfg = config.get(code, {})
+        try:
+            prof = fetcher.get_profile(
+                code,
+                cfg.get("manager"),
+                plan_investment_monthly=cfg.get("investment", 3000),
+                use_cache=not refresh,
+            )
+        except Exception as e:
+            log(f"[fund-profile] {code} 采集异常: {e}")
+            profiles.append({
+                "code": code, "name": cfg.get("name", code),
+                "level": "unknown", "stale": False, "unavailable": True,
+                "error": str(e),
+            })
+            summary["unknown"] += 1
+            summary["unavailable"] += 1
+            continue
+
+        manager = prof.get("manager") or {}
+        scale = prof.get("scale") or {}
+        limit = prof.get("limit") or {}
+        unavailable = not bool(manager.get("ok") or scale.get("ok"))
+        level = _worst_level([manager.get("level", "unknown"),
+                              scale.get("level", "unknown"),
+                              limit.get("level", "unknown")])
+        if unavailable:
+            level = "unknown"
+        stale = bool(prof.get("stale"))
+        profiles.append({
+            "code": code,
+            "name": cfg.get("name") or code,
+            "manager": manager,
+            "scale": scale,
+            "limit": limit,
+            "limit_change": prof.get("limit_change", "same"),
+            "level": level,
+            "stale": stale,
+            "unavailable": unavailable,
+            "fetched_at": prof.get("fetched_at", ""),
+        })
+        summary[level] = summary.get(level, 0) + 1
+        if stale:
+            summary["stale"] += 1
+        if unavailable:
+            summary["unavailable"] += 1
+
+    handler._send_json({
+        "ok": True,
+        "count": len(profiles),
+        "refresh": refresh,
+        "cache_only": not refresh,
+        "source_note": "数据来源：天天基金公开页面（低速抓取、只标来源不改写）；"
+                       "默认读本地缓存，refresh=1 才联网",
+        "summary": summary,
+        "profiles": profiles,
+    }, 200)

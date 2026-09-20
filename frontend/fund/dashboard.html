@@ -25,6 +25,13 @@
   .b-buy { background:rgba(45, 139, 126, .15); color:var(--c-ok); }
   .b-hold { background:rgba(91,192,222,.15); color:var(--half); }
   .b-watch { background:rgba(200, 117, 90, .15); color:var(--bad); }
+  /* 外围风险档位（JS-20260921-01）：只用主题变量，不引入禁用色 */
+  .b-danger { background:rgba(200, 117, 90, .20); color:var(--bad); }
+  .b-warn2 { background:rgba(201, 169, 110, .20); color:var(--warn); }
+  .b-notice { background:rgba(91,192,222,.15); color:var(--half); }
+  .b-safe { background:rgba(45, 139, 126, .15); color:var(--c-ok); }
+  .b-unknown { background:rgba(160,160,160,.15); color:var(--muted); }
+  .msg { font-size:11px; color:var(--muted); margin-top:3px; line-height:1.4; }
   .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
   .pulse { width:9px; height:9px; border-radius:50%; background:var(--c-ok); animation:p 1.6s infinite; }
   @keyframes p { 0%,100%{opacity:1} 50%{opacity:.3} }
@@ -61,6 +68,7 @@
     <div class="tab" data-tab="backtest">策略回测</div>
     <div class="tab" data-tab="strategies">策略列表</div>
     <div class="tab" data-tab="compare">多策略对比</div>
+    <div class="tab" data-tab="profile">外围风险</div>
   </div>
 
   <div id="overview" class="tab-content">
@@ -105,6 +113,25 @@
         border-radius:6px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;">运行多策略对比</button>
     </div>
     <div class="card"><h2>多策略对比</h2><div id="compare-result">点击按钮运行多策略对比</div></div>
+  </div>
+
+  <div id="profile" class="tab-content" style="display:none;">
+    <div class="flex mb12">
+      <button onclick="loadProfile()" style="background:var(--c-ok);color:var(--deep);border:none;
+        border-radius:6px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;">读缓存刷新</button>
+      <button onclick="loadProfile(true)" style="background:var(--card);color:var(--txt);
+        border:1px solid var(--border);border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer;">联网重抓（慢）</button>
+      <span class="muted" style="font-size:11px;">默认只读本地缓存、秒回；「联网重抓」才会访问天天基金公开页（串行限速）</span>
+    </div>
+    <div class="card mb12"><h2>风险汇总</h2><div id="profile-summary">加载中...</div></div>
+    <div class="card"><h2>逐只明细（经理变更 / 规模·清盘 / 限购额度）</h2>
+      <div id="profile-table">加载中...</div>
+      <p class="muted" style="font-size:11px;margin:10px 0 0;">
+        口径：经理 180 天内变更=warn，仅「配置经理名与线上不符」=notice（提示核对配置，非新发变更）；
+        规模 &lt;0.5 亿=danger（清盘线）、&lt;2 亿=warn、单季环比 ≤−30% 或 ≥+100% 升档；
+        限购额度低于计划日投（月投入÷30）才会告警。取不到的数据一律显示「暂缺」，不估算不编造。
+      </p>
+    </div>
   </div>
 
 <script>
@@ -256,8 +283,66 @@ async function runStrategyCompare() {
   }
 }
 
+// ---------- 外围风险（经理变更 / 规模清盘 / 限购额度）JS-20260921-01 ----------
+const LEVEL_CLS = { danger:'b-danger', warn:'b-warn2', notice:'b-notice',
+                    safe:'b-safe', info:'b-safe', unknown:'b-unknown' };
+const LEVEL_TXT = { danger:'高危', warn:'警告', notice:'提示', safe:'正常',
+                    info:'正常', unknown:'暂缺' };
+
+function badge(level) {
+  const k = LEVEL_CLS[level] ? level : 'unknown';
+  return `<span class="badge ${LEVEL_CLS[k]}">${LEVEL_TXT[k]}</span>`;
+}
+
+function cell(obj) {
+  if (!obj) return '<span class="muted">—</span>';
+  const lv = obj.level || 'unknown';
+  return `${badge(lv)}<div class="msg">${obj.message || '—'}</div>`;
+}
+
+async function loadProfile(refresh) {
+  ts();
+  const sum = document.getElementById('profile-summary');
+  const tbl = document.getElementById('profile-table');
+  if (refresh) { tbl.innerHTML = '联网重抓中（串行限速，请稍候）...'; }
+  const res = await api('/api/fund/profile' + (refresh ? '?refresh=1' : ''));
+  if (!res.ok) {
+    const err = `<span class="err">加载失败: ${res.error || '未知'}</span>`;
+    sum.innerHTML = err; tbl.innerHTML = err; return;
+  }
+  const s = res.summary || {};
+  sum.innerHTML = `<table>
+    <tr><th>监控只数</th><td>${res.count}</td></tr>
+    <tr><th>高危 / 警告</th><td>${s.danger || 0} / ${s.warn || 0}</td></tr>
+    <tr><th>提示 / 正常</th><td>${s.notice || 0} / ${s.safe || 0}</td></tr>
+    <tr><th>数据暂缺</th><td>${s.unknown || 0}</td></tr>
+    <tr><th>缓存过期(stale)</th><td>${s.stale || 0}</td></tr>
+    <tr><th>本次取数方式</th><td>${res.cache_only ? '本地缓存（不联网）' : '联网重抓'}</td></tr>
+  </table>`;
+
+  if (!res.profiles || !res.profiles.length) {
+    tbl.innerHTML = '<span class="muted">无数据</span>'; return;
+  }
+  let h = '<table><thead><tr><th>代码</th><th>名称</th><th>经理变更</th><th>规模·清盘</th>'
+        + '<th>限购额度</th><th>综合档位</th></tr></thead><tbody>';
+  for (const p of res.profiles) {
+    const staleTag = p.stale ? ' <span class="badge b-unknown">缓存过期</span>' : '';
+    h += `<tr>
+      <td>${p.code}</td>
+      <td>${p.name || p.code}${staleTag}</td>
+      <td>${cell(p.manager)}</td>
+      <td>${cell(p.scale)}</td>
+      <td>${cell(p.limit)}</td>
+      <td>${badge(p.level)}</td>
+    </tr>`;
+  }
+  h += '</tbody></table>';
+  tbl.innerHTML = h;
+}
+
 loadOverview();
 loadStrategies();
+loadProfile();
 setInterval(loadOverview, 30000);
 </script>
   <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
