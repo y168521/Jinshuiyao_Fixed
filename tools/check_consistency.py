@@ -606,20 +606,40 @@ def check_std_thresholds():
     「代码常量 = 唯一事实源，文档只能跟随」。
     安全设计：本检查自身任何异常一律降级为跳过，绝不因它而阻断提交。"""
     try:
-        code = os.path.join(BASE_DIR, 'Jinshuiyao_Fixed', 'domains', 'fund', 'fund_profile_risk.py')
-        if not os.path.isfile(code):
-            return []
-        consts = _parse_code_consts(code)
-        watch = ['SCALE_DANGER_YI', 'SCALE_WARN_YI', 'SCALE_DROP_WARN_PCT',
-                 'SCALE_SURGE_WARN_PCT', 'MANAGER_TTL_HOURS', 'SCALE_TTL_DAYS',
-                 'PURCHASE_TTL_HOURS']
+        # JS-20260920-15：监视清单改为「多文件 → 多常量」，之前只盯 fund_profile_risk.py
+        # 一个文件，导致 data_truth_guard 的新鲜度阈值提常量后闸门照样假绿（看不见）。
+        # 路径铁律：BASE_DIR 就是仓库根（见第 22 行，其它检查项都直接拼 'frontend/...'），
+        # 再拼一层 'Jinshuiyao_Fixed' 会全部找不到 → 静默 return [] → **闸门 100% 假绿**。
+        # （JS-20260920-15 探测发现：本检查自上线起其实一次都没真正跑过。）
+        watch_map = {
+            os.path.join(BASE_DIR, 'domains', 'fund', 'fund_profile_risk.py'): [
+                'SCALE_DANGER_YI', 'SCALE_WARN_YI', 'SCALE_DROP_WARN_PCT',
+                'SCALE_SURGE_WARN_PCT', 'MANAGER_CHANGE_WARN_DAYS',
+                'MANAGER_TTL_HOURS', 'SCALE_TTL_DAYS', 'PURCHASE_TTL_HOURS',
+            ],
+            os.path.join(BASE_DIR, 'core', 'data_truth_guard.py'): [
+                'MATCH_STALE_WARN_DAYS', 'MATCH_STALE_FAIL_DAYS', 'LOT_STALE_WARN_DAYS',
+            ],
+        }
+        consts = {}
+        watch = []
         errors = []
+        for code, names in watch_map.items():
+            # 找不到源文件必须**报警**，不能静默跳过——跳过只会伪造出一片绿
+            if not os.path.isfile(code):
+                errors.append("  STD-THRESHOLD: 源文件缺失 %s（闸门无法工作，路径基准可能又错了）" % code)
+                continue
+            consts.update(_parse_code_consts(code))
+            watch.extend(names)
+        if not consts:
+            return errors if errors else []
         targets = [
-            (os.path.join(BASE_DIR, 'Jinshuiyao_Fixed', '金水谣_标准唯一真源.md'), '仓库真源'),
-            (os.path.join(BASE_DIR, '金水谣_标准唯一真源.md'), '根镜像'),
+            (os.path.join(BASE_DIR, '金水谣_标准唯一真源.md'), '仓库真源'),
+            (os.path.join(os.path.dirname(BASE_DIR), '金水谣_标准唯一真源.md'), '根镜像'),
         ]
         for fp, label in targets:
             if not os.path.isfile(fp):
+                errors.append("  STD-THRESHOLD: %s 缺失 %s" % (label, fp))
                 continue
             with open(fp, 'r', encoding='utf-8', errors='replace') as f:
                 errors.extend(_check_threshold_text(f.read(), consts, watch, label))

@@ -50,6 +50,14 @@ SOURCE_COLORS = {
     SOURCE_UNKNOWN: "gray",
 }
 
+# -----------------------------------------------------------------------
+# 新鲜度阈值（天）：JS-20260920-15 从函数体内的魔数提出来
+# —— 阈值写死在函数里，文档就无从指向它，改的人也找不到它（标准唯一真源 §五-1）
+# -----------------------------------------------------------------------
+MATCH_STALE_WARN_DAYS = 30    # 历史赛果超过 30 天未补更 → warn
+MATCH_STALE_FAIL_DAYS = 180   # 历史赛果超过 180 天 → fail（赛季彻底过时）
+LOT_STALE_WARN_DAYS = 3       # 彩票数据文件超过 3 天未更新 → warn
+
 
 class DataTruthGuard:
     """全局数据真实性守卫"""
@@ -509,9 +517,10 @@ class DataTruthGuard:
 
         本检测专门堵这个盲区：
           - 解析 match_time 列，取最新一场的日期；
-          - 与今天对比：>180天 → fail（赛季彻底过时，应暂停回测或补更）；
-                       >30天  → warn（有一阵子没补了，提醒补更）；
-                       否则    → pass。
+          - 与今天对比（阈值见模块顶部常量，改动务必同步《标准唯一真源》§3.2）：
+            > MATCH_STALE_FAIL_DAYS → fail（赛季彻底过时，应暂停回测或补更）；
+            > MATCH_STALE_WARN_DAYS → warn（有一阵子没补了，提醒补更）；
+            否则                    → pass。
 
         返回: (status, detail, action)
         """
@@ -539,15 +548,15 @@ class DataTruthGuard:
             today = datetime.now()
             age_days = (today - newest).days
 
-            if age_days > 180:
+            if age_days > MATCH_STALE_FAIL_DAYS:
                 return ("fail",
                         f"历史赛果素材最新一场为 {newest:%Y-%m-%d}（{age_days}天前），"
-                        f"已超过 180 天，回测数据严重过时",
+                        f"已超过 {MATCH_STALE_FAIL_DAYS} 天，回测数据严重过时",
                         "补更最新赛季真实赛果，或暂停基于该素材的回测")
-            if age_days > 30:
+            if age_days > MATCH_STALE_WARN_DAYS:
                 return ("warn",
                         f"历史赛果素材最新一场为 {newest:%Y-%m-%d}（{age_days}天前），"
-                        f"超过 30 天未补更，建议补充最新赛果",
+                        f"超过 {MATCH_STALE_WARN_DAYS} 天未补更，建议补充最新赛果",
                         "将已完赛的真实结果追加进 matches_real.csv")
             return ("pass",
                     f"历史赛果素材最新一场为 {newest:%Y-%m-%d}（{age_days}天前），"
@@ -726,7 +735,7 @@ class DataTruthGuard:
                         try:
                             mtime = datetime.fromtimestamp(os.path.getmtime(fpath))
                             age_days = (datetime.now() - mtime).total_seconds() / 86400
-                            if age_days > 3:
+                            if age_days > LOT_STALE_WARN_DAYS:
                                 stale_files += 1
                                 stale_names.append(f"{lot_label}({int(age_days)}天未更新)")
                         except OSError:
@@ -743,7 +752,8 @@ class DataTruthGuard:
                 "count": 0,
             })
         elif stale_files > 0:
-            detail = f"共{total_files}个数据文件，{stale_files}个超过3天未更新: {', '.join(stale_names[:3])}"
+            detail = (f"共{total_files}个数据文件，{stale_files}个超过"
+                      f"{LOT_STALE_WARN_DAYS}天未更新: {', '.join(stale_names[:3])}")
             checks.append({
                 "name": "彩票数据文件",
                 "status": "warn",

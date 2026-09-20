@@ -82,6 +82,10 @@ SCALE_WARN_YI = 2.0       # 迷你基金线
 SCALE_DROP_WARN_PCT = -30.0  # 单季净资产跌幅预警线
 SCALE_SURGE_WARN_PCT = 100.0  # 单季净资产涨幅预警线（规模暴增，原只判下跌，JS-20260920-08 补）
 
+# 经理变更预警窗口（天）：JS-20260920-15 从 eval_manager_change 的默认参数里提出来，
+# 否则「阈值写死在函数签名里」会让文档与代码各说一套（标准唯一真源 §五-1）
+MANAGER_CHANGE_WARN_DAYS = 180
+
 
 # ---------------------------------------------------------------------------
 # HTML 解析（纯函数，便于单测）
@@ -240,7 +244,7 @@ def _format_yuan(yuan: Optional[float]) -> str:
 # ---------------------------------------------------------------------------
 def eval_manager_change(history: List[Dict[str, str]],
                         config_manager: Optional[str] = None,
-                        recent_days: int = 180,
+                        recent_days: int = MANAGER_CHANGE_WARN_DAYS,
                         today: Optional[datetime] = None) -> Dict:
     """评估基金经理变更风险
 
