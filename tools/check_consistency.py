@@ -620,6 +620,9 @@ def check_std_thresholds():
             os.path.join(BASE_DIR, 'core', 'data_truth_guard.py'): [
                 'MATCH_STALE_WARN_DAYS', 'MATCH_STALE_FAIL_DAYS', 'LOT_STALE_WARN_DAYS',
             ],
+            os.path.join(BASE_DIR, 'tools', 'code_health_gate.py'): [
+                'MAX_FUNC_LINES',
+            ],
         }
         consts = {}
         watch = []
