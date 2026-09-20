@@ -1,0 +1,2 @@
+# 占位：该目录被 scripts/jinshuiyao_data_guard.py 列为 STRONG_DIRS（缺失会触发数据盲区告警）。
+# 功能启用后由业务写入真实数据，空目录用本文件保持 git 可跟踪。
