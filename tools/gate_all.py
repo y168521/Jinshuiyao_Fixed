@@ -32,6 +32,44 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(BASE)
 PY = sys.executable
 
+# JS-20260921-03：本机 git 不在 PATH（真实 git 在 E:\下载\Git\bin\git.exe）。
+# 原先直接 subprocess(['git', ...]) 必然 FileNotFoundError，而调用处又 `except: pass`
+# → 密钥泄漏扫描拿不到改动文件清单 → **一行不扫还显示通过（假绿）**。
+# 改为候选 git 逐个探测；全部不可用时必须显式告警，不允许静默跳过。
+_GIT_CANDS = [
+    os.environ.get('GIT_EXE', ''),
+    r'E:\下载\Git\bin\git.exe',
+    r'C:\Program Files\Git\bin\git.exe',
+    r'C:\Program Files\Git\cmd\git.exe',
+    'git',
+]
+
+
+def _git_exe():
+    for exe in _GIT_CANDS:
+        if not exe:
+            continue
+        if exe == 'git' or os.path.isfile(exe):
+            return exe
+    return None
+
+
+def _git_diff_cached_names():
+    """取 git 暂存文件清单；git 不可用时返回 None（调用方须显式告警，不可静默）"""
+    exe = _git_exe()
+    if not exe:
+        return None
+    try:
+        proc = subprocess.run([exe, '-c', 'core.quotepath=false',
+                               'diff', '--cached', '--name-only'],
+                              capture_output=True, text=True,
+                              encoding='utf-8', errors='replace', cwd=ROOT)
+        if proc.returncode != 0:
+            return None
+        return [l.strip() for l in proc.stdout.splitlines() if l.strip()]
+    except Exception:
+        return None
+
 
 def _run_script(path, label, extra=None):
     """子进程跑独立检测器，返回 (ok, lines)"""
@@ -113,14 +151,13 @@ def _check_secret_leak(changed=None):
     import re
     files = changed if changed else []
     lines = []
-    try:
-        if not files:
-            proc = subprocess.run(['git', 'diff', '--cached', '--name-only'],
-                                  capture_output=True, text=True,
-                                  encoding='utf-8', errors='replace', cwd=ROOT)
-            files = [l.strip() for l in proc.stdout.splitlines() if l.strip()]
-    except Exception:
-        pass
+    if not files:
+        names = _git_diff_cached_names()
+        if names is None:
+            # 拿不到清单 = 扫描没跑，必须说出来，不能显示"通过"（假绿最危险）
+            lines.append('  ⚠️ git 不可用，无法获取暂存文件清单 → 密钥扫描**未执行**（非"无泄漏"）')
+            return False, lines
+        files = names
     hits = []
     for fp in files:
         if not fp or fp in _SECRET_ALLOWLIST:
@@ -181,13 +218,12 @@ def main():
     quick = '--quick' in sys.argv
     changed = None
     if '--changed' in sys.argv:
-        try:
-            proc = subprocess.run(['git', 'diff', '--cached', '--name-only'],
-                                  capture_output=True, text=True,
-                                  encoding='utf-8', errors='replace', cwd=ROOT)
-            changed = {l.strip() for l in proc.stdout.splitlines() if l.strip()}
-        except Exception:
+        names = _git_diff_cached_names()
+        if names is None:
+            print('  ⚠️ git 不可用：无法获取暂存清单，增量模式退化为全量（不静默跳过）')
             changed = None
+        else:
+            changed = set(names)
 
     print('=' * 56)
     print('  金水谣 · 统一总门禁')
