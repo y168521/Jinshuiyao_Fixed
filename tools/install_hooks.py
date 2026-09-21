@@ -24,17 +24,40 @@ _IS_WINDOWS = sys.platform == "win32"
 _SRC = os.path.join(_ROOT, "tools", "pre-commit-hook-wrapper.sh")
 
 
+# JS-20260921-03：本机 git 不在 PATH（真实 git 在 E:\下载\Git\bin\git.exe），
+# 直接 subprocess(["git", ...]) 必然 FileNotFoundError → 安装器永远失败、
+# 仓库内的 hook 规范源永远分发不到 .git/hooks。改为「候选 git → 兜底 <ROOT>/.git」。
+_GIT_CANDS = [
+    os.environ.get("GIT_EXE", ""),
+    r"E:\下载\Git\bin\git.exe",
+    r"C:\Program Files\Git\bin\git.exe",
+    r"C:\Program Files\Git\cmd\git.exe",
+    "git",
+]
+
+
 def _git_dir():
-    try:
-        out = subprocess.check_output(
-            ["git", "rev-parse", "--git-dir"], cwd=_ROOT, text=True
-        ).strip()
-    except Exception as e:
-        print(f"[install_hooks] 无法定位 git 目录: {e}")
-        sys.exit(1)
-    if not os.path.isabs(out):
-        out = os.path.join(_ROOT, out)
-    return os.path.abspath(out)
+    for exe in _GIT_CANDS:
+        if not exe:
+            continue
+        try:
+            out = subprocess.check_output(
+                [exe, "rev-parse", "--git-dir"], cwd=_ROOT, text=True,
+                stderr=subprocess.DEVNULL,
+            ).strip()
+        except Exception:
+            continue
+        if out:
+            if not os.path.isabs(out):
+                out = os.path.join(_ROOT, out)
+            return os.path.abspath(out)
+    # 兜底：标准布局就是 <仓库根>/.git（含 worktree 场景也先按此处理并校验）
+    fallback = os.path.join(_ROOT, ".git")
+    if os.path.isdir(fallback):
+        print(f"[install_hooks] 提示: git 不可用，回退到 {fallback}")
+        return fallback
+    print("[install_hooks] 无法定位 git 目录: 既无可用 git，也未找到 <仓库根>/.git")
+    sys.exit(1)
 
 
 def main():
