@@ -201,7 +201,10 @@ def _index_risks():
     try:
         with open(fp, "r", encoding="utf-8") as f:
             data = json.load(f)
-    except:
+    except Exception as e:
+        # 原来是裸 except（连 KeyboardInterrupt/SystemExit 都吞）。风险登记读不出来属可降级，
+        # 但必须留痕——否则 JSON 坏了会表现成"知识索引里没有风险条目"，没人知道是读失败。
+        print("[知识索引] 风险登记读取失败，已跳过: %s: %s" % (type(e).__name__, e))
         return
     for risk in data.get("risks", []):
         rid = risk.get("id", "?")

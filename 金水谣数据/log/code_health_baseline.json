@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-20",
+ "generated": "2026-09-21",
  "note": "代码体检基线快照。存量=基线内已存在且未恶化的项（挂账，不告警）；只有「新增的超阈值文件」与「比基线更差的指标」才算违规。重新生成：python tools/code_health_gate.py --snapshot（须人工确认后再执行）",
  "thresholds": {
   "MAX_FUNC_LINES": 50,
@@ -8,1743 +8,2536 @@
   "MAX_PLAINTEXT_SECRET": 0,
   "MAX_UNTIMED_REQUESTS": 0
  },
- "file_count": 248,
+ "file_count": 281,
  "files": {
   "audio_toolkit.py": {
    "max_func": 487,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 10,
+   "bare": 0
   },
   "auto_audit.py": {
    "max_func": 94,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 5,
+   "bare": 0
   },
   "launch_jinshuiyao.py": {
    "max_func": 68,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 14,
+   "bare": 0
+  },
+  "operation_log.py": {
+   "max_func": 21,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "startup_selfcheck.py": {
    "max_func": 89,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "AI代码助手(DeepSeek备用)/deepseek_coder.py": {
    "max_func": 142,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 6,
+   "bare": 0
   },
   "AI代码助手(DeepSeek备用)/kb_bridge.py": {
    "max_func": 57,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 4,
+   "bare": 0
   },
   "backtesting/engine.py": {
    "max_func": 531,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "backtesting/metrics.py": {
    "max_func": 202,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
+  },
+  "config/__init__.py": {
+   "max_func": 0,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
+  },
+  "controllers/scheme_manager.py": {
+   "max_func": 31,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
+  },
+  "core/adaptive_models.py": {
+   "max_func": 29,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "core/agent_formatters.py": {
    "max_func": 66,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "core/agent_knowledge_archiver.py": {
    "max_func": 58,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
+  },
+  "core/agent_reminder.py": {
+   "max_func": 33,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 3,
+   "bare": 0
   },
   "core/agent_vector_memory.py": {
    "max_func": 98,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
+  },
+  "core/agent_web_search.py": {
+   "max_func": 23,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "core/ai_agent.py": {
    "max_func": 712,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 6,
+   "bare": 0
   },
   "core/ai_decisions_extractor.py": {
    "max_func": 106,
    "any": 4,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "core/ai_service.py": {
    "max_func": 597,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 3,
+   "bare": 0
+  },
+  "core/automation_mirror.py": {
+   "max_func": 28,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "core/auto_knowledge.py": {
    "max_func": 557,
    "any": 19,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "core/circuit_breaker.py": {
    "max_func": 151,
    "any": 2,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
+  },
+  "core/concurrency_gate.py": {
+   "max_func": 29,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "core/content_refiner.py": {
    "max_func": 366,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
+  },
+  "core/conversation_log.py": {
+   "max_func": 40,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "core/cross_domain.py": {
    "max_func": 98,
    "any": 1,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "core/data_maintenance.py": {
    "max_func": 820,
    "any": 4,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "core/data_truth_guard.py": {
    "max_func": 718,
    "any": 1,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "core/dispatch_creator.py": {
    "max_func": 69,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "core/dispatch_knowledge.py": {
    "max_func": 177,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "core/dispatch_lottery.py": {
    "max_func": 68,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "core/dispatch_music.py": {
    "max_func": 64,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "core/dispatch_system.py": {
    "max_func": 72,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "core/dispatch_video.py": {
    "max_func": 53,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "core/exp_box_extractor.py": {
    "max_func": 114,
    "any": 4,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "core/file_organizer.py": {
    "max_func": 598,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "core/file_watcher.py": {
    "max_func": 272,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "core/free_model_pool.py": {
    "max_func": 57,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 3,
+   "bare": 0
   },
   "core/knowledge_stats.py": {
    "max_func": 150,
    "any": 4,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "core/llm_budget.py": {
    "max_func": 108,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
+  },
+  "core/memory_decay.py": {
+   "max_func": 48,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
+  },
+  "core/model_router.py": {
+   "max_func": 41,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
+  },
+  "core/model_shadow.py": {
+   "max_func": 27,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "core/pipeline_state.py": {
    "max_func": 126,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "core/scheduler.py": {
    "max_func": 817,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "core/scheduler_tasks.py": {
    "max_func": 267,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "core/security.py": {
    "max_func": 52,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "core/telemetry.py": {
    "max_func": 66,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "core/theme.py": {
    "max_func": 66,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "core/tk_style.py": {
    "max_func": 123,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "core/video_extractor.py": {
    "max_func": 904,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "core/video_to_kb.py": {
    "max_func": 61,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "domains/base.py": {
    "max_func": 105,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "domains/creator/ai_copywriter.py": {
    "max_func": 227,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "domains/creator/audio_extractor.py": {
    "max_func": 169,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "domains/creator/creator_gui.py": {
    "max_func": 664,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "domains/creator/domain.py": {
    "max_func": 454,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "domains/creator/ocr_engine.py": {
    "max_func": 129,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "domains/creator/speech_to_text.py": {
    "max_func": 143,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "domains/creator/tts_engine.py": {
    "max_func": 124,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "domains/creator/watermark_remover.py": {
    "max_func": 189,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "domains/football/domain.py": {
    "max_func": 294,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
+  },
+  "domains/football/fetcher.py": {
+   "max_func": 34,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "domains/fund/analyzer.py": {
    "max_func": 712,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "domains/fund/domain.py": {
    "max_func": 930,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "domains/fund/fetcher.py": {
    "max_func": 624,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "domains/fund/fund_backtest.py": {
    "max_func": 205,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "domains/fund/fund_data_manager.py": {
    "max_func": 458,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 3,
+   "bare": 0
   },
   "domains/fund/fund_gui.py": {
    "max_func": 677,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "domains/fund/fund_metrics.py": {
    "max_func": 161,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "domains/fund/fund_profile_risk.py": {
    "max_func": 204,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "domains/lottery/domain.py": {
    "max_func": 345,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "domains/music/domain.py": {
    "max_func": 675,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "domains/stock/domain.py": {
    "max_func": 485,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "domains/stock/fetcher.py": {
    "max_func": 269,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 3,
+   "bare": 0
   },
   "domains/stock/stock_gui.py": {
    "max_func": 559,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "domains/stock/stock_screener.py": {
    "max_func": 224,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 4,
+   "bare": 0
   },
   "domains/stock/engines/tech_engine.py": {
    "max_func": 255,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "domains/stock/engines/trend_engine.py": {
    "max_func": 124,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "engines/audit.py": {
    "max_func": 62,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "engines/brain_daily.py": {
    "max_func": 56,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "engines/correlation.py": {
    "max_func": 133,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "engines/dimension_consensus.py": {
    "max_func": 148,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "engines/evolution_experience.py": {
    "max_func": 245,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "engines/evolution_feedback.py": {
    "max_func": 291,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "engines/evolution_manager.py": {
    "max_func": 249,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "engines/evolution_rule.py": {
    "max_func": 408,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "engines/evolve.py": {
    "max_func": 71,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "engines/feature_engine.py": {
    "max_func": 60,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "engines/format_gen.py": {
    "max_func": 864,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "engines/health_check.py": {
    "max_func": 410,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "engines/killer.py": {
    "max_func": 398,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "engines/lottery_stats.py": {
    "max_func": 74,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "engines/miss_analyzer.py": {
    "max_func": 183,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "engines/morph.py": {
    "max_func": 352,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "engines/plugin_manager.py": {
    "max_func": 351,
    "any": 4,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "engines/position_analyzer.py": {
    "max_func": 585,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "engines/prediction_service.py": {
    "max_func": 706,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 15,
+   "bare": 0
   },
   "engines/reposition_engine.py": {
    "max_func": 189,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "engines/risk_controller.py": {
    "max_func": 121,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "engines/smart_brain.py": {
    "max_func": 406,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "engines/strategy_cards.py": {
    "max_func": 60,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "engines/sync_manager.py": {
    "max_func": 922,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 6,
+   "bare": 0
   },
   "engines/sync_network.py": {
    "max_func": 82,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "engines/sync_queue.py": {
    "max_func": 106,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "engines/trend_generator.py": {
    "max_func": 448,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "engines/watchdog.py": {
    "max_func": 556,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "engines/math_selector/__init__.py": {
    "max_func": 88,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "fetchers/fetcher.py": {
    "max_func": 1059,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "filters/period_normalizer.py": {
    "max_func": 72,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "filters/smart_filter.py": {
    "max_func": 183,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "frontend/quant-dashboard/quant_server.py": {
    "max_func": 102,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "gui/main_window.py": {
    "max_func": 1863,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 8,
+   "bare": 0
   },
   "importers/lottery_data_importer.py": {
    "max_func": 239,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "jinshuiyao/audit.py": {
    "max_func": 145,
    "any": 4,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 4,
+   "bare": 0
   },
   "jinshuiyao/backtester.py": {
    "max_func": 180,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "jinshuiyao/calibrator.py": {
    "max_func": 74,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "jinshuiyao/combo_optimizer.py": {
    "max_func": 175,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "jinshuiyao/data_provider.py": {
    "max_func": 137,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "jinshuiyao/decision_engine.py": {
    "max_func": 236,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "jinshuiyao/evaluator.py": {
    "max_func": 269,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "jinshuiyao/feature_engine.py": {
    "max_func": 94,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "jinshuiyao/fetcher.py": {
    "max_func": 514,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 3,
+   "bare": 0
   },
   "jinshuiyao/football_gui.py": {
    "max_func": 324,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 6,
+   "bare": 0
   },
   "jinshuiyao/llm_analyzer.py": {
    "max_func": 107,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "jinshuiyao/multi_play.py": {
    "max_func": 283,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "jinshuiyao/odds_utils.py": {
    "max_func": 76,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "jinshuiyao/radar.py": {
    "max_func": 99,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "jinshuiyao/risk_controller.py": {
    "max_func": 196,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "jinshuiyao/scene_factors.py": {
    "max_func": 275,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "jinshuiyao/stability.py": {
    "max_func": 106,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "jinshuiyao/team_db.py": {
    "max_func": 77,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
+  },
+  "jinshuiyao-guide/launcher.py": {
+   "max_func": 38,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "knowledge/ai_test_knowledge.py": {
    "max_func": 181,
    "any": 7,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "knowledge/cross_linker.py": {
    "max_func": 283,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "knowledge/knowledge_graph.py": {
    "max_func": 311,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "knowledge/knowledge_search.py": {
    "max_func": 41,
    "any": 5,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "knowledge/mirofish_db.py": {
    "max_func": 781,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "knowledge/mirofish_gui.py": {
    "max_func": 459,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "knowledge/tag_validator.py": {
    "max_func": 27,
    "any": 12,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "knowledge/triple_store.py": {
    "max_func": 30,
    "any": 6,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "knowledge/vector_index.py": {
    "max_func": 123,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
+  },
+  "knowledge/用户知识库/archive_knowledge.py": {
+   "max_func": 37,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "knowledge/用户知识库/lint_knowledge.py": {
    "max_func": 110,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "models/lottery_data.py": {
    "max_func": 157,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "scripts/audit_system_monitor.py": {
    "max_func": 505,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 9,
+   "bare": 0
   },
   "scripts/audit_system_scheduler.py": {
    "max_func": 364,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "scripts/audit_tool.py": {
    "max_func": 84,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "scripts/backtest_five_models_claims.py": {
    "max_func": 56,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "scripts/backtest_lottery_honest.py": {
    "max_func": 56,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "scripts/backtest_qiongwu_rules.py": {
    "max_func": 62,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
+  },
+  "scripts/check_env.py": {
+   "max_func": 42,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "scripts/daily_fund_monitor.py": {
    "max_func": 231,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "scripts/data_backup.py": {
    "max_func": 181,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "scripts/data_restore.py": {
    "max_func": 118,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "scripts/enhance_audit_system.py": {
    "max_func": 251,
    "any": 7,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
+  },
+  "scripts/free_model_health_check.py": {
+   "max_func": 5,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "scripts/frontend_health_probe.py": {
    "max_func": 83,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
+  },
+  "scripts/game_day.py": {
+   "max_func": 27,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "scripts/gen_risk_md.py": {
    "max_func": 60,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "scripts/git_commit_gate.py": {
    "max_func": 51,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "scripts/graph_triples_reconcile.py": {
    "max_func": 87,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "scripts/layer_registry.py": {
    "max_func": 80,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "scripts/lease_helper.py": {
    "max_func": 67,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "scripts/lottery_datasource_health.py": {
    "max_func": 56,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "scripts/memory_assist_system.py": {
    "max_func": 718,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 6,
+   "bare": 0
+  },
+  "scripts/memory_distill.py": {
+   "max_func": 23,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "scripts/prechange_analyzer.py": {
    "max_func": 690,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 7,
+   "bare": 0
   },
   "scripts/preflight_check.py": {
    "max_func": 38,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 1
+   "secret_n": 1,
+   "swallow": 0,
+   "bare": 0
   },
   "scripts/process_analysis_manager.py": {
    "max_func": 864,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "scripts/quality_gate.py": {
    "max_func": 61,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "scripts/safe_cleanup.py": {
    "max_func": 113,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
+  },
+  "scripts/session_coordinator.py": {
+   "max_func": 34,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "scripts/validate_phase1.py": {
    "max_func": 671,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "scripts/verify_all_processes.py": {
    "max_func": 160,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "scripts/verify_risk_register.py": {
    "max_func": 87,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "scripts/watchdog_service.py": {
    "max_func": 62,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 4,
+   "bare": 0
   },
   "scripts/work_record_validator.py": {
    "max_func": 778,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
+  },
+  "server/config.py": {
+   "max_func": 32,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "server/rate_limiter.py": {
    "max_func": 72,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "server/router.py": {
-   "max_func": 845,
+   "max_func": 851,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "server/utils.py": {
    "max_func": 113,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "server/__init__.py": {
    "max_func": 134,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "server/handlers/ai.py": {
    "max_func": 54,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
+  },
+  "server/handlers/error_report.py": {
+   "max_func": 50,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "server/handlers/filter.py": {
    "max_func": 106,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "server/handlers/fund.py": {
-   "max_func": 84,
+   "max_func": 94,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "server/handlers/health.py": {
    "max_func": 75,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
+  },
+  "server/handlers/keys.py": {
+   "max_func": 35,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "server/handlers/knowledge.py": {
    "max_func": 53,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
+  },
+  "server/handlers/lottery.py": {
+   "max_func": 42,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "server/handlers/prediction.py": {
    "max_func": 54,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "server/handlers/scheduler.py": {
    "max_func": 54,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "server/handlers/static.py": {
    "max_func": 167,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 17,
+   "bare": 0
+  },
+  "smart-coder/extension_registry.py": {
+   "max_func": 41,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 3,
+   "bare": 0
   },
   "smart-coder/project_loader.py": {
    "max_func": 83,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "smart-coder/recommender.py": {
    "max_func": 79,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 1
+   "secret_n": 1,
+   "swallow": 0,
+   "bare": 0
   },
   "tests/integration/test_backtesting.py": {
    "max_func": 93,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tests/integration/test_cross_domain.py": {
    "max_func": 79,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tests/integration/test_stock_domain.py": {
    "max_func": 56,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tests/unit/test_ai_agent.py": {
    "max_func": 145,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tests/unit/test_ai_service.py": {
    "max_func": 166,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tests/unit/test_ai_test_knowledge.py": {
    "max_func": 81,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tests/unit/test_auto_systems.py": {
    "max_func": 187,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tests/unit/test_brain_daily.py": {
    "max_func": 82,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tests/unit/test_circuit_breaker.py": {
    "max_func": 95,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tests/unit/test_creator_domain.py": {
    "max_func": 56,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tests/unit/test_data_truth_guard.py": {
    "max_func": 59,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tests/unit/test_domain_base.py": {
    "max_func": 112,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tests/unit/test_engines.py": {
    "max_func": 61,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tests/unit/test_fetcher.py": {
    "max_func": 83,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tests/unit/test_file_watcher.py": {
    "max_func": 83,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "tests/unit/test_fund_api_contract.py": {
    "max_func": 77,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tests/unit/test_fund_data_manager.py": {
    "max_func": 81,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tests/unit/test_fund_domain.py": {
    "max_func": 286,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
+  },
+  "tests/unit/test_fund_profile_api.py": {
+   "max_func": 90,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tests/unit/test_fund_profile_risk.py": {
    "max_func": 61,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tests/unit/test_jinshuiyao_core.py": {
    "max_func": 206,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tests/unit/test_mirofish_db.py": {
    "max_func": 296,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "tests/unit/test_prediction_service.py": {
    "max_func": 51,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tests/unit/test_scheduler.py": {
    "max_func": 63,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 4,
+   "bare": 0
   },
   "tests/unit/test_server_package.py": {
    "max_func": 338,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tests/unit/test_stock_gui.py": {
    "max_func": 278,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tests/unit/test_utils_extra.py": {
    "max_func": 117,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "tests/unit/test_video_extractor.py": {
    "max_func": 289,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tools/ai_review_agent.py": {
    "max_func": 194,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 4,
+   "bare": 0
   },
   "tools/ast_checker.py": {
    "max_func": 213,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tools/audit_trail.py": {
    "max_func": 56,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
+  },
+  "tools/auto_backup.py": {
+   "max_func": 38,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 5,
+   "bare": 0
   },
   "tools/auto_distill.py": {
    "max_func": 64,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tools/check_consistency.py": {
    "max_func": 106,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "tools/closeout_gate.py": {
    "max_func": 101,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
+  },
+  "tools/compliance.py": {
+   "max_func": 18,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "tools/doctor.py": {
    "max_func": 55,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 5,
+   "bare": 0
   },
   "tools/encrypt_secrets.py": {
    "max_func": 65,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
+  },
+  "tools/gate.py": {
+   "max_func": 39,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
+  },
+  "tools/gate_all.py": {
+   "max_func": 36,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "tools/gen_knowledge_index.py": {
    "max_func": 107,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 3,
+   "bare": 0
+  },
+  "tools/item_register.py": {
+   "max_func": 29,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "tools/lottery_rotation_matrix.py": {
    "max_func": 65,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
+  },
+  "tools/mutation_test.py": {
+   "max_func": 31,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 4,
+   "bare": 0
   },
   "tools/ops.py": {
    "max_func": 60,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 3,
+   "bare": 0
   },
   "tools/precommit_ai_review.py": {
    "max_func": 52,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tools/publish_lexiang.py": {
    "max_func": 55,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "tools/review_learning.py": {
    "max_func": 118,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 2,
+   "bare": 0
   },
   "tools/route_probe.py": {
    "max_func": 78,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "tools/run_review.py": {
    "max_func": 57,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 4,
+   "bare": 0
   },
   "tools/run_tests.py": {
    "max_func": 280,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
+  },
+  "tools/set_secret.py": {
+   "max_func": 34,
+   "any": 0,
+   "sql": 0,
+   "untimed": 0,
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "tools/smoke_test.py": {
    "max_func": 50,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 1
+   "secret_n": 1,
+   "swallow": 1,
+   "bare": 0
   },
   "tools/staleness_check.py": {
    "max_func": 62,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "tools/sync_ai_decisions.py": {
    "max_func": 62,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tools/sync_free_models.py": {
    "max_func": 117,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "tools/verify_chain.py": {
    "max_func": 126,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tools/wrapup_check.py": {
    "max_func": 93,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "tools/archive/jinshuiyao_python310_validator.py": {
    "max_func": 243,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tools/archive/python_upgrade_assistant.py": {
    "max_func": 98,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tools/archive/reorg.py": {
    "max_func": 86,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "tools/archive/smoke_mcp.py": {
    "max_func": 52,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tools/archive/update_deps_for_310.py": {
    "max_func": 168,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tools/archive/verify_python314_install.py": {
    "max_func": 250,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tools/wrapup/base.py": {
    "max_func": 6,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 1
+   "secret_n": 1,
+   "swallow": 1,
+   "bare": 0
   },
   "tools/wrapup/checks_code.py": {
    "max_func": 78,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "tools/wrapup/checks_infra.py": {
    "max_func": 52,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 1,
+   "bare": 0
   },
   "tools/wrapup/checks_integrity.py": {
    "max_func": 88,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tools/wrapup/checks_linkage.py": {
    "max_func": 59,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tools/wrapup/checks_quality.py": {
    "max_func": 62,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tools/wrapup/checks_security.py": {
    "max_func": 72,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "tools/wrapup/checks_workflow.py": {
    "max_func": 57,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "utils/api_compat.py": {
    "max_func": 126,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "utils/cache_manager.py": {
    "max_func": 124,
    "any": 10,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "utils/change_audit.py": {
    "max_func": 92,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 3,
+   "bare": 0
   },
   "utils/data_backup.py": {
    "max_func": 85,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "utils/number_utils.py": {
    "max_func": 90,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "utils/pipeline.py": {
    "max_func": 81,
    "any": 8,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "utils/prediction_verifier.py": {
    "max_func": 182,
    "any": 4,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "utils/safe_json.py": {
    "max_func": 66,
    "any": 10,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "utils/security_tools.py": {
    "max_func": 220,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "utils/smart_audit.py": {
    "max_func": 125,
    "any": 6,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   },
   "utils/uncertainty.py": {
    "max_func": 54,
    "any": 0,
    "sql": 0,
    "untimed": 0,
-   "secret_n": 0
+   "secret_n": 0,
+   "swallow": 0,
+   "bare": 0
   }
  }
 }

@@ -621,7 +621,7 @@ def check_std_thresholds():
                 'MATCH_STALE_WARN_DAYS', 'MATCH_STALE_FAIL_DAYS', 'LOT_STALE_WARN_DAYS',
             ],
             os.path.join(BASE_DIR, 'tools', 'code_health_gate.py'): [
-                'MAX_FUNC_LINES',
+                'MAX_FUNC_LINES', 'MAX_SILENT_SWALLOW', 'MAX_BARE_EXCEPT',
             ],
         }
         consts = {}

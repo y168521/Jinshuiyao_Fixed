@@ -31,6 +31,12 @@ MAX_PLAINTEXT_SECRET = 0
 MAX_UNTIMED_REQUESTS = 0
 # Any 阈值：理论 0；但因历史代码可能大量使用，先以 WARN 提示，BLOCKING 翻硬时再卡 0。
 MAX_ANY = 0
+# 静默吞异常（JS-20260921-02）：except Exception: pass —— 出错了什么都不做、也不记日志。
+# 这类代码最危险的不是"错"，而是**错得无声**：功能看起来在跑，其实一直在走降级分支。
+# 存量 303 处锁进基线按年收敛，**新增一律告警**。
+MAX_SILENT_SWALLOW = 0
+# 裸 except（连 Exception 都不写，KeyboardInterrupt/SystemExit 一并吞掉）
+MAX_BARE_EXCEPT = 0
 
 BLOCKING = False  # ← 基线清理干净后改为 True 即变硬拦截
 
@@ -44,7 +50,8 @@ BLOCKING = False  # ← 基线清理干净后改为 True 即变硬拦截
 BASELINE_PATH = os.path.join(BASE_DIR, "金水谣数据", "log", "code_health_baseline.json")
 BASELINE_ENABLED = True
 # 参与基线的指标（与 scan_project 输出的键一致）；secrets 记条数而非明细
-METRIC_KEYS = ("max_func", "any", "sql", "untimed", "secret_n")
+METRIC_KEYS = ("max_func", "any", "sql", "untimed", "secret_n",
+               "swallow", "bare")
 
 SKIP_DIRS = {
     "node_modules", ".git", ".workbuddy", "venv", ".venv", "__pycache__",
@@ -146,6 +153,20 @@ def count_plaintext_secret(src):
     return hits
 
 
+def count_silent_swallow(code_only):
+    """静默吞异常：except Exception[: as x]: pass —— 不记日志、不重抛、什么都不做。
+
+    为什么单独拎出来：这类代码的失败是**无声的**。功能看起来照常运行，
+    实际一直在走降级分支，直到某天数据不对才被发现，而那时已经没有现场了。
+    """
+    return len(re.findall(r"except\s+Exception[^:]*:\s*\n\s+pass", code_only))
+
+
+def count_bare_except(code_only):
+    """裸 except：连 Exception 都不写，KeyboardInterrupt/SystemExit 一并吞掉"""
+    return len(re.findall(r"^\s*except\s*:\s*$", code_only, re.M))
+
+
 def count_untimed_requests(code_only):
     # requests.get/post/... 调用且语句内无 timeout=
     calls = list(re.finditer(r"requests\.(get|post|put|delete|patch|head|options)\s*\(", code_only))
@@ -191,14 +212,18 @@ def scan_project():
             sql_n = count_sql_injection(code_only)
             secrets = count_plaintext_secret(src)
             untimed = count_untimed_requests(code_only)
+            swallow = count_silent_swallow(code_only)
+            bare = count_bare_except(code_only)
             if (mf > MAX_FUNC_LINES or any_n > MAX_ANY or sql_n > MAX_SQL_INJECT
-                    or len(secrets) > MAX_PLAINTEXT_SECRET or untimed > MAX_UNTIMED_REQUESTS):
+                    or len(secrets) > MAX_PLAINTEXT_SECRET or untimed > MAX_UNTIMED_REQUESTS
+                    or swallow > MAX_SILENT_SWALLOW or bare > MAX_BARE_EXCEPT):
                 results.append({
                     "file": fp[len(BASE_DIR) + 1:],
                     "max_func": mf, "max_func_name": mname,
                     "any": any_n, "sql": sql_n,
                     "secrets": [s[0] for s in secrets],
                     "untimed": untimed,
+                    "swallow": swallow, "bare": bare,
                 })
     return results
 
@@ -211,6 +236,8 @@ def _metrics_of(r):
         "sql": int(r["sql"]),
         "untimed": int(r["untimed"]),
         "secret_n": int(len(r["secrets"])),
+        "swallow": int(r.get("swallow", 0)),
+        "bare": int(r.get("bare", 0)),
     }
 
 
@@ -312,7 +339,8 @@ def _verdict_full(results, blocking, note=""):
     """全量模式（无基线/--full）：沿用原有口径。"""
     worst_func = max(results, key=lambda r: r["max_func"])
     msg = (
-        "检出 %d 个文件超阈值%s：最大函数 %s:%s=%d行(≤%d)；Any 共%d；SQL注入%d；明文密钥%d；未超时requests%d。"
+        "检出 %d 个文件超阈值%s：最大函数 %s:%s=%d行(≤%d)；Any 共%d；SQL注入%d；明文密钥%d；"
+        "未超时requests%d；静默吞异常%d；裸except%d。"
         "代表文件: %s"
     ) % (
         len(results), note,
@@ -320,6 +348,7 @@ def _verdict_full(results, blocking, note=""):
         worst_func["max_func"], MAX_FUNC_LINES,
         sum(r["any"] for r in results), sum(r["sql"] for r in results),
         sum(len(r["secrets"]) for r in results), sum(r["untimed"] for r in results),
+        sum(r.get("swallow", 0) for r in results), sum(r.get("bare", 0) for r in results),
         "; ".join(r["file"] for r in results[:8]),
     )
     return (not blocking), msg, True
