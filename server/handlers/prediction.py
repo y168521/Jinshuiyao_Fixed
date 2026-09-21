@@ -17,8 +17,11 @@
 import os
 import json
 import datetime
+import logging
 
 from ..config import PREDICTION_DIR, PREDICTION_FILE, _PRED_DOMAIN_KEYWORDS, _PRED_LOCK
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -170,7 +173,8 @@ def record_prediction(question, answer, domain=None, confidence=None):
             _save_predictions(records)
         return rec_id
     except Exception as e:
-        print(f'[prediction] 记录失败: {e}', flush=True)
+        # JS-20260921-03：改用 logger（原 print 只进控制台，不落日志文件，事后无法追溯）
+        logger.error('[prediction] 记录失败: %s', e)
         return None
 
 

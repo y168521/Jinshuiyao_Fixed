@@ -659,7 +659,7 @@
    "bare": 0
   },
   "domains/lottery/domain.py": {
-   "max_func": 345,
+   "max_func": 349,
    "any": 0,
    "sql": 0,
    "untimed": 0,
@@ -893,12 +893,12 @@
    "bare": 0
   },
   "engines/prediction_service.py": {
-   "max_func": 706,
+   "max_func": 725,
    "any": 0,
    "sql": 0,
    "untimed": 0,
    "secret_n": 0,
-   "swallow": 15,
+   "swallow": 0,
    "bare": 0
   },
   "engines/reposition_engine.py": {
@@ -1307,7 +1307,7 @@
    "bare": 0
   },
   "knowledge/用户知识库/lint_knowledge.py": {
-   "max_func": 110,
+   "max_func": 111,
    "any": 0,
    "sql": 0,
    "untimed": 0,
@@ -2099,7 +2099,7 @@
    "bare": 0
   },
   "tools/closeout_gate.py": {
-   "max_func": 101,
+   "max_func": 86,
    "any": 0,
    "sql": 0,
    "untimed": 0,

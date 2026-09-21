@@ -190,7 +190,8 @@ def lint(kb_dir: str = KB_DIR) -> LintReport:
     index_file = os.path.join(kb_dir, "INDEX.json")
     if os.path.isfile(index_file):
         try:
-            idx = json.load(open(index_file, encoding="utf-8"))
+            with open(index_file, encoding="utf-8") as f:
+                idx = json.load(f)
         except Exception as e:
             rep.error(f"INDEX.json 解析失败: {e}")
             idx = []

@@ -363,15 +363,19 @@ class LotteryDomain(DomainBase):
                 pred_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "金水谣数据", "predictions.json")
                 all_preds = safe_load_json(pred_file, default=[])
                 if isinstance(all_preds, list):
-                    reviewed_periods = {d.get("period") for d in details}
+                    # JS-20260921-04：原实现只按 period 匹配，而期号在不同彩种间会重复
+                    # （实测双色球 2026109 与七星彩 2026109 同期号并存）→ 会跨彩种串写
+                    # reviewed/hits，造成「复盘张冠李戴」。改为 (lot, period) 复合键。
+                    detail_map = {(d.get("lot"), d.get("period")): d for d in details}
                     for p in all_preds:
-                        if p.get("period") in reviewed_periods:
-                            p["reviewed"] = True
-                            # 找到对应的复盘详情
-                            for d in details:
-                                if d.get("period") == p.get("period"):
-                                    p["hits"] = d.get("match", 0)
-                                    break
+                        d = detail_map.get((p.get("lot"), p.get("period")))
+                        if d is None:
+                            continue
+                        p["reviewed"] = True
+                        p["hits"] = d.get("match", 0)
+                        # 回存开奖号码，使历史命中可事后复核（原只存 hits，无法重算口径）
+                        if d.get("actual"):
+                            p["actual"] = d.get("actual")
                     safe_write_json(pred_file, all_preds)
             except Exception as e:
                 logger.warning("回写predictions.json失败: %s", e)
