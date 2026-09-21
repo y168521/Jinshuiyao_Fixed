@@ -87,7 +87,9 @@ class PredictionService:
             if len(rows) < 5:
                 return None
             return {"n": len(rows), "avg": sum(r.get("hits", 0) for r in rows) / len(rows)}
-        except Exception:
+        except Exception as e:
+            # JS-20260921-03：原为静默 return None，玩法健康度失效时无任何痕迹 → 改留 debug
+            logger.debug("[%s] 玩法近期健康度读取失败(降级不调权): %s", lot, e)
             return None
 
     def _brain_play_health(self, lot, play_plan):
@@ -135,8 +137,9 @@ class PredictionService:
             if self.brain is not None:
                 try:
                     adj = self.brain.get_digit_adjustments(lot)
-                except Exception:
-                    pass
+                except Exception as e:
+                    # JS-20260921-03：大脑号码偏差失效会让共识选号少一路信号，必须留痕
+                    logger.debug("[%s] 大脑号码偏差读取失败(漏斗补位仅用维度共识): %s", lot, e)
             if adj:
                 order = [(d, s * adj.get(d, 1.0)) for d, s in order]
             top = ", ".join("%02d(%d)" % (d, s) for d, s in order[:5])
@@ -235,8 +238,9 @@ class PredictionService:
                     hurst = HurstCalculator.compute(seq)
                     trend = "趋势延续" if hurst > 0.55 else ("均值回归" if hurst < 0.45 else "随机震荡")
                     self.log(f"📊 {lot} 赫斯特={hurst:.2f}({trend})")
-                except Exception:
-                    pass
+                except Exception as e:
+                    # JS-20260921-03：赫斯特失败会静默退回 0.5(随机震荡)，直接影响趋势判断
+                    logger.debug("[%s] 赫斯特指数计算失败(降级 hurst=0.5): %s", lot, e)
 
             # 热号
             hot = {}
@@ -269,8 +273,9 @@ class PredictionService:
                         if morph_data:
                             suggest = morph_data.get("suggest", "")
                             self.log(f"🧬 {lot} 形态分析: {suggest}" if suggest else f"🧬 {lot} 形态分析完成")
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        # JS-20260921-03：形态分析失败 → 后续组选/跨度建议全部缺失，须留痕
+                        logger.debug("[%s] 形态分析失败(降级无形态数据): %s", lot, e)
 
             # 智能杀号评分
             smart_killer = None
@@ -278,8 +283,9 @@ class PredictionService:
                 try:
                     from engines.validators import SmartKillScorer
                     smart_killer = SmartKillScorer(arr)
-                except Exception:
-                    pass
+                except Exception as e:
+                    # JS-20260921-03：杀号评分器构建失败 → 杀号退化为普通规则
+                    logger.debug("[%s] 智能杀号评分器构建失败(降级无杀号评分): %s", lot, e)
 
             # 关联矩阵
             corr = None
@@ -292,8 +298,9 @@ class PredictionService:
                         self.corr_matrix.build_transition(arr)
                     corr = self.corr_matrix
                     self.log(f"🔗 {lot} 关联相斥矩阵已加载")
-                except Exception:
-                    pass
+                except Exception as e:
+                    # JS-20260921-03：关联矩阵失败 → 相斥过滤失效，号组可能变得更"扎堆"
+                    logger.debug("[%s] 关联相斥矩阵构建失败(降级无相斥过滤): %s", lot, e)
 
             cold_tunnel = self.engine_states.get("cold_tunnel", True)
             if cold_tunnel:
@@ -311,8 +318,9 @@ class PredictionService:
                 if alerts:
                     alert_nums = [f"{n:02d}" for n, _ in alerts[:3]]
                     self.log(f"📈 {lot} 遗漏预警：{','.join(alert_nums)} 即将回补", "DEBUG")
-            except Exception:
-                pass
+            except Exception as e:
+                # JS-20260921-03：遗漏分析失败 → 冷号突破/回补预警全丢，是"预测变差"的高危静默点
+                logger.debug("[%s] 遗漏分析失败(降级无遗漏数据): %s", lot, e)
 
             # 多维参考特征（福彩3D/排列三）：遗漏/冷热/振幅/奇偶/大小/区间/和值/跨度
             ref_features = None
@@ -320,8 +328,9 @@ class PredictionService:
                 try:
                     from engines.feature_engine import analyze as feat_analyze
                     ref_features = feat_analyze(lot, arr)
-                except Exception:
-                    pass
+                except Exception as e:
+                    # JS-20260921-03：多维参考特征失败 → 3D/排三少 8 维特征
+                    logger.debug("[%s] 多维参考特征分析失败(降级无参考特征): %s", lot, e)
 
             # ===== 知识库咨询：让经验卡片影响选号决策 =====
             kb_adjustments = self._consult_knowledge(lot)
@@ -372,8 +381,9 @@ class PredictionService:
                             if boosted:
                                 alert_nums = [f"{n:02d}" for n, _ in alerts[:3]]
                                 self.log(f"📚 知识库增强冷号突破(+{boosted}个: {','.join(alert_nums)})")
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        # JS-20260921-03：知识库增强失败 → 冷号突破不加权
+                        logger.debug("[%s] 知识库冷号增强失败(降级不加权): %s", lot, e)
 
             # ===== 智能大脑: 置信度 + 策略权重（学习成果反哺预测） =====
             if self.brain is not None:
@@ -389,10 +399,12 @@ class PredictionService:
                     # 置信度记录落盘（学习成果持久化，重启不丢）
                     try:
                         self.brain._save_state()
-                    except Exception:
-                        pass
-                except Exception:
-                    pass
+                    except Exception as e:
+                        # JS-20260921-03：状态落盘失败 → 重启后学习成果丢失（"越用越差"的典型成因）
+                        logger.warning("[%s] 大脑状态落盘失败(重启后学习成果可能丢失): %s", lot, e)
+                except Exception as e:
+                    # JS-20260921-03：大脑置信度失败 → 低置信度收敛/权重反哺全部失效
+                    logger.debug("[%s] 大脑置信度评估失败(降级不收敛): %s", lot, e)
                 try:
                     brain_weights = self.brain.get_strategy_weights(lot)
                     if brain_weights:
@@ -403,8 +415,9 @@ class PredictionService:
                         if budget:
                             b_str = ", ".join(f"{k} {v}元" for k, v in budget.items())
                             self.log(f"🧠 {lot} 预算建议: {b_str}")
-                except Exception:
-                    pass
+                except Exception as e:
+                    # JS-20260921-03：策略权重失败 → 沿用默认权重（策略漂移不被察觉）
+                    logger.debug("[%s] 大脑策略权重读取失败(降级默认权重): %s", lot, e)
 
             # ===== 🧠 大脑玩法健康度自动调整（低于随机基准60%→停用，高于140%→加注） =====
             if play_plan:
@@ -425,8 +438,9 @@ class PredictionService:
                         ai_extra[d] = 0.5
                     self.log(f"🧠 {lot} AI简报注入: hot={brief['hot']}"
                              + (f" 理由:{brief['reason']}" if brief.get("reason") else ""))
-            except Exception:
-                pass
+            except Exception as e:
+                # JS-20260921-03：AI 简报失败 → 当天的"长脑子"信号整体缺失
+                logger.debug("[%s] AI 简报注入失败(降级无简报加权): %s", lot, e)
 
             if lot in ["福彩3D", "排列三"] and play_plan and sum(p['count'] for p in play_plan if p['type'] == '单注') >= 2:
                 consensus_order = self._brain_consensus_order(lot, arr, kill, morph_data)
@@ -550,15 +564,18 @@ class PredictionService:
             try:
                 from core.audit_log import log_predict
                 log_predict("lottery", lot, scheme or "默认方案", len(all_nums))
-            except Exception:
-                pass
+            except Exception as e:
+                # JS-20260921-03：审计落空会让"生成了多少注"无法追溯
+                logger.debug("[%s] 预测审计写入失败(不影响出号): %s", lot, e)
 
             # 信号质量指数 SQI（诚实：仅反映信号清晰度+数据质量，非中奖概率）
             try:
                 confidence = self._compute_signal_quality(
                     lot, arr, hurst, hot, kill, miss_data, corr,
                     kb_adjustments, vote, self.engine_states, ref_features)
-            except Exception:
+            except Exception as e:
+                # JS-20260921-03：SQI 计算失败会静默显示"不可用"，用户看到的质量分下降需可追溯
+                logger.warning("[%s] 信号质量指数 SQI 计算失败(降级 unknown): %s", lot, e)
                 confidence = {"score": None, "level": "unknown",
                               "signals": {}, "note": "信号质量指数暂不可用"}
 
@@ -793,8 +810,9 @@ class PredictionService:
                 # 保存更新后的use_count
                 try:
                     db.save()
-                except Exception:
-                    pass
+                except Exception as e:
+                    # JS-20260921-03：use_count 落盘失败 → 经验卡"用得多的排前面"会失真
+                    logger.warning("知识库 use_count 保存失败(卡片排序可能失真): %s", e)
         except Exception as e:
             logger.debug("知识库咨询失败(降级跳过): %s", e)
         return adjustments
@@ -808,5 +826,6 @@ class PredictionService:
                     for d, factor in adj.items():
                         if d in fg.final_hot:
                             fg.final_hot[d] *= factor
-            except Exception:
-                pass
+            except Exception as e:
+                # JS-20260921-03：大脑号码修正失效 → 出号退回未修正状态
+                logger.debug("[%s] 大脑号码修正应用失败(降级不修正): %s", lot, e)

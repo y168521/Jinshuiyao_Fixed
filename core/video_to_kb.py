@@ -150,7 +150,9 @@ def _write_card(url: str, extracted: dict, card: dict, raw_name: str,
     body_parts.append(f"> 原始证据：raw/{raw_name}（点击可溯源）")
     karpathy = "Karpathy LLM Wiki 方法论要点"
     try:
-        idx = json.load(open(os.path.join(KB_DIR, "INDEX.json"), encoding="utf-8"))
+        # JS-20260921-03：with 读取，避免句柄残留
+        with open(os.path.join(KB_DIR, "INDEX.json"), encoding="utf-8") as f:
+            idx = json.load(f)
         titles = [e.get("title") for e in idx if isinstance(e, dict)]
     except Exception:
         titles = []
@@ -387,7 +389,8 @@ def _self_test() -> None:
     assert res["card_file"] and os.path.isfile(os.path.join(tmp_kb, res["card_file"]))
     assert res["raw_file"] and os.path.isfile(os.path.join(tmp_kb, "raw", res["raw_file"]))
     assert res["lint"] and res["lint"].get("ok"), res.get("lint")
-    idx = json.load(open(os.path.join(tmp_kb, "INDEX.json"), encoding="utf-8"))
+    with open(os.path.join(tmp_kb, "INDEX.json"), encoding="utf-8") as f:
+        idx = json.load(f)
     assert isinstance(idx, list) and len(idx) >= 1, "索引应至少含 1 条"
     # raw 证据应被卡片引用（Lint 已校验过存在性）
     print(f"  ✓ 全链路通过：raw={res['raw_file']} | 卡片={res['card_file']} | 索引={len(idx)} 条 | Lint ok")

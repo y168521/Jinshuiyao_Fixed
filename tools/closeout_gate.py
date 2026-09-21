@@ -171,6 +171,56 @@ def _check_forbidden_colors():
             " ..." if len(hits) > 20 else "")
     return True, "未检出禁用色"
 
+
+def _check_code_health():
+    """6 代码体检门禁（JS-20260812-01 · 四 Agent 重构管线方法论落地）。
+
+    默认 WARN-ONLY（BLOCKING=False）：现有代码库体量未清，直接硬拦会阻断收工。
+    待基线清理干净后，把 code_health_gate.BLOCKING 改为 True 即变硬拦截。
+    """
+    try:
+        import importlib.util as _ilu
+        _spec = _ilu.spec_from_file_location(
+            "code_health_gate",
+            os.path.join(BASE_DIR, "tools", "code_health_gate.py"),
+        )
+        _chg = _ilu.module_from_spec(_spec)
+        _spec.loader.exec_module(_chg)
+        ok_ch, msg_ch, violated_ch = _chg.check_code_health()
+        status_ch = "OK" if ok_ch else "FAIL"
+        if violated_ch and ok_ch:
+            status_ch = "WARN"
+        print(f"  [{status_ch}] 代码体检门禁: {msg_ch}")
+        return bool(ok_ch)
+    except Exception as e:
+        print(f"  [WARN] 代码体检门禁: 检查不可用 ({e})")
+        return True
+
+
+def _check_repo_hygiene():
+    """6b 仓库卫生闸（JS-20260921-03 · 备份/临时类文件不得入仓）。
+
+    事故：`git add -A` 把 3 个 <file>.<tag>_bak 形态的一次性迁移备份（1.66 MB）
+    扫进仓库，而 .gitignore 当时只覆盖 *.bak / *.json.bak.*，漏了 *_bak。
+    本闸调用 tools/repo_hygiene.py 扫 git ls-files 兜底，FAIL 即阻断收工。
+    独立成函数的原因：内联会让 main() 从 101 行涨到 118 行，触发代码体检门禁告警。
+    """
+    try:
+        import importlib.util as _ilu2
+        _spec2 = _ilu2.spec_from_file_location(
+            "repo_hygiene",
+            os.path.join(BASE_DIR, "tools", "repo_hygiene.py"),
+        )
+        _rh = _ilu2.module_from_spec(_spec2)
+        _spec2.loader.exec_module(_rh)
+        ok_rh, msg_rh = _rh.check()
+        print(f"  [{'OK' if ok_rh else 'FAIL'}] 仓库卫生: {msg_rh}")
+        return bool(ok_rh)
+    except Exception as e:
+        print(f"  [WARN] 仓库卫生: 检查不可用 ({e})")
+        return True
+
+
 def main():
     override = "--override" in sys.argv
 
@@ -203,26 +253,11 @@ def main():
     if not ok:
         all_ok = False
 
-    # 6: 代码体检门禁（JS-20260812-01 · 四 Agent 重构管线方法论落地）
-    # 默认 WARN-ONLY（BLOCKING=False）：现有代码库体量未清，直接硬拦会阻断收工。
-    # 待基线清理干净后，把 code_health_gate.BLOCKING 改为 True 即变硬拦截。
-    try:
-        import importlib.util as _ilu
-        _spec = _ilu.spec_from_file_location(
-            "code_health_gate",
-            os.path.join(BASE_DIR, "tools", "code_health_gate.py"),
-        )
-        _chg = _ilu.module_from_spec(_spec)
-        _spec.loader.exec_module(_chg)
-        ok_ch, msg_ch, violated_ch = _chg.check_code_health()
-        status_ch = "OK" if ok_ch else "FAIL"
-        if violated_ch and ok_ch:
-            status_ch = "WARN"
-        print(f"  [{status_ch}] 代码体检门禁: {msg_ch}")
-        if not ok_ch:
-            all_ok = False
-    except Exception as e:
-        print(f"  [WARN] 代码体检门禁: 检查不可用 ({e})")
+    # 6 / 6b: 代码体检门禁 + 仓库卫生（均抽为独立函数，见下方定义）
+    if not _check_code_health():
+        all_ok = False
+    if not _check_repo_hygiene():
+        all_ok = False
 
     # 7: 金水谣数据完整性（盲区告警 · JS-20260810-13 还原 T04 集成断言）
     # 仅告警(WARN)不阻断：数据缺失可能只是未开奖/未生成，不应拦收工

@@ -102,7 +102,9 @@ def _memory_remove(scope, old_text, mid=None):
         return False, '文件不存在'
     if not mid and not (old_text or '').strip():
         return False, '未提供待删除内容'
-    lines = open(path, 'r', encoding='utf-8').read().split('\n')
+    # JS-20260921-03：改用 with 读取（裸 open 残留句柄，Windows 下持锁到 GC 才释放）
+    with open(path, 'r', encoding='utf-8') as f:
+        lines = f.read().split('\n')
     target_idx = None
     cur_section = ''
     for i, ln in enumerate(lines):
@@ -137,7 +139,9 @@ def _memory_edit(scope, old_text, new_text, mid=None):
     repl = (new_text or '').strip()
     if not repl:
         return False, '新内容不能为空'
-    lines = open(path, 'r', encoding='utf-8').read().split('\n')
+    # JS-20260921-03：改用 with 读取（裸 open 残留句柄，Windows 下持锁到 GC 才释放）
+    with open(path, 'r', encoding='utf-8') as f:
+        lines = f.read().split('\n')
     target_idx = None
     cur_section = ''
     for i, ln in enumerate(lines):

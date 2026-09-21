@@ -74,7 +74,7 @@ echo "[pre-commit] ========================================"
 echo "[pre-commit] 金水谣 · 提交前检查"
 echo "[pre-commit] ========================================"
 
-echo "[pre-commit] 1/4 系统一致性检测..."
+echo "[pre-commit] 1/5 系统一致性检测..."
 "$PY" "$ROOT/tools/check_consistency.py"
 rc=$?
 if [ $rc -ne 0 ]; then
@@ -84,7 +84,7 @@ if [ $rc -ne 0 ]; then
 fi
 echo "[pre-commit] OK 一致性通过"
 
-echo "[pre-commit] 2/4 AI 语义审查（暂存 .py，P0 阻断）..."
+echo "[pre-commit] 2/5 AI 语义审查（暂存 .py，P0 阻断）..."
 # v4 (JS-20260920-05): 非交互环境（计划任务/自动同步/CI，stdin 非 tty）跳过 AI 审查。
 #   AI 审查要联网调付费模型，在无人值守环境里既无凭据也无意义，一旦超时/失败会
 #   直接阻断自动提交（2026-09-20 06:53 自动同步即因此被拦）。交互提交时照常执行。
@@ -102,7 +102,7 @@ if [ $rc -ne 0 ]; then
 fi
 echo "[pre-commit] OK AI 审查通过"
 
-echo "[pre-commit] 3/4 页面-API 契约检查（防空壳：前端调用必须已注册路由）..."
+echo "[pre-commit] 3/5 页面-API 契约检查（防空壳：前端调用必须已注册路由）..."
 "$PY" "$ROOT/tools/page_api_lint.py"
 rc=$?
 if [ $rc -ne 0 ]; then
@@ -112,7 +112,7 @@ if [ $rc -ne 0 ]; then
 fi
 echo "[pre-commit] OK 契约一致（PENDING 到期提醒见上方 WARN）"
 
-echo "[pre-commit] 4/4 操作留痕（审计轨迹，WARN 不阻断）..."
+echo "[pre-commit] 4/5 操作留痕（审计轨迹，WARN 不阻断）..."
 # v4 (JS-20260920-05): 原实现用 sed 拼文件名，瘦 sh 里没有 sed → FILES 恒为空、留痕丢文件清单。
 #   改为纯 shell 循环拼接，不依赖任何外部命令。
 FILES=""
@@ -121,6 +121,19 @@ for f in $(git diff --cached --name-only 2>/dev/null); do
 done
 "$PY" -c "import sys; sys.path.insert(0, r'$ROOT'); from tools.audit_trail import log_event; log_event('commit', 'pre-commit 自动记录', files='$FILES'.split('|'))" >/dev/null 2>&1
 echo "[pre-commit] OK 留痕完成"
+
+# v5 (JS-20260921-03): 仓库卫生 —— 备份/临时类文件不得入仓。
+#   事故：`git add -A` 把 3 个 <file>.<tag>_bak 形态的一次性迁移备份（1.66 MB）扫进仓库，
+#   而 .gitignore 当时只覆盖 *.bak / *.json.bak.*，漏了 *_bak。本闸扫 git ls-files 兜底。
+echo "[pre-commit] 5/5 仓库卫生（备份/临时文件不得入仓）..."
+"$PY" "$ROOT/tools/repo_hygiene.py"
+rc=$?
+if [ $rc -ne 0 ]; then
+  echo "[pre-commit] FAIL 存在被 git 跟踪的备份/临时类文件，已阻止提交。"
+  echo "[pre-commit] 修复: git rm --cached <文件>（保留本地），或删除后重试"
+  exit 1
+fi
+echo "[pre-commit] OK 仓库卫生通过"
 
 echo "[pre-commit] ========================================"
 echo "[pre-commit] 全部检查通过，可以提交！"
