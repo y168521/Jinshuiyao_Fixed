@@ -4,9 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>金水谣 · 缩水过滤</title>
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/tokens.css">
   <style>
     :root {
-      --bg: #0b0f19; --card: #131a2a; --text: #e4e8f1; --muted: #7a8499; --border: #1e2a40;
+      /* P0-2 · 2026-09-23：改引全站令牌，回退值保留原深黑配色 */
+      --bg: var(--js-deep, #0b0f19);
+      --card: var(--js-card-bg, #131a2a);
+      --text: var(--js-ink, #e4e8f1);
+      --muted: var(--js-ink-dim, #7a8499);
+      --border: var(--js-gold-border, #1e2a40);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif; color: var(--text); background: var(--bg); line-height: 1.6; min-height: 100vh; }

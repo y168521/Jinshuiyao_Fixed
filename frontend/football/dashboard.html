@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>金水谣足彩预测 - AI赛前模拟</title>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/tokens.css">
 <style>
 /* ═══════════════════════════════════════════════════════════
    金水谣足彩预测系统 - 深色科技风可视化界面 V2
@@ -14,47 +15,47 @@
 .back-link a:hover { color:var(--accent); }
 
 :root {
-  /* ── 背景层次 ── */
-  --bg-deep: #0a0e1a;
-  --bg: #0f172a;
-  --bg2: #1e293b;
-  --bg3: #273548;
-  --bg4: #334155;
+  /* ── 背景层次（P0-2 · 2026-09-23：改引全站令牌，回退值保留原 Slate 配色）── */
+  --bg-deep: var(--js-deep, #0a0e1a);
+  --bg: var(--js-deep, #0f172a);
+  --bg2: var(--js-card-bg, #1e293b);
+  --bg3: var(--js-card-bg, #273548);
+  --bg4: var(--js-border-elev-1, #334155);
   /* ── 文字 ── */
-  --ink: #e2e8f0;
-  --ink-bright: #f8fafc;
-  --muted: #94a3b8;
-  --muted-dim: #64748b;
+  --ink: var(--js-ink, #e2e8f0);
+  --ink-bright: var(--js-ink, #f8fafc);
+  --muted: var(--js-ink-dim, #94a3b8);
+  --muted-dim: var(--js-ink-disabled, #64748b);
   /* ── 边框 ── */
-  --rule: #334155;
-  --rule-light: rgba(51, 65, 85, 0.5);
-  /* ── 主强调色：青蓝 ── */
-  --accent: #00d4aa;
-  --accent-bright: #00ffcc;
-  --accent-blue: #00d4ff;
-  /* ── 次强调色：蓝 ── */
-  --accent2: #5bc0de;
-  --accent2-light: #5BC0DE;
-  /* ── 警告：橙黄 ── */
-  --warning: #f59e0b;
-  --warning-dark: #d29922;
-  /* ── 成功：绿 ── */
-  --success: #2D8B7E;
-  --success-bright: #2D8B7E;
-  /* ── 危险：红 ── */
-  --danger: #C8755A;
-  --danger-dark: #C8755A;
+  --rule: var(--js-gold-border, #334155);
+  --rule-light: var(--js-border-elev-0, rgba(51, 65, 85, 0.5));
+  /* ── 主强调色（原青绿 → 统一为墨绿金）── */
+  --accent: var(--js-jade, #00d4aa);
+  --accent-bright: var(--js-ice, #00ffcc);
+  --accent-blue: var(--js-ice, #00d4ff);
+  /* ── 次强调色：冰水蓝 ── */
+  --accent2: var(--js-ice, #5bc0de);
+  --accent2-light: var(--js-ice, #5BC0DE);
+  /* ── 警告（原橙黄 → 统一为香槟金）── */
+  --warning: var(--js-gold, #f59e0b);
+  --warning-dark: var(--js-gold, #d29922);
+  /* ── 成功 ── */
+  --success: var(--js-jade, #2D8B7E);
+  --success-bright: var(--js-jade, #2D8B7E);
+  /* ── 危险 ── */
+  --danger: var(--js-copper, #C8755A);
+  --danger-dark: var(--js-copper, #C8755A);
   /* ── 渐变 ── */
-  --gradient-accent: linear-gradient(135deg, #00d4aa, #00d4ff);
-  --gradient-accent-h: linear-gradient(90deg, #00d4aa, #00d4ff);
-  --gradient-blue: linear-gradient(135deg, #5bc0de, #2e8ca8);
-  --gradient-win: linear-gradient(90deg, #2D8B7E, #2D8B7E);
-  --gradient-draw: linear-gradient(90deg, #d29922, #f59e0b);
-  --gradient-lose: linear-gradient(90deg, #C8755A, #C8755A);
-  /* ── Glassmorphism ── */
-  --glass-bg: rgba(30, 41, 59, 0.75);
-  --glass-bg-light: rgba(30, 41, 59, 0.5);
-  --glass-border: rgba(51, 65, 85, 0.6);
+  --gradient-accent: linear-gradient(135deg, var(--js-jade, #00d4aa), var(--js-ice, #00d4ff));
+  --gradient-accent-h: linear-gradient(90deg, var(--js-jade, #00d4aa), var(--js-ice, #00d4ff));
+  --gradient-blue: linear-gradient(135deg, var(--js-ice, #5bc0de), var(--js-card-bg, #2e8ca8));
+  --gradient-win: linear-gradient(90deg, var(--js-jade, #2D8B7E), var(--js-jade, #2D8B7E));
+  --gradient-draw: linear-gradient(90deg, var(--js-gold, #d29922), var(--js-gold, #f59e0b));
+  --gradient-lose: linear-gradient(90deg, var(--js-copper, #C8755A), var(--js-copper, #C8755A));
+  /* ── Glassmorphism（改引令牌：浅色主题下变实底面板，避免深玻璃压白底）── */
+  --glass-bg: var(--js-card-bg, rgba(30, 41, 59, 0.75));
+  --glass-bg-light: var(--js-card-bg, rgba(30, 41, 59, 0.5));
+  --glass-border: var(--js-border-elev-0, rgba(51, 65, 85, 0.6));
   --glass-blur: blur(16px);
   /* ── 尺寸 ── */
   --card-radius: 14px;
@@ -115,7 +116,7 @@ body::before {
   background: var(--gradient-accent);
   border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
-  font-weight: 900; font-size: 16px; color: #0f172a;
+  font-weight: 900; font-size: 16px; color: var(--js-deep, #0f172a);
   box-shadow: 0 2px 12px rgba(0, 212, 170, 0.3);
 }
 
@@ -423,7 +424,7 @@ body::before {
   background: var(--gradient-accent);
   border: none;
   border-radius: var(--card-radius);
-  color: #0f172a;
+  color: var(--js-deep, #0f172a);
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
@@ -652,7 +653,7 @@ body::before {
 .factor-tag.selected {
   background: var(--gradient-accent);
   border-color: transparent;
-  color: #0f172a;
+  color: var(--js-deep, #0f172a);
   font-weight: 600;
   box-shadow: 0 2px 12px rgba(0, 212, 170, 0.25);
 }
@@ -745,7 +746,7 @@ body::before {
 
 .compare-sub-tab.active {
   background: var(--gradient-accent);
-  color: #0f172a;
+  color: var(--js-deep, #0f172a);
   border-color: transparent;
   font-weight: 600;
 }
@@ -870,9 +871,9 @@ body::before {
   flex-shrink: 0;
 }
 
-.path-rank.top1 { background: var(--gradient-accent); color: #0f172a; }
+.path-rank.top1 { background: var(--gradient-accent); color: var(--js-deep, #0f172a); }
 .path-rank.top2 { background: var(--gradient-blue); color: #fff; }
-.path-rank.top3 { background: var(--gradient-draw); color: #0f172a; }
+.path-rank.top3 { background: var(--gradient-draw); color: var(--js-deep, #0f172a); }
 
 .path-scores {
   display: flex;
@@ -1382,7 +1383,7 @@ body::before {
   background: var(--gradient-accent);
   border: none;
   border-radius: var(--card-radius-pill);
-  color: #0f172a;
+  color: var(--js-deep, #0f172a);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -2176,13 +2177,13 @@ window.renderAttackDefenseChart = function(homeName, awayName, homeStats, awaySt
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
       backgroundColor: 'rgba(15,23,42,0.95)',
-      borderColor: '#334155',
+      borderColor: 'var(--js-gold-border, #334155)',
       textStyle: { color: '#e2e8f0', fontSize: 12 }
     },
     legend: {
       data: [homeName, awayName],
       bottom: 0,
-      textStyle: { color: '#94a3b8', fontSize: 12 },
+      textStyle: { color: 'var(--js-ink-dim, #94a3b8)', fontSize: 12 },
       itemWidth: 14,
       itemHeight: 8
     },
@@ -2197,8 +2198,8 @@ window.renderAttackDefenseChart = function(homeName, awayName, homeStats, awaySt
     yAxis: {
       type: 'category',
       data: categories,
-      axisLabel: { color: '#94a3b8', fontSize: 12 },
-      axisLine: { lineStyle: { color: '#334155' } },
+      axisLabel: { color: 'var(--js-ink-dim, #94a3b8)', fontSize: 12 },
+      axisLine: { lineStyle: { color: 'var(--js-gold-border, #334155)' } },
       axisTick: { show: false }
     },
     series: [
@@ -2223,8 +2224,8 @@ window.renderAttackDefenseChart = function(homeName, awayName, homeStats, awaySt
         itemStyle: {
           borderRadius: [0, 6, 6, 0],
           color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-            { offset: 0, color: '#5bc0de' },
-            { offset: 1, color: '#5BC0DE' }
+            { offset: 0, color: 'var(--js-ice, #5bc0de)' },
+            { offset: 1, color: 'var(--js-ice, #5bc0de)' }
           ])
         }
       }

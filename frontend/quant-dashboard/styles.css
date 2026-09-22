@@ -3,23 +3,26 @@
    审查要点落地：布局自适应 / 解耦 / 视觉冲击力 / 可维护性
    ═══════════════════════════════════════════════════════════════ */
 :root {
-  --bg-deep: #04050a;
-  --bg: #0a0e1a;
-  --panel: #0c1222;
-  --panel-2: #0f1628;
-  --rule: rgba(255, 210, 74, 0.10);
-  --rule-strong: rgba(255, 210, 74, 0.28);
-  --ink: #d7e6ff;
-  --muted: #7e8db0;
-  --gold: #ffd24a;
-  --gold-2: #ffb000;
-  --cyan: #2ff3ff;
-  --magenta: #ff4df0;
-  --green: #2bff9e;
-  --red: #ff3b5c;
-  --amber: #C9A96E;
+  /* P0-2 · 2026-09-23：赛博朋克色收口为全站令牌，回退值保留原霓虹配色。
+     说明：本页属 owner 自用工具，仍走 L2 七色；杂志感由排版/网格承担，
+     不再靠霓虹色相（霓虹色在报表截图与打印场景可读性差）。 */
+  --bg-deep: var(--js-deep, #04050a);
+  --bg: var(--js-deep, #0a0e1a);
+  --panel: var(--js-card-bg, #0c1222);
+  --panel-2: var(--js-card-bg, #0f1628);
+  --rule: var(--js-gold-border, rgba(255, 210, 74, 0.10));
+  --rule-strong: var(--js-gold-border-strong, rgba(255, 210, 74, 0.28));
+  --ink: var(--js-ink, #d7e6ff);
+  --muted: var(--js-ink-dim, #7e8db0);
+  --gold: var(--js-gold, #ffd24a);
+  --gold-2: var(--js-gold, #ffb000);
+  --cyan: var(--js-ice, #2ff3ff);
+  --magenta: var(--js-copper, #ff4df0);
+  --green: var(--js-jade, #2bff9e);
+  --red: var(--js-copper, #ff3b5c);
+  --amber: var(--js-gold, #C9A96E);
   --font-display: "Orbitron", "JetBrains Mono", monospace;
-  --font-mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --font-mono: var(--js-font-mono, "JetBrains Mono", "Cascadia Code", Consolas, monospace);
 }
 
 * { box-sizing: border-box; }

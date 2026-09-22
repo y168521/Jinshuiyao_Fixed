@@ -5,17 +5,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>金水谣系统竞品差距分析报告</title>
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/tokens.css">
   <style>
     :root {
-      --bg: #0b0f19;
-      --bg2: #131a2a;
-      --ink: #e4e8f1;
-      --muted: #7a8499;
-      --rule: #1e2a40;
-      --accent: #00e5a0;
-      --accent2: #C8755A;
-      --accent3: #fbbf24;
-      --accent4: #5BC0DE;
+      /* P0-2 · 2026-09-23：改引全站令牌，回退值保留原深黑配色 */
+      --bg: var(--js-deep, #0b0f19);
+      --bg2: var(--js-card-bg, #131a2a);
+      --ink: var(--js-ink, #e4e8f1);
+      --muted: var(--js-ink-dim, #7a8499);
+      --rule: var(--js-gold-border, #1e2a40);
+      --accent: var(--js-jade, #00e5a0);      /* 原青绿 → 墨绿金 */
+      --accent2: var(--js-copper, #C8755A);   /* 赤铜（本就合规）*/
+      --accent3: var(--js-gold, #fbbf24);     /* 原琥珀 → 香槟金 */
+      --accent4: var(--js-ice, #5BC0DE);      /* 冰水蓝（本就合规）*/
     }
 
     @font-face {

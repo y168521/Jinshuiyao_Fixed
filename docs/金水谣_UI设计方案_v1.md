@@ -528,11 +528,11 @@ L0 门户            /                        新手入口 · 任务制导航（
 
 | 优先级 | 事项 | 涉及文件 | 说明 |
 |--------|------|---------|------|
-| **P0-1** | 升格 Token 真源：把 `tokens.css` 移入 `_shared/css/`，`theme.css` 改为兼容映射层 | `_shared/css/tokens.css`（新建）、`theme.css` | 现有 58 页零改动即可生效 |
+| **P0-1** | ✅ **已完成（2026-09-23）** 升格 Token 真源：`_shared/css/tokens.css` 已建立（`--js-*` 全套令牌），`theme.css` 改为兼容映射层（核心七色/字体改 `var(--js-*, 回退值)`，旧变量名全保留，58 页零改动生效）；`91_历史报告/金水谣设计系统_tokens.css` 已加升格指针存根 | `_shared/css/tokens.css`（新建）、`theme.css` | 已验收：大括号平衡、禁用色 0 命中、七色两处一致、@import 位于首条规则前 |
 | **P0-2** | 收口 4 套配色：`football/dashboard`、`quant-dashboard/styles.css`、`filter-panel`、`gap-analysis` 改用统一变量 | 4 个文件 | 高感知，改动集中 |
 | **P0-3** | 导航统一：升级 `topnav.js`（面包屑 + 修野路由 + aria），删除 4 种 back-link | `topnav.js` + 新建 `breadcrumb.js` + 4 Hub 页 | 69 页一次生效 |
 | **P0-4** | 组件三件套：`ui-kit.js`（Modal/Confirm/Toast 增强/StateUI）、`components.css` | `_shared/js/ui-kit.js`（新建）、`_shared/css/components.css`（新建） | 替换 13 处 alert / 9 处 confirm |
-| **P0-5** | 主题切换接入：`data-theme` + `/api/theme` + 修正浅色主题两个不达标色值 | `config/themes.json`、`topnav.js`、`router.py`（已通） | 后端已就绪 |
+| **P0-5** | ✅ **已完成（2026-09-23）** 主题切换接入：`tokens.css` 新增 `[data-theme="system-light"]`（浅色中性）与 `[data-theme="system-dark"]`（深色中性）两套覆盖层（各 23 个令牌，色值均实测对比度 ≥4.5）；`theme.css` 的 `--ink-dim/--gold-*/--ice-soft/--warn/--idle/--shadow` 全部变量化 + 浅色适配块（隐藏 tech-bg、输入/代码块换浅底）；`topnav.js` 顶栏配色改走 CSS 变量并加三档主题按钮（七色/浅色/深色，localStorage 持久化）；`config/themes.json` 的 system-light 四色修正为合规值 | `tokens.css`、`theme.css`、`topnav.js`、`config/themes.json` | 已验收：覆盖层无未定义令牌、必需换肤令牌 0 缺失、`node --check` 通过、禁用色 0 命中。持久化只用 localStorage（后端 `/api/theme` 是 user_id 维度，单人场景不双写） |
 | **P1-1** | 无障碍补齐：`<div onclick>` → `<button>`；焦点环；label/aria；reduced-motion | `workbench.html`、`ai-agent.html`、各表单页 | |
 | **P1-2** | 图表主题 100% 覆盖 + ECharts 4 份收敛为 1 份 | 13 页 + 4 份 js | 省约 3MB |
 | **P1-3** | 图标 emoji → SVG sprite（先顶栏/侧栏/按钮） | 新建 `icons.svg` | |
