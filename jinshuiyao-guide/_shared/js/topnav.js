@@ -302,7 +302,6 @@
   var bar = document.createElement("div");
   bar.className = "ts-topnav" + (mode === "float" ? " float" : "");
 
-  var cur = (document.title || "").replace(/\s*[·\-].*$/, "").trim() || "金水谣";
   var healthHtml =
     '<span id="ts-health-dot" class="ts-hdot" style="background:rgba(11,26,47,.4)" title="检测中…"></span>';
 
