@@ -471,6 +471,22 @@ class ReportGenerator:
         logger.info("报告已生成: %s", filepath)
         return filepath
 
+    @staticmethod
+    def _nav_date_note(data: Dict) -> str:
+        """汇总各基金净值所属日期，避免"标题写今天、净值是上周"却无人察觉。
+
+        JS-20260923-01：净值不是收盘即出（交易日19:00-23:00陆续公布，美股QDII再晚一天），
+        报告必须显式标注净值日期，否则用户看到的数字是第几天的完全不可知。
+        """
+        dates = sorted({d.get("snapshot", {}).get("update_date", "")
+                        for d in data.values()
+                        if d.get("snapshot", {}).get("update_date")})
+        if not dates:
+            return ""
+        if len(dates) == 1:
+            return f" | 净值日期: {dates[0]}"
+        return f" | 净值日期: {dates[0]} ~ {dates[-1]}（QDII滞后）"
+
     def _build_html(self, date_str: str, time_str: str, data: Dict, indices: Dict,
                     profiles: Optional[Dict] = None) -> str:
         """构建HTML内容"""
@@ -500,6 +516,10 @@ class ReportGenerator:
             daily_ret = snapshot.get("daily_return")
             daily_ret_str = f"{daily_ret:+.2f}%" if daily_ret is not None else "--"
             daily_ret_class = "up" if daily_ret and daily_ret > 0 else "down" if daily_ret and daily_ret < 0 else "neutral"
+            # JS-20260923-01：净值必须显示所属日期。此前 update_date 已算出但从未渲染，
+            # 导致报告标题写 09-21、净值却是 09-18 的数，用户无法察觉滞后。
+            _nd = snapshot.get("update_date", "") or ""
+            nav_label = f"最新净值({_nd[5:]})" if len(_nd) >= 10 else "最新净值"
             
             tp = signals.get("take_profit", {})
             pl = signals.get("purchase_limit", {})
@@ -517,7 +537,7 @@ class ReportGenerator:
                 <div class="fund-body">
                     <div class="metric-row">
                         <div class="metric">
-                            <div class="metric-label">最新净值</div>
+                            <div class="metric-label">{nav_label}</div>
                             <div class="metric-value">{nav if nav else "--"}</div>
                         </div>
                         <div class="metric">
@@ -833,7 +853,7 @@ class ReportGenerator:
     <div class="container">
         <div class="header">
             <h1>金水谣基金监控日报</h1>
-            <div class="subtitle">报告日期: {date_str} {time_str} | 共监控 {len(FUND_CONFIG)} 只基金</div>
+            <div class="subtitle">报告日期: {date_str} {time_str} | 共监控 {len(FUND_CONFIG)} 只基金{self._nav_date_note(data)}</div>
         </div>
         
         <div class="summary-bar">
