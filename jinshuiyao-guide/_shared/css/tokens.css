@@ -57,15 +57,27 @@
   --js-font-sans: "Noto Sans SC", system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
   --js-font-mono: "Cascadia Code", "Consolas", "Source Code Pro", monospace;
 
-  /* ── 字号阶梯（级别 / 字号；行高字重见设计方案 §5.3）── */
+  /* ── 字号阶梯（级别 / 字号；行高字重见设计方案 §5.3）──
+     v2（2026-09-23 / JS-20260923-09，依《排版审计报告 v1》§二-B 步骤 2 调整）：
+     原则 ①相邻两级差 ≥2px（原 15/16 只差 1px，肉眼不可辨，属层级倒挂）；
+     ②中文正文不低于 16px（1366×768 笔记本上 15px 偏吃力）；
+     ③h1 保持 28px 不动，避免与现网观感产生额外跳动。
+     阶梯：body 16 → h3 18 → h2 22 → h1 28 → display 40（差 2 / 4 / 6 / 12） */
   --js-fs-display: 40px;  /* Display · 门户 Hero */
-  --js-fs-h1: 32px;       /* 页面主标题 */
-  --js-fs-h2: 24px;       /* 区块标题 */
-  --js-fs-h3: 20px;       /* 卡片标题 */
+  --js-fs-h1: 28px;       /* 页面主标题（与现网一致，不跳动） */
+  --js-fs-h2: 22px;       /* 区块标题 */
+  --js-fs-h3: 18px;       /* 卡片标题 */
   --js-fs-body: 16px;     /* 正文 · 最小可读字号 */
   --js-fs-body-s: 14px;   /* 表格/次要 */
-  --js-fs-caption: 12px;  /* 时间戳/标签 · 下限 */
+  --js-fs-caption: 12px;  /* 时间戳/标签 · 下限，不再更小 */
   --js-fs-metric: 32px;   /* KPI 数字（冰水蓝 700） */
+
+  /* ── 内容宽度（2026-09-23 / JS-20260923-09）──
+     原状：全站 max-width 有 20+ 种取值（1200/1040/960/860/900/1100/1400…），
+     跨页跳转时内容左边界连续跳动。收敛为「标准 / 窄 / 行长」三档。 */
+  --js-content-w: 1200px;        /* 标准内容宽（全站最常见值，38 处） */
+  --js-content-w-narrow: 960px;  /* 文档 / 长文页 */
+  --js-measure: 44em;            /* 正文最佳行长（中文约 44 字/行） */
 
   /* ── 间距（4px 基准栅格）── */
   --js-space-4: 4px;

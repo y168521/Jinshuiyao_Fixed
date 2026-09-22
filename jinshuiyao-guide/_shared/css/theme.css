@@ -119,7 +119,10 @@ body::before {
 :where(.pulse-dot, .ts-hdot, .badge, [class*="-dot"]) { vertical-align: middle; flex-shrink: 0; }
 
 /* ── 容器 ── */
-.container { max-width: 1040px; margin: 0 auto; padding: 28px 20px 60px; position: relative; z-index: 1; }
+/* P1-H（2026-09-23 / JS-20260923-09）：容器宽度收敛到单一真源。
+   原 1040px 与页面里散落的 1200/960/860/900/1100/1400 等 20+ 种取值并存，
+   跨页跳转时内容左边界连续跳动。 */
+.container { max-width: var(--js-content-w, 1040px); margin: 0 auto; padding: 28px 20px 60px; position: relative; z-index: 1; }
 
 /* ── 卡片 ── */
 .card {
