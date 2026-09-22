@@ -56,6 +56,12 @@
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:var(--font);background:var(--deep);color:var(--ink);height:100vh;display:flex;overflow:hidden;line-height:1.6}
 
+  /* P1-C（2026-09-23 / JS-20260923-08）：本页 body 是 flex 行容器，
+     topnav.js 把 52px 通栏顶栏插到 body.firstChild → 它会被当成 flex 子项
+     挤成一条竖条，并把侧栏顶下去。改为固定定位覆盖 + 主体让出 52px。 */
+  body > .ts-topnav{position:fixed;top:0;left:0;right:0;z-index:99999}
+  body{padding-top:var(--ts-nav-h,52px)}
+
   /* ===== 侧边栏（暗色）===== */
   .sidebar{
     width:var(--sidebar-w);background:var(--card-bg);border-right:1px solid var(--gold-border);

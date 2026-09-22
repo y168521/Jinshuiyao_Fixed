@@ -48,6 +48,10 @@
   /* ── 阴影与圆角（阴影映射令牌，浅色主题下自动减轻） ── */
   --shadow: var(--js-elev-2, 0 8px 32px rgba(0,0,0,.25));
   --shadow-gold: 0 4px 24px rgba(201,169,110,.15);
+  /* 顶栏高度（P1-C）：topnav.js 注入的通栏顶栏固定 52px。
+     有固定侧栏 / 100vh 主体的页面必须用 calc() 扣掉它，
+     否则会「被遮住」或「恒定多出一条滚动」。改顶栏高度只改这一处。 */
+  --ts-nav-h: 52px;
   --radius-lg: 20px;
   --radius-md: 14px;
   --radius-sm: 10px;
@@ -65,9 +69,10 @@ body {
   background: var(--deep);
   color: var(--ink);
   line-height: 1.7;
-  font-size: 15px;
+  font-size: var(--js-fs-body, 15px);
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  overflow-wrap: break-word;
 }
 
 /* ── 顶部光晕（品牌感） ── */
@@ -83,6 +88,35 @@ body::before {
   pointer-events: none;
   z-index: 0;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   垂直节奏基线（P1-A · 2026-09-23 / JS-20260923-08）
+   背景：上方 `*{margin:0}` 是暴力 reset，清零后必须配套恢复
+   块级元素间距，否则段落彼此紧贴、标题吸附上一段（58 页同病）。
+   写法：全部用 :where() 包裹 → 特异度为 0，页面自定义规则一律
+   仍然胜出，零回归。改这里不会跟任何页面打架。
+   ═══════════════════════════════════════════════════════════ */
+:where(.container, .wrap, .main-content, main) :where(p, ul, ol, dl, blockquote, pre, table, figure) {
+  margin: 0 0 var(--js-space-12, 12px);
+}
+:where(.container, .wrap, .main-content, main) :where(p, ul, ol, dl, blockquote, pre, table, figure):last-child {
+  margin-bottom: 0;
+}
+:where(.container, .wrap, .main-content, main) :where(ul, ol) { padding-left: 1.25em; }
+:where(.container, .wrap, .main-content, main) :where(li) { margin-bottom: var(--js-space-4, 4px); }
+:where(h1, h2, h3, h4) {
+  margin: var(--js-space-24, 24px) 0 var(--js-space-12, 12px);
+  line-height: 1.3;
+}
+:where(h1, h2, h3, h4):first-child { margin-top: 0; }
+
+/* 断词 / 换行保护（P1-E）：长英文模型名、基金代码、URL 不至于顶破窄屏 */
+:where(h1, h2, h3, h4) { text-wrap: balance; }
+:where(p) { text-wrap: pretty; }
+
+/* 图文垂直节奏（P1-F）：emoji 行盒高于汉字，不校准就会基线漂移 1–3px */
+:where(.ico, .emoji, [class$="-icon"], [class*="-ico"]) { line-height: 1; vertical-align: -0.1em; }
+:where(.pulse-dot, .ts-hdot, .badge, [class*="-dot"]) { vertical-align: middle; flex-shrink: 0; }
 
 /* ── 容器 ── */
 .container { max-width: 1040px; margin: 0 auto; padding: 28px 20px 60px; position: relative; z-index: 1; }
@@ -135,9 +169,12 @@ body::before {
 
 /* ── 标题 ── */
 h1, h2, h3 { color: var(--ink); font-weight: 700; }
-h1 { font-size: 28px; letter-spacing: 1px; }
-h2 { font-size: 20px; margin-bottom: 12px; }
-h3 { font-size: 16px; }
+/* P1-B 步骤 1（2026-09-23 / JS-20260923-08）：接上令牌真源，回退值 = 升格前原值，
+   所以本次改完视觉完全不变，只是让 --js-fs-* 从此真正被消费。
+   步骤 2（切数值 28/20/16 → 28/22/18 等）会改变全站观感，待 owner 拍板后单独提交。 */
+h1 { font-size: var(--js-fs-h1, 28px); letter-spacing: 1px; }
+h2 { font-size: var(--js-fs-h2, 20px); margin-bottom: 12px; }
+h3 { font-size: var(--js-fs-h3, 16px); }
 .text-gold { color: var(--gold); }
 .text-ice { color: var(--ice); }
 .text-dim { color: var(--ink-dim); }
@@ -195,6 +232,19 @@ table { width: 100%; border-collapse: collapse; font-size: 14px; }
 th { background: rgba(201,169,110,.08); color: var(--gold); text-align: left; padding: 10px 14px; font-weight: 600; }
 td { padding: 10px 14px; border-bottom: 1px solid rgba(232,236,241,.06); }
 tr:hover td { background: rgba(91,192,222,.04); }
+
+/* 表格兜底（P1-D · 2026-09-23 / JS-20260923-08）
+   背景：56 个页面含 <table>，但几乎没有滚动包裹；窄屏下列宽被内容顶住，
+   width:100% 失效 → 整页横向滚动（卡片、侧栏一起横移），不是"表格内滚动"。
+   做法：窄屏让表格自己滚。推荐新页面直接套 <div class="table-wrap">。 */
+:where(.table-wrap) { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+@media (max-width: 768px) {
+  :where(.container, .wrap, .main-content, main) :where(table) {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
 
 /* ── 输入框 ── */
 input, textarea, select {

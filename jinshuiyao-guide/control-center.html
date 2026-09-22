@@ -11,10 +11,14 @@
     /* ===== 双栏布局 ===== */
     .layout {
       display: flex;
-      min-height: 100vh;
+      /* P1-C：扣掉顶栏 52px，否则 100vh + 52px 让页面恒定多出一条滚动 */
+      min-height: calc(100vh - var(--ts-nav-h, 52px));
     }
 
     /* ===== 侧边栏 ===== */
+    /* P1-C（2026-09-23 / JS-20260923-08）：topnav.js 注入的是 52px 通栏顶栏，
+       侧栏原本 top:0 会压住顶栏左侧 220px（顶栏是 static，z-index 对它无效），
+       品牌名被遮。侧栏下移一顶栏高度即可对齐。 */
     .sidebar {
       width: 220px;
       min-width: 220px;
@@ -23,7 +27,7 @@
       display: flex;
       flex-direction: column;
       position: fixed;
-      top: 0;
+      top: var(--ts-nav-h, 52px);
       left: 0;
       bottom: 0;
       z-index: 100;
@@ -545,7 +549,7 @@
     .hamburger {
       display: none;
       position: fixed;
-      top: 12px;
+      top: 60px;
       left: 12px;
       z-index: 200;
       width: 40px;
