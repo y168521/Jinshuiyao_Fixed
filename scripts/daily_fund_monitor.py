@@ -64,24 +64,36 @@ logger = logging.getLogger('fund_monitor')
 # 基金配置 - 8只监控基金
 # ================================================================
 
+# JS-20260923-02 批 1：止盈/预警口径升格为常量（七期 TRAE 报告一致的用户设定值）
+TARGET_PROFIT_DEFAULT = 0.164   # 统一止盈线 16.4%
+WARN_LINE_DEFAULT = 0.12        # 预警线 12%（两档制：先预警后止盈，保住 000216 现有提醒）
+
+# dca_amount/dca_freq：定投计划（七期 TRAE 报告完全一致，视为用户确认口径）。
+# 限购比较用「单次买入金额」= dca_amount，不再用 investment/30 折算（修 017641 误报）。
 FUND_CONFIG = [
     {
         "code": "005698",
         "name": "华夏全球科技先锋混合(QDII)A",
         "category": "QDII-科技",
         "investment": 3000,
-        "target_profit": 0.164,
-        "manager": "李博",
+        "target_profit": TARGET_PROFIT_DEFAULT,
+        "warn_line": WARN_LINE_DEFAULT,
+        "dca_amount": 10,
+        "dca_freq": "daily",
+        "manager": "李湘杰",  # 批 1 修正：李博→李湘杰（2018-04-17 起任职）
         "company": "华夏基金",
         "risk_level": "高",
-        "related_index": "纳斯达克100",
+        "related_index": "全球科技(主动)",  # 批 1 修正：主动选股（光通信/AI 算力），非纳指宽基
     },
     {
         "code": "017641",
         "name": "摩根标普500指数(QDII)人民币A",
         "category": "QDII-宽基",
         "investment": 3000,
-        "target_profit": 0.164,
+        "target_profit": TARGET_PROFIT_DEFAULT,
+        "warn_line": WARN_LINE_DEFAULT,
+        "dca_amount": 10,
+        "dca_freq": "daily",
         "manager": "张军",
         "company": "摩根资管",
         "risk_level": "中高",
@@ -92,7 +104,10 @@ FUND_CONFIG = [
         "name": "广发纳斯达克100ETF联接人民币(QDII)A",
         "category": "QDII-科技",
         "investment": 3000,
-        "target_profit": 0.164,
+        "target_profit": TARGET_PROFIT_DEFAULT,
+        "warn_line": WARN_LINE_DEFAULT,
+        "dca_amount": 10,
+        "dca_freq": "daily",
         "manager": "刘杰",
         "company": "广发基金",
         "risk_level": "高",
@@ -103,8 +118,11 @@ FUND_CONFIG = [
         "name": "华商均衡成长混合A",
         "category": "混合型",
         "investment": 3000,
-        "target_profit": 0.164,
-        "manager": "周海栋",
+        "target_profit": TARGET_PROFIT_DEFAULT,
+        "warn_line": WARN_LINE_DEFAULT,
+        "dca_amount": 70,
+        "dca_freq": "weekly",
+        "manager": "张明昕",  # 批 1 修正：周海栋→张明昕（周海栋 2025-03 清仓式离职）
         "company": "华商基金",
         "risk_level": "中高",
         "related_index": "沪深300",
@@ -114,8 +132,11 @@ FUND_CONFIG = [
         "name": "上银慧享利30天滚动持有中短债发起A",
         "category": "债券型",
         "investment": 10000,
-        "target_profit": 0.05,
-        "manager": "陈芳菲",
+        "target_profit": None,  # 批 1：不止盈（中短债波动小，用户设定）；预警档仍保留
+        "warn_line": WARN_LINE_DEFAULT,
+        "dca_amount": 70,
+        "dca_freq": "weekly",
+        "manager": "蔡唯峰、周岳洋",  # 批 1 修正：陈芳菲→蔡唯峰+周岳洋（2026-08-14 增聘）
         "company": "上银基金",
         "risk_level": "低",
         "related_index": "中债总指数",
@@ -125,7 +146,10 @@ FUND_CONFIG = [
         "name": "易方达中证红利ETF联接发起式A",
         "category": "指数型-红利",
         "investment": 10000,
-        "target_profit": 0.10,
+        "target_profit": TARGET_PROFIT_DEFAULT,  # 批 1：0.10→16.4% 统一口径
+        "warn_line": WARN_LINE_DEFAULT,
+        "dca_amount": 70,
+        "dca_freq": "weekly",
         "manager": "林伟斌",
         "company": "易方达基金",
         "risk_level": "中",
@@ -136,7 +160,10 @@ FUND_CONFIG = [
         "name": "华安黄金ETF联接A",
         "category": "商品-黄金",
         "investment": 5000,
-        "target_profit": 0.12,
+        "target_profit": TARGET_PROFIT_DEFAULT,  # 批 1：0.12→16.4% 统一口径，12% 转为预警档
+        "warn_line": WARN_LINE_DEFAULT,
+        "dca_amount": 10,
+        "dca_freq": "weekly",
         "manager": "许之彦",
         "company": "华安基金",
         "risk_level": "中",
@@ -147,8 +174,11 @@ FUND_CONFIG = [
         "name": "易方达恒生科技ETF联接(QDII)A",
         "category": "QDII-港股科技",
         "investment": 3000,
-        "target_profit": 0.164,
-        "manager": "范冰",
+        "target_profit": TARGET_PROFIT_DEFAULT,
+        "warn_line": WARN_LINE_DEFAULT,
+        "dca_amount": 20,
+        "dca_freq": "weekly",
+        "manager": "刘依姗、成曦",  # 批 1 修正：范冰→刘依姗+成曦（2026-03-23 增聘）
         "company": "易方达基金",
         "risk_level": "高",
         "related_index": "恒生科技指数",
@@ -396,26 +426,51 @@ class SignalDetector:
     """投资信号检测器"""
 
     @staticmethod
-    def check_take_profit(current_nav: float, investment: float, target_profit: float, 
-                          nav_series: pd.Series) -> Dict:
-        """检测止盈信号
-        
-        由于我们不知道买入时的净值，使用历史数据估算：
-        - 如果有历史数据，假设买入点为区间起点
-        - 计算当前收益是否达到目标
+    def check_take_profit(current_nav: float, investment: float, target_profit,
+                          nav_series: pd.Series, warn_line: float = None) -> Dict:
+        """检测止盈信号（两档制：预警线 → 止盈线）
+
+        ⚠️ 口径说明（JS-20260923-02 批 1 修正）：current_return 是「以历史区间
+        首日净值为买入点」的区间收益，不是定投持仓的实际收益——定投成本是历次
+        买入的加权平均。文案已如实标注，实际止盈请以平台持仓成本核算。
+        target_profit=None 表示该基金设定不止盈（如中短债），此时只做预警判断。
+
+        Args:
+            current_nav: 当前净值（快照缺失时调用方已用历史最新值兜底）
+            investment: 已投入本金（保留参数，当前口径未使用）
+            target_profit: 止盈线（小数，如 0.164）；None=不止盈
+            nav_series: 历史净值序列
+            warn_line: 预警线（小数，如 0.12）；None=不做预警判断
         """
         if nav_series is None or nav_series.empty or len(nav_series) < 2:
             return {"signal": False, "current_return": None, "message": "历史数据不足"}
-        
+
         buy_nav = nav_series.iloc[0]  # 简化：以区间第一天为买入点
         current_return = (current_nav - buy_nav) / buy_nav
-        
-        signal = current_return >= target_profit
+
+        signal = target_profit is not None and current_return >= target_profit
+        warn = (not signal and warn_line is not None
+                and current_return >= warn_line)
+        base = "90天区间收益 {:.2f}%（非持仓实际收益）".format(round(current_return * 100, 2))
+        if signal:
+            message = base + "，已达止盈目标 {:.1f}% ⚠️".format(target_profit * 100)
+        elif warn and target_profit is not None:
+            message = base + "，已过预警线 {:.0f}%（止盈线 {:.1f}%）⚠️".format(
+                warn_line * 100, target_profit * 100)
+        elif warn:
+            message = base + "，已过预警线 {:.0f}%（该基金设定不止盈）⚠️".format(
+                warn_line * 100)
+        elif target_profit is None:
+            message = base + "，该基金设定不止盈"
+        else:
+            message = base + "，止盈线 {:.1f}%".format(target_profit * 100)
         return {
             "signal": signal,
+            "warn": warn,
             "current_return": round(current_return * 100, 2),
-            "target_return": round(target_profit * 100, 1),
-            "message": f"当前收益 {round(current_return*100,2)}%，目标 {round(target_profit*100,1)}%" + (" ⚠️ 已达到止盈目标！" if signal else ""),
+            "target_return": (round(target_profit * 100, 1)
+                              if target_profit is not None else None),
+            "message": message,
         }
 
     @staticmethod
@@ -572,8 +627,9 @@ class ReportGenerator:
                         </div>
                     </div>
                     <div class="signals">
-                        {f'<div class="signal alert">止盈信号: {tp.get("message", "")}</div>' if tp.get("signal") else f'<div class="signal info">{tp.get("message", "")}</div>'}
+                        {f'<div class="signal alert">止盈信号: {tp.get("message", "")}</div>' if tp.get("signal") else (f'<div class="signal warning">止盈预警: {tp.get("message", "")}</div>' if tp.get("warn") else f'<div class="signal info">{tp.get("message", "")}</div>')}
                         {f'<div class="signal warning">{sd.get("message", "")}</div>' if sd.get("signal") else ''}
+                        <div class="signal note" style="font-size:12px;opacity:.75">定投实际收益按历次买入加权成本核算，与上方区间收益不同，请以平台持仓为准</div>
                     </div>
                 </div>
             </div>
@@ -1029,7 +1085,8 @@ class DailyFundMonitor:
                 nav = float(hist_series.iloc[-1])
             if nav is not None and hist_series is not None:
                 signals["take_profit"] = self.signal_detector.check_take_profit(
-                    nav, fund["investment"], fund["target_profit"], hist_series
+                    nav, fund["investment"], fund["target_profit"], hist_series,
+                    warn_line=fund.get("warn_line")
                 )
             else:
                 signals["take_profit"] = {"signal": False, "message": "净值数据缺失"}

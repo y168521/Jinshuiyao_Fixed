@@ -296,7 +296,12 @@ def eval_manager_change(history: List[Dict[str, str]],
             result["latest_managers"], result["latest_since"] or "--",
             current.get("任职回报", "--"))
 
-    if config_manager and config_manager not in (result["latest_managers"] or ""):
+    # 配置名按常见分隔符拆开逐名匹配（JS-20260923-02 批 1）：
+    # 双经理配置"蔡唯峰、周岳洋"作为整串无法 in 线上"蔡唯峰,周岳洋"（分隔符不同），
+    # 逐名匹配才能让配置修正后真正安静，而不是换一种方式天天报 notice。
+    config_names = [n for n in re.split(r"[、,，/+;；]|\s{1,3}", config_manager or "") if n]
+    if config_names and any(
+            n not in (result["latest_managers"] or "") for n in config_names):
         result["mismatch_config"] = True
         if result["level"] != "warn":
             result["level"] = "notice"
@@ -400,21 +405,30 @@ def eval_scale_risk(history: List[Dict[str, str]],
 
 def eval_purchase_limit(limit: Dict[str, object],
                          plan_investment_monthly: float = 3000,
-                         change: str = "same") -> Dict:
+                         change: str = "same",
+                         plan_buy_amount: Optional[float] = None) -> Dict:
     """评估申购限额对定投执行的影响
 
     Args:
         limit: parse_purchase_limit 结果（daily_limit_yuan / status / status_text）
-        plan_investment_monthly: 该基金配置的月度计划投入（元），用于推算计划日投
+        plan_investment_monthly: 旧口径的月度计划投入（元），内部 ÷30 折算计划日投。
+            仅在未传 plan_buy_amount 时作为回退使用（兼容旧调用与旧单测）。
         change: 与上次采集相比的变化：'same'/'tighter'/'loosened'/'new'/'changed'
+        plan_buy_amount: 单次计划买入金额（元）——定投计划的真实口径。
+            周投 70 元对"单日累计购买上限"就是 70 元一次性买入，不能用 ÷30 折算；
+            日投 10 元对 10 元限额是刚好满额而非"无法执行"（JS-20260923-02 批 1，
+            修 017641 误报）。传入时优先生效。
 
     Returns:
-        dict: ok / level('info'|'warn') / daily_limit_yuan / plan_daily / affected /
-              change / message
+        dict: ok / level('info'|'warn') / daily_limit_yuan / plan_daily（计划单次
+              买入金额）/ affected / change / message
     """
     daily = limit.get("daily_limit_yuan")
     status = limit.get("status", "")
-    plan_daily = round(plan_investment_monthly / 30.0)
+    if plan_buy_amount is not None:
+        plan_daily = round(float(plan_buy_amount))
+    else:
+        plan_daily = round(plan_investment_monthly / 30.0)
     result = {
         "ok": bool(limit),
         "level": "info",
@@ -435,11 +449,11 @@ def eval_purchase_limit(limit: Dict[str, object],
     if daily < plan_daily:
         result["level"] = "warn"
         result["affected"] = True
-        result["message"] = ("限购 %s 元/日，低于计划日投约 %s 元，日定投计划无法全额执行，"
+        result["message"] = ("限购 %s 元/日，低于计划单次买入 %s 元，定投买入无法全额执行，"
                              "差额建议通过同策略基金补足"
                              % (_format_yuan(daily), plan_daily))
     else:
-        result["message"] = "限购 %s 元/日，额度充裕（计划日投约 %s 元）" % (
+        result["message"] = "限购 %s 元/日，额度充裕（计划单次买入 %s 元）" % (
             _format_yuan(daily), plan_daily)
     if change == "tighter":
         result["message"] += "（较上次采集收紧）"
@@ -643,7 +657,8 @@ class FundProfileFetcher:
 
     def get_profile(self, code: str, config_manager: Optional[str] = None,
                     plan_investment_monthly: float = 3000,
-                    use_cache: bool = True) -> Dict:
+                    use_cache: bool = True,
+                    plan_buy_amount: Optional[float] = None) -> Dict:
         """一次取回该基金的外围风险档案（含评估结果）"""
         mgr = self.fetch_manager_history(code, use_cache=use_cache)
         scale = self.fetch_scale_history(code, use_cache=use_cache)
@@ -654,7 +669,8 @@ class FundProfileFetcher:
              "status": limit.get("status", ""),
              "status_text": limit.get("status_text", "")},
             plan_investment_monthly=plan_investment_monthly,
-            change=limit.get("change", "same"))
+            change=limit.get("change", "same"),
+            plan_buy_amount=plan_buy_amount)
         return {
             "code": code,
             "source": SOURCE_TAG,
@@ -691,7 +707,8 @@ def build_profiles(funds: List[Dict], delay: float = 0.6) -> Dict[str, Dict]:
         try:
             out[code] = fetcher.get_profile(
                 code, fund.get("manager"),
-                plan_investment_monthly=fund.get("investment", 3000))
+                plan_investment_monthly=fund.get("investment", 3000),
+                plan_buy_amount=fund.get("dca_amount"))
         except Exception as e:  # 单只失败不影响整体
             logger.warning("基金 %s 外围风险采集失败: %s", code, e)
             out[code] = {
@@ -703,7 +720,8 @@ def build_profiles(funds: List[Dict], delay: float = 0.6) -> Dict[str, Dict]:
                 "manager": eval_manager_change([]),
                 "scale": eval_scale_risk([]),
                 "limit": eval_purchase_limit({"ok": False},
-                                            plan_investment_monthly=fund.get("investment", 3000)),
+                                            plan_investment_monthly=fund.get("investment", 3000),
+                                            plan_buy_amount=fund.get("dca_amount")),
                 "limit_change": "new",
                 "stale": False,
                 "fetched_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
