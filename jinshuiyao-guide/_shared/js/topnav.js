@@ -30,6 +30,43 @@
   var HOME = "/workbench";
   var PORTAL = "/";
 
+  /* ====== 主题切换（P0-5 · 2026-09-23）======
+     三档：金水谣七色(L2 owner 默认) / 浅色(L0) / 深色(L0)。
+     优先级：localStorage 自选 > 不变（默认 L2）。
+     持久化只落本机 localStorage —— 后端 /api/theme 是 user_id 维度（面向未来
+     多用户 L1 自选），单人自用场景无需走服务端，避免与 theme_manager 双写冲突。
+     越早应用越能减少闪白，所以放在建 DOM 之前。 */
+  var THEME_CYCLE = [
+    { key: "", label: "七色", title: "金水谣七色（个人默认）" },
+    { key: "system-light", label: "浅色", title: "系统默认 · 浅色中性" },
+    { key: "system-dark", label: "深色", title: "系统默认 · 深色中性" }
+  ];
+  function readTheme() {
+    try { return localStorage.getItem("jsy-theme") || ""; } catch (e) { return ""; }
+  }
+  function applyTheme(key) {
+    key = key || "";
+    var el = document.documentElement;
+    if (key) { el.setAttribute("data-theme", key); } else { el.removeAttribute("data-theme"); }
+    try { localStorage.setItem("jsy-theme", key); } catch (e) { /* 隐私模式下忽略 */ }
+    var meta = THEME_CYCLE[0];
+    for (var i = 0; i < THEME_CYCLE.length; i++) { if (THEME_CYCLE[i].key === key) { meta = THEME_CYCLE[i]; } }
+    var btn = document.getElementById("tsThemeBtn");
+    if (btn) {
+      btn.textContent = meta.label;
+      btn.setAttribute("aria-label", "切换主题（当前：" + meta.title + "）");
+      btn.title = "切换主题（当前：" + meta.title + "）";
+    }
+  }
+  function nextTheme() {
+    var cur = readTheme();
+    for (var i = 0; i < THEME_CYCLE.length; i++) {
+      if (THEME_CYCLE[i].key === cur) { return THEME_CYCLE[(i + 1) % THEME_CYCLE.length].key; }
+    }
+    return THEME_CYCLE[1].key;
+  }
+  applyTheme(readTheme());
+
   /* ====== 健康状态指示器 ====== */
   var _healthStatus = "unknown"; // unknown | ok | degraded | error
   var _healthDetail = "";
@@ -61,7 +98,9 @@
     _healthDetail = detail || "";
     var dot = document.getElementById("ts-health-dot");
     if (!dot) return;
-    var colors = { ok: "#2D8B7E", degraded: "#C9A96E", error: "#C8755A", unknown: "rgba(11,26,47,.4)" };
+    /* P0-5：状态色改走变量（带原值回退），随主题换肤 */
+    var colors = { ok: "var(--jade,#2D8B7E)", degraded: "var(--gold,#C9A96E)",
+                   error: "var(--copper,#C8755A)", unknown: "var(--idle,rgba(11,26,47,.4))" };
     dot.style.backgroundColor = colors[status] || colors.unknown;
     dot.title = status === "ok"
       ? "服务器运行正常"
@@ -148,29 +187,31 @@
   };
 
   /* ====== 构建 DOM ====== */
+  /* P0-5：顶栏配色改走 CSS 变量（带原值回退），随 data-theme 换肤；
+     未引 theme.css 的页面靠回退值保持原外观，零回归。 */
   var css =
     ".ts-topnav{box-sizing:border-box;display:flex;align-items:center;gap:14px;" +
-    "background:#0B1A2F;border-bottom:1px solid rgba(201,169,110,.18);padding:0 18px;height:52px;" +
-    "font-family:'Microsoft YaHei','PingFang SC','Noto Sans SC',system-ui,sans-serif;" +
+    "background:var(--deep,#0B1A2F);border-bottom:1px solid var(--gold-border,rgba(201,169,110,.18));padding:0 18px;height:52px;" +
+    "font-family:var(--font,'Microsoft YaHei','PingFang SC','Noto Sans SC',system-ui,sans-serif);" +
     "z-index:99999;flex-shrink:0;backdrop-filter:blur(8px)}" +
-    ".ts-topnav a{text-decoration:none;color:rgba(232,236,241,.7);font-size:14px;font-weight:600;white-space:nowrap;transition:color .2s}" +
-    ".ts-topnav a:hover{color:#C9A96E}" +
-    ".ts-topnav .ts-brand{color:#C9A96E;font-size:16px;font-weight:800;letter-spacing:.5px;display:flex;align-items:center;gap:8px}" +
-    ".ts-topnav .ts-cur{color:#E8ECF1;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
+    ".ts-topnav a{text-decoration:none;color:var(--ink-mid,rgba(232,236,241,.7));font-size:14px;font-weight:600;white-space:nowrap;transition:color .2s}" +
+    ".ts-topnav a:hover{color:var(--gold,#C9A96E)}" +
+    ".ts-topnav .ts-brand{color:var(--gold,#C9A96E);font-size:16px;font-weight:800;letter-spacing:.5px;display:flex;align-items:center;gap:8px}" +
+    ".ts-topnav .ts-cur{color:var(--ink,#E8ECF1);font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
     ".ts-topnav .ts-subs{display:flex;align-items:center;gap:6px;margin-left:8px}" +
-    ".ts-topnav .ts-sub{font-size:13px;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid rgba(201,169,110,.18);color:rgba(232,236,241,.75);transition:all .2s}" +
-    ".ts-topnav .ts-sub:hover{color:#C9A96E;border-color:rgba(201,169,110,.5)}" +
-    ".ts-topnav .ts-sub.on{color:#0B1A2F;background:#C9A96E;border-color:#C9A96E;font-weight:700}" +
+    ".ts-topnav .ts-sub{font-size:13px;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid var(--gold-border,rgba(201,169,110,.18));color:var(--ink-mid,rgba(232,236,241,.75));transition:all .2s}" +
+    ".ts-topnav .ts-sub:hover{color:var(--gold,#C9A96E);border-color:var(--gold-border-strong,rgba(201,169,110,.5))}" +
+    ".ts-topnav .ts-sub.on{color:var(--deep,#0B1A2F);background:var(--gold,#C9A96E);border-color:var(--gold,#C9A96E);font-weight:700}" +
     ".ts-topnav .ts-drop{position:relative}" +
-    ".ts-topnav .ts-drop-btn{background:transparent;border:1px solid rgba(201,169,110,.25);color:#C9A96E;font-size:13px;font-weight:600;font-family:inherit;padding:4px 10px;border-radius:999px;cursor:pointer;white-space:nowrap}" +
-    ".ts-topnav .ts-drop-btn:hover{background:rgba(201,169,110,.12)}" +
-    ".ts-topnav .ts-drop-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:150px;background:rgba(13,31,53,.97);border:1px solid rgba(201,169,110,.25);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.5);padding:6px;z-index:99998}" +
-    ".ts-topnav .ts-drop-menu a{display:block;padding:8px 12px;border-radius:6px;font-size:13px;color:rgba(232,236,241,.8)}" +
-    ".ts-topnav .ts-drop-menu a:hover{background:rgba(201,169,110,.12);color:#C9A96E}" +
+    ".ts-topnav .ts-drop-btn,.ts-topnav .ts-theme-btn{background:transparent;border:1px solid var(--gold-border,rgba(201,169,110,.25));color:var(--gold,#C9A96E);font-size:13px;font-weight:600;font-family:inherit;padding:4px 10px;border-radius:999px;cursor:pointer;white-space:nowrap}" +
+    ".ts-topnav .ts-drop-btn:hover,.ts-topnav .ts-theme-btn:hover{background:var(--gold-soft,rgba(201,169,110,.12))}" +
+    ".ts-topnav .ts-drop-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:150px;background:var(--card-bg,#0D2137);border:1px solid var(--gold-border,rgba(201,169,110,.25));border-radius:10px;box-shadow:var(--js-elev-2,0 8px 24px rgba(0,0,0,.5));padding:6px;z-index:99998}" +
+    ".ts-topnav .ts-drop-menu a{display:block;padding:8px 12px;border-radius:6px;font-size:13px;color:var(--ink-mid,rgba(232,236,241,.8))}" +
+    ".ts-topnav .ts-drop-menu a:hover{background:var(--gold-soft,rgba(201,169,110,.12));color:var(--gold,#C9A96E)}" +
     ".ts-topnav .ts-spacer{flex:1}" +
-    ".ts-topnav .ts-pill{background:rgba(201,169,110,.12);color:#C9A96E;padding:6px 12px;border-radius:999px;font-size:13px;border:1px solid rgba(201,169,110,.25)}" +
+    ".ts-topnav .ts-pill{background:var(--gold-soft,rgba(201,169,110,.12));color:var(--gold,#C9A96E);padding:6px 12px;border-radius:999px;font-size:13px;border:1px solid var(--gold-border,rgba(201,169,110,.25))}" +
     ".ts-topnav.float{position:fixed;top:12px;right:12px;left:auto;width:auto;border:none;" +
-    "background:rgba(13,31,53,.95);border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.4);padding:8px 14px;height:auto;border:1px solid rgba(201,169,110,.18)}" +
+    "background:var(--card-bg,rgba(13,31,53,.95));border-radius:999px;box-shadow:var(--js-elev-2,0 6px 20px rgba(0,0,0,.4));padding:8px 14px;height:auto;border:1px solid var(--gold-border,rgba(201,169,110,.18))}" +
     ".ts-topnav.float .ts-cur,.ts-topnav.float .ts-spacer{display:none}" +
     /* 健康指示灯 */
     ".ts-hdot{width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0;" +
@@ -218,6 +259,7 @@
       '<a class="ts-brand" href="' + HOME + '">🏠 工作台</a>' +
       '<span class="ts-drop"><button type="button" class="ts-drop-btn">子系统 ▾</button>' +
       '<span class="ts-drop-menu">' + subsHtml() + '</span></span>' +
+      '<button type="button" class="ts-theme-btn" id="tsThemeBtn">七色</button>' +
       '<a href="' + PORTAL + '">← 门户</a>';
   } else {
     bar.innerHTML =
@@ -226,6 +268,7 @@
       '<span class="ts-subs">' + subsHtml() + '</span>' +
       '<span class="ts-spacer"></span>' +
       '<a href="/ai-agent">💬 AI助手</a>' +
+      '<button type="button" class="ts-theme-btn" id="tsThemeBtn" style="margin-left:2px">七色</button>' +
       '<span class="ts-drop"><button type="button" class="ts-drop-btn">更多 ▾</button>' +
       '<span class="ts-drop-menu">' +
       '<a href="/ai-agent#knowledge">📚 知识库</a>' +
@@ -237,6 +280,13 @@
       '<a class="ts-pill" href="' + PORTAL + '">← 返回门户</a>';
   }
   document.body.insertBefore(bar, document.body.firstChild);
+
+  /* 主题按钮：建好 DOM 后再同步一次文案（首屏 applyTheme 时按钮还不存在） */
+  var themeBtn = document.getElementById("tsThemeBtn");
+  if (themeBtn) {
+    applyTheme(readTheme());
+    themeBtn.addEventListener("click", function () { applyTheme(nextTheme()); });
+  }
 
   /* 下拉菜单：点击按钮切换，点击外部关闭 */
   function bindDrop() {

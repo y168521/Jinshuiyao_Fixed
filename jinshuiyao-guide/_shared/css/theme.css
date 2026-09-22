@@ -3,53 +3,58 @@
    所有页面共用此文件，确保视觉一致性。
    配色体系：深海熔金（深海墨蓝 / 深蓝灰 / 暖银白 / 香槟金）
 
-   【前端单一真源 · 防漂移护栏】
-   1. 七色值须与 config/themes.json 的 owner-default(L2) 严格一致；
-      服务器侧另有一份 themes.json，二者为同一品牌色的两个消费方，改色须同步。
-   2. 禁止新增任何色值（含"第 8 色"）。历史教训：越界蓝 #3B82F6 曾散落 15+ 页面
+   【层级说明 · 2026-09-23 P0-1 升格】
+   设计令牌单一真源 = 同目录 tokens.css（--js-* 前缀）；
+   本文件降为「兼容映射层 + 基础组件」：核心七色/字体改为
+   var(--js-*, 回退值) 引用令牌，旧变量名（--deep 等）全部保留，
+   58 个已引用页面零改动即可生效。改色请改 tokens.css，
+   并同步 config/themes.json 的 owner-default。
+   1. 禁止新增任何色值（含"第 8 色"）。历史教训：越界蓝 #3B82F6 曾散落 15+ 页面
       与每日生成的基金日报，已于 2026-08-21 全部收口为 ice 冰蓝 #5BC0DE。
-   3. 字体以本文件 --font 为准（设计系统规范字体栈），勿在页面内另写字体栈。
+   2. 字体以本文件 --font 为准（现映射到 tokens.css 的 --js-font-sans），勿在页面内另写字体栈。
    ═══════════════════════════════════════════════════════════ */
 
+@import url("./tokens.css");
+
 :root {
-  /* ── 核心四色 ── */
-  --deep: #0B1A2F;
-  --card-bg: #162840;
-  --ink: #E8ECF1;
-  --gold: #C9A96E;
+  /* ── 核心四色（引用令牌真源，回退值为升格前原值）── */
+  --deep: var(--js-deep, #0B1A2F);
+  --card-bg: var(--js-card-bg, #162840);
+  --ink: var(--js-ink, #E8ECF1);
+  --gold: var(--js-gold, #C9A96E);
 
   /* ── 功能三辅色 ── */
-  --ice: #5BC0DE;
-  --jade: #2D8B7E;
-  --copper: #C8755A;
+  --ice: var(--js-ice, #5BC0DE);
+  --jade: var(--js-jade, #2D8B7E);
+  --copper: var(--js-copper, #C8755A);
 
   /* ── 统一强调色 ── */
   --accent: var(--ice);
 
-  /* ── 层次衍生 ── */
-  --ink-dim: rgba(232,236,241,.55);
-  --ink-mid: rgba(232,236,241,.7);
-  --gold-soft: rgba(201,169,110,.12);
-  --gold-border: rgba(201,169,110,.18);
-  --gold-glow: rgba(201,169,110,.22);
-  --ice-soft: rgba(91,192,222,.12);
+  /* ── 层次衍生（引用令牌，随 data-theme 换肤；回退值为升格前原值）── */
+  --ink-dim: var(--js-ink-dim, rgba(232,236,241,.55));
+  --ink-mid: var(--js-ink-mid, rgba(232,236,241,.7));
+  --gold-soft: var(--js-gold-soft, rgba(201,169,110,.12));
+  --gold-border: var(--js-gold-border, rgba(201,169,110,.18));
+  --gold-glow: var(--js-gold-glow, rgba(201,169,110,.22));
+  --ice-soft: var(--js-ice-soft, rgba(91,192,222,.12));
 
   /* ── 状态色（七色闭环，不引入杂气） ── */
   --ok: var(--jade);           /* 在线/成功/盈利 — 墨绿金，水木相生 */
   --err: var(--copper);        /* 报错/严重告警 — 赤铜色，金煞克火 */
-  --warn: rgba(201,169,110,.7); /* 轻微警告/待处理 — 香槟金降透明度 */
-  --idle: rgba(11,26,47,.4);   /* 离线/空闲/暂停 — 北冥潜藏 */
+  --warn: var(--js-status-warning, rgba(201,169,110,.7)); /* 香槟金降透明度 */
+  --idle: var(--js-status-offline, rgba(11,26,47,.4));    /* 北冥潜藏 */
 
-  /* ── 阴影与圆角 ── */
-  --shadow: 0 8px 32px rgba(0,0,0,.25);
+  /* ── 阴影与圆角（阴影映射令牌，浅色主题下自动减轻） ── */
+  --shadow: var(--js-elev-2, 0 8px 32px rgba(0,0,0,.25));
   --shadow-gold: 0 4px 24px rgba(201,169,110,.15);
   --radius-lg: 20px;
   --radius-md: 14px;
   --radius-sm: 10px;
 
-  /* ── 字体（本地优先，不依赖外网） ── */
-  --font: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", system-ui, -apple-system, sans-serif;
-  --font-mono: "Cascadia Code", "Consolas", "Source Code Pro", monospace;
+  /* ── 字体（映射到令牌真源 --js-font-sans） ── */
+  --font: var(--js-font-sans, "Microsoft YaHei", "PingFang SC", "Noto Sans SC", system-ui, -apple-system, sans-serif);
+  --font-mono: var(--js-font-mono, "Cascadia Code", "Consolas", "Source Code Pro", monospace);
 }
 
 /* ── 基础重置 ── */
@@ -300,3 +305,23 @@ input:focus, textarea:focus, select:focus { border-color: var(--gold); }
 .badge-glow.ok-badge { color: var(--jade); text-shadow: 0 0 12px rgba(45,139,126,.6); }
 .badge-glow.warn-badge { color: var(--gold); text-shadow: 0 0 12px rgba(201,169,110,.6); }
 .badge-glow.fail-badge { color: var(--copper); text-shadow: 0 0 12px rgba(200,117,90,.6); }
+
+/* ═══════════════════════════════════════════════════════════
+   浅色主题适配（P0-5）
+   深色装饰层与"深底代码块"在浅色下必须换肤，否则浅底配浅字/整片黑块。
+   只在 data-theme="system-light" 生效，默认（七色深色）零影响。
+   ═══════════════════════════════════════════════════════════ */
+[data-theme="system-light"] body::before {
+  background: radial-gradient(circle, rgba(138,109,31,.10), transparent 70%);
+}
+[data-theme="system-light"] .tech-bg,
+[data-theme="system-light"] .tech-grid { display: none; }
+[data-theme="system-light"] input,
+[data-theme="system-light"] textarea,
+[data-theme="system-light"] select { background: #ffffff; color: var(--ink); }
+[data-theme="system-light"] code { background: rgba(53,55,64,.07); }
+[data-theme="system-light"] pre { background: rgba(53,55,64,.05); }
+[data-theme="system-light"] th { background: rgba(138,109,31,.08); }
+[data-theme="system-light"] td { border-bottom-color: rgba(53,55,64,.10); }
+[data-theme="system-light"] tr:hover td { background: rgba(24,95,165,.05); }
+[data-theme="system-light"] ::-webkit-scrollbar-track { background: var(--card-bg); }

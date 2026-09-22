@@ -1,0 +1,172 @@
+/* ═══════════════════════════════════════════════════════════
+   金水谣 Design Tokens · 全站设计令牌单一真源 v1.0
+   升格日期：2026-09-23（原 91_历史报告/金水谣设计系统_tokens.css 升格至此）
+   依据：docs/金水谣_UI设计方案_v1.md §5（设计规范）· §9（P0-1）
+   规则（改前必读）：
+   1. 七色体系不可改色值、禁止第 8 色相（金水谣_契.md §五）；
+      禁用五色清单见契 §五，本文件不书写禁用色值。
+   2. 页面一律 var() 引用本文件，禁止硬编码色值
+      （closeout_gate 禁用色闸自动守 .html/.css/.py）。
+   3. 七色值须与 config/themes.json 的 owner-default 严格一致，改色两处同步。
+   4. 主题切换机制（P0-5 落地）：在 <html data-theme="..."> 上覆盖
+      同名变量；本文件当前只定义 owner 默认（深色），
+      浅色主题待其文字透明度阶等派生令牌变量化后再接入，防半破版。
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── 四色为骨（主结构）── */
+  --js-deep: #0B1A2F;      /* 深海墨蓝 · 主背景 */
+  --js-card-bg: #162840;   /* 深蓝灰 · 卡片/次级背景 */
+  --js-ink: #E8ECF1;       /* 暖银白 · 主文字（对比度 14.7/12.5 AAA） */
+  --js-gold: #C9A96E;      /* 香槟金 · 强调/标题/主按钮（7.8/6.7 AAA） */
+
+  /* ── 三色为用（功能色）── */
+  --js-ice: #5BC0DE;       /* 冰水蓝 · 数据/链接/焦点环（8.4/7.1 AAA） */
+  --js-jade: #2D8B7E;      /* 墨绿金 · 正向/成功/在线。⚠️ 仅作填充与图形，
+                              作小字文字对比度 3.6/4.2 不达标 → 见设计方案 §5.2 待拍板 */
+  --js-copper: #C8755A;    /* 赤铜 · 负向/报错/风险。⚠️ 同上（4.4/5.1） */
+
+  /* ── 语义状态色（全部由七色派生，不新增色相）── */
+  --js-status-online: var(--js-jade);
+  --js-status-offline: rgba(11, 26, 47, 0.4);
+  --js-status-warning: var(--js-gold);
+  --js-status-error: var(--js-copper);
+  --js-status-pending: var(--js-ice);
+
+  /* ── 文字透明度阶（暖银白派生；--js-ink-dim 为下限，不得更淡）── */
+  --js-ink-mid: rgba(232, 236, 241, 0.7);
+  --js-ink-dim: rgba(232, 236, 241, 0.55);
+  --js-ink-disabled: rgba(232, 236, 241, 0.38);
+
+  /* ── 强调色派生（品牌金/冰蓝的低透明填充与描边）── */
+  --js-gold-soft: rgba(201, 169, 110, 0.12);
+  --js-gold-border: rgba(201, 169, 110, 0.18);
+  --js-gold-border-strong: rgba(201, 169, 110, 0.5);
+  --js-gold-glow: rgba(201, 169, 110, 0.22);
+  --js-ice-soft: rgba(91, 192, 222, 0.12);
+  --js-ice-border: rgba(91, 192, 222, 0.3);
+
+  /* ── 图表色序（顺序不可颠倒）── */
+  --js-chart-1: var(--js-ice);
+  --js-chart-2: var(--js-jade);
+  --js-chart-3: var(--js-gold);
+  --js-chart-4: var(--js-copper);
+  --js-chart-5: rgba(232, 236, 241, 0.7);
+
+  /* ── 字体族（本地优先，不依赖外网）── */
+  --js-font-sans: "Noto Sans SC", system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --js-font-mono: "Cascadia Code", "Consolas", "Source Code Pro", monospace;
+
+  /* ── 字号阶梯（级别 / 字号；行高字重见设计方案 §5.3）── */
+  --js-fs-display: 40px;  /* Display · 门户 Hero */
+  --js-fs-h1: 32px;       /* 页面主标题 */
+  --js-fs-h2: 24px;       /* 区块标题 */
+  --js-fs-h3: 20px;       /* 卡片标题 */
+  --js-fs-body: 16px;     /* 正文 · 最小可读字号 */
+  --js-fs-body-s: 14px;   /* 表格/次要 */
+  --js-fs-caption: 12px;  /* 时间戳/标签 · 下限 */
+  --js-fs-metric: 32px;   /* KPI 数字（冰水蓝 700） */
+
+  /* ── 间距（4px 基准栅格）── */
+  --js-space-4: 4px;
+  --js-space-8: 8px;
+  --js-space-12: 12px;
+  --js-space-16: 16px;
+  --js-space-24: 24px;
+  --js-space-32: 32px;
+  --js-space-48: 48px;
+  --js-space-64: 64px;
+
+  /* ── 圆角 ── */
+  --js-radius-sm: 4px;    /* 标签 */
+  --js-radius-md: 8px;    /* 按钮/输入 */
+  --js-radius-lg: 12px;   /* 卡片 */
+  --js-radius-pill: 999px;/* 胶囊 */
+
+  /* ── 阴影 / 层级（暗色下叠加 ice 描边表达层级）── */
+  --js-elev-0: none;
+  --js-elev-1: 0 4px 12px rgba(0, 0, 0, 0.35);   /* 卡片 */
+  --js-elev-2: 0 8px 24px rgba(0, 0, 0, 0.50);   /* 弹窗/下拉 */
+  --js-border-elev-0: rgba(91, 192, 222, 0.15);  /* 静息 */
+  --js-border-elev-1: rgba(91, 192, 222, 0.30);  /* hover */
+  --js-border-elev-2: rgba(91, 192, 222, 0.60);  /* 选中 */
+
+  /* ── 动效 ── */
+  --js-dur-fast: 150ms;   /* hover */
+  --js-dur-base: 240ms;   /* 面板展开 */
+  --js-dur-slow: 400ms;   /* 页面级过渡 */
+  --js-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   主题覆盖层（P0-5 · 2026-09-23）
+   用法：<html data-theme="system-light">，变量名不变、只换值。
+   层级：L1 客户自选 > L0 系统默认(system-light/system-dark) > L2 owner 默认(:root)。
+   ⚠️ L0/L1 属"系统/客户"主题，不受七色锁约束（契 §五 主题分层），
+      但每条色值都实测过对比度，标注见下。
+   ⚠️ 主题色值须与 config/themes.json 同名主题保持一致，改一处必改另一处。
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── L0 系统默认 · 浅色中性 ── */
+[data-theme="system-light"] {
+  --js-deep: #ffffff;
+  --js-card-bg: #f7f7f8;
+  --js-ink: #353740;                              /* 白底 11.9 / 卡片底 11.1 AAA */
+  --js-gold: #8A6D1F;                             /* 4.90 / 4.57，白字反白 4.90 ✅ */
+  --js-ice: #185FA5;                              /* 6.52 / 6.09 ✅ */
+  --js-jade: #0D7F5F;                             /* 4.98 / 4.65 ✅ */
+  --js-copper: #B54A43;                           /* 5.22 / 4.87 ✅ */
+
+  --js-ink-mid: rgba(53, 55, 64, 0.82);           /* 6.43 ✅ */
+  --js-ink-dim: rgba(53, 55, 64, 0.72);           /* 4.83 ✅ */
+  --js-ink-disabled: rgba(53, 55, 64, 0.45);      /* 2.41 · 禁用态，WCAG 豁免 */
+
+  --js-gold-soft: rgba(138, 109, 31, 0.10);
+  --js-gold-border: rgba(138, 109, 31, 0.24);
+  --js-gold-border-strong: rgba(138, 109, 31, 0.5);
+  --js-gold-glow: rgba(138, 109, 31, 0.18);
+  --js-ice-soft: rgba(24, 95, 165, 0.10);
+  --js-ice-border: rgba(24, 95, 165, 0.3);
+
+  --js-status-offline: rgba(53, 55, 64, 0.3);
+
+  --js-chart-5: rgba(53, 55, 64, 0.6);
+
+  --js-elev-1: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --js-elev-2: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --js-border-elev-0: rgba(24, 95, 165, 0.22);
+  --js-border-elev-1: rgba(24, 95, 165, 0.38);
+  --js-border-elev-2: rgba(24, 95, 165, 0.70);
+}
+
+/* ── L0 系统默认 · 深色中性 ── */
+[data-theme="system-dark"] {
+  --js-deep: #1a1a1a;
+  --js-card-bg: #232323;
+  --js-ink: #e6e6e6;                              /* 11.4 / 10.2 AAA */
+  --js-gold: #d97757;                             /* 5.57 / 5.03 ✅ */
+  --js-ice: #8ab4f8;                              /* 8.26 / 7.46 ✅ */
+  --js-jade: #4a9d7f;                             /* 5.32 / 4.81 ✅ */
+  --js-copper: #c97a6d;                           /* 5.38 / 4.86 ✅ */
+
+  --js-ink-mid: rgba(230, 230, 230, 0.7);         /* 6.9 ✅ */
+  --js-ink-dim: rgba(230, 230, 230, 0.55);        /* 4.80 ✅ */
+  --js-ink-disabled: rgba(230, 230, 230, 0.38);
+
+  --js-gold-soft: rgba(217, 119, 87, 0.12);
+  --js-gold-border: rgba(217, 119, 87, 0.20);
+  --js-gold-border-strong: rgba(217, 119, 87, 0.5);
+  --js-gold-glow: rgba(217, 119, 87, 0.22);
+  --js-ice-soft: rgba(138, 180, 248, 0.12);
+  --js-ice-border: rgba(138, 180, 248, 0.3);
+
+  --js-status-offline: rgba(230, 230, 230, 0.3);
+
+  --js-chart-5: rgba(230, 230, 230, 0.65);
+
+  --js-elev-1: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --js-elev-2: 0 8px 24px rgba(0, 0, 0, 0.55);
+  --js-border-elev-0: rgba(138, 180, 248, 0.15);
+  --js-border-elev-1: rgba(138, 180, 248, 0.30);
+  --js-border-elev-2: rgba(138, 180, 248, 0.60);
+}
