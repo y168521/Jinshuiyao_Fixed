@@ -45,6 +45,9 @@ build/
 金水谣数据/fund/
 金水谣数据/music/*.wav
 *.log
+# JS-20260923-01：轮转日志 jinshuiyao.log.1 是"标签后置"形态，*.log 覆盖不到
+# （与 JS-20260921-03 的 *_bak 同一类坑），单个 10 MB 会被自动同步的 git add -A 扫进仓库
+*.log.*
 *.logl
 *.jsonl
 
