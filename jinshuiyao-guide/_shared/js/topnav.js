@@ -198,6 +198,15 @@
     ".ts-topnav a:hover{color:var(--gold,#C9A96E)}" +
     ".ts-topnav .ts-brand{color:var(--gold,#C9A96E);font-size:16px;font-weight:800;letter-spacing:.5px;display:flex;align-items:center;gap:8px}" +
     ".ts-topnav .ts-cur{color:var(--ink,#E8ECF1);font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
+    /* 面包屑（P0-3）：全站唯一返回机制，替代原先 4 种并存的 back-link 写法 */
+    ".ts-topnav .ts-crumbs{display:flex;align-items:center;min-width:0}" +
+    ".ts-topnav .ts-crumbs ol{display:flex;align-items:center;gap:6px;list-style:none;margin:0;padding:0;min-width:0}" +
+    ".ts-topnav .ts-crumbs li{display:flex;align-items:center;gap:6px;min-width:0}" +
+    ".ts-topnav .ts-crumbs a{font-size:13px;font-weight:600;color:var(--ink-mid,rgba(232,236,241,.7));white-space:nowrap}" +
+    ".ts-topnav .ts-crumbs a:hover{color:var(--gold,#C9A96E)}" +
+    ".ts-topnav .ts-crumbs .ts-crumb-cur{font-size:13px;font-weight:700;color:var(--ink,#E8ECF1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
+    ".ts-topnav .ts-crumbs .ts-sep{font-size:12px;color:var(--ink-dim,rgba(232,236,241,.55))}" +
+    "@media(max-width:640px){.ts-topnav .ts-crumbs .ts-crumb-prev{display:none}}" +
     ".ts-topnav .ts-subs{display:flex;align-items:center;gap:6px;margin-left:8px}" +
     ".ts-topnav .ts-sub{font-size:13px;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid var(--gold-border,rgba(201,169,110,.18));color:var(--ink-mid,rgba(232,236,241,.75));transition:all .2s}" +
     ".ts-topnav .ts-sub:hover{color:var(--gold,#C9A96E);border-color:var(--gold-border-strong,rgba(201,169,110,.5))}" +
@@ -212,7 +221,7 @@
     ".ts-topnav .ts-pill{background:var(--gold-soft,rgba(201,169,110,.12));color:var(--gold,#C9A96E);padding:6px 12px;border-radius:999px;font-size:13px;border:1px solid var(--gold-border,rgba(201,169,110,.25))}" +
     ".ts-topnav.float{position:fixed;top:12px;right:12px;left:auto;width:auto;border:none;" +
     "background:var(--card-bg,rgba(13,31,53,.95));border-radius:999px;box-shadow:var(--js-elev-2,0 6px 20px rgba(0,0,0,.4));padding:8px 14px;height:auto;border:1px solid var(--gold-border,rgba(201,169,110,.18))}" +
-    ".ts-topnav.float .ts-cur,.ts-topnav.float .ts-spacer{display:none}" +
+    ".ts-topnav.float .ts-cur,.ts-topnav.float .ts-crumbs,.ts-topnav.float .ts-spacer{display:none}" +
     /* 健康指示灯 */
     ".ts-hdot{width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0;" +
     "transition:background-color .3s;box-shadow:0 0 6px rgba(0,0,0,.3)}";
@@ -220,6 +229,75 @@
   var style = document.createElement("style");
   style.textContent = css;
   document.head.appendChild(style);
+
+  /* ====== 面包屑（P0-3 · 2026-09-23）======
+     全站唯一返回机制：原先并存 4 种 back-link 写法（.back / .back-link /
+     绝对定位版 / 固定悬浮版），且 Hub 页统一跳"控制中心"而不是自己的领域，
+     现已全部删除，改由面包屑承担。层级：首页 > 领域 Hub（或 系统）> 当前页。
+     未登记的路由自动退化为「首页 > 页面标题」，不会没导航。 */
+  var CRUMB_HUB = { "/lottery": "彩票", "/fund": "基金", "/stock": "股票", "/football": "足彩" };
+  var CRUMB_SYS = {
+    "/control-center": 1, "/health-check": 1, "/automation-dashboard": 1, "/automation-status": 1,
+    "/scheduler": 1, "/scheduler-board": 1, "/engine-dashboard": 1, "/review-dashboard": 1,
+    "/prediction-tracker": 1, "/daily-report": 1, "/changelog": 1, "/ai-usage": 1,
+    "/system-tools": 1, "/sync": 1
+  };
+  var CRUMB_NAME = {
+    "/workbench": "工作台", "/ai-agent": "AI 助手", "/ai-test": "AI 用例", "/smart-coder": "智能代码助手",
+    "/knowledge-browser": "知识库", "/agent-pipeline": "AI 流水线", "/control-center": "总控台",
+    "/sync": "跨设备看板", "/health-check": "体检中心", "/automation-dashboard": "自动化状态",
+    "/automation-status": "自动化运行状态", "/scheduler": "定时任务", "/scheduler-board": "定时任务看板",
+    "/engine-dashboard": "效果看板", "/review-dashboard": "审查仪表盘", "/prediction-tracker": "预测追踪",
+    "/daily-report": "大脑日报", "/changelog": "更新日志", "/ai-usage": "AI 用量", "/system-tools": "系统工具箱",
+    "/docs": "接口文档", "/test-report": "测试报告", "/architecture": "体系架构", "/global-plan": "全局规划",
+    "/chain-map": "链路地图", "/compare-tech": "方案对比", "/jinshuiyao-guide": "导航指南", "/showcase": "组件库",
+    "/route": "任务调度中枢", "/math-model": "数学模型", "/prediction-reference": "预测参考",
+    "/dashboard": "足彩模拟大盘", "/trend": "走势图", "/quant": "量化盘", "/gap-analysis": "差距分析",
+    "/deepseek-manual": "DeepSeek 备用", "/daily-sentiment": "A股情绪日报",
+    "/lottery/dashboard": "仪表盘", "/lottery/sources-health": "数据源健康", "/lottery/omission-heatmap": "遗漏热力图",
+    "/lottery/omission-table": "遗漏表格", "/lottery/hot-rank": "冷热排行", "/lottery/filter-panel": "缩水过滤",
+    "/lottery/rotation-matrix": "旋转矩阵", "/lottery/prize-calculator": "奖金计算器",
+    "/lottery/head-tail-analysis": "龙头凤尾", "/lottery/historical-same-period": "历史同期",
+    "/lottery/number-follow-up": "号码跟随", "/lottery/trend-classification": "走势分类",
+    "/lottery/ac-calculator": "AC 值", "/lottery/combo-calculator": "组合计算", "/lottery/audit-dashboard": "操作留痕",
+    "/fund/dashboard": "仪表盘", "/fund/nav-trend": "净值走势", "/fund/holdings": "持仓分析",
+    "/fund/screener": "基金筛选", "/fund/detail": "基金详情", "/fund/dca": "定投模拟", "/fund/portfolio": "持仓管理",
+    "/stock/dashboard": "仪表盘", "/stock/detail": "个股详情", "/stock/watchlist": "自选股", "/stock/movers": "关注池",
+    "/football/dashboard": "赛前模拟", "/football/matches": "比赛列表", "/football/predict": "赛事预测"
+  };
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function crumbsHtml() {
+    var p = location.pathname || "/";
+    if (p.length > 1 && p.charAt(p.length - 1) === "/") { p = p.slice(0, -1); }
+    var items = [{ label: "首页", href: "/" }];
+    var hub = "";
+    for (var k in CRUMB_HUB) {
+      if (Object.prototype.hasOwnProperty.call(CRUMB_HUB, k) && (p === k || p.indexOf(k + "/") === 0)) { hub = k; }
+    }
+    var name = "";
+    if (hub) {
+      if (p !== hub) { items.push({ label: CRUMB_HUB[hub], href: hub }); }
+      name = (p === hub) ? CRUMB_HUB[hub] : (CRUMB_NAME[p] || "");
+    } else if (CRUMB_SYS[p]) {
+      items.push({ label: "系统", href: "/control-center" });
+      name = CRUMB_NAME[p] || "";
+    } else {
+      name = CRUMB_NAME[p] || "";
+    }
+    if (!name) {
+      name = (document.title || "").replace(/\s*[·\-–].*$/, "").trim() || "当前页";
+    }
+    var h = '<nav class="ts-crumbs" aria-label="面包屑导航"><ol>';
+    for (var i = 0; i < items.length; i++) {
+      h += '<li class="ts-crumb-prev"><a href="' + items[i].href + '">' + esc(items[i].label) +
+           '</a><span class="ts-sep" aria-hidden="true">/</span></li>';
+    }
+    h += '<li><span class="ts-crumb-cur" aria-current="page">' + esc(name) + '</span></li></ol></nav>';
+    return h;
+  }
 
   var bar = document.createElement("div");
   bar.className = "ts-topnav" + (mode === "float" ? " float" : "");
@@ -264,18 +342,21 @@
   } else {
     bar.innerHTML =
       '<a class="ts-brand" href="' + HOME + '">' + healthHtml + '金水谣工作台</a>' +
-      '<span class="ts-cur">' + cur + '</span>' +
+      crumbsHtml() +
       '<span class="ts-subs">' + subsHtml() + '</span>' +
       '<span class="ts-spacer"></span>' +
       '<a href="/ai-agent">💬 AI助手</a>' +
       '<button type="button" class="ts-theme-btn" id="tsThemeBtn" style="margin-left:2px">七色</button>' +
       '<span class="ts-drop"><button type="button" class="ts-drop-btn">更多 ▾</button>' +
       '<span class="ts-drop-menu">' +
+      /* P0-3：原为 /scheduler.html、/engine-dashboard.html，不在路由表里，
+         靠 _serve_static 兜底才勉强能开；compare-tech 原写了完整物理路径。
+         统一改为已注册路由，避免路由表一改就断链。 */
       '<a href="/ai-agent#knowledge">📚 知识库</a>' +
       '<a href="/sync">📋 看板</a>' +
-      '<a href="/scheduler.html">⏰ 定时任务</a>' +
-      '<a href="/engine-dashboard.html">📊 效果看板</a>' +
-      '<a href="/Jinshuiyao_Fixed/jinshuiyao-guide/compare-tech.html">🔬 方案对比</a>' +
+      '<a href="/scheduler">⏰ 定时任务</a>' +
+      '<a href="/engine-dashboard">📊 效果看板</a>' +
+      '<a href="/compare-tech">🔬 方案对比</a>' +
       '</span></span>' +
       '<a class="ts-pill" href="' + PORTAL + '">← 返回门户</a>';
   }
