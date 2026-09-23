@@ -241,19 +241,23 @@ class FundFetcher:
             self._write_cache(cache_key, info, as_dataframe=False)
         return info
 
-    def get_rank(self, category=None, use_cache=True):
+    def get_rank(self, category=None, use_cache=True, real_only=False):
         """获取基金排名数据
 
         Args:
             category: 基金类别，如 "股票型"、"混合型" 等，None 表示默认混合型
             use_cache: 是否使用本地缓存
+            real_only: 仅返回真实数据。为 True 时，若 akshare 不可用/失败，
+                直接返回 None 而非模拟排名（避免日报编造排名，违背诚实铁律）
 
         Returns:
             DataFrame: 排名数据，列包含 [基金代码, 基金名称, 近1月, 近3月, 近6月, 近1年, 近3年, 同类排名]
+            若 real_only=True 且真实数据不可用，返回 None
         """
         cache_key = f"rank_{category or 'default'}"
 
-        if use_cache:
+        # real_only 时不读缓存：缓存可能是旧的次级/模拟数据，绝不能冒充当真实排名返回
+        if use_cache and not real_only:
             cached = self._read_cache(cache_key)
             if cached is not None:
                 return cached
@@ -272,6 +276,11 @@ class FundFetcher:
             except Exception as e:
                 self._record_akshare_failure()
                 logger.warning("akshare获取基金排名失败: %s", e)
+
+        # 真实数据不可用
+        if real_only:
+            logger.info("真实基金排名数据不可用，返回 None（不编造模拟排名）")
+            return None
 
         # 降级：生成模拟排名数据
         logger.info("使用模拟基金排名数据")

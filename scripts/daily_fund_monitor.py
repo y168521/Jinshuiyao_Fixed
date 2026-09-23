@@ -51,6 +51,26 @@ except Exception as _e:  # pragma: no cover
     PROFILE_AVAILABLE = False
     PROFILE_IMPORT_ERR = str(_e)
 
+# 区间收益（近3月/6月/1年/3年）复用领域层分析引擎——JS-20260923-10 批2
+try:
+    from domains.fund.analyzer import FundAnalyzer
+    ANALYZER_AVAILABLE = True
+    ANALYZER_IMPORT_ERR = ""
+except Exception as _e:  # pragma: no cover
+    FundAnalyzer = None
+    ANALYZER_AVAILABLE = False
+    ANALYZER_IMPORT_ERR = str(_e)
+
+# 同类排名复用领域层 FundFetcher.get_rank（real_only=True，不编造模拟排名）——JS-20260923-10 批2
+try:
+    from domains.fund.fetcher import FundFetcher
+    RANK_FETCHER_AVAILABLE = True
+    RANK_FETCHER_IMPORT_ERR = ""
+except Exception as _e:  # pragma: no cover
+    FundFetcher = None
+    RANK_FETCHER_AVAILABLE = False
+    RANK_FETCHER_IMPORT_ERR = str(_e)
+
 # 设置日志
 logging.basicConfig(
     level=logging.INFO,
@@ -579,7 +599,41 @@ class ReportGenerator:
             tp = signals.get("take_profit", {})
             pl = signals.get("purchase_limit", {})
             sd = signals.get("significant_drop", {})
-            
+
+            # JS-20260923-10 批2：区间收益 + 同类排名展示准备
+            _ir_map = d.get("interval_returns", {}) or {}
+
+            def _fmt_ir(v):
+                if v is None or isinstance(v, str):
+                    return "--"
+                return f"{v:+.2f}"
+
+            def _cls_ir(v):
+                if v is None or isinstance(v, str):
+                    return "neutral"
+                return "up" if v > 0 else "down" if v < 0 else "neutral"
+
+            ir_3m, ir_3m_cls = _fmt_ir(_ir_map.get("近3月")), _cls_ir(_ir_map.get("近3月"))
+            ir_6m, ir_6m_cls = _fmt_ir(_ir_map.get("近6月")), _cls_ir(_ir_map.get("近6月"))
+            ir_1y, ir_1y_cls = _fmt_ir(_ir_map.get("近1年")), _cls_ir(_ir_map.get("近1年"))
+            ir_3y, ir_3y_cls = _fmt_ir(_ir_map.get("近3年")), _cls_ir(_ir_map.get("近3年"))
+
+            _rk = d.get("rank") or {}
+            _rank_raw = _rk.get("rank")
+            if _rank_raw:
+                try:
+                    _a, _b = str(_rank_raw).split("/")
+                    _ai, _bi = int(_a), int(_b)
+                    _pct = round(_ai / _bi * 100, 1) if _bi else 0
+                    rank_disp = f"{_rank_raw}（前{_pct}%）"
+                    rank_cls = "up" if _pct <= 33 else "neutral" if _pct <= 66 else "down"
+                except Exception:
+                    rank_disp = str(_rank_raw)
+                    rank_cls = "neutral"
+            else:
+                rank_disp = "暂缺"
+                rank_cls = "neutral"
+
             card = f"""
             <div class="fund-card">
                 <div class="fund-header">
@@ -624,6 +678,28 @@ class ReportGenerator:
                         <div class="metric">
                             <div class="metric-label">申购状态</div>
                             <div class="metric-value {'limit' if pl.get('is_limited') else 'ok'}">{pl.get("status", "--")}</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">同类排名</div>
+                            <div class="metric-value {rank_cls}">{rank_disp}</div>
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <div class="metric">
+                            <div class="metric-label">近3月</div>
+                            <div class="metric-value {ir_3m_cls}">{ir_3m}%</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">近6月</div>
+                            <div class="metric-value {ir_6m_cls}">{ir_6m}%</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">近1年</div>
+                            <div class="metric-value {ir_1y_cls}">{ir_1y}%</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">近3年</div>
+                            <div class="metric-value {ir_3y_cls}">{ir_3y}%</div>
                         </div>
                     </div>
                     <div class="signals">
@@ -998,6 +1074,9 @@ class DailyFundMonitor:
         self.fetcher = FundDataFetcher()
         self.risk_calc = RiskCalculator()
         self.signal_detector = SignalDetector()
+        # JS-20260923-10 批2：区间收益分析引擎（缺失则跳过区间收益栏，不报错）
+        self.analyzer = FundAnalyzer() if ANALYZER_AVAILABLE else None
+        self.ranks = {}
         self.report_gen = ReportGenerator(
             output_dir=os.path.join(_SCRIPT_DIR, "金水谣数据", "fund_reports")
         )
@@ -1046,6 +1125,9 @@ class DailyFundMonitor:
         logger.info("开始执行每日基金监控...")
         logger.info("=" * 50)
 
+        # 1.0 采集同类排名（真实数据缺失时返回空，卡片显示「暂缺」）——JS-20260923-10 批2
+        self.ranks = self._collect_ranks()
+
         # 1. 获取每只基金的数据
         for fund in FUND_CONFIG:
             code = fund["code"]
@@ -1057,10 +1139,15 @@ class DailyFundMonitor:
                 logger.warning("基金 %s 快照获取失败，跳过", code)
                 continue
             
-            # 获取历史数据
-            history = self.fetcher.get_fund_history(code, days=90)
-            
-            # 计算风险指标
+            # 获取历史数据（近3年，供区间收益；同时截取最近90天供风险/信号，保持旧口径——JS-20260923-10 批2）
+            history_full = self.fetcher.get_fund_history(code, days=800)
+            history = (
+                history_full.tail(90)
+                if history_full is not None and not history_full.empty
+                else history_full
+            )
+
+            # 计算风险指标（基于最近90天窗口，与旧报告一致）
             risks = {}
             if history is not None and not history.empty:
                 nav_series = history["单位净值"].astype(float)
@@ -1071,7 +1158,16 @@ class DailyFundMonitor:
                     "calmar": self.risk_calc.calc_calmar(nav_series),
                     "total_return": self.risk_calc.calc_total_return(nav_series),
                 }
-            
+
+            # JS-20260923-10 批2：区间收益（近3月/6月/1年/近3年）复用 analyzer.calculate_returns，不重写
+            interval_returns = {}
+            if self.analyzer is not None and history_full is not None and not history_full.empty and len(history_full) >= 5:
+                navs = history_full["单位净值"].astype(float).tolist()
+                dates = history_full["净值日期"].astype(str).tolist() if "净值日期" in history_full.columns else None
+                _full = self.analyzer.calculate_returns(navs, dates)
+                interval_returns = {k: v for k, v in _full.items()
+                                    if k in ("近3月", "近6月", "近1年", "近3年")}
+
             # 检测信号
             signals = {}
             hist_series = (
@@ -1090,21 +1186,23 @@ class DailyFundMonitor:
                 )
             else:
                 signals["take_profit"] = {"signal": False, "message": "净值数据缺失"}
-            
+
             signals["purchase_limit"] = self.signal_detector.check_purchase_limit(
                 snapshot.get("buy_status", "")
             )
-            
+
             if hist_series is not None:
                 signals["significant_drop"] = self.signal_detector.check_significant_drop(
                     hist_series
                 )
-            
+
             self.monitor_data[code] = {
                 "snapshot": snapshot,
                 "risks": risks,
                 "signals": signals,
                 "config": fund,
+                "interval_returns": interval_returns,
+                "rank": self.ranks.get(code),
             }
         
         # 1.5 外围风险采集（基金经理变更 / 规模变化·清盘预警）
@@ -1173,6 +1271,35 @@ class DailyFundMonitor:
             return profiles
         except Exception as e:
             logger.warning("外围风险采集失败，跳过该板块: %s", e)
+            return {}
+
+    def _collect_ranks(self) -> Dict:
+        """采集同类排名（近1月…近3年 + 同类排名）
+
+        JS-20260923-10 批2：复用领域层 FundFetcher.get_rank()。
+        真实数据不可用时（real_only=True）返回空 dict，报告对应栏显示「暂缺」，
+        绝不返回模拟排名（违背诚实铁律）。
+        """
+        if not RANK_FETCHER_AVAILABLE:
+            logger.warning("排名模块不可用，跳过该栏（显示暂缺）: %s", RANK_FETCHER_IMPORT_ERR)
+            return {}
+        try:
+            logger.info("正在采集同类排名（真实数据优先）...")
+            rk_fetcher = FundFetcher()
+            df = rk_fetcher.get_rank(real_only=True, use_cache=False)
+            if df is None or df.empty or "基金代码" not in df.columns:
+                logger.warning("同类排名真实数据不可用，跳过该栏（显示暂缺）")
+                return {}
+            rank_map = {}
+            for _, row in df.iterrows():
+                code = str(row.get("基金代码", "")).strip()
+                rank_str = str(row.get("同类排名", "")).strip()
+                if code:
+                    rank_map[code] = {"rank": rank_str}
+            logger.info("同类排名采集完成：%d 只基金", len(rank_map))
+            return rank_map
+        except Exception as e:
+            logger.warning("同类排名采集失败，跳过该栏（显示暂缺）: %s", e)
             return {}
 
     def _save_notification(self, report_path: str):
