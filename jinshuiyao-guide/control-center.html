@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>金水谣万物引擎 - 总控台</title>
   <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/ui-feedback.css">
   <style>
     /* 页面特有样式（覆盖theme.css默认值） */
 
@@ -1121,6 +1122,7 @@
   </div>
 
   <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/toast.js"></script>
+  <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/ui-feedback.js"></script>
 <script>
     // ===== 侧边栏移动端切换 =====
     function toggleSidebar() {
@@ -1338,26 +1340,28 @@
         ? '确定切换为【本地模式】？\n\n本地模式不调用DeepSeek API，纯本地算法运行，无需网络。' 
         : '确定切换为【在线模式】？\n\n在线模式会调用DeepSeek API，需要网络连接和API Key。';
       
-      if (!confirm(confirmMsg)) return;
+      JSY.confirm(confirmMsg).then(function(ok){
+        if (!ok) return;
 
-      fetch('/api/ai/mode/set', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: newMode })
-      })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (data.ok) {
-            currentAiMode = newMode;
-            updateAiModeUI();
-            showToast('已切换为' + (newMode === 'online' ? '在线模式' : '本地模式'));
-          } else {
-            alert('切换失败: ' + (data.error || '未知错误'));
-          }
+        fetch('/api/ai/mode/set', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: newMode })
         })
-        .catch(function(e) {
-          alert('切换失败: ' + e.message);
-        });
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.ok) {
+              currentAiMode = newMode;
+              updateAiModeUI();
+              showToast('已切换为' + (newMode === 'online' ? '在线模式' : '本地模式'));
+            } else {
+              JSY.toast('切换失败: ' + (data.error || '未知错误'), 'error');
+            }
+          })
+          .catch(function(e) {
+            JSY.toast('切换失败: ' + e.message, 'error');
+          });
+      });
     }
 
     // ===== 状态检测 =====
@@ -1396,35 +1400,37 @@
 
     // ===== 一键审查 =====
     function triggerQuickReview() {
-      if (!confirm('确定要启动快速审查吗？\n\n将运行: ruff + AST检查 + 冒烟测试\n预计耗时: 5-10秒')) return;
-      showToast('正在启动快速审查...', 'success');
-      fetch('/api/review/trigger', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'quick' })
-      })
-        .then(function(r) { return r.json(); })
-        .then(function(d) {
-          if (d.ok) {
-            var score = d.report && d.report.summary ? d.report.summary.health_score : '--';
-            var rec = d.report && d.report.summary ? d.report.summary.recommendation : '';
-            var msg = '快速审查完成!\n评分: ' + score + ' / 100\n建议: ' + rec;
-            if (score >= 80) {
-              showToast('审查通过: ' + score + '分', 'success');
-            } else {
-              showToast('审查需关注: ' + score + '分', 'error');
-            }
-            alert(msg);
-            if (Notification && Notification.permission === 'granted') {
-              new Notification('金水谣审查完成', { body: '评分: ' + score + ' / 100 · ' + rec });
-            }
-          } else {
-            showToast('审查失败: ' + d.error, 'error');
-          }
+      JSY.confirm('确定要启动快速审查吗？\n\n将运行: ruff + AST检查 + 冒烟测试\n预计耗时: 5-10秒').then(function(ok){
+        if (!ok) return;
+        showToast('正在启动快速审查...', 'success');
+        fetch('/api/review/trigger', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'quick' })
         })
-        .catch(function(e) {
-          showToast('触发失败: ' + e.message, 'error');
-        });
+          .then(function(r) { return r.json(); })
+          .then(function(d) {
+            if (d.ok) {
+              var score = d.report && d.report.summary ? d.report.summary.health_score : '--';
+              var rec = d.report && d.report.summary ? d.report.summary.recommendation : '';
+              var msg = '快速审查完成!\n评分: ' + score + ' / 100\n建议: ' + rec;
+              if (score >= 80) {
+                showToast('审查通过: ' + score + '分', 'success');
+              } else {
+                showToast('审查需关注: ' + score + '分', 'error');
+              }
+              JSY.toast(msg, 'info');
+              if (Notification && Notification.permission === 'granted') {
+                new Notification('金水谣审查完成', { body: '评分: ' + score + ' / 100 · ' + rec });
+              }
+            } else {
+              showToast('审查失败: ' + d.error, 'error');
+            }
+          })
+          .catch(function(e) {
+            showToast('触发失败: ' + e.message, 'error');
+          });
+      });
     }
 
     // ===== API密钥管理面板 =====

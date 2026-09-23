@@ -216,6 +216,7 @@
   .topic-input:focus{border-color:var(--gold);background:rgba(201,169,110,.10)}
   .field #p-live-text{white-space:pre-wrap;word-break:break-word;max-height:240px;overflow:auto}
 </style>
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/ui-feedback.css">
 </head>
 <body>
 <div class="wrap">
@@ -674,7 +675,7 @@ async function play(){
 }
 
 playBtn.addEventListener("click",play);
-resetBtn.addEventListener("click",()=>{if(!confirm('确定重置当前视图？'))return;resetAll();});
+resetBtn.addEventListener("click",()=>{JSY.confirm('确定重置当前视图？').then(function(ok){if(!ok)return;resetAll();});});
 
 /* ---------- init ---------- */
 window.addEventListener("load",()=>{
@@ -684,6 +685,7 @@ window.addEventListener("load",()=>{
   setInterval(heartbeat,4000);          // 每 4s 心跳，保持连接灯真实
 });
 </script>
+  <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/ui-feedback.js"></script>
   <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
 </body>
 </html>

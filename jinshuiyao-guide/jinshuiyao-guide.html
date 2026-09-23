@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>万物预测引擎 - 项目导航指南</title>
   <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/ui-feedback.css">
   <style>
     :root {
       /* 映射到 theme.css 设计令牌 */
@@ -1081,7 +1082,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.open-btn, .scene-card[onclick]').forEach(function(el) {
       if (el.tagName === 'A') {
         el.href = '#';
-        el.onclick = function(e) { e.preventDefault(); alert('请在项目根目录（Jinshuiyao_Fixed 文件夹）双击【launch.bat】启动服务器模式，\n然后就能一键打开所有功能。'); };
+        el.onclick = function(e) { e.preventDefault(); JSY.toast('请在项目根目录（Jinshuiyao_Fixed 文件夹）双击【launch.bat】启动服务器模式，\n然后就能一键打开所有功能。', 'info'); };
       }
     });
   }
@@ -1090,7 +1091,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // 打开文件 — 通过本地HTTP服务器直接启动程序
 function openFile(relPath, mode) {
   if (!IS_SERVER) {
-    alert('请在项目根目录（Jinshuiyao_Fixed 文件夹）双击【launch.bat】\n\n启动后会自动打开导航页面，届时所有按钮都能一键打开。');
+    JSY.toast('请在项目根目录（Jinshuiyao_Fixed 文件夹）双击【launch.bat】\n\n启动后会自动打开导航页面，届时所有按钮都能一键打开。', 'info');
     return false;
   }
   var url = '/open?file=' + encodeURIComponent(relPath) + '&mode=' + (mode || 'auto');
@@ -1101,7 +1102,7 @@ function openFile(relPath, mode) {
 // 打开文件夹
 function openFolder(relPath) {
   if (!IS_SERVER) {
-    alert('请在项目根目录（Jinshuiyao_Fixed 文件夹）双击【launch.bat】');
+    JSY.toast('请在项目根目录（Jinshuiyao_Fixed 文件夹）双击【launch.bat】', 'info');
     return false;
   }
   window.open('/open?file=' + encodeURIComponent(relPath), '_blank', 'width=500,height=350');
@@ -1214,6 +1215,7 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
   });
 });
 </script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/ui-feedback.js"></script>
 <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
 <script src="_shared/js/error-monitor.js"></script>
 </body>

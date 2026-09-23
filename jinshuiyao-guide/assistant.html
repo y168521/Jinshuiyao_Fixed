@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>金水谣 · 智能代码助手（新手三步）</title>
 <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/ui-feedback.css">
 <style>
   * { box-sizing: border-box; }
   body { margin:0; font-family:var(--font);
@@ -313,6 +314,7 @@ $('againBtn').onclick = ()=>{
 };
 </script>
 
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/ui-feedback.js"></script>
 <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
 <script src="_shared/js/error-monitor.js"></script>
 
@@ -418,10 +420,12 @@ function initHistory() {
   
   // 清空历史
   $('clearHistoryBtn').onclick = function() {
-    if (!confirm('确定清空全部历史？此操作不可恢复')) return;
-    localStorage.removeItem('assistantHistory');
-    renderHistory();
-    setStatus($('askStatus'), '历史已清空', 'ok');
+    JSY.confirm('确定清空全部历史？此操作不可恢复').then(function(ok) {
+      if (!ok) return;
+      localStorage.removeItem('assistantHistory');
+      renderHistory();
+      setStatus($('askStatus'), '历史已清空', 'ok');
+    });
   };
   
   // 导出JSON

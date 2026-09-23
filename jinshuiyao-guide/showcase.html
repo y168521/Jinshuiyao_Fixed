@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>金水谣 · 组件库展示</title>
 <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/ui-feedback.css">
 <style>
   :root { --bg:var(--deep); --card:var(--card-bg); --border:var(--gold-border); --txt:var(--ink); --muted:var(--ink-dim); }
   * { box-sizing:border-box; }
@@ -87,7 +88,7 @@
       <div class="demo" id="stateDemo" style="min-height:90px;"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn" onclick="StateUI.loading(document.getElementById('stateDemo'),'加载中…')">加载中</button>
-        <button class="btn" onclick="StateUI.error(document.getElementById('stateDemo'),'网络异常',function(){alert('点击了重试');})">失败+重试</button>
+        <button class="btn" onclick="StateUI.error(document.getElementById('stateDemo'),'网络异常',function(){JSY.toast('点击了重试','info');})">失败+重试</button>
         <button class="btn" onclick="StateUI.empty(document.getElementById('stateDemo'),'暂无数据','去 AI 助手提问，系统自动收录')">空态</button>
       </div>
       <div class="usage" style="margin-top:10px;"><b>用法</b>：<code>StateUI.loading(el, 文案)</code> / <code>StateUI.error(el, 原因, 重试回调)</code> / <code>StateUI.empty(el, 文案, 引导)</code>。统一覆盖加载/失败/空态。</div>
@@ -153,6 +154,7 @@
   </div>
 
 <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/toast.js"></script>
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/ui-feedback.js"></script>
 <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/state-ui.js"></script>
 <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/table-enhance.js"></script>
 <script>

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>金水谣系统 - 体检中心</title>
   <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/theme.css">
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/ui-feedback.css">
   <style>
     /* @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap'); */
     :root {
@@ -575,6 +576,7 @@
   <div id="toast" class="toast"></div>
 
   <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/toast.js"></script>
+  <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/ui-feedback.js"></script>
 <script>
     // ============================================================
     // 科室定义与分组规则
@@ -1189,12 +1191,13 @@
       document.getElementById('runBtn').addEventListener('click', runCheckup);
       document.getElementById('exportBtn').addEventListener('click', exportReport);
       document.getElementById('clearBtn').addEventListener('click', () => {
-        if (confirm('确定清除全部历史体检记录？')) {
+        JSY.confirm('确定清除全部历史体检记录？').then(function(ok) {
+          if (!ok) return;
           localStorage.removeItem(HISTORY_KEY);
           renderHistory();
           renderTrend();
           showToast('历史记录已清除');
-        }
+        });
       });
 
       // 启动自检按钮
