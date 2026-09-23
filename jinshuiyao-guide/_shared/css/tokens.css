@@ -11,6 +11,11 @@
    4. 主题切换机制（P0-5 落地）：在 <html data-theme="..."> 上覆盖
       同名变量；本文件当前只定义 owner 默认（深色），
       浅色主题待其文字透明度阶等派生令牌变量化后再接入，防半破版。
+   5. 派生类令牌（--js-fill / --js-line* / --js-surface-* / --js-scrim* /
+      --js-{ice,gold,jade,copper}-{fill,mid}）一律用 color-mix 从七色实时派生，
+      **不再逐主题写死 rgba**（JS-20260924-29）：写死 rgba 会在浅色主题下
+      变成"浅色叠浅色"而隐形。页面需要新的半透明层时，优先复用本节，
+      确实没有再加（加时须配 rgba 回退行）。
    ═══════════════════════════════════════════════════════════ */
 
 :root {
@@ -45,6 +50,41 @@
   --js-gold-glow: rgba(201, 169, 110, 0.22);
   --js-ice-soft: rgba(91, 192, 222, 0.12);
   --js-ice-border: rgba(91, 192, 222, 0.3);
+
+  /* ── 派生填充 / 描边 / 遮罩（JS-20260924-29 新增）──
+     写法：color-mix 从七色实时派生 → **自动跟随任意主题**，无需在
+     [data-theme] 里各写一份（这是它优于直接写 rgba 的原因：写死 rgba 会在
+     浅色主题下变成"浅色文字叠浅色底"而隐形）。
+     首行 rgba 是不支持 color-mix 的浏览器的回退值（无效声明会被整条丢弃并落回上一行）。
+     分工：--js-line* 是**中性**分隔线；--js-border-elev-* 是**层级**描边（冰蓝调），二者不可混用。 */
+  --js-ink-faint: rgba(232, 236, 241, 0.42);        /* 极弱正文（介于 ink-dim 与 ink-disabled） */
+  --js-ink-faint: color-mix(in srgb, var(--js-ink) 42%, transparent);
+  --js-fill: rgba(232, 236, 241, 0.06);             /* 中性极淡填充 */
+  --js-fill: color-mix(in srgb, var(--js-ink) 6%, transparent);
+  --js-line: rgba(232, 236, 241, 0.12);             /* 中性分隔线 · 静息 */
+  --js-line: color-mix(in srgb, var(--js-ink) 12%, transparent);
+  --js-line-strong: rgba(232, 236, 241, 0.22);      /* 中性分隔线 · 强调 */
+  --js-line-strong: color-mix(in srgb, var(--js-ink) 22%, transparent);
+  --js-surface-1: rgba(22, 40, 64, 0.45);           /* 面板层 1（浮层/侧栏） */
+  --js-surface-1: color-mix(in srgb, var(--js-card-bg) 45%, transparent);
+  --js-surface-2: rgba(22, 40, 64, 0.72);           /* 面板层 2（更实） */
+  --js-surface-2: color-mix(in srgb, var(--js-card-bg) 72%, transparent);
+  --js-scrim: rgba(11, 26, 47, 0.6);                /* 模态遮罩 */
+  --js-scrim: color-mix(in srgb, var(--js-deep) 60%, transparent);
+  --js-scrim-soft: rgba(11, 26, 47, 0.32);          /* 渐变尾端 / 轻遮罩 */
+  --js-scrim-soft: color-mix(in srgb, var(--js-deep) 32%, transparent);
+  --js-ice-fill: rgba(91, 192, 222, 0.25);
+  --js-ice-fill: color-mix(in srgb, var(--js-ice) 25%, transparent);
+  --js-ice-mid: rgba(91, 192, 222, 0.6);
+  --js-ice-mid: color-mix(in srgb, var(--js-ice) 60%, transparent);
+  --js-gold-fill: rgba(201, 169, 110, 0.55);
+  --js-gold-fill: color-mix(in srgb, var(--js-gold) 55%, transparent);
+  --js-gold-mid: rgba(201, 169, 110, 0.7);
+  --js-gold-mid: color-mix(in srgb, var(--js-gold) 70%, transparent);
+  --js-jade-fill: rgba(45, 139, 126, 0.25);
+  --js-jade-fill: color-mix(in srgb, var(--js-jade) 25%, transparent);
+  --js-copper-fill: rgba(200, 117, 90, 0.22);
+  --js-copper-fill: color-mix(in srgb, var(--js-copper) 22%, transparent);
 
   /* ── 图表色序（顺序不可颠倒）── */
   --js-chart-1: var(--js-ice);

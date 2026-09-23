@@ -3,36 +3,41 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/tokens.css">
 <title>智能研报生成 · 多 Agent 协作流水线</title>
 <style>
+  /* 全部派生自 tokens.css（JS-20260924-29）。
+     本页七个基色的**值**本就与 L2 七色一致，接入后深色主题视觉零变化；
+     真正的收益是中性派生层不再写死 rgba —— 写死会在浅色主题下
+     变成"浅色叠浅色"而隐形。 */
   :root{
     /* 四色为骨 */
-    --deep:#0B1A2F;
-    --card-bg:#162840;
-    --ink:#E8ECF1;
-    --gold:#C9A96E;
+    --deep:var(--js-deep);
+    --card-bg:var(--js-card-bg);
+    --ink:var(--js-ink);
+    --gold:var(--js-gold);
     /* 三色为用 */
-    --ice:#5BC0DE;
-    --jade:#2D8B7E;
-    --copper:#C8755A;
-    /* 中性派生（仅七色池 + 透明度） */
-    --muted:rgba(232,236,241,.62);
-    --faint:rgba(232,236,241,.40);
-    --border:rgba(232,236,241,.12);
-    --border-strong:rgba(232,236,241,.22);
-    --panel:rgba(22,40,64,.45);
-    --panel-2:rgba(22,40,64,.72);
-    --chrome:var(--gold);
-    --chrome-ink:var(--deep);
-    /* 节点身份色（仅限七色池 + 透明度派生） */
-    --c-coord:var(--gold);
-    --c-collect:var(--ice);
-    --c-analyze:rgba(232,236,241,.72);
-    --c-write:rgba(91,192,222,.60);
-    --c-review:var(--copper);
-    --c-deliver:var(--jade);
-    --ease:cubic-bezier(.16,1,.3,1);
-    --font:"Segoe UI",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    --ice:var(--js-ice);
+    --jade:var(--js-jade);
+    --copper:var(--js-copper);
+    /* 中性派生（全部走令牌，跟随主题） */
+    --muted:var(--js-ink-mid);
+    --faint:var(--js-ink-faint);
+    --border:var(--js-line);
+    --border-strong:var(--js-line-strong);
+    --panel:var(--js-surface-1);
+    --panel-2:var(--js-surface-2);
+    --chrome:var(--js-gold);
+    --chrome-ink:var(--js-deep);
+    /* 节点身份色（仅限七色池 + 令牌派生） */
+    --c-coord:var(--js-gold);
+    --c-collect:var(--js-ice);
+    --c-analyze:var(--js-ink-mid);
+    --c-write:var(--js-ice-mid);
+    --c-review:var(--js-copper);
+    --c-deliver:var(--js-jade);
+    --ease:var(--js-ease);
+    --font:var(--js-font-sans);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
@@ -40,8 +45,8 @@
     font-family:var(--font);
     color:var(--ink);
     background:
-      radial-gradient(1200px 720px at 18% -8%, rgba(22,40,64,.75) 0%, transparent 55%),
-      radial-gradient(900px 620px at 100% 112%, rgba(22,40,64,.5) 0%, transparent 50%),
+      radial-gradient(1200px 720px at 18% -8%, var(--js-surface-2) 0%, transparent 55%),
+      radial-gradient(900px 620px at 100% 112%, var(--js-surface-1) 0%, transparent 50%),
       var(--deep);
     min-height:100vh;
     display:flex;
@@ -54,8 +59,8 @@
   body::before{
     content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
     background-image:
-      linear-gradient(rgba(232,236,241,.045) 1px,transparent 1px),
-      linear-gradient(90deg,rgba(232,236,241,.045) 1px,transparent 1px);
+      linear-gradient(var(--js-fill) 1px,transparent 1px),
+      linear-gradient(90deg,var(--js-fill) 1px,transparent 1px);
     background-size:46px 46px;
     mask-image:radial-gradient(circle at 50% 40%,#000 0%,transparent 78%);
     -webkit-mask-image:radial-gradient(circle at 50% 40%,#000 0%,transparent 78%);
@@ -77,8 +82,8 @@
     white-space:nowrap;
   }
   .status .dot{width:8px;height:8px;border-radius:50%;background:var(--faint);transition:background .4s,box-shadow .4s}
-  .status.running .dot{background:var(--ice);box-shadow:0 0 0 4px rgba(91,192,222,.25);animation:pulse 1.4s infinite}
-  .status.done .dot{background:var(--jade);box-shadow:0 0 0 4px rgba(45,139,126,.25)}
+  .status.running .dot{background:var(--ice);box-shadow:0 0 0 4px var(--js-ice-fill);animation:pulse 1.4s infinite}
+  .status.done .dot{background:var(--jade);box-shadow:0 0 0 4px var(--js-jade-fill)}
   @keyframes pulse{50%{box-shadow:0 0 0 7px transparent}}
 
   /* 连接状态灯（绿=已连接金水谣实时 / 红=演示模式未连接 / 灰=检测中） */
@@ -87,9 +92,9 @@
     padding:7px 14px;border:1px solid var(--border);border-radius:999px;background:var(--panel);white-space:nowrap;
   }
   .conn .dot{width:8px;height:8px;border-radius:50%;background:var(--faint);transition:background .4s,box-shadow .4s}
-  .conn.checking .dot{background:var(--ink);box-shadow:0 0 0 4px rgba(232,236,241,.18);animation:pulse 1.4s infinite}
-  .conn.live .dot{background:var(--jade);box-shadow:0 0 0 4px rgba(45,139,126,.25)}
-  .conn.demo .dot{background:var(--copper);box-shadow:0 0 0 4px rgba(200,117,90,.22)}
+  .conn.checking .dot{background:var(--ink);box-shadow:0 0 0 4px var(--js-line-strong);animation:pulse 1.4s infinite}
+  .conn.live .dot{background:var(--jade);box-shadow:0 0 0 4px var(--js-jade-fill)}
+  .conn.demo .dot{background:var(--copper);box-shadow:0 0 0 4px var(--js-copper-fill)}
 
   button{font-family:inherit;cursor:pointer;border:none}
   .btn{
@@ -97,8 +102,8 @@
     padding:11px 20px;border-radius:12px;transition:transform .25s var(--ease),background .25s,box-shadow .25s,opacity .25s;
   }
   .btn:active{transform:scale(.97)}
-  .btn-primary{background:var(--gold);color:var(--deep);box-shadow:0 8px 26px -10px rgba(201,169,110,.55)}
-  .btn-primary:hover{filter:brightness(1.08);box-shadow:0 10px 32px -8px rgba(201,169,110,.7)}
+  .btn-primary{background:var(--gold);color:var(--deep);box-shadow:0 8px 26px -10px var(--js-gold-fill)}
+  .btn-primary:hover{filter:brightness(1.08);box-shadow:0 10px 32px -8px var(--js-gold-mid)}
   .btn-ghost{background:var(--panel);color:var(--ink);border:1px solid var(--border)}
   .btn-ghost:hover{background:var(--panel-2);border-color:var(--border-strong)}
   .btn svg{width:15px;height:15px;display:block}
@@ -107,17 +112,17 @@
   /* ---------- stage ---------- */
   .stage-card{
     position:relative;border:1px solid var(--border);border-radius:20px;background:
-      linear-gradient(180deg,rgba(22,40,64,.55),rgba(11,26,47,.35));
-    overflow:hidden;box-shadow:0 30px 80px -50px rgba(0,0,0,.9),inset 0 1px 0 rgba(232,236,241,.05);
+      linear-gradient(180deg,var(--js-surface-1),var(--js-scrim-soft));
+    overflow:hidden;box-shadow:0 30px 80px -50px rgba(0,0,0,.9),inset 0 1px 0 var(--js-fill);
   }
   .stage-card::after{
     content:"";position:absolute;inset:0;pointer-events:none;
-    background:radial-gradient(800px 400px at 70% 0%,rgba(91,192,222,.07),transparent 60%);
+    background:radial-gradient(800px 400px at 70% 0%,var(--js-ice-soft),transparent 60%);
   }
   svg#stage{display:block;width:100%;height:auto}
 
   /* edges */
-  .edge-base{fill:none;stroke:rgba(232,236,241,.12);stroke-width:1.6}
+  .edge-base{fill:none;stroke:var(--js-line);stroke-width:1.6}
   .edge-flow{fill:none;stroke:var(--ec,var(--ice));stroke-width:2.4;stroke-dasharray:5 11;stroke-linecap:round;opacity:0;transition:opacity .4s}
   .edge-flow.active{opacity:.9;animation:dash .65s linear infinite}
   .edge-flow.loop{stroke-dasharray:3 8;stroke:var(--copper)}
@@ -132,7 +137,7 @@
   .node .accent{fill:var(--c)}
   .node .title{fill:var(--ink);font:600 15px var(--font);letter-spacing:.01em}
   .node .sub{fill:var(--muted);font:600 10px var(--font);letter-spacing:.18em;text-transform:uppercase}
-  .node .status-ring{fill:none;stroke:rgba(232,236,241,.16);stroke-width:1}
+  .node .status-ring{fill:none;stroke:var(--js-line);stroke-width:1}
   .node .status-led{fill:var(--ice);transition:fill .4s}
   .node:hover .card{stroke:color-mix(in srgb,var(--c) 55%,transparent)}
   .node.active .card{fill:color-mix(in srgb,var(--c) 24%,var(--deep));stroke:color-mix(in srgb,var(--c) 72%,transparent);filter:drop-shadow(0 0 16px color-mix(in srgb,var(--c) 55%,transparent))}
@@ -152,7 +157,7 @@
   .legend .line.loop{background:repeating-linear-gradient(90deg,var(--c-review) 0 5px,transparent 5px 10px);height:2.5px}
 
   /* ---------- detail panel ---------- */
-  .scrim{position:fixed;inset:0;background:rgba(11,26,47,.6);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .35s;z-index:40}
+  .scrim{position:fixed;inset:0;background:var(--js-scrim);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .35s;z-index:40}
   .scrim.show{opacity:1;pointer-events:auto}
   aside.panel{
     position:fixed;top:0;right:0;height:100%;width:min(420px,92vw);z-index:50;
@@ -182,7 +187,7 @@
   .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
   .stat{
     border:1px solid var(--border);border-radius:16px;padding:18px 18px 16px;
-    background:linear-gradient(180deg,rgba(22,40,64,.5),rgba(11,26,47,.3));
+    background:linear-gradient(180deg,var(--js-surface-1),var(--js-scrim-soft));
     display:flex;flex-direction:column;gap:6px;position:relative;overflow:hidden;
   }
   .stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ac)}
@@ -208,12 +213,12 @@
   }
   .topic-input{
     width:230px;max-width:42vw;height:38px;padding:0 14px;border-radius:10px;
-    background:rgba(232,236,241,.06);border:1px solid var(--border);
+    background:var(--js-fill);border:1px solid var(--border);
     color:var(--ink);font:500 13px var(--font);outline:none;
     transition:border-color .2s,background .2s;
   }
   .topic-input::placeholder{color:var(--faint)}
-  .topic-input:focus{border-color:var(--gold);background:rgba(201,169,110,.10)}
+  .topic-input:focus{border-color:var(--gold);background:var(--js-gold-soft)}
   .field #p-live-text{white-space:pre-wrap;word-break:break-word;max-height:240px;overflow:auto}
 </style>
   <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/ui-feedback.css">
@@ -356,7 +361,7 @@ const svg=document.getElementById("stage");
 const defs=el("defs");
 defs.innerHTML=`
   <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-    <path d="M0 0 L10 5 L0 10 z" fill="rgba(232,236,241,.45)"/>
+    <path d="M0 0 L10 5 L0 10 z" fill="var(--js-ink-faint)"/>
   </marker>`;
 svg.appendChild(defs);
 
