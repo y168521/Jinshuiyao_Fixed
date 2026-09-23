@@ -360,6 +360,10 @@ class FundDataFetcher:
         成功即止；全部失败仅告警，不阻塞主流程、不编造数据。
         注：akshare 1.18.x 已移除 index_hk_hist_sina，恒指改用
         stock_hk_index_daily_em/sina；黄金改用 futures_main_sina('AU0')。
+        美股系/港股科技/伦敦金（JS-20260924-18 批3·切片D，清单第73行）：
+        纳斯达克100=.NDX、标普500=.INX（index_us_stock_sina）；恒生科技指数=HSTECH
+        （东财列名 latest / 新浪列名 close）；伦敦金现=XAU（futures_foreign_hist，
+        注意 ZSD 是 LME 锌不是黄金）。显示名与 FUND_CONFIG related_index 对齐。
         """
         import akshare as ak
 
@@ -380,6 +384,25 @@ class FundDataFetcher:
                 lambda: self._idx_from_df(
                     ak.futures_main_sina(symbol="AU0"), close_col="收盘价"
                 ),
+            ],
+            # ---- 以下为 JS-20260924-18 批3·切片D 新增（美股系/港股科技/伦敦金现）----
+            "纳斯达克100": [
+                # 与 FUND_CONFIG related_index="纳斯达克100" 对齐；.NDX=纳斯达克100
+                lambda: self._idx_from_df(ak.index_us_stock_sina(symbol=".NDX")),
+            ],
+            "标普500": [
+                # 与 FUND_CONFIG related_index="标普500" 对齐；.INX=标普500
+                lambda: self._idx_from_df(ak.index_us_stock_sina(symbol=".INX")),
+            ],
+            "恒生科技指数": [
+                # 与 FUND_CONFIG related_index="恒生科技指数" 对齐；HSTECH 东财列名 latest
+                lambda: self._idx_from_df(ak.stock_hk_index_daily_em(symbol="HSTECH"), close_col="latest"),
+                # 新浪备源，列名 close
+                lambda: self._idx_from_df(ak.stock_hk_index_daily_sina(symbol="HSTECH")),
+            ],
+            "伦敦金现": [
+                # 伦敦金现=XAU（futures_foreign_hist）；ZSD 是 LME 锌，绝非黄金
+                lambda: self._idx_from_df(ak.futures_foreign_hist(symbol="XAU")),
             ],
         }
 
