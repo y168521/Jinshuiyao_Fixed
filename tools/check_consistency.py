@@ -631,6 +631,10 @@ def check_std_thresholds():
             os.path.join(BASE_DIR, 'tools', 'code_health_gate.py'): [
                 'MAX_FUNC_LINES', 'MAX_SILENT_SWALLOW', 'MAX_BARE_EXCEPT',
             ],
+            # JS-20260924-28：留痕行数骤降闸阈值（防误提交并发会话重写中的中间态）
+            os.path.join(BASE_DIR, 'tools', 'closeout_gate.py'): [
+                'TRAIL_SHRINK_RATIO', 'TRAIL_SHRINK_MIN_LINES',
+            ],
         }
         consts = {}
         watch = []

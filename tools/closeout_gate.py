@@ -10,13 +10,15 @@
   6. 代码体检门禁（WARN-ONLY）
   7. 金水谣数据完整性（WARN）
   8. 本轮事项反向自查（tools/item_register.py）—— 防"排查/诊断类工作不留痕"
+  9. 留痕文件行数骤降闸 —— 防"误把并发会话的中间态当最终版提交"导致历史留痕丢失
 
-硬阻断项（FAIL 即禁止收工）：1-5、8；6/7 仅告警。可用 --override 紧急跳过。
+硬阻断项（FAIL 即禁止收工）：1-5、8、9；6/7 仅告警。可用 --override 紧急跳过。
 """
 
 import os
 import re
 import shutil
+import subprocess
 import sys
 from datetime import date
 
@@ -221,6 +223,156 @@ def _check_repo_hygiene():
         return True
 
 
+# ══════════════════════════════════════════════════════════════════
+# 9 留痕文件行数骤降闸（JS-20260924-28）
+#
+# 事故：JS-20260924-15 的提交误把并发会话**正在重写中的中间态**（728 行）
+#       当作最终版提交，工作留痕总索引.md 由 3148 行掉到 728 行，
+#       2692 行历史留痕丢失且**没有任何归档**；当时门禁只查"今天有没有登记"，
+#       不查行数，所以全程无告警，靠人工警觉才发现。
+# 机制：留痕三件套是 append-only 的，行数骤降几乎必然是事故 →
+#       与 git HEAD 版本比对，同时满足「降幅 > 20%」与「绝对减少 > 50 行」即 FAIL。
+#       两个条件取 AND：避免小文件正常编辑产生误报。
+# 阈值登记：金水谣_标准唯一真源.md §三（改动须同步，由 check_consistency ⑦校验）。
+# ══════════════════════════════════════════════════════════════════
+TRAIL_SHRINK_RATIO = 0.2      # 相对降幅阈值：减少行数 > HEAD 行数的 20%
+TRAIL_SHRINK_MIN_LINES = 50   # 绝对减少行数下限：低于此值不告警（防小文件误报）
+
+# 本机 git 不在 PATH（真实 git 在 E:\下载\Git\bin\git.exe），逐个候选探测。
+# 与 tools/repo_hygiene.py、tools/gate_all.py 保持同一份候选清单。
+_GIT_CANDS = (
+    r"E:\下载\Git\bin\git.exe",
+    r"C:\Program Files\Git\bin\git.exe",
+    r"C:\Program Files\Git\cmd\git.exe",
+    "git",
+)
+
+
+def _git_exe():
+    """探测可用的 git 可执行文件；找不到返回 None。"""
+    for c in _GIT_CANDS:
+        if c == "git":
+            return "git" if shutil.which("git") else None
+        if os.path.isfile(c):
+            return c
+    return None
+
+
+def _git_baseline_path(abs_path):
+    """取该文件在 git 里的基线路径。
+
+    交接中心/总索引 的 FILES 指向**根镜像**（`模型\\`，该目录不是 git 仓库），
+    而真正被跟踪的是仓库内的同名真源（`Jinshuiyao_Fixed\\`）→ 基线要换到真源。
+    返回 None 表示找不到基线。
+    刻意**不用** `except Exception: pass` 兜底：静默吞异常会让本闸变成不响的警报器，
+    异常统一交给调用方记为 ERROR（见 _check_trail_line_shrink）。
+    """
+    rp = os.path.realpath(abs_path)
+    rb = os.path.realpath(BASE_DIR)
+    rm = os.path.realpath(MODEL_DIR)
+    if rp.startswith(rb + os.sep):
+        return abs_path
+    if rp.startswith(rm + os.sep):
+        cand = os.path.join(BASE_DIR, os.path.basename(abs_path))
+        if os.path.isfile(cand):
+            return cand
+    return None
+
+
+def _head_line_count(git, abs_path):
+    """取 git HEAD 版本的行数。
+
+    返回 None 表示**无基线**（未被跟踪 / 不在 git 仓库 / git 报错）。
+    ⚠️ 必须判 returncode：`git show` 失败时 stdout 是错误文本，
+    直接 `wc -l` 会得到 1 行 → 伪造出"基线 = 1 行"从而永远不告警（静默假绿）。
+    """
+    baseline = _git_baseline_path(abs_path)
+    if not baseline:
+        return None
+    root = None
+    for d in (os.path.dirname(baseline), BASE_DIR):
+        r = subprocess.run(
+            [git, "-c", "core.quotepath=false", "rev-parse", "--show-toplevel"],
+            cwd=d, capture_output=True, text=True,
+            encoding="utf-8", errors="replace")
+        if r.returncode == 0 and r.stdout.strip():
+            root = r.stdout.strip()
+            break
+    if not root:
+        return None
+    rel = os.path.relpath(baseline, root).replace("\\", "/")
+    r2 = subprocess.run(
+        [git, "-c", "core.quotepath=false", "show", "HEAD:" + rel],
+        cwd=root, capture_output=True, text=True,
+        encoding="utf-8", errors="replace")
+    if r2.returncode != 0:
+        return None
+    return len(r2.stdout.splitlines())
+
+
+def _check_trail_line_shrink():
+    """9 留痕文件行数骤降闸（JS-20260924-28）。
+
+    硬阻断（FAIL）。git 不可用也 FAIL —— "检查不可用"绝不能退化成静默放行，
+    否则本闸就是一根永远不响的警报器。
+    """
+    git = _git_exe()
+    if not git:
+        print("  [FAIL] 留痕行数骤降闸: git 不可用（已探测 %d 个候选路径）"
+              " → 闸门无法工作，禁止收工" % len(_GIT_CANDS))
+        return False
+    bad, skipped = [], []
+    for name, path in FILES.items():
+        if not os.path.isfile(path):
+            bad.append("%s 文件不存在: %s" % (name, path))
+            continue
+        try:
+            with open(path, "r", encoding="utf-8", errors="replace") as f:
+                cur = len(f.read().splitlines())
+        except Exception as e:
+            bad.append("%s 读取失败: %s" % (name, e))
+            continue
+        try:
+            head = _head_line_count(git, path)
+        except Exception as e:
+            # 基线读不出来 = 本闸对该文件失效，必须报出来，不能当"没变化"放过
+            bad.append("%s 基线读取异常: %s: %s" % (name, type(e).__name__, e))
+            continue
+        if head is None:
+            skipped.append("%s（HEAD 无基线）" % name)
+            continue
+        drop = head - cur
+        if drop >= TRAIL_SHRINK_MIN_LINES and drop >= head * TRAIL_SHRINK_RATIO:
+            bad.append("%s %d 行 → %d 行（−%d 行，降幅 %.0f%%）"
+                       % (name, head, cur, drop, drop * 100.0 / head))
+    if bad:
+        print("  [FAIL] 留痕行数骤降闸: " + "；".join(bad))
+        print("         留痕三件套是 append-only 的，行数骤降几乎必然是误提交中间态。")
+        print("         确属蒸馏归档：请先落 archive/ 保留原文，再用 --override 跳过。")
+        return False
+    note = ("（无基线跳过: %s）" % "、".join(skipped)) if skipped else ""
+    print("  [OK] 留痕行数骤降闸: 三件套行数均未骤降%s" % note)
+    return True
+
+
+def _log_gate_result(all_ok, override):
+    """记录门禁结果到审计轨迹。
+
+    独立成函数的原因（与 _check_repo_hygiene 同理）：内联会让 main() 行数
+    顶到代码体检门禁的 max_func 阈值，新增检查项时必然恶化 → 抽出来后
+    新增检查只净增 3 行，不触发"较基线恶化"。
+    """
+    try:
+        from tools.audit_trail import log_event
+        event = "gate_pass" if all_ok else "gate_fail"
+        detail = "全部通过" if all_ok else "存在未通过项"
+        if override:
+            detail += " (--override 跳过)"
+        log_event(event, detail=detail)
+    except Exception:
+        pass
+
+
 def main():
     override = "--override" in sys.argv
 
@@ -292,16 +444,11 @@ def main():
     except Exception as e:
         print(f"  [WARN] 本轮事项反向自查: 检查不可用 ({e})")
 
-    # 记录门禁结果
-    try:
-        from tools.audit_trail import log_event
-        event = "gate_pass" if all_ok else "gate_fail"
-        detail = "全部通过" if all_ok else "存在未通过项"
-        if override:
-            detail += " (--override 跳过)"
-        log_event(event, detail=detail)
-    except Exception:
-        pass
+    # 9: 留痕文件行数骤降闸（JS-20260924-28）—— 防误提交并发会话重写中的中间态
+    if not _check_trail_line_shrink():
+        all_ok = False
+
+    _log_gate_result(all_ok, override)
 
     print("-" * 60)
     if all_ok:
