@@ -7,7 +7,7 @@
 ~/.jinshuiyao-secrets/.master.key（该目录本身在坚果云同步树之外）。
 
 安全流程：先加密 + 解密校验一致，才删除明文；任一密钥失败则保留明文并继续。
-core.security.get_secret 已支持 .enc 优先读取，解密失败自动回退明文（自愈）。
+core.infra.security.get_secret 已支持 .enc 优先读取，解密失败自动回退明文（自愈）。
 
 用法：
   py -3.14 tools/encrypt_secrets.py          # 加密全部明文密钥

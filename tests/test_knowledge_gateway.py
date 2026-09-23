@@ -8,7 +8,7 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core import knowledge_gateway as gw
+from core.infra import knowledge_gateway as gw
 
 
 class TestBM25:

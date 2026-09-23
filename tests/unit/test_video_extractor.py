@@ -40,7 +40,7 @@ class TestVideoExtractorPlatformDetection(unittest.TestCase):
         sys.modules.setdefault("requests", MagicMock())
         sys.modules.setdefault("bs4", MagicMock())
         import importlib
-        from core import video_extractor
+        from core.infra import video_extractor
         importlib.reload(video_extractor)
         cls.ve_module = video_extractor
 
@@ -127,7 +127,7 @@ class TestVideoExtractorURLParsing(unittest.TestCase):
         sys.modules.setdefault("requests", MagicMock())
         sys.modules.setdefault("bs4", MagicMock())
         import importlib
-        from core import video_extractor
+        from core.infra import video_extractor
         importlib.reload(video_extractor)
         cls.ve_module = video_extractor
 
@@ -192,7 +192,7 @@ class TestVideoExtractorResultStructure(unittest.TestCase):
         sys.modules.setdefault("requests", MagicMock())
         sys.modules.setdefault("bs4", MagicMock())
         import importlib
-        from core import video_extractor
+        from core.infra import video_extractor
         importlib.reload(video_extractor)
         cls.ve_module = video_extractor
 
@@ -250,7 +250,7 @@ class TestVideoExtractorExtract(unittest.TestCase):
         sys.modules.setdefault("requests", MagicMock())
         sys.modules.setdefault("bs4", MagicMock())
         import importlib
-        from core import video_extractor
+        from core.infra import video_extractor
         importlib.reload(video_extractor)
         cls.ve_module = video_extractor
 
@@ -389,7 +389,7 @@ class TestVideoExtractorCache(unittest.TestCase):
         sys.modules.setdefault("requests", MagicMock())
         sys.modules.setdefault("bs4", MagicMock())
         import importlib
-        from core import video_extractor
+        from core.infra import video_extractor
         importlib.reload(video_extractor)
         cls.ve_module = video_extractor
 
@@ -523,7 +523,7 @@ class TestVideoExtractorHelpers(unittest.TestCase):
         sys.modules.setdefault("requests", MagicMock())
         sys.modules.setdefault("bs4", MagicMock())
         import importlib
-        from core import video_extractor
+        from core.infra import video_extractor
         importlib.reload(video_extractor)
         cls.ve_module = video_extractor
         cls.extractor = cls.ve_module.VideoExtractor()
@@ -663,7 +663,7 @@ class TestContentRefiner(unittest.TestCase):
         sys.modules.setdefault("requests", MagicMock())
         sys.modules.setdefault("bs4", MagicMock())
         import importlib
-        from core import content_refiner
+        from core.ai import content_refiner
         importlib.reload(content_refiner)
         cls.cr_module = content_refiner
 
@@ -975,7 +975,7 @@ class TestContentRefiner(unittest.TestCase):
 
     def test_get_refiner_singleton(self):
         """全局单例返回ContentRefiner"""
-        from core.content_refiner import get_refiner
+        from core.ai.content_refiner import get_refiner
         refiner1 = get_refiner()
         refiner2 = get_refiner()
         self.assertIs(refiner1, refiner2)

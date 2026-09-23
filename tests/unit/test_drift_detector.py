@@ -7,7 +7,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from core.drift_detector import (
+from core.infra.drift_detector import (
     population_stability_index, ks_test, CUSUMDetector, evaluate_drift,
 )
 

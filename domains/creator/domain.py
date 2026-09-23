@@ -70,7 +70,7 @@ class CreatorDomain(DomainBase):
         try:
             # 检测AI服务
             try:
-                from core.ai_service import get_ai_service
+                from core.ai.ai_service import get_ai_service
                 self._ai_service = get_ai_service()
                 self._tool_status['ai_service'] = (
                     self._ai_service.is_available if self._ai_service else False

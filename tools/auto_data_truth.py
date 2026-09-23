@@ -39,7 +39,7 @@ def last_status() -> str:
 def main():
     sys.path.insert(0, REPO)
     try:
-        from core.data_truth_guard import DataTruthGuard
+        from core.infra.data_truth_guard import DataTruthGuard
         report = DataTruthGuard().run_full_check()
     except Exception as e:
         print("[STATUS-CHANGED] 数据真实性守卫运行失败: %s" % e)

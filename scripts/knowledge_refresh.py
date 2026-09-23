@@ -28,7 +28,7 @@ _OUT = os.path.join(_ROOT, "Jinshuiyao_Fixed", "金水谣数据", "knowledge_ref
 _TRENDING = "https://github.com/trending"
 
 try:
-    from core.free_model_pool import get_free_provider_cfgs, call_ai_failover
+    from core.ai.free_model_pool import get_free_provider_cfgs, call_ai_failover
 except Exception:
     get_free_provider_cfgs = None
     call_ai_failover = None

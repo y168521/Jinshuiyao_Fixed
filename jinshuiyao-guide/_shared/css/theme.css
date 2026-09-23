@@ -248,7 +248,12 @@ tr:hover td { background: rgba(91,192,222,.04); }
    做法：窄屏让表格自己滚。推荐新页面直接套 <div class="table-wrap">。 */
 :where(.table-wrap) { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 @media (max-width: 768px) {
-  :where(.container, .wrap, .main-content, main) :where(table) {
+  /* 祖先列表补 body（JS-20260924-06 取证）：daily-report / scheduler-board /
+     system-tools 三页表格直接挂在 body 流里、无 .container/.wrap/main 包裹，
+     原选择器够不到 → 窄屏仍会顶破整页，属 P1-D 的漏网盲区。
+     补 body 后全站表格兜底无盲区；仍用 :where() 包住 → 特异度 0，
+     页面自有表格规则（含已套 .table-wrap 的）照样优先，零回归。 */
+  :where(.container, .wrap, .main-content, main, body) :where(table) {
     display: block;
     overflow-x: auto;
     white-space: nowrap;

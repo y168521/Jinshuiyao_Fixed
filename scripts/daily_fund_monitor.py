@@ -92,6 +92,26 @@ WARN_LINE_DEFAULT = 0.12        # 预警线 12%（两档制：先预警后止盈
 # → Calmar 145.62），数学上成立但无投资含义。回撤低于该阈值(%)时返回 None，渲染显示「—」。
 CALMAR_MIN_DRAWDOWN_PCT = 0.5
 
+# JS-20260924-04 批3·切片B+C：加仓规则引擎 + 今日操作待办（清单第 6、8 条）
+# 出处（用户已说出口、TRAE 七期全稳的口径）：
+#   deliverables/TRAE基金晨报对比_金水谣差距与冲突清单_20260923.md 第 72、157 行
+#   「纳指/标普/恒生科技 跌 1-3% 加 10 元、跌>3% 加 20 元；基金单日跌>3% 也触发；只建议不执行」
+# 口径裁定（两处原文未明说，按第 72 行字面取值，如有异议以用户拍板为准）：
+#   1) 3.0% 本身归第一档（"跌 1-3%" 含端点），>3% 才进第二档；
+#   2) 非纳指/标普/恒生科技的基金只在跌 >3% 时触发，金额同第二档 20 元——
+#      否则 8 只基金只要有 1%~3% 的普通回调就会天天给建议，待办区失去筛选价值。
+# ⚠️ 系统只输出「建议」，绝不代客下单。
+ADD_POSITION_INDEXES = ("标普500", "纳斯达克100", "恒生科技指数")
+ADD_DROP_TIER1_PCT = 1.0    # 触发下限(%)：跌幅达到该值才进入规则判定
+ADD_DROP_TIER2_PCT = 3.0    # 分档临界(%)：超过该值进第二档
+ADD_AMOUNT_TIER1 = 10       # 第一档建议加仓金额（元）
+ADD_AMOUNT_TIER2 = 20       # 第二档建议加仓金额（元）
+
+# 今日操作待办分级（清单第 8 条：红橙蓝）。渲染只走这三个 CSS 变量，不引入禁色。
+TODO_LEVEL_ALERT = "alert"      # 红：需要今天就动手（止盈触发）
+TODO_LEVEL_WARNING = "warning"  # 橙：需要看一眼再决定（预警 / 限购 / 显著下跌）
+TODO_LEVEL_INFO = "info"        # 蓝：可选动作（加仓建议）
+
 # dca_amount/dca_freq：定投计划（七期 TRAE 报告完全一致，视为用户确认口径）。
 # 限购比较用「单次买入金额」= dca_amount，不再用 investment/30 折算（修 017641 误报）。
 FUND_CONFIG = [
@@ -487,7 +507,7 @@ class SignalDetector:
         signal = target_profit is not None and current_return >= target_profit
         warn = (not signal and warn_line is not None
                 and current_return >= warn_line)
-        base = "90天区间收益 {:.2f}%（非持仓实际收益）".format(round(current_return * 100, 2))
+        base = "近90日区间收益 {:.2f}%（非持仓实际收益，非累计涨幅）".format(round(current_return * 100, 2))
         if signal:
             message = base + "，已达止盈目标 {:.1f}% ⚠️".format(target_profit * 100)
         elif warn and target_profit is not None:
@@ -615,8 +635,8 @@ def _render_portfolio_overview(ov: Dict) -> str:
         _card("近1年最佳", ov["best_1y"], "inv_1y", _pct, _cls_pct),
         _card("近1年最弱", ov["worst_1y"], "inv_1y", _pct, _cls_pct),
         _card("近3月最佳", ov["best_3m"], "inv_3m", _pct, _cls_pct),
-        _card("90天最佳", ov["best_90"], "ret_90", _pct, _cls_pct),
-        _card("90天最弱", ov["worst_90"], "ret_90", _pct, _cls_pct),
+        _card("90日最佳", ov["best_90"], "ret_90", _pct, _cls_pct),
+        _card("90日最弱", ov["worst_90"], "ret_90", _pct, _cls_pct),
         _card("最大回撤(最差)", ov["worst_dd"], "max_dd", _dd, "down"),
         _card("夏普最高", ov["best_sharpe"], "sharpe", _sharpe, "neutral"),
         (f'<div class="summary-card">'
@@ -625,6 +645,131 @@ def _render_portfolio_overview(ov: Dict) -> str:
          f'</div>'),
     ]
     return f'<div class="summary-bar">{"".join(cards)}</div>'
+
+
+# ================================================================
+# 加仓规则引擎 + 今日操作待办（JS-20260924-04 批3·切片B+C，清单第 6、8 条）
+# 纯规则计算：只读取 run() 已采集的 signals / snapshot，不取任何新数据源。
+# ================================================================
+
+def _suggest_add_position(daily_return_pct, fund: Dict) -> Optional[Dict]:
+    """按用户既定规则给出加仓建议。只建议，不执行。
+
+    规则见常量区 ADD_POSITION_INDEXES / ADD_DROP_* / ADD_AMOUNT_* 的出处与口径裁定。
+
+    Args:
+        daily_return_pct: 当日涨跌幅(%)，负数为下跌；None/无法转浮点表示数据缺失
+        fund: FUND_CONFIG 中的一条（用 related_index 判定是否属于纳指/标普/恒生科技）
+
+    Returns:
+        None（未触发 / 数据缺失 / 不该给建议）；或 {"amount": int, "reason": str}
+    """
+    if daily_return_pct is None:
+        return None
+    try:
+        drop_pct = -float(daily_return_pct)   # 转为「跌幅」，正数表示跌
+    except (TypeError, ValueError):
+        return None
+
+    if drop_pct < ADD_DROP_TIER1_PCT:
+        return None
+
+    is_tracked_index = fund.get("related_index") in ADD_POSITION_INDEXES
+    if drop_pct > ADD_DROP_TIER2_PCT:
+        amount = ADD_AMOUNT_TIER2
+    elif is_tracked_index:
+        amount = ADD_AMOUNT_TIER1
+    else:
+        # 非纳指/标普/恒生科技：1%~3% 的普通回调不给建议（见常量区口径裁定 2）
+        return None
+
+    return {
+        "amount": amount,
+        "reason": "单日跌 {:.2f}%{}".format(
+            drop_pct, "（纳指/标普/恒生科技档）" if is_tracked_index else "（单日大跌档）"),
+    }
+
+
+def _build_todo_items(data: Dict) -> List[Dict]:
+    """聚合止盈 / 预警 / 限购 / 显著下跌 / 加仓建议为待办清单（红橙蓝分级）。
+
+    只汇总「需要人看一眼」的项；一切如常时返回空列表，由渲染层给出「今日无需操作」。
+    """
+    items: List[Dict] = []
+    for code, d in data.items():
+        cfg = d.get("config", {}) or {}
+        name = cfg.get("name", code)
+        signals = d.get("signals", {}) or {}
+        snapshot = d.get("snapshot", {}) or {}
+
+        tp = signals.get("take_profit", {}) or {}
+        pl = signals.get("purchase_limit", {}) or {}
+        sd = signals.get("significant_drop", {}) or {}
+
+        def _add(level, action, detail):
+            items.append({
+                "level": level,
+                "code": code,
+                "name": name,
+                "action": action,
+                "detail": detail,
+            })
+
+        if tp.get("signal"):
+            _add(TODO_LEVEL_ALERT, "核算止盈", tp.get("message", ""))
+        elif tp.get("warn"):
+            _add(TODO_LEVEL_WARNING, "关注止盈预警", tp.get("message", ""))
+
+        if pl.get("is_limited"):
+            _add(TODO_LEVEL_WARNING, "确认定投能否扣款",
+                 "申购状态：{}".format(pl.get("status", "未知")))
+
+        if sd.get("signal"):
+            _add(TODO_LEVEL_WARNING, "复核显著下跌", sd.get("message", ""))
+
+        add = _suggest_add_position(snapshot.get("daily_return"), cfg)
+        if add:
+            _add(TODO_LEVEL_INFO, "可考虑加仓 {} 元".format(add["amount"]),
+                 "{}；仅为规则建议，不代客下单".format(add["reason"]))
+
+    # 红 → 橙 → 蓝；同级内按基金代码稳定排序，避免每日顺序跳动
+    order = {TODO_LEVEL_ALERT: 0, TODO_LEVEL_WARNING: 1, TODO_LEVEL_INFO: 2}
+    items.sort(key=lambda x: (order.get(x["level"], 9), x["code"]))
+    return items
+
+
+_LEVEL_TEXT = {
+    TODO_LEVEL_ALERT: "红·今天要办",
+    TODO_LEVEL_WARNING: "橙·看一眼再定",
+    TODO_LEVEL_INFO: "蓝·可选动作",
+}
+
+
+def _render_todo(items: List[Dict]) -> str:
+    """把待办清单渲染为红橙蓝分级表格。"""
+    if not items:
+        return (
+            '<div class="todo-empty">今日无需操作：无止盈触发、无限购、无显著下跌，'
+            '也无符合加仓规则的回调。</div>'
+        )
+
+    rows = []
+    for it in items:
+        rows.append(
+            f'<tr class="todo-{it["level"]}">'
+            f'<td class="todo-level">{_LEVEL_TEXT.get(it["level"], it["level"])}</td>'
+            f'<td class="todo-fund">{it["name"]}<span class="todo-code">{it["code"]}</span></td>'
+            f'<td class="todo-action">{it["action"]}</td>'
+            f'<td class="todo-detail">{it["detail"]}</td>'
+            f'</tr>'
+        )
+    return (
+        '<table class="todo-table">'
+        '<thead><tr><th>级别</th><th>基金</th><th>建议动作</th><th>依据</th></tr></thead>'
+        '<tbody>{"".join(rows)}</tbody>'
+        '</table>'
+        '<div class="todo-note">本表只做提示，不会自动下单；加仓/止盈请以平台持仓成本与当日额度为准。</div>'
+    )
 
 
 def _fill_daily_return_from_history(snapshot: Dict, hist_series) -> None:
@@ -807,7 +952,7 @@ class ReportGenerator:
                             <div class="metric-value">{_disp(risks.get("calmar"))}</div>
                         </div>
                         <div class="metric">
-                            <div class="metric-label">90天收益</div>
+                            <div class="metric-label">90日收益</div>
                             <div class="metric-value">{_disp(risks.get("total_return"), "%")}</div>
                         </div>
                         <div class="metric">
@@ -840,7 +985,7 @@ class ReportGenerator:
                     <div class="signals">
                         {f'<div class="signal alert">止盈信号: {tp.get("message", "")}</div>' if tp.get("signal") else (f'<div class="signal warning">止盈预警: {tp.get("message", "")}</div>' if tp.get("warn") else f'<div class="signal info">{tp.get("message", "")}</div>')}
                         {f'<div class="signal warning">{sd.get("message", "")}</div>' if sd.get("signal") else ''}
-                        <div class="signal note" style="font-size:12px;opacity:.75">定投实际收益按历次买入加权成本核算，与上方区间收益不同，请以平台持仓为准</div>
+                        <div class="signal note" style="font-size:12px;opacity:.75">区间收益非持仓实际收益（定投成本按历次买入加权），实际以平台持仓为准</div>
                     </div>
                 </div>
             </div>
@@ -1096,7 +1241,45 @@ class ReportGenerator:
         .profile-line.warn {{ color: var(--warning); }}
         .profile-line.ok {{ color: var(--up); }}
         .profile-line.miss {{ color: var(--text-secondary); }}
-        
+
+        /* JS-20260924-04 批3·切片C：今日操作待办表（红橙蓝三级，只用既有主题变量） */
+        .todo-table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }}
+        .todo-table th {{
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 12px;
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--border);
+        }}
+        .todo-table td {{
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }}
+        .todo-table tr:last-child td {{ border-bottom: none; }}
+        .todo-level {{ white-space: nowrap; font-weight: 600; font-size: 12px; }}
+        .todo-fund {{ white-space: nowrap; }}
+        .todo-code {{
+            display: block;
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-family: monospace;
+        }}
+        .todo-detail {{ color: var(--text-secondary); font-size: 12px; }}
+        .todo-alert .todo-level {{ color: var(--alert); }}
+        .todo-warning .todo-level {{ color: var(--warning); }}
+        .todo-info .todo-level {{ color: var(--info); }}
+        .todo-empty, .todo-note {{
+            font-size: 12px;
+            color: var(--text-secondary);
+            padding: 10px 2px;
+        }}
+
         .footer {{
             text-align: center;
             color: var(--text-secondary);
@@ -1181,7 +1364,7 @@ class ReportGenerator:
             年化波动 = 净值波动的年化标准差，越小越稳定 |
             夏普比率 = 超额收益/风险，越大越好（>1优秀） |
             Calmar = 年化收益/最大回撤，越大越好 |
-            90天收益 = 近90个交易日总收益率
+            90日收益 = 近90个交易日区间涨跌幅（非持仓实际收益，与下方止盈提示中的「近90日区间收益」为同一数字）
             <br><br>
             <strong>外围风险口径：</strong>
             基金经理变更 = 天天基金「本基金历任基金经理」最新一条起始期在 180 天内即视为近期变更；
@@ -1190,6 +1373,11 @@ class ReportGenerator:
             <strong>限购额度</strong>取自天天基金基金费率页「单日累计购买上限」，
             与计划日投（月投入 ÷ 30）比较判断是否影响定投执行，并与上次采集对比标注收紧/放宽。
             取不到数据时显示"暂缺"，不用任何模拟值代替。
+            <br><br>
+            <strong>同类排名口径：</strong>
+            取天天基金同类型排名（近3月/近6月/近1年/近3年），为真实数据源。
+            数据源不可用或该基金未参与排名时显示"暂缺"——这表示<strong>本轮没取到</strong>，
+            不代表"排名靠后"，也不会用任何模拟值填充。
         </div>
         
         <div class="footer">

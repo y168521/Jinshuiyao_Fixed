@@ -10,7 +10,7 @@ import json
 import logging
 from datetime import datetime
 from domains.base import DomainBase
-from core.context import run_in_subsystem
+from core.infra.context import run_in_subsystem
 
 logger = logging.getLogger(__name__)
 

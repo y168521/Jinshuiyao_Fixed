@@ -41,7 +41,7 @@ def handle_chat(handler):
     # 调用AI体（包裹接口级总超时熔断，防止外部 API 卡死线程）
     def _do_chat():
         try:
-            from core.ai_agent import get_agent
+            from core.ai.ai_agent import get_agent
             agent = get_agent()
             reply = agent.chat(user_input)
         except Exception as e:
@@ -141,7 +141,7 @@ def handle_project_recommend(handler, parsed):
 def handle_post_status(handler):
     """POST /api/status — AI服务状态"""
     try:
-        from core.ai_service import get_ai_service
+        from core.ai.ai_service import get_ai_service
         ai = get_ai_service()
         handler._send_json({"ai": ai.stats})
     except Exception as e:
@@ -151,8 +151,8 @@ def handle_post_status(handler):
 def handle_model_status(handler):
     """GET/POST /api/model_status — 返回免费/付费模型可用性与路由策略（供前端状态标签）"""
     try:
-        from core.free_model_pool import get_free_provider_cfgs, get_fallback_cfg
-        from core.model_router import _load_cfg
+        from core.ai.free_model_pool import get_free_provider_cfgs, get_fallback_cfg
+        from core.ai.model_router import _load_cfg
         free_cfgs = get_free_provider_cfgs() or []
         fb = get_fallback_cfg() or {}
         cfg = _load_cfg() or {}
@@ -175,7 +175,7 @@ def handle_theme(handler, parsed=None):
     POST {user_id, vars}  持久化某用户自选主题变量；vars=None 表示清除(回退)
     """
     try:
-        from core import theme_manager as tm
+        from core.infra import theme_manager as tm
     except Exception as e:
         handler._send_json({"error": "主题模块未就绪：" + str(e)}, 500)
         return
@@ -257,7 +257,7 @@ def handle_extract(handler):
         return
 
     try:
-        from core.video_extractor import VideoExtractor
+        from core.infra.video_extractor import VideoExtractor
         extractor = VideoExtractor()
         result = extractor.extract(url)
         handler._send_json({"ok": True, "data": result})
@@ -287,7 +287,7 @@ def handle_refine(handler):
         return
 
     try:
-        from core.content_refiner import ContentRefiner
+        from core.ai.content_refiner import ContentRefiner
         refiner = ContentRefiner()
         card = refiner.refine(extracted_data)
         handler._send_json({"ok": True, "card": card})

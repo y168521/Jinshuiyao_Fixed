@@ -221,7 +221,7 @@ def handle_knowledge_search(handler, parsed):
                          + ' '.join(c.get('tags', [])))[:3000],
                 'card': c,  # 完整卡片（兼容旧接口 19 字段）
             })
-        from core.knowledge_gateway import _bm25
+        from core.infra.knowledge_gateway import _bm25
         scored = _bm25(query, docs, 50) if query.strip() else docs[:50]
         results = []
         for s in scored:
@@ -231,14 +231,14 @@ def handle_knowledge_search(handler, parsed):
         # P3-1：并入 GraphRAG 三元组证据（离线、fail-safe，不影响主检索）
         triples = []
         try:
-            from core.auto_knowledge import search_graph_triples
+            from core.infra.auto_knowledge import search_graph_triples
             triples = search_graph_triples(query, limit=10)
         except Exception as e:
             log(f'图谱三元组检索降级: {e}')
         # P3-2：并入语义向量召回（离线 VSM，召回同义/近义但字面不同的知识）
         vectors = []
         try:
-            from core.auto_knowledge import search_knowledge_vector
+            from core.infra.auto_knowledge import search_knowledge_vector
             vectors = search_knowledge_vector(query, limit=10)
         except Exception as e:
             log(f'向量检索降级: {e}')
@@ -271,7 +271,7 @@ def handle_kg_search(handler, parsed):
         limit = 20
     source = params.get("source", [""])[0] or None
     try:
-        from core.auto_knowledge import search_graph_triples
+        from core.infra.auto_knowledge import search_graph_triples
         triples = search_graph_triples(query, limit=limit, source=source)
         handler._send_json({
             "ok": True,
@@ -304,7 +304,7 @@ def handle_knowledge_vector_search(handler, parsed):
     except Exception:
         min_score = 0.01
     try:
-        from core.auto_knowledge import search_knowledge_vector
+        from core.infra.auto_knowledge import search_knowledge_vector
         vectors = search_knowledge_vector(query, limit=limit, min_score=min_score)
         handler._send_json({
             "ok": True,
@@ -428,8 +428,8 @@ def handle_knowledge_extract_archive(handler):
         return
 
     def _do_extract():
-        from core.video_extractor import VideoExtractor
-        from core.content_refiner import ContentRefiner
+        from core.infra.video_extractor import VideoExtractor
+        from core.ai.content_refiner import ContentRefiner
         from knowledge.mirofish_db import MiroFishDB
 
         def _as_text(v, default=''):
@@ -495,7 +495,7 @@ def handle_video_ingest(handler):
         return
 
     def _do_ingest():
-        from core.video_to_kb import ingest_to_kb
+        from core.infra.video_to_kb import ingest_to_kb
         return {"ok": True, "result": ingest_to_kb(url)}
     resp, status = run_external(_do_ingest, "video")
     handler._send_json(resp, status)
@@ -584,7 +584,7 @@ def handle_knowledge_gateway(handler, parsed):
     except Exception:
         limit = 8
     try:
-        from core.knowledge_gateway import search
+        from core.infra.knowledge_gateway import search
         data = search(query, limit=limit)
         handler._send_json({"ok": True, **data})
     except Exception as e:

@@ -10,7 +10,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from core.llm_budget import get_guard
+from core.ai.llm_budget import get_guard
 
 
 class TestLLMBudgetPricing(unittest.TestCase):

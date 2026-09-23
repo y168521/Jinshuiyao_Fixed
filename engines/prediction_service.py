@@ -562,7 +562,7 @@ class PredictionService:
 
             # 写入审计日志
             try:
-                from core.audit_log import log_predict
+                from core.infra.audit_log import log_predict
                 log_predict("lottery", lot, scheme or "默认方案", len(all_nums))
             except Exception as e:
                 # JS-20260921-03：审计落空会让"生成了多少注"无法追溯

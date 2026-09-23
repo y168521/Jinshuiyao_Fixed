@@ -23,18 +23,18 @@ import time
 import os
 from unittest.mock import MagicMock, patch, PropertyMock
 
-from core.ai_service import AIService, PROVIDERS, _SUBSYSTEM_PROMPTS
+from core.ai.ai_service import AIService, PROVIDERS, _SUBSYSTEM_PROMPTS
 
 
 def setUpModule():
     """测试环境全局禁用免费模型池（W63补38 free_first 引入后，避免测试打到真实硅基流动 API）。
 
-    chat() 的 free-first 分支在函数体内 from core.free_model_pool import ...，
+    chat() 的 free-first 分支在函数体内 from core.ai.free_model_pool import ...，
     调用时会实时读取模块属性，因此 patch 模块属性即可拦截。
     需验证免费优先行为的测试在方法内显式覆盖此 patch。
     """
     _patches = [
-        patch("core.free_model_pool.get_free_provider_cfgs", return_value=[]),
+        patch("core.ai.free_model_pool.get_free_provider_cfgs", return_value=[]),
     ]
     for p in _patches:
         p.start()
@@ -134,7 +134,7 @@ class TestAIServiceChatWithMock(unittest.TestCase):
 
     def test_chat_http_error(self):
         """API HTTP错误时返回空字符串并记录失败"""
-        from core import ai_service as m
+        from core.ai import ai_service as m
         mock_resp = _make_error_response(429, "Rate limit")
 
         with patch.object(self.svc._session, 'post', return_value=mock_resp):
@@ -276,7 +276,7 @@ class TestAIServiceCircuitBreaker(unittest.TestCase):
 
     def test_circuit_breaker_resets_on_success(self):
         """成功调用后重置熔断计数"""
-        from core import ai_service as m
+        from core.ai import ai_service as m
         # 先失败3次（禁用fallback链，隔离单次调用的失败计数）
         mock_err = _make_error_response(500, "Server Error")
         with patch.object(self.svc._session, 'post', return_value=mock_err):
@@ -337,7 +337,7 @@ class TestAIServiceFallbackOnError(unittest.TestCase):
         """
         import tempfile, shutil
         import requests as req_lib
-        from core import ai_service as m
+        from core.ai import ai_service as m
         self.assertEqual(self.svc.provider, m.FALLBACK_CHAIN[0])
         tmpdir = tempfile.mkdtemp()
         old_secrets = m._SECRETS_DIR
@@ -368,7 +368,7 @@ class TestAIServiceFallbackOnError(unittest.TestCase):
     def test_stats_track_failures(self):
         """统计信息正确追踪失败"""
         import requests as req_lib
-        from core import ai_service as m
+        from core.ai import ai_service as m
         with patch.object(self.svc._session, 'post',
                           side_effect=req_lib.exceptions.ConnectionError("error")):
             # 禁用fallback链，隔离单次调用的统计
@@ -452,8 +452,8 @@ class TestAIServiceFreeFirst(unittest.TestCase):
     def test_free_first_uses_free_pool_when_available(self):
         """免费池可用时优先使用免费模型，不再调用付费供应商"""
         _cfg = [{"_provider": "siliconflow", "_model_id": "THUDM/GLM-4-32B-0414"}]
-        with patch("core.free_model_pool.get_free_provider_cfgs", return_value=_cfg), \
-             patch("core.free_model_pool.call_ai_failover",
+        with patch("core.ai.free_model_pool.get_free_provider_cfgs", return_value=_cfg), \
+             patch("core.ai.free_model_pool.call_ai_failover",
                    return_value=("免费模型回复", None, _cfg[0])) as mock_failover, \
              patch.object(self.svc._session, 'post') as mock_post:
             result = self.svc.chat("sys", "usr")
@@ -463,9 +463,9 @@ class TestAIServiceFreeFirst(unittest.TestCase):
 
     def test_free_first_falls_back_to_paid_when_free_down(self):
         """免费池全挂时回退到本供应商（付费DeepSeek）"""
-        with patch("core.free_model_pool.get_free_provider_cfgs",
+        with patch("core.ai.free_model_pool.get_free_provider_cfgs",
                    return_value=[{"_provider": "siliconflow", "_model_id": "m1"}]), \
-             patch("core.free_model_pool.call_ai_failover",
+             patch("core.ai.free_model_pool.call_ai_failover",
                    return_value=(None, "ALL_FREE_DOWN", None)), \
              patch.object(self.svc._session, 'post',
                           return_value=_make_mock_response("付费回复")):
@@ -475,8 +475,8 @@ class TestAIServiceFreeFirst(unittest.TestCase):
     def test_free_first_disabled_explicitly(self):
         """free_first=False 时跳过免费池，直接走本供应商"""
         _cfg = [{"_provider": "siliconflow", "_model_id": "m1"}]
-        with patch("core.free_model_pool.get_free_provider_cfgs", return_value=_cfg), \
-             patch("core.free_model_pool.call_ai_failover") as mock_failover, \
+        with patch("core.ai.free_model_pool.get_free_provider_cfgs", return_value=_cfg), \
+             patch("core.ai.free_model_pool.call_ai_failover") as mock_failover, \
              patch.object(self.svc._session, 'post',
                           return_value=_make_mock_response("直接付费回复")):
             result = self.svc.chat("sys", "usr", free_first=False)
@@ -489,7 +489,7 @@ class TestAIServiceDashscopeWiring(unittest.TestCase):
 
     def _patched_keydir(self, tmpdir, content=None):
         """临时密钥目录，返回 (daemon_path, orig) 供 with 使用"""
-        from core import ai_service as m
+        from core.ai import ai_service as m
         orig = m._SECRETS_DIR
         if content is not None:
             with open(os.path.join(tmpdir, "dashscope_key.txt"), "w",
@@ -500,7 +500,7 @@ class TestAIServiceDashscopeWiring(unittest.TestCase):
 
     def test_dashscope_provider_configured(self):
         """PROVIDERS 已注册 dashscope，端点为百炼 OpenAI兼容模式"""
-        from core import ai_service as m
+        from core.ai import ai_service as m
         self.assertIn("dashscope", m.PROVIDERS)
         self.assertTrue(
             m.PROVIDERS["dashscope"]["api_url"].startswith(
@@ -509,7 +509,7 @@ class TestAIServiceDashscopeWiring(unittest.TestCase):
 
     def test_fallback_chain_includes_dashscope(self):
         """fallback链包含百炼，完整顺序见 test_fallback_chain_order"""
-        from core import ai_service as m
+        from core.ai import ai_service as m
         self.assertIn("dashscope", m.FALLBACK_CHAIN)
         self.assertLess(m.FALLBACK_CHAIN.index("dashscope"),
                         m.FALLBACK_CHAIN.index("ollama"))
@@ -517,7 +517,7 @@ class TestAIServiceDashscopeWiring(unittest.TestCase):
     def test_switch_dashscope_without_key_stays_empty(self):
         """未配置百炼密钥时切换 api_key 为空，不回退 deepseek 密钥"""
         import tempfile, shutil
-        from core import ai_service as m
+        from core.ai import ai_service as m
         tmpdir = tempfile.mkdtemp()
         old_secrets = m._SECRETS_DIR
         m._SECRETS_DIR = tmpdir
@@ -533,7 +533,7 @@ class TestAIServiceDashscopeWiring(unittest.TestCase):
     def test_switch_dashscope_reads_own_key_file(self):
         """百炼密钥文件存在时切换到 dashscope 读入该平台密钥"""
         import tempfile, shutil
-        from core import ai_service as m
+        from core.ai import ai_service as m
         tmpdir = tempfile.mkdtemp()
         old_secrets = m._SECRETS_DIR
         m._SECRETS_DIR = tmpdir
@@ -550,7 +550,7 @@ class TestAIServiceDashscopeWiring(unittest.TestCase):
 
     def test_zhipu_moonshot_providers_configured(self):
         """智谱/月之暗面已注册进 PROVIDERS，端点为官方 OpenAI兼容地址"""
-        from core import ai_service as m
+        from core.ai import ai_service as m
         self.assertIn("zhipu", m.PROVIDERS)
         self.assertEqual(
             m.PROVIDERS["zhipu"]["api_url"],
@@ -564,7 +564,7 @@ class TestAIServiceDashscopeWiring(unittest.TestCase):
 
     def test_fallback_chain_order(self):
         """fallback链顺序：智谱→百炼→deepseek→reasoner→ollama（免费优先）"""
-        from core import ai_service as m
+        from core.ai import ai_service as m
         self.assertEqual(
             m.FALLBACK_CHAIN,
             ["zhipu", "dashscope", "deepseek", "deepseek-reasoner", "ollama"])
@@ -572,7 +572,7 @@ class TestAIServiceDashscopeWiring(unittest.TestCase):
     def test_switch_zhipu_moonshot_key_isolation(self):
         """智谱/月之暗面密钥文件不存在时切换 api_key 为空（不回退）"""
         import tempfile, shutil
-        from core import ai_service as m
+        from core.ai import ai_service as m
         tmpdir = tempfile.mkdtemp()
         old_secrets = m._SECRETS_DIR
         m._SECRETS_DIR = tmpdir
@@ -595,8 +595,8 @@ class TestAIServiceDashscopeWiring(unittest.TestCase):
     def test_switch_dashscope_reads_persisted_model(self):
         """切换到百炼时读取持久化的可用模型（自适应切换后的选择）"""
         import tempfile, shutil
-        from core import ai_service as m
-        from core import adaptive_models as am
+        from core.ai import ai_service as m
+        from core.ai import adaptive_models as am
         tmpdir = tempfile.mkdtemp()
         old_secrets = m._SECRETS_DIR
         old_am = am._SECRETS_DIR
@@ -618,8 +618,8 @@ class TestAIServiceDashscopeWiring(unittest.TestCase):
     def test_chat_dashscope_adaptive_model_switch(self):
         """百炼调用连续失败(额度耗尽) → 自适应切换可用模型重试成功"""
         import tempfile, shutil
-        from core import ai_service as m
-        from core import adaptive_models as am
+        from core.ai import ai_service as m
+        from core.ai import adaptive_models as am
         tmpdir = tempfile.mkdtemp()
         old_secrets = m._SECRETS_DIR
         old_am = am._SECRETS_DIR
@@ -650,7 +650,7 @@ class TestAIServiceDashscopeWiring(unittest.TestCase):
 
             try:
                 with patch.object(svc, "_call_api", side_effect=flaky_call), \
-                     patch("core.adaptive_models.find_working_model",
+                     patch("core.ai.adaptive_models.find_working_model",
                            return_value="qwen3.7-flash"):
                     result = svc.chat("sys", "usr", free_first=False,
                                       _fallback_depth=len(m.FALLBACK_CHAIN))

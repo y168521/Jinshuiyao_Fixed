@@ -27,7 +27,7 @@ if _PROJECT_ROOT not in sys.path:
 
 # ─── 免费模型池（配置外部化 + 故障转移 + 探活）───
 try:
-    from core.free_model_pool import get_free_provider_cfgs, call_ai_failover
+    from core.ai.free_model_pool import get_free_provider_cfgs, call_ai_failover
 except Exception:
     get_free_provider_cfgs = None
     call_ai_failover = None
@@ -737,7 +737,7 @@ def run_review(files=None, diff_only=False, json_output=False, no_cache=False,
                 elif _primary_name == "siliconflow" and _primary_cfgs:
                     # 精准匹配：按文件复杂度选质量合适的免费模型（light/medium/heavy），
                     # 复杂推理文件强制高质量模型，免费不够格则退付费兜底
-                    from core.free_model_pool import pick_cfg_for_task
+                    from core.ai.free_model_pool import pick_cfg_for_task
                     if _has_serious_tokens(content):
                         _pick = pick_cfg_for_task(_primary_cfgs, complexity="heavy")
                         if _pick:

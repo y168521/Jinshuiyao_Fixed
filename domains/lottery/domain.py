@@ -8,7 +8,7 @@ import os
 import logging
 from domains.base import DomainBase, project_data_dir
 from config import LOT_ALL, DEGRADED_LOTS
-from core.context import run_in_subsystem
+from core.infra.context import run_in_subsystem
 from models.lottery_data import Data
 
 logger = logging.getLogger(__name__)
@@ -382,7 +382,7 @@ class LotteryDomain(DomainBase):
 
             # 写入审计日志
             try:
-                from core.audit_log import log_review, log_fetch
+                from core.infra.audit_log import log_review, log_fetch
                 hit_rate = round(hits / total, 4) if total > 0 else 0
                 for d in details:
                     if d["lot"]:

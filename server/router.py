@@ -16,7 +16,7 @@ from .config import (
 )
 from .utils import log
 from .rate_limiter import rate_limiter
-from core.security import is_safe_http_url  # JS-20260807-01：SSRF 校验单一真源
+from core.infra.security import is_safe_http_url  # JS-20260807-01：SSRF 校验单一真源
 
 # 导入各 handler 模块
 from .handlers import health as h_health

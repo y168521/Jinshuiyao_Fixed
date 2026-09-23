@@ -15,7 +15,7 @@ class TestCircuitBreaker(unittest.TestCase):
     """测试熔断器"""
 
     def setUp(self):
-        from core.circuit_breaker import CircuitBreaker
+        from core.infra.circuit_breaker import CircuitBreaker
         self.cb = CircuitBreaker("test_cb", failure_threshold=3, recovery_timeout=0.1)
 
     def test_initial_state_closed(self):
@@ -136,14 +136,14 @@ class TestCircuitBreakerRegistry(unittest.TestCase):
 
     def test_singleton(self):
         """注册表是单例"""
-        from core.circuit_breaker import CircuitBreakerRegistry
+        from core.infra.circuit_breaker import CircuitBreakerRegistry
         r1 = CircuitBreakerRegistry()
         r2 = CircuitBreakerRegistry()
         self.assertIs(r1, r2)
 
     def test_get_creates_and_reuses(self):
         """get方法创建并复用实例"""
-        from core.circuit_breaker import CircuitBreakerRegistry
+        from core.infra.circuit_breaker import CircuitBreakerRegistry
         r = CircuitBreakerRegistry()
         r.reset_all()
         cb1 = r.get("test_reg", failure_threshold=5)
@@ -153,7 +153,7 @@ class TestCircuitBreakerRegistry(unittest.TestCase):
 
     def test_list_all(self):
         """列出所有熔断器"""
-        from core.circuit_breaker import CircuitBreakerRegistry
+        from core.infra.circuit_breaker import CircuitBreakerRegistry
         r = CircuitBreakerRegistry()
         r.reset_all()
         r.get("cb_a")
@@ -169,7 +169,7 @@ class TestAuditLog(unittest.TestCase):
     def setUp(self):
         self.tmp_dir = tempfile.mkdtemp()
         self.log_path = os.path.join(self.tmp_dir, "test_audit.logl")
-        from core import audit_log
+        from core.infra import audit_log
         audit_log.set_audit_log_path(self.log_path)
         self.audit_log = audit_log
 

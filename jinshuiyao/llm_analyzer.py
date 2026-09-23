@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """金水谣足彩 - DeepSeek LLM 赛前分析模块
 
-通过统一的 AI 服务层（core.ai_service）调用 DeepSeek API。
+通过统一的 AI 服务层（core.ai.ai_service）调用 DeepSeek API。
 不再自行管理密钥、API URL、频率限制（已由 ai_service 统一处理）。
 
 使用方式：
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class LLMAnalyzer:
-    """DeepSeek LLM 分析器 — 复用 core.ai_service"""
+    """DeepSeek LLM 分析器 — 复用 core.ai.ai_service"""
 
     def __init__(self, api_key: str = ""):
         """初始化分析器
@@ -28,10 +28,10 @@ class LLMAnalyzer:
         """
         # 复用统一AI服务层，不再自行管理密钥和频率限制
         if api_key:
-            from core.ai_service import AIService
+            from core.ai.ai_service import AIService
             self._ai = AIService(api_key=api_key)
         else:
-            from core.ai_service import get_ai_service
+            from core.ai.ai_service import get_ai_service
             self._ai = get_ai_service()
 
     def _call_api(self, system_prompt: str, user_prompt: str,

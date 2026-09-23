@@ -39,8 +39,8 @@ FAKE_VECTORS = [
 
 def test_knowledge_search_includes_vectors():
     h = FakeHandler()
-    with mock.patch("core.auto_knowledge.search_knowledge_vector", return_value=FAKE_VECTORS), \
-         mock.patch("core.auto_knowledge.search_graph_triples", return_value=[]), \
+    with mock.patch("core.infra.auto_knowledge.search_knowledge_vector", return_value=FAKE_VECTORS), \
+         mock.patch("core.infra.auto_knowledge.search_graph_triples", return_value=[]), \
          mock.patch("knowledge.mirofish_db.MiroFishDB") as mdb:
         mdb.return_value.search.return_value = [{"id": "r1", "title": "x"}]
         h_knowledge.handle_knowledge_search(h, _parsed("/api/knowledge/search?q=投资"))
@@ -52,7 +52,7 @@ def test_knowledge_search_includes_vectors():
 
 def test_vector_search_endpoint_returns_vectors():
     h = FakeHandler()
-    with mock.patch("core.auto_knowledge.search_knowledge_vector", return_value=FAKE_VECTORS):
+    with mock.patch("core.infra.auto_knowledge.search_knowledge_vector", return_value=FAKE_VECTORS):
         h_knowledge.handle_knowledge_vector_search(h, _parsed("/api/knowledge/vector/search?q=投资"))
     assert h.sent["ok"] is True
     assert h.sent["vectors"] == FAKE_VECTORS
@@ -69,7 +69,7 @@ def test_vector_search_missing_q_returns_400():
 
 def test_vector_search_passes_limit_and_min_score():
     h = FakeHandler()
-    with mock.patch("core.auto_knowledge.search_knowledge_vector",
+    with mock.patch("core.infra.auto_knowledge.search_knowledge_vector",
                     return_value=[]) as vs:
         h_knowledge.handle_knowledge_vector_search(
             h, _parsed("/api/knowledge/vector/search?q=投资&limit=5&min_score=0.05"))

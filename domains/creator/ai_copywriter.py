@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """AI智能文案生成模块
 
-支持多种文案风格生成，复用 core.ai_service 进行AI增强。
+支持多种文案风格生成，复用 core.ai.ai_service 进行AI增强。
 延迟加载AI服务，不可用时使用模板生成降级。
 """
 import logging
@@ -125,7 +125,7 @@ class AICopywriter:
         """延迟加载AI服务"""
         if self._ai is None:
             try:
-                from core.ai_service import get_ai_service
+                from core.ai.ai_service import get_ai_service
                 self._ai = get_ai_service()
             except Exception as e:
                 logger.debug("AI服务加载失败: %s", e)

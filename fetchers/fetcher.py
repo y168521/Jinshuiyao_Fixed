@@ -30,7 +30,7 @@ from utils.safe_json import safe_load_json, safe_write_json
 from utils.number_utils import is_valid_period
 from filters.period_normalizer import PeriodNormalizer
 from config import DATA_SAVE, LOTTERY_RULES
-from core.circuit_breaker import get_breaker
+from core.infra.circuit_breaker import get_breaker
 
 
 logger = logging.getLogger("jinshuiyao.fetcher")

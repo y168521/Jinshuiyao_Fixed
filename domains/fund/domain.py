@@ -108,7 +108,7 @@ class FundDomain(DomainBase):
 
             # 3. 加载AI服务（可选，用于生成推荐语）
             try:
-                from core.ai_service import get_ai_service
+                from core.ai.ai_service import get_ai_service
                 self._ai_service = get_ai_service()
                 logger.info("AI服务已关联到基金子系统")
             except ImportError as e:

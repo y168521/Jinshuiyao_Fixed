@@ -241,7 +241,7 @@ def handle_open(handler, parsed):
         success = open_local_file(rel_path, mode)
         # 审计日志记录（成功或失败都记录，失败不影响主流程）
         try:
-            from core.audit_log import log_event
+            from core.infra.audit_log import log_event
             log_event(
                 event_type="OPEN_FILE",
                 subsystem="server",
@@ -485,7 +485,7 @@ def handle_automation_status(handler):
 
     # 8) 桌面程序（GUI）联动状态：心跳注册 + pid 存活检测
     try:
-        from core.gui_registry import all_status
+        from core.infra.gui_registry import all_status
         data["guis"] = all_status(['fund', 'stock', 'creator', 'football', 'mirofish'])
     except Exception as e:
         data["guis"] = {"error": str(e)}

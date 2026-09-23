@@ -130,7 +130,7 @@ def _background_startup_tasks():
 
     # === AI模式自动检测 ===
     try:
-        from core.ai_service import auto_detect_mode, get_mode_info
+        from core.ai.ai_service import auto_detect_mode, get_mode_info
         log('>>> [后台] AI模式自动检测开始...')
         detected_mode = auto_detect_mode()
         mode_info = get_mode_info()
@@ -255,7 +255,7 @@ def main(port=None):
         # + 知识维护自动化(N1/N3 衰减/双库链接/图谱重建/Lint)。
         # 调度器内 JinshuiyaoScheduler.start() 会拉起监听线程并触发 GraphRAG 三元组抽取(D)。
         try:
-            from core.scheduler import start_background_scheduler
+            from core.infra.scheduler import start_background_scheduler
             start_background_scheduler()
             log('后台调度器已启动（经验收集箱监听 + 定时同步 + 知识维护）')
         except Exception as e:

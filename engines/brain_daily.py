@@ -54,7 +54,7 @@ def _save_json(path, data):
 
 def _get_ai():
     try:
-        from core.ai_service import get_ai_service
+        from core.ai.ai_service import get_ai_service
         return get_ai_service()
     except Exception:
         return None

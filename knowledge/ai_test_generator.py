@@ -124,7 +124,7 @@ def test_{name}_access_control():
     def _check_ai_available(self):
         """检查AI服务是否可用"""
         try:
-            from core.ai_service import check_ai_available as check_ai
+            from core.ai.ai_service import check_ai_available as check_ai
             self.ai_available = check_ai()
         except Exception:
             self.ai_available = False
@@ -163,7 +163,7 @@ def test_{name}_access_control():
         )
 
         try:
-            from core.ai_service import chat_with_ai
+            from core.ai.ai_service import chat_with_ai
             response = chat_with_ai(prompt)
             test_code = response.get("content", "")
 

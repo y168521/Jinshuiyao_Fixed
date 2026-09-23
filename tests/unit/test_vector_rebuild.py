@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """P3-4 单元测试：定时 reindex 的底层能力（knowledge.vector_index.rebuild_vector_index）
-与调度器任务注册（core.scheduler 的 vector_index_rebuild）。
+与调度器任务注册（core.infra.scheduler 的 vector_index_rebuild）。
 """
 import sys
 import os
@@ -65,7 +65,7 @@ def test_rebuild_isolated_from_build_lock_no_deadlock(tmp_path):
 def test_scheduler_registers_vector_index_rebuild_task():
     """JinshuiyaoScheduler 应注册 vector_index_rebuild 任务（默认 24h）。"""
     try:
-        from core.scheduler import JinshuiyaoScheduler
+        from core.infra.scheduler import JinshuiyaoScheduler
     except Exception as e:
         raise AssertionError(f"无法导入 JinshuiyaoScheduler: {e}") from e
 
@@ -85,7 +85,7 @@ def test_scheduler_registers_vector_index_rebuild_task():
 def test_scheduler_task_calls_rebuild_vector_index(tmp_path):
     """调度任务 body 应调用 rebuild_vector_index（无参、异常隔离）。"""
     try:
-        from core.scheduler import JinshuiyaoScheduler
+        from core.infra.scheduler import JinshuiyaoScheduler
     except Exception as e:
         raise AssertionError(f"无法导入 JinshuiyaoScheduler: {e}") from e
 
@@ -103,7 +103,7 @@ def test_scheduler_task_calls_rebuild_vector_index(tmp_path):
 def test_scheduler_task_rebuild_exception_isolated(tmp_path):
     """任务体内部异常不应上抛（调度器异常隔离要求）。"""
     try:
-        from core.scheduler import JinshuiyaoScheduler
+        from core.infra.scheduler import JinshuiyaoScheduler
     except Exception as e:
         raise AssertionError(f"无法导入 JinshuiyaoScheduler: {e}") from e
 

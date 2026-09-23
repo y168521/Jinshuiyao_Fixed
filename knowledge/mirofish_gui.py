@@ -18,7 +18,7 @@ if _this_dir not in sys.path:
     sys.path.insert(0, _this_dir)
 
 from knowledge.mirofish_db import MiroFishDB
-from core.theme import Theme
+from core.infra.theme import Theme
 
 # ============================================================
 # 常量
@@ -1100,13 +1100,13 @@ class MiroFishApp:
 # ============================================================
 def main():
     try:
-        from core.gui_registry import register
+        from core.infra.gui_registry import register
         register('mirofish', '金水谣预测面板')
     except Exception:
         pass
     root = tk.Tk()
     try:
-        from core.tk_style import apply_dark_style
+        from core.infra.tk_style import apply_dark_style
         apply_dark_style(root)
     except Exception:
         pass

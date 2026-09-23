@@ -189,7 +189,7 @@ def _ai_classify_and_extract(title, body):
     """调用 DeepSeek：语义归类 + 提炼规则。失败返回 None。"""
     try:
         sys.path.insert(0, BASE_DIR)
-        from core.ai_service import AIService
+        from core.ai.ai_service import AIService
         ai = AIService()
         if not ai.is_available:
             return None

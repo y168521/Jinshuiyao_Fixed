@@ -10,15 +10,15 @@
 - 运行模式管理: get_mode/set_mode/get_mode_info (online/offline)
 """
 
-from .ai_service import AIService, get_mode, set_mode, get_mode_info, auto_detect_mode
-from .theme import Theme
+from .ai.ai_service import AIService, get_mode, set_mode, get_mode_info, auto_detect_mode
+from .infra.theme import Theme
 
 # 延迟导入：避免循环依赖（AI Agent 可能引用各子系统）
 
 
 def get_agent():
     """延迟获取 JinshuiyaoAgent 实例，避免导入时循环依赖。"""
-    from .ai_agent import JinshuiyaoAgent
+    from .ai.ai_agent import JinshuiyaoAgent
     return JinshuiyaoAgent()
 
 

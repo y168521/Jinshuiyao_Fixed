@@ -400,8 +400,8 @@ def check_imports(report):
         ("config", BASE_DIR, "配置"),
         ("utils.safe_json", BASE_DIR, "安全JSON"),
         ("utils.locks", BASE_DIR, "锁管理"),
-        ("core.ai_service", BASE_DIR, "AI服务"),
-        ("core.scheduler", BASE_DIR, "调度器"),
+        ("core.ai.ai_service", BASE_DIR, "AI服务"),
+        ("core.infra.scheduler", BASE_DIR, "调度器"),
         # sync.device_sync 为可选功能（本机未启用），不计入核心模块
     ]
 

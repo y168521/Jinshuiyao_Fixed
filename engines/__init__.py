@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 """金水谣引擎注册表
 
-统一管理所有预测引擎的导入和注册。
+统一管理所有引擎的导入和注册。
 通过 get_engine() 按引擎代码获取引擎类实例。
 支持实例缓存（cached=True），避免重复创建无状态引擎。
+
+引擎分两类（见 _ENGINE_CATEGORIES）：
+  - prediction：预测引擎 —— 参与号码/趋势预测（趋势、形态、杀号、赫斯特、关联等）
+  - system：系统引擎 —— 系统支撑能力，不直接参与预测（风控、审计、同步、健康检查、插件等）
 """
 import logging
 import threading
@@ -13,11 +17,9 @@ logger = logging.getLogger(__name__)
 # ========== 引擎注册表 ==========
 # 引擎代码 -> (模块路径, 类名)
 _ENGINE_REGISTRY = {
+    # --- 预测引擎（prediction）：参与号码/趋势预测 ---
     "killer": ("engines.killer", "Killer"),
     "evolve": ("engines.evolve", "Evolve"),
-    "format_gen": ("engines.format_gen", "FormatGen"),
-    "smart_brain": ("engines.smart_brain", "SmartBrain"),
-    "evolution": ("engines.evolution", "EvolutionManager"),
     "morph": ("engines.morph", "MorphPredictor"),
     "correlation": ("engines.correlation", "CorrelationMatrix"),
     "hurst": ("engines.hurst", "HurstCalculator"),
@@ -25,14 +27,43 @@ _ENGINE_REGISTRY = {
     "position_analyzer": ("engines.position_analyzer", "PositionAnalyzer"),
     "reposition_engine": ("engines.reposition_engine", "RepositionEngine"),
     "miss_analyzer": ("engines.miss_analyzer", "MissAnalyzer"),
-    "risk_controller": ("engines.risk_controller", "RiskController"),
     "trend_generator": ("engines.trend_generator", "TrendGenerator"),
+    # --- 系统引擎（system）：系统支撑，不直接参与预测 ---
+    "format_gen": ("engines.format_gen", "FormatGen"),
+    "smart_brain": ("engines.smart_brain", "SmartBrain"),
+    "evolution": ("engines.evolution", "EvolutionManager"),
+    "risk_controller": ("engines.risk_controller", "RiskController"),
     "validators": ("engines.validators", "AdvancedValidator"),
     "watchdog": ("engines.watchdog", "SystemWatchdog"),
     "health_check": ("engines.health_check", "HealthChecker"),
     "plugin_manager": ("engines.plugin_manager", "PluginManager"),
     "sync_manager": ("engines.sync_manager", "SyncManager"),
     "audit": ("engines.audit", "Audit"),
+}
+
+# ========== 引擎分类 ==========
+# prediction=预测引擎，system=系统引擎
+_ENGINE_CATEGORIES = {
+    "killer": "prediction",
+    "evolve": "prediction",
+    "morph": "prediction",
+    "correlation": "prediction",
+    "hurst": "prediction",
+    "cold_tunnel": "prediction",
+    "position_analyzer": "prediction",
+    "reposition_engine": "prediction",
+    "miss_analyzer": "prediction",
+    "trend_generator": "prediction",
+    "format_gen": "system",
+    "smart_brain": "system",
+    "evolution": "system",
+    "risk_controller": "system",
+    "validators": "system",
+    "watchdog": "system",
+    "health_check": "system",
+    "plugin_manager": "system",
+    "sync_manager": "system",
+    "audit": "system",
 }
 
 # ========== 引擎实例缓存 ==========
@@ -103,3 +134,28 @@ def list_engines():
 def is_registered(engine_code):
     """检查引擎是否已注册"""
     return engine_code in _ENGINE_REGISTRY
+
+
+def get_engine_category(engine_code):
+    """获取引擎分类
+
+    Returns:
+        str: "prediction"（预测引擎）或 "system"（系统引擎），未知返回 None
+    """
+    return _ENGINE_CATEGORIES.get(engine_code)
+
+
+def list_engines_by_category(category):
+    """按分类列出引擎
+
+    Args:
+        category: "prediction" 或 "system"
+
+    Returns:
+        list: [(engine_code, class_name), ...]
+    """
+    return [
+        (code, entry[1])
+        for code, entry in _ENGINE_REGISTRY.items()
+        if _ENGINE_CATEGORIES.get(code) == category
+    ]

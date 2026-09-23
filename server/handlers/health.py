@@ -198,7 +198,7 @@ def handle_fund_notification_read(handler):
 def handle_ai_mode(handler):
     """GET /api/ai/mode — 获取当前AI运行模式（online/offline）"""
     try:
-        from core.ai_service import get_mode_info
+        from core.ai.ai_service import get_mode_info
         info = get_mode_info()
         handler._send_json(info)
     except Exception as e:
@@ -235,7 +235,7 @@ def _do_mode_switch(handler, new_mode):
         handler._send_json({"ok": False, "error": f"不支持的模式: {new_mode}"})
         return
     try:
-        from core.ai_service import set_mode
+        from core.ai.ai_service import set_mode
         success = set_mode(new_mode)
         if success:
             log(f'AI模式已切换为: {new_mode}')
@@ -262,7 +262,7 @@ def _refresh_ai_status_bg():
     """后台线程：刷新 AI 状态缓存（不阻塞 HTTP 请求）"""
     global _ai_status_refreshing
     try:
-        from core.ai_service import get_ai_service
+        from core.ai.ai_service import get_ai_service
         ai = get_ai_service()
         data = ai.stats
         with _ai_status_lock:
@@ -311,7 +311,7 @@ def handle_ai_status(handler):
 def handle_telemetry(handler):
     """GET /api/telemetry — 统一遥测查询（债务-213：自 router 内联迁出）"""
     try:
-        from core.telemetry import recent, summary
+        from core.infra.telemetry import recent, summary
         handler._send_json({"ok": True, "summary": summary(), "events": recent(200)})
     except Exception as e:
         log(f"[telemetry] 查询失败: {e}")
@@ -321,7 +321,7 @@ def handle_telemetry(handler):
 def handle_telemetry_dashboard(handler):
     """GET /api/telemetry/dashboard — 用量看板聚合（W63补99 / JS-20260816-04）"""
     try:
-        from core.telemetry import dashboard
+        from core.infra.telemetry import dashboard
         handler._send_json(dashboard())
     except Exception as e:
         log(f"[telemetry] 看板查询失败: {e}")

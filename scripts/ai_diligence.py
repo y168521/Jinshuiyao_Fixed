@@ -23,7 +23,7 @@ sys.path.insert(0, _ROOT)
 _DECISIONS = os.path.join(_ROOT, "Jinshuiyao_Fixed", "金水谣数据", "log", "ai_decisions.md")
 
 try:
-    from core.free_model_pool import get_free_provider_cfgs, call_ai_failover
+    from core.ai.free_model_pool import get_free_provider_cfgs, call_ai_failover
 except Exception:
     get_free_provider_cfgs = None
     call_ai_failover = None

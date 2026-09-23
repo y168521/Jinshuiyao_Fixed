@@ -79,20 +79,20 @@ def _tools():
 def _call(name, arguments):
     args = arguments or {}
     if name == 'get_index':
-        from core.knowledge_gateway import BASE_DIR as gw_base
+        from core.infra.knowledge_gateway import BASE_DIR as gw_base
         idx = os.path.join(gw_base, '知识网关索引.md')
         if os.path.isfile(idx):
             with open(idx, encoding='utf-8') as f:
                 return {"index": f.read()[:12000], "path": idx}
         return {"index": "索引未生成，请运行 tools/gen_knowledge_index.py", "path": idx}
     if name == 'search_knowledge':
-        from core.knowledge_gateway import search
+        from core.infra.knowledge_gateway import search
         return search(args.get('query', ''), limit=int(args.get('limit', 8)))
     if name == 'get_experience':
-        from core.knowledge_gateway import _recall_experiences
+        from core.infra.knowledge_gateway import _recall_experiences
         return {"experiences": _recall_experiences(args.get('query', ''), limit=int(args.get('limit', 5)))}
     if name == 'query_graph':
-        from core.knowledge_gateway import _recall_triples
+        from core.infra.knowledge_gateway import _recall_triples
         return {"triples": _recall_triples(args.get('query', ''), limit=int(args.get('limit', 10)))}
     raise ValueError(f'未知工具: {name}')
 

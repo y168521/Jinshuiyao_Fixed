@@ -22,7 +22,7 @@ except ImportError:
     HAS_PANDAS = False
     print(f"[WARN] 无法导入pandas")
 
-from core.theme import Theme
+from core.infra.theme import Theme
 
 
 def load_match_data():
@@ -596,7 +596,7 @@ class DetailAnalysisDialog(tk.Toplevel):
         def worker():
             try:
                 from jinshuiyao.llm_analyzer import LLMAnalyzer
-                from core.ai_service import get_api_key
+                from core.ai.ai_service import get_api_key
 
                 api_key = get_api_key()
                 if not api_key:
@@ -1411,13 +1411,13 @@ class FootballApp:
 def launch_football_gui():
     """启动足彩预测GUI"""
     try:
-        from core.gui_registry import register
+        from core.infra.gui_registry import register
         register('football', '金水谣足彩预测系统')
     except Exception:
         pass
     root = tk.Tk()
     try:
-        from core.tk_style import apply_dark_style
+        from core.infra.tk_style import apply_dark_style
         apply_dark_style(root)
     except Exception:
         pass

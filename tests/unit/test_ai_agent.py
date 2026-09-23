@@ -14,7 +14,7 @@ class TestJinshuiyaoAgent(unittest.TestCase):
         "domains.lottery.domain",
         "domains.stock.domain",
         "domains.football.domain",
-        "core.ai_service",
+        "core.ai.ai_service",
     ]
 
     def setUp(self):
@@ -28,7 +28,7 @@ class TestJinshuiyaoAgent(unittest.TestCase):
 
         # 重新导入agent模块
         import importlib
-        from core import ai_agent
+        from core.ai import ai_agent
         importlib.reload(ai_agent)
 
         self.agent = ai_agent.JinshuiyaoAgent()
@@ -43,7 +43,7 @@ class TestJinshuiyaoAgent(unittest.TestCase):
             else:
                 sys.modules.pop(mod_name, None)
         # reload ai_agent 恢复真实导入
-        from core import ai_agent
+        from core.ai import ai_agent
         importlib.reload(ai_agent)
 
     # ---------------------------------------------------------------
@@ -191,11 +191,11 @@ class TestAIService(unittest.TestCase):
     def setUp(self):
         import importlib, sys
         # 确保 ai_service 模块未被 mock 残留污染
-        if isinstance(sys.modules.get("core.ai_service"), type(MagicMock)):
-            sys.modules.pop("core.ai_service", None)
-        import core.ai_service as _ai_svc
+        if isinstance(sys.modules.get("core.ai.ai_service"), type(MagicMock)):
+            sys.modules.pop("core.ai.ai_service", None)
+        import core.ai.ai_service as _ai_svc
         importlib.reload(_ai_svc)
-        from core.ai_service import AIService, PROVIDERS
+        from core.ai.ai_service import AIService, PROVIDERS
         self.PROVIDERS = PROVIDERS
         self.AIService = AIService
 
@@ -209,9 +209,9 @@ class TestAIService(unittest.TestCase):
     def test_subsystem_prompts(self):
         """子系统Prompt模板完整"""
         # setUp 已 reload，直接用 self.PROVIDERS 同源的模块
-        import importlib, core.ai_service as _ai_svc
+        import importlib, core.ai.ai_service as _ai_svc
         importlib.reload(_ai_svc)
-        from core.ai_service import _SUBSYSTEM_PROMPTS
+        from core.ai.ai_service import _SUBSYSTEM_PROMPTS
         for name in ["football", "lottery", "stock", "fund", "music", "general"]:
             self.assertIn(name, _SUBSYSTEM_PROMPTS)
             self.assertTrue(len(_SUBSYSTEM_PROMPTS[name]) > 20)

@@ -100,8 +100,8 @@ def check_module_imports():
         ("engines.prediction_service", "PredictionService"),
         ("engines.evolve", "Evolve"),
         ("models.lottery_data", "Data"),
-        ("core.ai_service", "AIService"),
-        ("core.scheduler", "TaskScheduler"),
+        ("core.ai.ai_service", "AIService"),
+        ("core.infra.scheduler", "TaskScheduler"),
         ("server", None),  # 包导入
         ("config", None),
         ("tools.ai_review_agent", None),
@@ -195,7 +195,7 @@ def check_data_files():
 def check_ai_service():
     """检查AI服务能否初始化，密钥能读取"""
     try:
-        from core.ai_service import AIService, get_api_key
+        from core.ai.ai_service import AIService, get_api_key
         key = get_api_key()
         if key:
             _report("AI服务可用", True, f"AIService 可初始化，密钥存在（长度{len(key)}）")
@@ -269,7 +269,7 @@ def check_hot_number_type():
 def check_scheduler():
     """检查调度器能否初始化，配置与json一致"""
     try:
-        from core.scheduler import TaskScheduler
+        from core.infra.scheduler import TaskScheduler
         sched = TaskScheduler()
         _report("调度器可初始化", True, "TaskScheduler 初始化成功")
     except Exception as e:

@@ -214,7 +214,7 @@ def _auto_match_dashscope(key, info):
     返回 (ok, detail)；全部不可用返回 (False, None)。
     """
     try:
-        from core.adaptive_models import find_working_model
+        from core.ai.adaptive_models import find_working_model
         best = find_working_model(
             "dashscope", key,
             preferred=info["test_body"].get("model", ""))
@@ -222,7 +222,7 @@ def _auto_match_dashscope(key, info):
             return False, None
         info["test_body"]["model"] = best
         try:
-            from core.ai_service import PROVIDERS
+            from core.ai.ai_service import PROVIDERS
             if "dashscope" in PROVIDERS:
                 PROVIDERS["dashscope"]["model"] = best
         except Exception:

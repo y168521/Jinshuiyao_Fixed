@@ -22,7 +22,7 @@ try:
 except Exception:
     pass
 
-from core.free_model_pool import health_check_all
+from core.ai.free_model_pool import health_check_all
 
 
 def main():

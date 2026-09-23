@@ -40,19 +40,19 @@ def main():
     _setup_path()
     try:
         # 模块位置随 God Object 拆分(JS-20260724-39)迁移：
-        #   set_pipeline_mode → core.pipeline_mode
-        #   extract_* → core.ai_decisions_extractor
+        #   set_pipeline_mode → core.infra.pipeline_mode
+        #   extract_* → core.ai.ai_decisions_extractor
         #   search_ai_knowledge → knowledge.knowledge_search
         # 优先按新位置导入；旧版 auto_knowledge 若仍 re-export 则回退兼容。
         try:
-            from core.pipeline_mode import set_pipeline_mode
-            from core.ai_decisions_extractor import (
+            from core.infra.pipeline_mode import set_pipeline_mode
+            from core.ai.ai_decisions_extractor import (
                 extract_from_ai_decisions,
                 extract_triples_from_ai_decisions,
             )
             from knowledge.knowledge_search import search_ai_knowledge
         except Exception:
-            from core.auto_knowledge import (  # 向后兼容：旧单体仍导出时
+            from core.infra.auto_knowledge import (  # 向后兼容：旧单体仍导出时
                 set_pipeline_mode, extract_from_ai_decisions,
                 extract_triples_from_ai_decisions, search_ai_knowledge,
             )

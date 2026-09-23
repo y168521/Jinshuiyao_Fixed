@@ -31,7 +31,7 @@ class StockFetcher:
         # 熔断器：akshare连续失败3次后自动熔断60秒，期间直接走缓存/模拟
         self._breaker = None
         try:
-            from core.circuit_breaker import get_breaker
+            from core.infra.circuit_breaker import get_breaker
             self._breaker = get_breaker("stock_akshare", failure_threshold=3, recovery_timeout=60)
         except ImportError:
             pass
@@ -73,7 +73,7 @@ class StockFetcher:
             if self._breaker and not self._breaker.can_execute():
                 logger.warning("akshare熔断器已打开，跳过真实数据请求，使用缓存/降级")
                 try:
-                    from core.audit_log import log_fetch
+                    from core.infra.audit_log import log_fetch
                     log_fetch("stock", f"akshare_{symbol}", False, 0, fallback=True)
                 except Exception:
                     pass
@@ -85,7 +85,7 @@ class StockFetcher:
                             self._breaker.record_success()
                         self._write_cache(symbol, period, df)
                         try:
-                            from core.audit_log import log_fetch
+                            from core.infra.audit_log import log_fetch
                             log_fetch("stock", f"akshare_{symbol}", True, len(df))
                         except Exception:
                             pass
@@ -98,7 +98,7 @@ class StockFetcher:
                         self._breaker.record_failure()
                     logger.warning("akshare获取失败: %s", e)
                     try:
-                        from core.audit_log import log_fetch
+                        from core.infra.audit_log import log_fetch
                         log_fetch("stock", f"akshare_{symbol}", False, 0, fallback=True)
                     except Exception:
                         pass

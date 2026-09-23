@@ -98,7 +98,7 @@ class FundFetcher:
         # 熔断器：akshare连续失败3次后自动熔断60秒
         self._breaker = None
         try:
-            from core.circuit_breaker import get_breaker
+            from core.infra.circuit_breaker import get_breaker
             self._breaker = get_breaker("fund_akshare", failure_threshold=3, recovery_timeout=60)
         except ImportError:
             pass

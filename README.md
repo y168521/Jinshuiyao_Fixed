@@ -17,7 +17,7 @@
 
 ## 系统要求
 
-- **Python**：3.8+（推荐 3.10+）
+- **Python**：3.14（项目使用 `%LOCALAPPDATA%\Jinshuiyao\venv` 独立 venv，首次启动自动创建）
 - **操作系统**：Windows（主要）、macOS/Linux（部分功能受限）
 - **内存**：4GB+
 - **网络**：在线模式需要网络（调用 DeepSeek API），离线模式无需网络
@@ -55,55 +55,70 @@ echo sk-your-api-key > %USERPROFILE%\.jinshuiyao-secrets\deepseek_key.txt
 ```bash
 cd Jinshuiyao_Fixed
 
-# 完整启动（GUI + 导航 + 调度器）
-python main.py
+# 启动导航服务器（自动自愈 venv + 预检 + 后台调度器）
+python launch_jinshuiyao.py
 
-# 仅启动导航服务器（无 GUI）
-python main.py --no-gui
+# 等价于直接调用服务器入口
+python -c "from server import main; main()"
 
 # 启用预加载（启动时自动获取最新数据）
-set TIANSHU_PRELOAD=1 && python main.py
+set TIANSHU_PRELOAD=1 && python launch_jinshuiyao.py
 ```
+
+> 启动链路：`启动金水谣助手.bat` → `Jinshuiyao_Fixed/launch.bat`（自动查找 Python 3.14）
+> → `launch_jinshuiyao.py`（自愈 venv + 预检）→ `server.main()`（绑定 18888 端口）。
 
 ### 4. 访问导航
 
 启动后打开浏览器访问：`http://localhost:18888`
 
+### 5. 运行测试
+
+```bash
+# 必须使用项目 venv（否则依赖不全）
+%LOCALAPPDATA%\Jinshuiyao\venv\Scripts\python.exe -m pytest tests/ -q
+
+# 或通过工具脚本
+python tools/run_tests.py
+```
+
+测试规模约 900 项（以实际 pytest 输出为准），覆盖单元/集成/子系统隔离。
+
 ## 目录结构
 
 ```
 Jinshuiyao_Fixed/
-├── main.py                  # 主入口（GUI + 服务器 + 调度器）
-├── server/                  # Web 导航服务器包（server/__init__.py）（端口 18888）
-├── config.py                # 全局配置常量
-├── jinshuiyao_router.py     # 任务路由（免费 vs 付费 AI 分流）
-├── core/                    # 核心内核（AI服务、调度、知识库等）
-├── engines/                 # 预测引擎群（14 种引擎）
-├── domains/                 # 业务域实现
+├── launch_jinshuiyao.py     # 启动器入口（自愈 venv + 预检 + 调 server.main）
+├── server/                  # Web 导航服务器包（server/__init__.py::main，端口 18888）
+│   ├── router.py            #   GuideHandler 路由调度
+│   └── handlers/            #   21 个功能处理器（ai/lottery/fund/stock/football/...）
+├── config.py                # 全局配置常量（彩种规则、引擎名、降级彩种）
+├── jinshuiyao_router.py     # 任务路由（免费抓取/知识库/本地 vs 付费 DeepSeek 分流）
+├── core/                    # 核心内核（~59 个模块：AI服务、调度、知识网关、安全、分发）
+├── engines/                 # 预测引擎群（趋势/形态/杀号/赫斯特/多维共识/数学选号等）
+├── domains/                 # 业务域实现（均继承 domains/base.py::DomainBase）
 │   ├── creator/             #   视频创作（TTS、OCR、水印去除）
 │   ├── football/            #   足球预测
 │   ├── fund/                #   基金分析
-│   ├── lottery/             #   彩票基础
+│   ├── lottery/             #   彩票（7 彩种 + 14 引擎）
 │   ├── music/               #   音乐生成
 │   └── stock/               #   股票分析
+├── jinshuiyao/              # 足球子系统（泊松模型、决策引擎、回测器）
+├── knowledge/               # 双知识库（MiroFishDB + 知识图谱 + 向量索引）
 ├── controllers/             # 业务控制器（预算、方案）
 ├── fetchers/                # 数据获取层
 ├── filters/                 # 数据过滤器
-├── gui/                     # 主窗口 GUI
-├── jinshuiyao/              # 足球子系统（泊松模型等）
-├── knowledge/               # 双知识库
-├── utils/                   # 工具库（安全JSON、缓存等）
+├── importers/               # 数据导入（彩票数据、网页抓取）
+├── gui/                     # Tkinter 主窗口 GUI
+├── smart-coder/             # 智能代码助手（问答引擎、代码检索）
 ├── backtesting/             # 回测引擎
-├── sync/                    # 跨设备同步
-├── smart-coder/             # 智能代码助手
-├── scripts/                 # 工具/运维脚本
-├── tests/                   # 测试套件
-├── docs/                    # 文档
-├── plugins/                 # 插件目录
-├── jinshuiyao-guide/        # Web 导航页面
-├── jinshuiyao-dashboard/    # 足球预测仪表板
-├── jinshuiyao-quant-dashboard/ # 量化分析仪表板
-└── jinshuiyao-trend/        # 趋势图表
+├── utils/                   # 工具库（安全JSON、号码工具、锁、备份等 18 个）
+├── frontend/                # Web 前端页面（lottery/fund/stock/football/dashboard/trend/quant）
+├── jinshuiyao-guide/        # Web 导航页面（控制中心等）
+├── config/                  # JSON 配置（ai_mode、model_router、llm_budget、scheduler）
+├── tools/                   # 运维/开发工具（ops、gate、compliance、run_review 等 ~50 个）
+├── tests/                   # 测试套件（~50 文件，约 900 用例）
+└── docs/                    # 文档（架构设计、PRD、Code Wiki）
 ```
 
 ## 运行模式

@@ -14,11 +14,11 @@ import unittest
 # 确保能找到项目根目录
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from core.context import (
+from core.infra.context import (
     get_current_subsystem, set_subsystem_context, reset_subsystem_context,
     run_in_subsystem, current_subsystem_id
 )
-from core.registry import register, get_domain, list_domains, is_registered
+from core.infra.registry import register, get_domain, list_domains, is_registered
 from domains.lottery.domain import LotteryDomain
 from domains.football.domain import FootballDomain
 from knowledge.mirofish_db import MiroFishDB

@@ -24,7 +24,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from core.video_extractor import VideoExtractor
+from core.infra.video_extractor import VideoExtractor
 from server.handlers import health
 from server import router as _router
 

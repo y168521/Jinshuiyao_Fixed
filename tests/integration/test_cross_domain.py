@@ -13,7 +13,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from core.cross_domain import Signal, SignalBus, CrossDomainAnalyzer
+from core.ai.cross_domain import Signal, SignalBus, CrossDomainAnalyzer
 
 
 class TestSignal(unittest.TestCase):

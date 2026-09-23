@@ -2,10 +2,10 @@
 """自动系统管理模块单元测试
 
 测试4个自动管理模块的核心功能：
-  - DataMaintainer (core.data_maintenance)
-  - FileOrganizer  (core.file_organizer)
-  - AutoKnowledgeExtractor (core.auto_knowledge)
-  - TaskScheduler  (core.scheduler)
+  - DataMaintainer (core.infra.data_maintenance)
+  - FileOrganizer  (core.infra.file_organizer)
+  - AutoKnowledgeExtractor (core.infra.auto_knowledge)
+  - TaskScheduler  (core.infra.scheduler)
 
 使用 tempfile 和 mock，不依赖真实数据。
 """
@@ -30,11 +30,11 @@ if _PROJECT_ROOT not in sys.path:
 # ================================================================
 
 class TestDataMaintainer(unittest.TestCase):
-    """core.data_maintenance.DataMaintainer 核心功能测试"""
+    """core.infra.data_maintenance.DataMaintainer 核心功能测试"""
 
     def test_cleanup_temp_files(self):
         """创建临时文件，验证清理"""
-        from core.data_maintenance import DataMaintainer
+        from core.infra.data_maintenance import DataMaintainer
 
         with tempfile.TemporaryDirectory() as tmpdir:
             data_dir = os.path.join(tmpdir, "金水谣数据")
@@ -72,7 +72,7 @@ class TestDataMaintainer(unittest.TestCase):
 
     def test_get_data_stats(self):
         """验证返回结构"""
-        from core.data_maintenance import DataMaintainer
+        from core.infra.data_maintenance import DataMaintainer
 
         with tempfile.TemporaryDirectory() as tmpdir:
             data_dir = os.path.join(tmpdir, "金水谣数据")
@@ -106,7 +106,7 @@ class TestDataMaintainer(unittest.TestCase):
 
     def test_cleanup_expired_cache(self):
         """用 tempfile 模拟过期缓存"""
-        from core.data_maintenance import DataMaintainer
+        from core.infra.data_maintenance import DataMaintainer
 
         with tempfile.TemporaryDirectory() as tmpdir:
             data_dir = os.path.join(tmpdir, "金水谣数据")
@@ -135,7 +135,7 @@ class TestDataMaintainer(unittest.TestCase):
 
     def test_vacuum_all_structure(self):
         """验证 vacuum_all 返回结构"""
-        from core.data_maintenance import DataMaintainer
+        from core.infra.data_maintenance import DataMaintainer
 
         with tempfile.TemporaryDirectory() as tmpdir:
             data_dir = os.path.join(tmpdir, "金水谣数据")
@@ -162,7 +162,7 @@ class TestDataMaintainer(unittest.TestCase):
 
     def test_rebuild_indices_structure(self):
         """验证 rebuild_indices 返回结构"""
-        from core.data_maintenance import DataMaintainer
+        from core.infra.data_maintenance import DataMaintainer
 
         with tempfile.TemporaryDirectory() as tmpdir:
             data_dir = os.path.join(tmpdir, "金水谣数据")
@@ -188,11 +188,11 @@ class TestDataMaintainer(unittest.TestCase):
 # ================================================================
 
 class TestFileOrganizer(unittest.TestCase):
-    """core.file_organizer.FileOrganizer 核心功能测试"""
+    """core.infra.file_organizer.FileOrganizer 核心功能测试"""
 
     def test_clean_pycache(self):
         """验证返回结构"""
-        from core.file_organizer import FileOrganizer
+        from core.infra.file_organizer import FileOrganizer
 
         with tempfile.TemporaryDirectory() as tmpdir:
             # 创建 __pycache__ 目录
@@ -216,7 +216,7 @@ class TestFileOrganizer(unittest.TestCase):
 
     def test_verify_structure(self):
         """验证返回结构"""
-        from core.file_organizer import FileOrganizer
+        from core.infra.file_organizer import FileOrganizer
 
         with tempfile.TemporaryDirectory() as tmpdir:
             # 创建完整目录结构
@@ -241,7 +241,7 @@ class TestFileOrganizer(unittest.TestCase):
 
     def test_full_organize(self):
         """验证返回结构"""
-        from core.file_organizer import FileOrganizer
+        from core.infra.file_organizer import FileOrganizer
 
         with tempfile.TemporaryDirectory() as tmpdir:
             os.makedirs(os.path.join(tmpdir, "core"))
@@ -268,7 +268,7 @@ class TestFileOrganizer(unittest.TestCase):
 
     def test_organize_logs(self):
         """验证日志归档返回结构"""
-        from core.file_organizer import FileOrganizer
+        from core.infra.file_organizer import FileOrganizer
 
         with tempfile.TemporaryDirectory() as tmpdir:
             log_dir = os.path.join(tmpdir, "金水谣数据", "log")
@@ -292,7 +292,7 @@ class TestFileOrganizer(unittest.TestCase):
 
     def test_check_orphan_files(self):
         """验证孤立文件检测返回结构"""
-        from core.file_organizer import FileOrganizer
+        from core.infra.file_organizer import FileOrganizer
 
         with tempfile.TemporaryDirectory() as tmpdir:
             os.makedirs(os.path.join(tmpdir, "core"))
@@ -313,12 +313,12 @@ class TestFileOrganizer(unittest.TestCase):
 # ================================================================
 
 class TestAutoKnowledge(unittest.TestCase):
-    """core.auto_knowledge.AutoKnowledgeExtractor 核心功能测试"""
+    """core.infra.auto_knowledge.AutoKnowledgeExtractor 核心功能测试"""
 
     def _make_extractor(self):
         """创建知识提取器（mock掉知识库依赖）"""
-        with mock.patch("core.auto_knowledge.AutoKnowledgeExtractor.__init__", lambda self: None):
-            from core.auto_knowledge import AutoKnowledgeExtractor
+        with mock.patch("core.infra.auto_knowledge.AutoKnowledgeExtractor.__init__", lambda self: None):
+            from core.infra.auto_knowledge import AutoKnowledgeExtractor
             extractor = AutoKnowledgeExtractor()
             extractor._db = None
             extractor._available = False
@@ -477,12 +477,12 @@ class TestAutoKnowledge(unittest.TestCase):
 
     def test_run_auto_extraction(self):
         """run_auto_extraction 便捷函数测试"""
-        with mock.patch("core.auto_knowledge.AutoKnowledgeExtractor") as MockExtractor:
+        with mock.patch("core.infra.auto_knowledge.AutoKnowledgeExtractor") as MockExtractor:
             mock_instance = MockExtractor.return_value
             mock_instance.extract_from_review.return_value = [{"title": "test"}]
             mock_instance.save_cards.return_value = 1
 
-            from core.auto_knowledge import run_auto_extraction
+            from core.infra.auto_knowledge import run_auto_extraction
             result = run_auto_extraction("lottery")
 
             self.assertIn("subsystem", result)
@@ -493,7 +493,7 @@ class TestAutoKnowledge(unittest.TestCase):
 
     def test_build_strategy_card_structure(self):
         """验证知识卡片构建结构"""
-        from core.auto_knowledge import AutoKnowledgeExtractor
+        from core.infra.auto_knowledge import AutoKnowledgeExtractor
 
         card = AutoKnowledgeExtractor._build_strategy_card(
             title="测试标题",
@@ -524,7 +524,7 @@ class TestAutoKnowledge(unittest.TestCase):
 
     def test_group_by_scheme(self):
         """验证按策略分组统计"""
-        from core.auto_knowledge import AutoKnowledgeExtractor
+        from core.infra.auto_knowledge import AutoKnowledgeExtractor
 
         predictions = [
             {"scheme": "A", "hits": 3, "total": 5},
@@ -549,11 +549,11 @@ class TestAutoKnowledge(unittest.TestCase):
 # ================================================================
 
 class TestScheduler(unittest.TestCase):
-    """core.scheduler.TaskScheduler 核心功能测试"""
+    """core.infra.scheduler.TaskScheduler 核心功能测试"""
 
     def test_register_and_status(self):
         """注册任务并检查状态"""
-        from core.scheduler import TaskScheduler
+        from core.infra.scheduler import TaskScheduler
 
         scheduler = TaskScheduler()
 
@@ -574,7 +574,7 @@ class TestScheduler(unittest.TestCase):
 
     def test_unregister(self):
         """注销任务"""
-        from core.scheduler import TaskScheduler
+        from core.infra.scheduler import TaskScheduler
 
         scheduler = TaskScheduler()
         scheduler.register("to_remove", lambda: None, interval_minutes=10)
@@ -585,7 +585,7 @@ class TestScheduler(unittest.TestCase):
 
     def test_start_stop(self):
         """启动和停止"""
-        from core.scheduler import TaskScheduler
+        from core.infra.scheduler import TaskScheduler
 
         scheduler = TaskScheduler()
         counter = {"count": 0}
@@ -608,7 +608,7 @@ class TestScheduler(unittest.TestCase):
 
     def test_run_once(self):
         """手动触发一次"""
-        from core.scheduler import TaskScheduler
+        from core.infra.scheduler import TaskScheduler
         import threading
 
         scheduler = TaskScheduler()
@@ -629,7 +629,7 @@ class TestScheduler(unittest.TestCase):
 
     def test_run_once_nonexistent(self):
         """手动触发不存在的任务"""
-        from core.scheduler import TaskScheduler
+        from core.infra.scheduler import TaskScheduler
 
         scheduler = TaskScheduler()
         result = scheduler.run_once("no_such_task")
@@ -637,7 +637,7 @@ class TestScheduler(unittest.TestCase):
 
     def test_register_duplicate(self):
         """注册同名任务应更新配置"""
-        from core.scheduler import TaskScheduler
+        from core.infra.scheduler import TaskScheduler
 
         scheduler = TaskScheduler()
         scheduler.register("dup_task", lambda: None, interval_minutes=10)
@@ -649,14 +649,14 @@ class TestScheduler(unittest.TestCase):
 
     def test_unregister_nonexistent(self):
         """注销不存在的任务不抛异常"""
-        from core.scheduler import TaskScheduler
+        from core.infra.scheduler import TaskScheduler
 
         scheduler = TaskScheduler()
         scheduler.unregister("ghost_task")  # 不应抛异常
 
     def test_start_reentrant(self):
         """多次启动不创建重复定时器"""
-        from core.scheduler import TaskScheduler
+        from core.infra.scheduler import TaskScheduler
 
         scheduler = TaskScheduler()
         scheduler.register("reentrant_task", lambda: None, interval_minutes=60)

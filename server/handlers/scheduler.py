@@ -34,7 +34,7 @@ def handle_scheduler_status(handler):
     }
     """
     try:
-        from core.scheduler import get_scheduler
+        from core.infra.scheduler import get_scheduler
         scheduler = get_scheduler()
         tasks = scheduler.status()
         handler._send_json({"ok": True, "tasks": tasks})

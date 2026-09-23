@@ -348,7 +348,7 @@ class TestGuideServer(unittest.TestCase):
             with unittest.mock.patch.object(h_keys, "_http_test",
                                             side_effect=fake_http), \
                  unittest.mock.patch(
-                     "core.adaptive_models.find_working_model",
+                     "core.ai.adaptive_models.find_working_model",
                      return_value="qwen3.7-flash"):
                 h_keys.handle_keys_test(h)
             self.assertTrue(h.payload["ok"])
@@ -387,7 +387,7 @@ class TestGuideServer(unittest.TestCase):
         with unittest.mock.patch.object(h_keys, "_http_test",
                                         side_effect=fake_http), \
              unittest.mock.patch(
-                 "core.adaptive_models.find_working_model",
+                 "core.ai.adaptive_models.find_working_model",
                  return_value="qwen3.7-flash"):
             h_keys.handle_keys_identify(h)
         self.assertTrue(h.payload["ok"])

@@ -12,8 +12,8 @@ def _write_telemetry(tmp_path, monkeypatch, rows):
     with open(log, "w", encoding="utf-8") as f:
         for r in rows:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
-    monkeypatch.setattr("core.telemetry._PATH", str(log))
-    from core.telemetry import dashboard
+    monkeypatch.setattr("core.infra.telemetry._PATH", str(log))
+    from core.infra.telemetry import dashboard
     return dashboard()
 
 

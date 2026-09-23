@@ -18,8 +18,8 @@ class TestSchedulerSingleton(unittest.TestCase):
 
     def setUp(self):
         try:
-            import core.scheduler as scheduler_module
-            from core.scheduler import TaskScheduler, JinshuiyaoScheduler, get_scheduler
+            import core.infra.scheduler as scheduler_module
+            from core.infra.scheduler import TaskScheduler, JinshuiyaoScheduler, get_scheduler
         except Exception as e:
             self.skipTest("无法导入 scheduler: %s" % e)
         self.scheduler_module = scheduler_module
@@ -63,7 +63,7 @@ class TestTaskSchedulerStartStop(unittest.TestCase):
 
     def setUp(self):
         try:
-            from core.scheduler import TaskScheduler
+            from core.infra.scheduler import TaskScheduler
         except Exception as e:
             self.skipTest("无法导入 TaskScheduler: %s" % e)
         self.TaskScheduler = TaskScheduler
@@ -125,7 +125,7 @@ class TestSchedulerTasks(unittest.TestCase):
 
     def setUp(self):
         try:
-            from core.scheduler import TaskScheduler
+            from core.infra.scheduler import TaskScheduler
         except Exception as e:
             self.skipTest("无法导入 TaskScheduler: %s" % e)
         self.TaskScheduler = TaskScheduler
@@ -206,7 +206,7 @@ class TestJinshuiyaoSchedulerTasks(unittest.TestCase):
 
     def setUp(self):
         try:
-            from core.scheduler import JinshuiyaoScheduler
+            from core.infra.scheduler import JinshuiyaoScheduler
         except Exception as e:
             self.skipTest("无法导入 JinshuiyaoScheduler: %s" % e)
         self.JinshuiyaoScheduler = JinshuiyaoScheduler
@@ -256,7 +256,7 @@ class TestSchedulerStatus(unittest.TestCase):
 
     def setUp(self):
         try:
-            from core.scheduler import TaskScheduler
+            from core.infra.scheduler import TaskScheduler
         except Exception as e:
             self.skipTest("无法导入 TaskScheduler: %s" % e)
         self.TaskScheduler = TaskScheduler

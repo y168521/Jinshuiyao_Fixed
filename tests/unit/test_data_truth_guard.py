@@ -13,7 +13,7 @@ _project_dir = os.path.normpath(os.path.join(_this_dir, "..", ".."))
 if _project_dir not in sys.path:
     sys.path.insert(0, _project_dir)
 
-from core.data_truth_guard import (
+from core.infra.data_truth_guard import (
     DataTruthGuard, SOURCE_REAL_API, SOURCE_CACHE, SOURCE_FALLBACK,
     SOURCE_HARDCODED, SOURCE_UNKNOWN, SOURCE_LABELS,
     get_guard, run_truth_check, format_truth_report,

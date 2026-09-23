@@ -29,7 +29,7 @@ def _send_json(handler, data, code=200):
 def handle_pipeline_status(handler):
     """GET /api/pipeline/status — 返回实时流水线状态。"""
     try:
-        from core.pipeline_state import get_state
+        from core.infra.pipeline_state import get_state
         data = get_state()
         data["ok"] = True
         _send_json(handler, data)
@@ -55,7 +55,7 @@ def handle_pipeline_run(handler):
                 topic = (json.loads(raw) or {}).get('topic', '') or ""
         except Exception:
             topic = ""
-        from core.pipeline_state import start_run
+        from core.infra.pipeline_state import start_run
         ok = start_run(topic)
         if ok:
             _send_json(handler, {"ok": True, "message": "流水线已启动（服务端实时推进）",

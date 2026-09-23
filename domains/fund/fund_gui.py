@@ -25,7 +25,7 @@ _project_dir = os.path.normpath(os.path.join(_this_dir, "..", ".."))
 if _project_dir not in sys.path:
     sys.path.insert(0, _project_dir)
 
-from core.theme import Theme
+from core.infra.theme import Theme
 
 
 def _as_float(v, default=0.0):
@@ -621,7 +621,7 @@ class FundAnalysisWindow:
     def _cmd_truth_check(self):
         """数据真实性检测"""
         try:
-            from core.data_truth_guard import run_truth_check, format_truth_report
+            from core.infra.data_truth_guard import run_truth_check, format_truth_report
             report = run_truth_check()
             text = format_truth_report(report)
 
@@ -871,13 +871,13 @@ class FundAnalysisWindow:
 def main():
     """基金分析系统入口"""
     try:
-        from core.gui_registry import register
+        from core.infra.gui_registry import register
         register('fund', '金水谣基金分析系统')
     except Exception:
         pass
     root = tk.Tk()
     try:
-        from core.tk_style import apply_dark_style
+        from core.infra.tk_style import apply_dark_style
         apply_dark_style(root)
     except Exception:
         pass

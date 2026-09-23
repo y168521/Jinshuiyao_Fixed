@@ -32,7 +32,7 @@ _DATA_DIR = os.path.join(_PROJ, "金水谣数据", "fund_data")
 _OUT_DIR = os.path.join(_PROJ, "金水谣数据", "fund_reports")
 
 try:
-    from core.free_model_pool import call_paid, call_ai_failover, get_free_provider_cfgs
+    from core.ai.free_model_pool import call_paid, call_ai_failover, get_free_provider_cfgs
 except Exception:
     call_paid = None
     call_ai_failover = None

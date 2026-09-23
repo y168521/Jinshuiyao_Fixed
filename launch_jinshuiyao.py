@@ -156,7 +156,7 @@ def preflight_check():
     issues = []
 
     # 1) 关键文件语法快检（只查最核心的几个）
-    critical = ["main.py", "config.py", os.path.join("server", "__init__.py"),
+    critical = ["config.py", os.path.join("server", "__init__.py"),
                 os.path.join("server", "router.py")]
     for rel in critical:
         fp = os.path.join(BASE, rel)

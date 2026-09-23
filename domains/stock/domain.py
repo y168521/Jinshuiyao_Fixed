@@ -19,7 +19,7 @@ import logging
 from datetime import datetime, timedelta
 from domains.base import DomainBase, project_data_dir
 from utils.safe_json import safe_write_json
-from core.context import run_in_subsystem
+from core.infra.context import run_in_subsystem
 
 logger = logging.getLogger(__name__)
 
