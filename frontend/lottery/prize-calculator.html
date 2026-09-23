@@ -38,6 +38,12 @@
     .prize-table th { background: var(--border); color: var(--muted); padding: 0.4rem; text-align: center; font-weight: 500; }
     .prize-table td { padding: 0.35rem 0.4rem; text-align: center; border-bottom: 1px solid var(--border); }
     .prize-table .hit-row { background: rgba(255,217,61,0.05); }
+    /* 表格窄屏兜底（JS-20260924-15）：本页未引 theme.css，共享兜底规则
+       （theme.css 内 @media(max-width:768px) 的表格自滚）够不到，故页内补等价规则，
+       与共享兜底行为一致。待本页接入 theme.css 后可删除本段。 */
+    @media (max-width: 768px) {
+      .prize-table { display: block; overflow-x: auto; white-space: nowrap; }
+    }
     .prize-table .hit-row td { color: var(--gold); font-weight: 600; }
     .total-box { background: rgba(0,212,170,0.1); border: 1px solid var(--accent); border-radius: 8px; padding: 1rem; text-align: center; margin-top: 1rem; }
     .total-box .total { font-size: 1.6rem; font-weight: 700; color: var(--accent); }

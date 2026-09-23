@@ -41,6 +41,12 @@
     .wheel-table th { background: var(--border); color: var(--muted); padding: 0.4rem 0.5rem; text-align: center; font-weight: 500; position: sticky; top: 0; }
     .wheel-table td { padding: 0.3rem 0.5rem; text-align: center; border-bottom: 1px solid var(--border); font-family: 'Consolas', monospace; }
     .wheel-table tr:hover td { background: rgba(255,255,255,0.03); }
+    /* 表格窄屏兜底（JS-20260924-15）：本页未引 theme.css，共享兜底规则
+       （theme.css 内 @media(max-width:768px) 的表格自滚）够不到，故页内补等价规则，
+       与共享兜底行为一致。待本页接入 theme.css 后可删除本段。 */
+    @media (max-width: 768px) {
+      .wheel-table { display: block; overflow-x: auto; white-space: nowrap; }
+    }
     .wheel-table .num { display: inline-block; width: 24px; height: 24px; line-height: 24px; border-radius: 50%; background: rgba(0,212,170,0.15); color: var(--primary); font-size: 0.78rem; margin: 0 1px; }
     .wheel-table .num.blue-num { background: rgba(96,165,250,0.15); color: var(--blue); }
     .wheel-wrapper { max-height: 500px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
