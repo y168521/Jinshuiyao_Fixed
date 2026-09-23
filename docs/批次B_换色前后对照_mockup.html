@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>批次B · 5 孤儿页换色前后对照（现状 Slate/Tailwind vs L2 七色令牌）</title>
+<style>
+  :root{
+    /* 现状调色板（5 孤儿页私有 :root，Slate/Tailwind，偏离品牌，且含禁用色红/紫） */
+    --cur-bg:#0b0f19; --cur-panel:#131a2a; --cur-text:#e6edf3;
+    --cur-primary:#00d4aa; --cur-gold:#ffd93d; --cur-danger:#ff6b6b;
+    --cur-blue:#60a5fa; --cur-purple:#b197fc; --cur-border:#26324a;
+    /* L2 七色调色板（项目强制，禁红/绿/紫裸色，统一映射令牌） */
+    --js-deep:#0B1A2F; --js-bluegray:#162840; --js-silver:#E8ECF1;
+    --js-gold:#C9A96E; --js-ice:#5BC0DE; --js-jade:#2D8B7E; --js-copper:#C8755A;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;}
+  body{background:#0f1420;color:#cdd6e4;padding:32px;line-height:1.6;}
+  h1{font-size:22px;color:#fff;margin-bottom:6px;}
+  .sub{color:#8b97ab;font-size:13px;margin-bottom:24px;max-width:880px;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:1100px;}
+  .col-h{font-size:14px;font-weight:600;padding:10px 14px;border-radius:8px 8px 0 0;}
+  .before .col-h{background:var(--cur-panel);color:#ffd93d;border:1px solid var(--cur-border);}
+  .after  .col-h{background:var(--js-bluegray);color:var(--js-gold);border:1px solid #2a3a55;}
+  .panel{border-radius:0 0 8px 8px;padding:18px;display:flex;flex-direction:column;gap:14px;}
+  .before .panel{background:var(--cur-bg);border:1px solid var(--cur-border);border-top:none;}
+  .after  .panel{background:var(--js-deep);border:1px solid #2a3a55;border-top:none;}
+  .label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.65;margin-bottom:2px;}
+  /* 顶栏 */
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:8px;}
+  .before .topbar{background:var(--cur-panel);}
+  .after  .topbar{background:var(--js-bluegray);}
+  .brand{font-weight:700;font-size:15px;}
+  .before .brand{color:var(--cur-primary);}
+  .after  .brand{color:var(--js-ice);}
+  .pill{font-size:12px;padding:3px 10px;border-radius:999px;}
+  .before .pill{background:rgba(0,212,170,.15);color:var(--cur-primary);}
+  .after  .pill{background:rgba(92,192,222,.15);color:var(--js-ice);}
+  /* KPI 卡 */
+  .cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  .card{padding:12px;border-radius:8px;}
+  .before .card{background:var(--cur-panel);border:1px solid var(--cur-border);}
+  .after  .card{background:var(--js-bluegray);border:1px solid #243650;}
+  .card .v{font-size:20px;font-weight:700;}
+  .before .card .v.up{color:var(--cur-primary);}
+  .after  .card .v.up{color:var(--js-jade);}
+  .before .card .v.warn{color:var(--cur-gold);}
+  .after  .card .v.warn{color:var(--js-gold);}
+  .card .k{font-size:11px;opacity:.7;}
+  /* 按钮 */
+  .btn{padding:8px 16px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;}
+  .before .btn.primary{background:var(--cur-primary);color:#06231c;}
+  .after  .btn.primary{background:var(--js-gold);color:var(--js-deep);}
+  .before .btn.ghost{background:transparent;border:1px solid var(--cur-border);color:var(--cur-text);}
+  .after  .btn.ghost{background:transparent;border:1px solid #34507a;color:var(--js-silver);}
+  /* 告警 */
+  .alert{padding:10px 14px;border-radius:8px;font-size:13px;}
+  .before .alert{background:rgba(255,107,107,.12);border:1px solid var(--cur-danger);color:#ffb4b4;}
+  .after  .alert{background:rgba(200,117,90,.12);border:1px solid var(--js-copper);color:#e6b79f;}
+  /* 表格 */
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  th,td{padding:7px 9px;text-align:left;}
+  .before th{background:var(--cur-panel);color:#9fb0c8;}
+  .before td{border-top:1px solid var(--cur-border);}
+  .after th{background:var(--js-bluegray);color:#a9c3e6;}
+  .after td{border-top:1px solid #243650;}
+  .tag{font-size:11px;padding:2px 8px;border-radius:4px;}
+  .before .tag{background:rgba(177,151,252,.18);color:var(--cur-purple);}
+  .after  .tag{background:rgba(201,169,110,.18);color:var(--js-gold);}
+  .note{margin-top:24px;font-size:12px;color:#8b97ab;max-width:1100px;border-top:1px solid #1d2738;padding-top:14px;}
+  .note b{color:#cdd6e4;}
+</style>
+</head>
+<body>
+  <h1>批次B · 换色前后对照 mockup</h1>
+  <div class="sub">
+    左侧 = 5 个孤儿页现状（私有 <code>:root</code> 的 Slate/Tailwind 调色板，偏离 L2 品牌，且 <code>--danger #ff6b6b</code>(红)、<code>--purple #b197fc</code>(紫) 属禁色裸用）。
+    右侧 = 映射到 L2 七色令牌后的目标态。两者仅改色值映射，布局/结构零改动 —— 即 JS-20260924-13 复核结论：接令牌 = 换色，非机械接线。
+  </div>
+
+  <div class="grid">
+    <div class="before">
+      <div class="col-h">现状（偏离品牌 · 含禁色）</div>
+      <div class="panel">
+        <div>
+          <div class="label">顶栏</div>
+          <div class="topbar"><span class="brand">金水谣 · 总控台</span><span class="pill">实时</span></div>
+        </div>
+        <div>
+          <div class="label">KPI 卡</div>
+          <div class="cards">
+            <div class="card"><div class="v up">+3.21%</div><div class="k">今日收益</div></div>
+            <div class="card"><div class="v warn">12</div><div class="k">待办预警</div></div>
+            <div class="card"><div class="v">8</div><div class="k">已覆盖基金</div></div>
+          </div>
+        </div>
+        <div>
+          <div class="label">按钮</div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn primary">生成日报</button>
+            <button class="btn ghost">返回</button>
+          </div>
+        </div>
+        <div>
+          <div class="label">告警</div>
+          <div class="alert">⚠ 该基金规模 &lt; 0.5 亿，存在清盘风险（现状用红 #ff6b6b）</div>
+        </div>
+        <div>
+          <div class="label">标签 / 表格</div>
+          <span class="tag">高波动</span>
+          <table style="margin-top:8px;">
+            <tr><th>彩种</th><th>命中率</th><th>状态</th></tr>
+            <tr><td>3D</td><td>94.5%</td><td><span class="tag">高波动</span></td></tr>
+            <tr><td>双色球</td><td>71.9%</td><td><span class="tag">正常</span></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="after">
+      <div class="col-h">目标（L2 七色令牌 · 品牌统一）</div>
+      <div class="panel">
+        <div>
+          <div class="label">顶栏</div>
+          <div class="topbar"><span class="brand">金水谣 · 总控台</span><span class="pill">实时</span></div>
+        </div>
+        <div>
+          <div class="label">KPI 卡</div>
+          <div class="cards">
+            <div class="card"><div class="v up">+3.21%</div><div class="k">今日收益</div></div>
+            <div class="card"><div class="v warn">12</div><div class="k">待办预警</div></div>
+            <div class="card"><div class="v">8</div><div class="k">已覆盖基金</div></div>
+          </div>
+        </div>
+        <div>
+          <div class="label">按钮</div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn primary">生成日报</button>
+            <button class="btn ghost">返回</button>
+          </div>
+        </div>
+        <div>
+          <div class="label">告警</div>
+          <div class="alert">⚠ 该基金规模 &lt; 0.5 亿，存在清盘风险（目标用赤铜 #C8755A，非禁色红）</div>
+        </div>
+        <div>
+          <div class="label">标签 / 表格</div>
+          <span class="tag">高波动</span>
+          <table style="margin-top:8px;">
+            <tr><th>彩种</th><th>命中率</th><th>状态</th></tr>
+            <tr><td>3D</td><td>94.5%</td><td><span class="tag">高波动</span></td></tr>
+            <tr><td>双色球</td><td>71.9%</td><td><span class="tag">正常</span></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>对应 5 个孤儿页（接令牌 = 换色，布局零改动）：</b>
+    <code>dashboard/jinshuiyao-dashboard</code>(2207 行) · <code>lottery/rotation-matrix</code> · <code>lottery/omission-heatmap</code> · <code>trend/jinshuiyao-trend</code> · <code>lottery/prize-calculator</code>。<br/>
+    色值映射：<b>#00d4aa→--js-gold</b> · <b>#ffd93d→--js-gold</b> · <b>#ff6b6b(禁色红)→--js-copper</b> · <b>#60a5fa→--js-ice</b> · <b>#b197fc(禁色紫，0 引用→删)→--js-gold</b> · <b>#0b0f19→--js-deep</b> · <b>#131a2a→--js-bluegray</b> · 文本→<b>--js-silver</b>。
+    换色后同时消除 2 处禁色裸用（红/紫），让 closeout_gate 第5项（禁色扫描）在全局真正归零。<br/>
+    <b>主强调色定稿说明：</b>初版草案把主强调 <code>#00d4aa</code> 映射到 <code>--js-jade</code>(墨绿金)，执行前取证后改为 <code>--js-gold</code>(香槟金)——
+    ① tokens.css 明定 gold = 强调/标题/主按钮；② jade 被标注"小字对比度 3.6 不达标、仅作填充与图形"，且语义=成功，
+    与 dashboard 已有的 <code>--success #2D8B7E</code> 撞色。黑字压金对比度 9.4:1，优于压墨绿的 5.1:1。<br/>
+    <b>执行状态：JS-20260924-26 已落地</b>（5 页全接回 tokens.css；遗漏热力图色阶重排为 银白→冰蓝→墨绿→香槟金→赤铜）。
+  </div>
+</body>
+</html>

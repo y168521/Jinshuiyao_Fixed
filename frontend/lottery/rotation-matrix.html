@@ -3,11 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/tokens.css">
   <title>金水谣 · 旋转矩阵</title>
   <style>
+    /* 全站七色令牌派生（JS-20260924-26） */
     :root {
-      --bg: #0b0f19; --card: #131a2a; --primary: #00d4aa; --danger: #ff6b6b;
-      --gold: #ffd93d; --blue: #60a5fa; --text: #e4e8f1; --muted: #7a8499; --border: #1e2a40;
+      --bg: var(--js-deep); --card: var(--js-card-bg); --primary: var(--js-gold); --danger: var(--js-copper);
+      --gold: var(--js-gold); --blue: var(--js-ice); --text: var(--js-ink); --muted: var(--js-ink-mid); --border: var(--js-border-elev-0);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif; color: var(--text); background: var(--bg); line-height: 1.6; min-height: 100vh; }
@@ -29,7 +31,7 @@
     .btn { padding: 0.45rem 1.2rem; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text); font-size: 0.88rem; cursor: pointer; transition: all 0.15s; }
     .btn:hover { border-color: var(--primary); }
     .btn-primary { background: var(--primary); color: #000; border-color: var(--primary); font-weight: 600; }
-    .btn-primary:hover { background: #00c49a; }
+    .btn-primary:hover { background: var(--js-gold); filter: brightness(0.9); }
     .btn-group { display: flex; gap: 0; }
     .btn-group .btn { border-radius: 0; }
     .btn-group .btn:first-child { border-radius: 6px 0 0 6px; }

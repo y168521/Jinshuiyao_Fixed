@@ -4,19 +4,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/tokens.css">
   <title>金水谣 · 走势图分析系统</title>
   <style>
+    /* 全站七色令牌派生（JS-20260924-26）。
+       --purple 属契 §五 禁用色相且全页 0 引用 → 直接删除。 */
     :root {
-      --bg: #0b0f19;
-      --card: #131a2a;
-      --primary: #00d4aa;
-      --danger: #C8755A;
-      --gold: #ffd93d;
-      --blue: #5BC0DE;
-      --purple: #b197fc;
-      --text: #e4e8f1;
-      --muted: #7a8499;
-      --border: #1e2a40;
+      --bg: var(--js-deep);
+      --card: var(--js-card-bg);
+      --primary: var(--js-gold);
+      --danger: var(--js-copper);
+      --gold: var(--js-gold);
+      --blue: var(--js-ice);
+      --text: var(--js-ink);
+      --muted: var(--js-ink-mid);
+      --border: var(--js-border-elev-0);
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { font-size: 16px; }

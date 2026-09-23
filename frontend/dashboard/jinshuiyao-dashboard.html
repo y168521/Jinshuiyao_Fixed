@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/tokens.css">
 <title>金水谣足彩预测 - AI赛前模拟</title>
 <style>
 /* ═══════════════════════════════════════════════════════════
@@ -12,46 +13,53 @@
 
 :root {
   /* ── 背景层次 ── */
-  --bg-deep: #0a0e1a;
-  --bg: #0f172a;
-  --bg2: #1e293b;
-  --bg3: #273548;
-  --bg4: #334155;
+  --bg-deep: var(--js-deep);
+  --bg: var(--js-deep);
+  --bg2: var(--js-card-bg);
+  --bg3: var(--js-card-bg);
+  --bg4: var(--js-card-bg);
   /* ── 文字 ── */
-  --ink: #e2e8f0;
-  --ink-bright: #f8fafc;
-  --muted: #94a3b8;
-  --muted-dim: #64748b;
-  /* ── 边框 ── */
-  --rule: #334155;
-  --rule-light: rgba(51, 65, 85, 0.5);
-  /* ── 主强调色：青蓝 ── */
-  --accent: #00d4aa;
-  --accent-bright: #00ffcc;
-  --accent-blue: #00d4ff;
-  /* ── 次强调色：蓝 ── */
-  --accent2: #5bc0de;
-  --accent2-light: #5BC0DE;
-  /* ── 警告：橙黄 ── */
-  --warning: #f59e0b;
-  --warning-dark: #d29922;
-  /* ── 成功：绿 ── */
-  --success: #2D8B7E;
-  --success-bright: #2D8B7E;
-  /* ── 危险：红 ── */
-  --danger: #C8755A;
-  --danger-dark: #C8755A;
-  /* ── 渐变 ── */
-  --gradient-accent: linear-gradient(135deg, #00d4aa, #00d4ff);
-  --gradient-accent-h: linear-gradient(90deg, #00d4aa, #00d4ff);
-  --gradient-blue: linear-gradient(135deg, #5bc0de, #2e8ca8);
-  --gradient-win: linear-gradient(90deg, #2D8B7E, #2D8B7E);
-  --gradient-draw: linear-gradient(90deg, #d29922, #f59e0b);
-  --gradient-lose: linear-gradient(90deg, #C8755A, #C8755A);
-  /* ── Glassmorphism ── */
-  --glass-bg: rgba(30, 41, 59, 0.75);
-  --glass-bg-light: rgba(30, 41, 59, 0.5);
-  --glass-border: rgba(51, 65, 85, 0.6);
+  --ink: var(--js-ink);
+  --ink-bright: var(--js-ink);
+  --muted: var(--js-ink-mid);
+  --muted-dim: var(--js-ink-dim);
+  /* ── 边框（层级改由 ice 描边表达，见 tokens.css §阴影/层级）── */
+  --rule: var(--js-border-elev-1);
+  --rule-light: var(--js-border-elev-0);
+  /* ── 主强调色：香槟金（原薄荷青，非品牌色）──
+     选金不选墨绿的理由：① tokens.css 明定 gold = 强调/标题/主按钮；
+     ② jade 被标注"小字对比度 3.6 不达标、仅作填充与图形"，且语义=成功，
+        与本页 --success 撞色。黑字压金对比度 9.4:1。 */
+  --accent: var(--js-gold);
+  --accent-bright: var(--js-gold);
+  --accent-blue: var(--js-ice);
+  /* ── 次强调色：冰水蓝 ── */
+  --accent2: var(--js-ice);
+  --accent2-light: var(--js-ice);
+  /* ── 警告：香槟金（tokens.css 明定 --js-status-warning = --js-gold）── */
+  --warning: var(--js-gold);
+  --warning-dark: var(--js-gold);
+  /* ── 成功：墨绿金 ── */
+  --success: var(--js-jade);
+  --success-bright: var(--js-jade);
+  /* ── 危险：赤铜 ── */
+  --danger: var(--js-copper);
+  --danger-dark: var(--js-copper);
+  /* ── 渐变（金→冰蓝，品牌双色过渡）── */
+  --gradient-accent: linear-gradient(135deg, var(--js-gold), var(--js-ice));
+  --gradient-accent-h: linear-gradient(90deg, var(--js-gold), var(--js-ice));
+  --gradient-blue: linear-gradient(135deg, var(--js-ice), var(--js-card-bg));
+  --gradient-win: linear-gradient(90deg, var(--js-jade), var(--js-jade));
+  --gradient-draw: linear-gradient(90deg, var(--js-gold), var(--js-gold));
+  --gradient-lose: linear-gradient(90deg, var(--js-copper), var(--js-copper));
+  /* ── Glassmorphism（--js-card-bg / --js-ice 的透明派生；
+        首行 rgba 为不支持 color-mix 的浏览器的回退值）── */
+  --glass-bg: rgba(22, 40, 64, 0.75);
+  --glass-bg: color-mix(in srgb, var(--js-card-bg) 75%, transparent);
+  --glass-bg-light: rgba(22, 40, 64, 0.5);
+  --glass-bg-light: color-mix(in srgb, var(--js-card-bg) 50%, transparent);
+  --glass-border: rgba(91, 192, 222, 0.18);
+  --glass-border: color-mix(in srgb, var(--js-ice) 18%, transparent);
   --glass-blur: blur(16px);
   /* ── 尺寸 ── */
   --card-radius: 14px;
@@ -79,7 +87,7 @@ body::before {
     radial-gradient(ellipse at 15% 5%, rgba(0, 212, 170, 0.07) 0%, transparent 50%),
     radial-gradient(ellipse at 85% 10%, rgba(91, 192, 222, 0.05) 0%, transparent 40%),
     radial-gradient(ellipse at 50% 90%, rgba(0, 212, 255, 0.04) 0%, transparent 50%),
-    linear-gradient(180deg, #0a0e1a 0%, #0f172a 30%, #1e293b 100%);
+    linear-gradient(180deg, var(--js-deep) 0%, var(--js-deep) 30%, var(--js-card-bg) 100%);
   z-index: -1;
   pointer-events: none;
 }
@@ -112,7 +120,7 @@ body::before {
   background: var(--gradient-accent);
   border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
-  font-weight: 900; font-size: 16px; color: #0f172a;
+  font-weight: 900; font-size: 16px; color: var(--js-deep);
   box-shadow: 0 2px 12px rgba(0, 212, 170, 0.3);
 }
 
@@ -324,11 +332,11 @@ body::before {
 .team-flag:hover { transform: scale(1.05); }
 
 .team-flag.home {
-  background: linear-gradient(135deg, #1a472a 0%, #2d8a4e 50%, #1a472a 100%);
+  background: var(--js-jade);
 }
 
 .team-flag.away {
-  background: linear-gradient(135deg, #c1272d 0%, #ff6b35 50%, #c1272d 100%);
+  background: var(--js-copper);
 }
 
 .team-name {
@@ -396,7 +404,7 @@ body::before {
   background: var(--gradient-accent);
   border: none;
   border-radius: var(--card-radius);
-  color: #0f172a;
+  color: var(--js-deep);
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
@@ -625,7 +633,7 @@ body::before {
 .factor-tag.selected {
   background: var(--gradient-accent);
   border-color: transparent;
-  color: #0f172a;
+  color: var(--js-deep);
   font-weight: 600;
   box-shadow: 0 2px 12px rgba(0, 212, 170, 0.25);
 }
@@ -718,7 +726,7 @@ body::before {
 
 .compare-sub-tab.active {
   background: var(--gradient-accent);
-  color: #0f172a;
+  color: var(--js-deep);
   border-color: transparent;
   font-weight: 600;
 }
@@ -843,9 +851,9 @@ body::before {
   flex-shrink: 0;
 }
 
-.path-rank.top1 { background: var(--gradient-accent); color: #0f172a; }
+.path-rank.top1 { background: var(--gradient-accent); color: var(--js-deep); }
 .path-rank.top2 { background: var(--gradient-blue); color: #fff; }
-.path-rank.top3 { background: var(--gradient-draw); color: #0f172a; }
+.path-rank.top3 { background: var(--gradient-draw); color: var(--js-deep); }
 
 .path-scores {
   display: flex;
@@ -1355,7 +1363,7 @@ body::before {
   background: var(--gradient-accent);
   border: none;
   border-radius: var(--card-radius-pill);
-  color: #0f172a;
+  color: var(--js-deep);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -2085,6 +2093,8 @@ body::before {
 <script src="assets/charts.js"></script>
 
 <script>
+/* ECharts / canvas 无法直接使用 CSS var()，运行时取 tokens.css 真源值（JS-20260924-26） */
+function jsv(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
 /* ═══════════════════════════════════════════════════════════
    标签页切换逻辑 (覆盖 charts.js 中的 switchTab)
    ═══════════════════════════════════════════════════════════ */
@@ -2141,14 +2151,14 @@ window.renderAttackDefenseChart = function(homeName, awayName, homeStats, awaySt
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
-      backgroundColor: 'rgba(15,23,42,0.95)',
-      borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 12 }
+      backgroundColor: jsv('--js-card-bg'),
+      borderColor: jsv('--js-border-elev-1'),
+      textStyle: { color: jsv('--js-ink'), fontSize: 12 }
     },
     legend: {
       data: [homeName, awayName],
       bottom: 0,
-      textStyle: { color: '#94a3b8', fontSize: 12 },
+      textStyle: { color: jsv('--js-ink-mid'), fontSize: 12 },
       itemWidth: 14,
       itemHeight: 8
     },
@@ -2156,15 +2166,15 @@ window.renderAttackDefenseChart = function(homeName, awayName, homeStats, awaySt
     xAxis: {
       type: 'value',
       max: 100,
-      axisLabel: { color: '#64748b', fontSize: 11 },
-      splitLine: { lineStyle: { color: 'rgba(51,65,85,0.4)' } },
+      axisLabel: { color: jsv('--js-ink-dim'), fontSize: 11 },
+      splitLine: { lineStyle: { color: jsv('--js-border-elev-0') } },
       axisLine: { show: false }
     },
     yAxis: {
       type: 'category',
       data: categories,
-      axisLabel: { color: '#94a3b8', fontSize: 12 },
-      axisLine: { lineStyle: { color: '#334155' } },
+      axisLabel: { color: jsv('--js-ink-mid'), fontSize: 12 },
+      axisLine: { lineStyle: { color: jsv('--js-border-elev-0') } },
       axisTick: { show: false }
     },
     series: [
@@ -2176,8 +2186,8 @@ window.renderAttackDefenseChart = function(homeName, awayName, homeStats, awaySt
         itemStyle: {
           borderRadius: [0, 6, 6, 0],
           color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-            { offset: 0, color: '#00d4aa' },
-            { offset: 1, color: '#00d4ff' }
+            { offset: 0, color: jsv('--js-gold') },
+            { offset: 1, color: jsv('--js-ice') }
           ])
         }
       },
@@ -2189,8 +2199,8 @@ window.renderAttackDefenseChart = function(homeName, awayName, homeStats, awaySt
         itemStyle: {
           borderRadius: [0, 6, 6, 0],
           color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-            { offset: 0, color: '#5bc0de' },
-            { offset: 1, color: '#5BC0DE' }
+            { offset: 0, color: jsv('--js-ice') },
+            { offset: 1, color: jsv('--js-ice') }
           ])
         }
       }

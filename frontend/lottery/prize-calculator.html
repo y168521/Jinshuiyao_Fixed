@@ -3,9 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/tokens.css">
   <title>金水谣 · 奖金计算器</title>
   <style>
-    :root { --bg: #0b0f19; --card: #131a2a; --text: #e4e8f1; --muted: #7a8499; --border: #1e2a40; }
+    /* 全站七色令牌派生（JS-20260924-26）。
+       原 --accent/--gold/--ice 三个变量从未定义 → 页内 21 处 var() 全部失效，此处一并补齐。 */
+    :root { --bg: var(--js-deep); --card: var(--js-card-bg); --text: var(--js-ink); --muted: var(--js-ink-mid); --border: var(--js-border-elev-0); --accent: var(--js-gold); --gold: var(--js-gold); --ice: var(--js-ice); }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif; color: var(--text); background: var(--bg); line-height: 1.6; min-height: 100vh; }
     .header { padding: 0.6rem 2rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }

@@ -3,18 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/tokens.css">
   <title>金水谣 · 遗漏热力图</title>
   <style>
+    /* 全站七色令牌派生（JS-20260924-26） */
     :root {
-      --bg: #0b0f19;
-      --card: #131a2a;
-      --primary: #00d4aa;
-      --danger: #ff6b6b;
-      --gold: #ffd93d;
-      --blue: #60a5fa;
-      --text: #e4e8f1;
-      --muted: #7a8499;
-      --border: #1e2a40;
+      --bg: var(--js-deep);
+      --card: var(--js-card-bg);
+      --primary: var(--js-gold);
+      --danger: var(--js-copper);
+      --gold: var(--js-gold);
+      --blue: var(--js-ice);
+      --text: var(--js-ink);
+      --muted: var(--js-ink-mid);
+      --border: var(--js-border-elev-0);
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { font-size: 16px; }
@@ -110,11 +112,11 @@
     }
     .legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; }
     .legend-dot { width: 14px; height: 14px; border-radius: 3px; }
-    .legend-dot.layer-1 { background: #163040; }
-    .legend-dot.layer-2 { background: #1a5c4a; }
-    .legend-dot.layer-3 { background: #2d5e8a; }
-    .legend-dot.layer-4 { background: #8a3a3a; }
-    .legend-dot.appear { background: #00d4aa; }
+    .legend-dot.layer-1 { background: var(--js-ice); }
+    .legend-dot.layer-2 { background: var(--js-jade); }
+    .legend-dot.layer-3 { background: var(--js-gold); }
+    .legend-dot.layer-4 { background: var(--js-copper); }
+    .legend-dot.appear { background: var(--js-ink); }
     .stats-table {
       width: 100%;
       border-collapse: collapse;
@@ -169,9 +171,11 @@
   <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
   <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/jinshuiyao-echarts-theme.js"></script>
   <script>
+  /* ECharts / canvas 无法直接使用 CSS var()，运行时取 tokens.css 真源值（JS-20260924-26） */
+  function jsv(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
     var data = window.TREND_DATA;
     if (!data) {
-      document.getElementById('panels').innerHTML = '<p style="padding:2rem;color:#7a8499">暂无走势数据，请先运行预测系统生成数据</p>';
+      document.getElementById('panels').innerHTML = '<p style="padding:2rem;color:var(--js-ink-mid)">暂无走势数据，请先运行预测系统生成数据</p>';
       document.getElementById('updateTime').textContent = '无数据';
     } else {
       var now = new Date();
@@ -345,11 +349,11 @@
             else if (v <= 10) layer = '中遗漏 (6-10期)';
             else if (v <= 20) layer = '高遗漏 (11-20期)';
             else layer = '超高遗漏 (21+期)';
-            var layerColor = '#00d4aa';
-            if (v > 0 && v <= 5) layerColor = '#163040';
-            else if (v <= 10) layerColor = '#1a5c4a';
-            else if (v <= 20) layerColor = '#2d5e8a';
-            else if (v > 20) layerColor = '#8a3a3a';
+            var layerColor = jsv('--js-ink');
+            if (v > 0 && v <= 5) layerColor = jsv('--js-ice');
+            else if (v <= 10) layerColor = jsv('--js-jade');
+            else if (v <= 20) layerColor = jsv('--js-gold');
+            else if (v > 20) layerColor = jsv('--js-copper');
             return '<div style="font-size:13px">' +
               '<b>'+num+'</b> &middot; 期号: '+period + '<br>' +
               '<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+layerColor+';margin-right:4px;vertical-align:middle"></span>' +
@@ -361,16 +365,16 @@
         xAxis: {
           type: 'category',
           data: numNames,
-          axisLine: { lineStyle: { color: '#1e2a40' } },
-          axisLabel: { color: '#7a8499', fontSize: 10, rotate: numNames.length > 15 ? 45 : 0 },
-          splitArea: { show: true, areaStyle: { color: ['rgba(30,42,64,0.2)','rgba(30,42,64,0.05)'] } }
+          axisLine: { lineStyle: { color: jsv('--js-border-elev-0') } },
+          axisLabel: { color: jsv('--js-ink-mid'), fontSize: 10, rotate: numNames.length > 15 ? 45 : 0 },
+          splitArea: { show: true, areaStyle: { color: ['rgba(22,40,64,0.2)','rgba(22,40,64,0.05)'] } }
         },
         yAxis: {
           type: 'category',
           data: dates,
-          axisLine: { lineStyle: { color: '#1e2a40' } },
-          axisLabel: { color: '#7a8499', fontSize: 9 },
-          splitArea: { show: true, areaStyle: { color: ['rgba(30,42,64,0.2)','rgba(30,42,64,0.05)'] } }
+          axisLine: { lineStyle: { color: jsv('--js-border-elev-0') } },
+          axisLabel: { color: jsv('--js-ink-mid'), fontSize: 9 },
+          splitArea: { show: true, areaStyle: { color: ['rgba(22,40,64,0.2)','rgba(22,40,64,0.05)'] } }
         },
         visualMap: {
           min: 0,
@@ -380,9 +384,9 @@
           right: 10,
           top: 'center',
           inRange: {
-            color: ['#00d4aa','#163040','#1a5c4a','#2d5e8a','#8a3a3a','#ff4444']
+            color: [jsv('--js-ink'), jsv('--js-ice'), jsv('--js-jade'), jsv('--js-gold'), jsv('--js-copper'), jsv('--js-copper')]
           },
-          textStyle: { color: '#7a8499' },
+          textStyle: { color: jsv('--js-ink-mid') },
           formatter: function(v) {
             if (v === 0) return '出现';
             if (v <= 5) return '1-5期';
@@ -396,7 +400,7 @@
           data: heatData,
           label: {
             show: dates.length <= 30,
-            color: '#e4e8f1',
+            color: jsv('--js-ink'),
             fontSize: 10,
             formatter: function(p) {
               var v = p.data[2];
@@ -466,9 +470,9 @@
       ranked.forEach(function(r, i) {
         var rankClass = i < 3 ? 'miss-high' : (i < 6 ? 'miss-mid' : '');
         var icon = '';
-        if (i === 0) icon = ' <span style="color:#ff6b6b">\u25B2</span>';
-        else if (i === 1) icon = ' <span style="color:#ffd93d">\u25B2</span>';
-        else if (i === 2) icon = ' <span style="color:#60a5fa">\u25B2</span>';
+        if (i === 0) icon = ' <span style=\"color:' + jsv('--js-copper') + '\">\u25B2</span>';
+        else if (i === 1) icon = ' <span style="color:' + jsv('--js-gold') + '">\u25B2</span>';
+        else if (i === 2) icon = ' <span style="color:' + jsv('--js-ice') + '">\u25B2</span>';
         html += '<tr><td>'+(i+1)+icon+'</td><td class="num-cell">'+r.name.replace('号','')+'</td>' +
           '<td class="stats-val '+(i<3?'miss-high':'')+'">'+r.cur+'</td></tr>';
       });
@@ -481,7 +485,7 @@
       btn.onclick = function() {
         var chart = window['_heatmap_'+name];
         if (!chart) return;
-        var url = chart.getDataURL({type:'png', backgroundColor:'#0b0f19'});
+        var url = chart.getDataURL({type:'png', backgroundColor: jsv('--js-deep')});
         var a = document.createElement('a');
         a.href = url;
         a.download = name + '-遗漏热力图.png';
