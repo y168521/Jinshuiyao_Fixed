@@ -1,0 +1,76 @@
+/* 共享反馈组件样式（Toast 已由其 JS 内联；此处为 Confirm / Modal 对话框）
+ * 七色体系统一：墨蓝底 #0B1A2F / 蓝灰面 / 香槟金 #C9A96E 描边与强调；不引入禁用色。 */
+
+.jsy-fb-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(11, 26, 47, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99998;
+  padding: 16px;
+  animation: jsy-fb-fade .18s ease;
+}
+
+.jsy-fb-dialog {
+  background: var(--card-bg, #162840);
+  color: var(--ink, #E8ECF1);
+  border: 1px solid var(--gold, #C9A96E);
+  border-radius: var(--js-radius-lg, 12px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  max-width: 420px;
+  width: 100%;
+  padding: 20px;
+  font-size: 14px;
+  animation: jsy-fb-pop .18s ease;
+}
+
+.jsy-fb-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--gold, #C9A96E);
+}
+
+.jsy-fb-body {
+  line-height: 1.6;
+  margin-bottom: 16px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.jsy-fb-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.jsy-fb-btn {
+  cursor: pointer;
+}
+
+.jsy-fb-btn--primary {
+  background: var(--gold, #C9A96E);
+  color: var(--deep, #0B1A2F);
+  border: 1px solid var(--gold, #C9A96E);
+  font-weight: 600;
+}
+
+.jsy-fb-btn--primary:hover {
+  filter: brightness(1.08);
+}
+
+@keyframes jsy-fb-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes jsy-fb-pop {
+  from { transform: translateY(8px) scale(0.98); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jsy-fb-backdrop, .jsy-fb-dialog { animation: none; }
+}

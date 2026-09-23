@@ -51,7 +51,7 @@ except Exception as _e:  # pragma: no cover
     PROFILE_AVAILABLE = False
     PROFILE_IMPORT_ERR = str(_e)
 
-# 区间收益（近3月/6月/1年/3年）复用领域层分析引擎——JS-20260923-10 批2
+# 区间收益（近3月/6月/1年/3年）复用领域层分析引擎——JS-20260923-11 批2
 try:
     from domains.fund.analyzer import FundAnalyzer
     ANALYZER_AVAILABLE = True
@@ -61,7 +61,7 @@ except Exception as _e:  # pragma: no cover
     ANALYZER_AVAILABLE = False
     ANALYZER_IMPORT_ERR = str(_e)
 
-# 同类排名复用领域层 FundFetcher.get_rank（real_only=True，不编造模拟排名）——JS-20260923-10 批2
+# 同类排名复用领域层 FundFetcher.get_rank（real_only=True，不编造模拟排名）——JS-20260923-11 批2
 try:
     from domains.fund.fetcher import FundFetcher
     RANK_FETCHER_AVAILABLE = True
@@ -600,7 +600,7 @@ class ReportGenerator:
             pl = signals.get("purchase_limit", {})
             sd = signals.get("significant_drop", {})
 
-            # JS-20260923-10 批2：区间收益 + 同类排名展示准备
+            # JS-20260923-11 批2：区间收益 + 同类排名展示准备
             _ir_map = d.get("interval_returns", {}) or {}
 
             def _fmt_ir(v):
@@ -1074,7 +1074,7 @@ class DailyFundMonitor:
         self.fetcher = FundDataFetcher()
         self.risk_calc = RiskCalculator()
         self.signal_detector = SignalDetector()
-        # JS-20260923-10 批2：区间收益分析引擎（缺失则跳过区间收益栏，不报错）
+        # JS-20260923-11 批2：区间收益分析引擎（缺失则跳过区间收益栏，不报错）
         self.analyzer = FundAnalyzer() if ANALYZER_AVAILABLE else None
         self.ranks = {}
         self.report_gen = ReportGenerator(
@@ -1125,7 +1125,7 @@ class DailyFundMonitor:
         logger.info("开始执行每日基金监控...")
         logger.info("=" * 50)
 
-        # 1.0 采集同类排名（真实数据缺失时返回空，卡片显示「暂缺」）——JS-20260923-10 批2
+        # 1.0 采集同类排名（真实数据缺失时返回空，卡片显示「暂缺」）——JS-20260923-11 批2
         self.ranks = self._collect_ranks()
 
         # 1. 获取每只基金的数据
@@ -1139,7 +1139,7 @@ class DailyFundMonitor:
                 logger.warning("基金 %s 快照获取失败，跳过", code)
                 continue
             
-            # 获取历史数据（近3年，供区间收益；同时截取最近90天供风险/信号，保持旧口径——JS-20260923-10 批2）
+            # 获取历史数据（近3年，供区间收益；同时截取最近90天供风险/信号，保持旧口径——JS-20260923-11 批2）
             history_full = self.fetcher.get_fund_history(code, days=800)
             history = (
                 history_full.tail(90)
@@ -1159,7 +1159,7 @@ class DailyFundMonitor:
                     "total_return": self.risk_calc.calc_total_return(nav_series),
                 }
 
-            # JS-20260923-10 批2：区间收益（近3月/6月/1年/近3年）复用 analyzer.calculate_returns，不重写
+            # JS-20260923-11 批2：区间收益（近3月/6月/1年/近3年）复用 analyzer.calculate_returns，不重写
             interval_returns = {}
             if self.analyzer is not None and history_full is not None and not history_full.empty and len(history_full) >= 5:
                 navs = history_full["单位净值"].astype(float).tolist()
@@ -1276,7 +1276,7 @@ class DailyFundMonitor:
     def _collect_ranks(self) -> Dict:
         """采集同类排名（近1月…近3年 + 同类排名）
 
-        JS-20260923-10 批2：复用领域层 FundFetcher.get_rank()。
+        JS-20260923-11 批2：复用领域层 FundFetcher.get_rank()。
         真实数据不可用时（real_only=True）返回空 dict，报告对应栏显示「暂缺」，
         绝不返回模拟排名（违背诚实铁律）。
         """
