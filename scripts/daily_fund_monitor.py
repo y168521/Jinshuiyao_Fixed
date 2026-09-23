@@ -523,6 +523,94 @@ class SignalDetector:
 # 报告生成器
 # ================================================================
 
+# ================================================================
+# 组合概览聚合（JS-20260924-01 批3·切片A）：跨基金对比，复用 monitor_data 已有字段，
+# 不取任何新数据。区间收益/风险来自批2与旧管线，定投计划来自 FUND_CONFIG。
+# ================================================================
+
+def _aggregate_portfolio(data: Dict) -> Dict:
+    """跨基金聚合，供「组合概览」板块渲染。纯计算，遇缺失字段安全跳过。"""
+    rows = []
+    for code, d in data.items():
+        cfg = d.get("config", {}) or {}
+        ir = d.get("interval_returns", {}) or {}
+        risks = d.get("risks", {}) or {}
+        rows.append({
+            "code": code,
+            "name": cfg.get("name", code),
+            "inv_3m": ir.get("近3月"),
+            "inv_1y": ir.get("近1年"),
+            "ret_90": risks.get("total_return"),
+            "max_dd": risks.get("max_drawdown"),
+            "sharpe": risks.get("sharpe"),
+        })
+    dca_daily = sum(f.get("dca_amount", 0) for f in FUND_CONFIG if f.get("dca_freq") == "daily")
+    dca_weekly = sum(f.get("dca_amount", 0) for f in FUND_CONFIG if f.get("dca_freq") == "weekly")
+
+    def _extreme(key, best):
+        vals = [r for r in rows if isinstance(r.get(key), (int, float))]
+        if not vals:
+            return None
+        return max(vals, key=lambda x: x[key]) if best else min(vals, key=lambda x: x[key])
+
+    return {
+        "best_1y": _extreme("inv_1y", True),
+        "worst_1y": _extreme("inv_1y", False),
+        "best_3m": _extreme("inv_3m", True),
+        "worst_3m": _extreme("inv_3m", False),
+        "best_90": _extreme("ret_90", True),
+        "worst_90": _extreme("ret_90", False),
+        "worst_dd": _extreme("max_dd", False),
+        "best_sharpe": _extreme("sharpe", True),
+        "dca_daily": dca_daily,
+        "dca_weekly": dca_weekly,
+    }
+
+
+def _render_portfolio_overview(ov: Dict) -> str:
+    """将聚合结果渲染为组合概览卡片网格。"""
+    def _pct(v):
+        return f"{v:+.2f}%" if isinstance(v, (int, float)) else "—"
+
+    def _dd(v):
+        return f"{v:.2f}%" if isinstance(v, (int, float)) else "—"
+
+    def _sharpe(v):
+        return f"{v:.2f}" if isinstance(v, (int, float)) else "—"
+
+    def _cls_pct(v):
+        if not isinstance(v, (int, float)):
+            return "neutral"
+        return "up" if v > 0 else "down" if v < 0 else "neutral"
+
+    def _card(label, rec, key, fmt, cls_fn="neutral"):
+        val = rec.get(key) if rec else None
+        sub = rec.get("name", "") if rec else ""
+        cls = cls_fn(val) if callable(cls_fn) else cls_fn
+        return (
+            f'<div class="summary-card">'
+            f'<div class="number {cls}">{fmt(val)}</div>'
+            f'<div class="label">{label}</div>'
+            f'<div class="label" style="margin-top:2px;opacity:.8">{sub}</div>'
+            f'</div>'
+        )
+
+    cards = [
+        _card("近1年最佳", ov["best_1y"], "inv_1y", _pct, _cls_pct),
+        _card("近1年最弱", ov["worst_1y"], "inv_1y", _pct, _cls_pct),
+        _card("近3月最佳", ov["best_3m"], "inv_3m", _pct, _cls_pct),
+        _card("90天最佳", ov["best_90"], "ret_90", _pct, _cls_pct),
+        _card("90天最弱", ov["worst_90"], "ret_90", _pct, _cls_pct),
+        _card("最大回撤(最差)", ov["worst_dd"], "max_dd", _dd, "down"),
+        _card("夏普最高", ov["best_sharpe"], "sharpe", _sharpe, "neutral"),
+        (f'<div class="summary-card">'
+         f'<div class="number" style="font-size:20px">{ov["dca_daily"]} / {ov["dca_weekly"]}</div>'
+         f'<div class="label">定投计划(日/周 元)</div>'
+         f'</div>'),
+    ]
+    return f'<div class="summary-bar">{"".join(cards)}</div>'
+
+
 class ReportGenerator:
     """HTML日报生成器 - 暗色科技风"""
 
@@ -578,6 +666,9 @@ class ReportGenerator:
         limit_warn_count = sum(1 for p in profiles.values() if p.get("limit", {}).get("level") == "warn")
         limit_tighten_count = sum(1 for p in profiles.values() if p.get("limit_change") == "tighter")
         
+        # JS-20260924-01 批3·切片A：组合概览（跨基金聚合，复用已有数据，不取新源）
+        overview_html = _render_portfolio_overview(_aggregate_portfolio(data))
+
         # 基金卡片HTML
         fund_cards = []
         for fund in FUND_CONFIG:
@@ -1018,6 +1109,9 @@ class ReportGenerator:
                 <div class="label">限购影响定投{'（收紧' + str(limit_tighten_count) + '只）' if limit_tighten_count else ''}</div>
             </div>
         </div>
+        
+        <div class="section-title">组合概览</div>
+        {overview_html}
         
         <div class="section-title">持仓基金明细</div>
         {''.join(fund_cards)}

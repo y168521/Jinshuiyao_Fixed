@@ -339,6 +339,8 @@
   .btn-mini.err { background: rgba(161,32,42,0.16); color: var(--err); }
   .btn-mini.err:hover { background: rgba(161,32,42,0.32); }
 </style>
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/ui-feedback.css">
+  <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/ui-feedback.js"></script>
 </head>
 <body>
 <div class="container">
@@ -473,7 +475,7 @@ async function loadDashboard() {
   try {
     const r = await fetch(BASE + '/api/review/dashboard');
     const d = await r.json();
-    if (!d.ok) { alert('加载失败: ' + d.error); return; }
+    if (!d.ok) { JSY.toast('加载失败: ' + d.error, 'error'); return; }
     const dash = d.dashboard;
     const m = dash.metrics;
 
@@ -555,7 +557,7 @@ async function loadDashboard() {
     }
 
   } catch (e) {
-    alert('加载失败: ' + e);
+    JSY.toast('加载失败: ' + e, 'error');
   }
 }
 
@@ -650,7 +652,7 @@ function renderTopPatternsChart(topPatterns) {
 
 async function submitPatternFeedback(pid, action) {
   const label = action === 'accept' ? '接受（有效模式）' : '驳回（误报）';
-  if (!confirm(`确认将模式 ${pid} 标记为「${label}」？\n反馈将调整其置信度并优化后续审查（自学习闭环）。`)) return;
+  if (!(await JSY.confirm(`确认将模式 ${pid} 标记为「${label}」？\n反馈将调整其置信度并优化后续审查（自学习闭环）。`))) return;
   try {
     const r = await fetch(BASE + '/api/review/feedback', {
       method: 'POST',
@@ -662,13 +664,13 @@ async function submitPatternFeedback(pid, action) {
     });
     const d = await r.json();
     if (d.ok) {
-      alert(`✅ 已记录反馈：${pid} → ${label}\n模式置信度已更新，自学习闭环生效。`);
+      JSY.toast(`✅ 已记录反馈：${pid} → ${label}\n模式置信度已更新，自学习闭环生效。`, 'success');
       loadDashboard();
     } else {
-      alert('反馈失败: ' + d.error);
+      JSY.toast('反馈失败: ' + d.error, 'error');
     }
   } catch (e) {
-    alert('提交失败: ' + e);
+    JSY.toast('提交失败: ' + e, 'error');
   }
 }
 
@@ -687,16 +689,16 @@ async function triggerReview(mode) {
     if (d.ok) {
       const score = d.report && d.report.summary ? d.report.summary.health_score : '--';
       const rec = d.report && d.report.summary ? d.report.summary.recommendation : '';
-      alert('审查完成!\n\n评分: ' + score + ' / 100\n建议: ' + rec);
+      JSY.toast('审查完成!\n\n评分: ' + score + ' / 100\n建议: ' + rec, 'info');
       if (Notification && Notification.permission === 'granted') {
         new Notification('金水谣审查完成', { body: '评分: ' + score + ' / 100 · ' + rec });
       }
       loadDashboard();
     } else {
-      alert('审查失败: ' + d.error);
+      JSY.toast('审查失败: ' + d.error, 'error');
     }
   } catch (e) {
-    alert('触发失败: ' + e);
+    JSY.toast('触发失败: ' + e, 'error');
   }
   btn.innerHTML = originalText;
   btn.disabled = false;

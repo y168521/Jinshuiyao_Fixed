@@ -1179,6 +1179,8 @@
     .msg-action { border: none; background: rgba(128,128,128,0.12); color: var(--ink-dim, #888); cursor: pointer; border-radius: 8px; padding: 0.18rem 0.42rem; font-size: 0.8rem; line-height: 1; }
     .msg-action:hover { background: rgba(128,128,128,0.22); color: var(--ink, #333); }
   </style>
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/ui-feedback.css">
+  <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/ui-feedback.js"></script>
 </head>
 <body>
 
@@ -1272,7 +1274,7 @@
         <span class="topbar-badge" id="aiBadge">检测中...</span>
       </div>
       <div class="topbar-actions">
-        <button class="topbar-btn" onclick="if(!confirm('确定清空全部对话？此操作不可恢复'))return;clearChat()">&#128465; 清空</button>
+        <button class="topbar-btn" onclick="JSY.confirm('确定清空全部对话？此操作不可恢复').then(function(ok){if(ok)clearChat();})">&#128465; 清空</button>
         <button class="topbar-btn" onclick="window.open('/','_self')">&#127968; 总控台</button>
       </div>
     </div>
@@ -1920,7 +1922,7 @@
 
     function buildReviewReport() {
       if (!predictionRecords.length) {
-        alert('还没有预测记录，无法生成复盘报告。先去「AI对话」做几次预测吧。');
+        JSY.toast('还没有预测记录，无法生成复盘报告。先去「AI对话」做几次预测吧。', 'info');
         return;
       }
       var byDomain = {};
@@ -1968,11 +1970,11 @@
     function copyReviewReport() {
       var txt = document.getElementById('reportText').textContent;
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(txt).then(function() { alert('报告已复制到剪贴板'); });
+        navigator.clipboard.writeText(txt).then(function() { JSY.toast('报告已复制到剪贴板', 'info'); });
       } else {
         var ta = document.createElement('textarea');
         ta.value = txt; document.body.appendChild(ta); ta.select();
-        try { document.execCommand('copy'); alert('报告已复制到剪贴板'); } catch (e) {}
+        try { document.execCommand('copy'); JSY.toast('报告已复制到剪贴板', 'info'); } catch (e) {}
         document.body.removeChild(ta);
       }
     }
@@ -2853,10 +2855,10 @@
           var tip = document.getElementById("themeSaveTip");
           if (tip) tip.textContent = "已保存并应用 ✓（刷新页面也保持）";
         } else {
-          alert("保存失败：" + (d.error || "未知"));
+          JSY.toast("保存失败：" + (d.error || "未知"), 'error');
         }
       })
-      .catch(function () { alert("保存网络错误"); });
+      .catch(function () { JSY.toast("保存网络错误", 'error'); });
     }
 
     function clearTheme() {
@@ -2877,7 +2879,7 @@
           renderThemeControls({});
         }
       })
-      .catch(function () { alert("恢复默认网络错误"); });
+      .catch(function () { JSY.toast("恢复默认网络错误", 'error'); });
     }
 
     // 页面加载时拉一次当前主题并注入，保证刷新后保持

@@ -671,6 +671,8 @@
     .global-search{display:none}
   }
 </style>
+  <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/ui-feedback.css">
+  <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/ui-feedback.js"></script>
 </head>
 <body data-nav="pill">
 
@@ -1722,7 +1724,7 @@ function updatePredStats(){
   setText('predTotal',total);setText('predReviewed',reviewed);setText('predHit',hit);setText('predRate',rate);setText('predCount',total);
 }
 function buildReviewReport(){
-  if(!predictionRecords.length){alert('还没有预测记录，无法生成复盘报告。先去做几次预测吧。');return;}
+  if(!predictionRecords.length){JSY.toast('还没有预测记录，无法生成复盘报告。先去做几次预测吧。','info');return;}
   var bd={};var hit=0,miss=0;
   predictionRecords.forEach(function(r){var d=DOMAIN_LABEL[r.domain]||'其他';bd[d]=(bd[d]||0)+1;if(r.outcome==='hit')hit++;if(r.outcome==='miss')miss++;});
   var reviewed=hit+miss;var rate=reviewed?(hit/reviewed*100).toFixed(1)+'%':'暂无标注';
@@ -1740,8 +1742,8 @@ function buildReviewReport(){
 }
 function copyReviewReport(){
   var txt=$('reportText').textContent;
-  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){alert('报告已复制到剪贴板');});}
-  else{var ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');alert('报告已复制');}catch(e){}document.body.removeChild(ta);}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){JSY.toast('报告已复制到剪贴板','info');});}
+  else{var ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');JSY.toast('报告已复制','info');}catch(e){}document.body.removeChild(ta);}
 }
 
 // ===== 系统总控渲染 =====
@@ -1804,7 +1806,7 @@ function filterTasks(st,btn){
 // ===== AI 用例 =====
 function generateAiTest(){
   var req=$('atRequirement').value.trim();var extra=$('atExtra').value.trim();
-  if(!req){alert('请填写需求描述');return;}
+  if(!req){JSY.toast('请填写需求描述','info');return;}
   var btn=$('atGenBtn');btn.disabled=true;btn.textContent='生成中...';
   var out=$('atOutput');out.style.display='block';setHTML('atOutputContent','<span style="color:var(--dim)">正在生成，请稍候...</span>');
 
@@ -1933,12 +1935,14 @@ function addMemory(){
 }
 
 function delMemory(scope,id){
-  if(!confirm('确定删除这条记忆？此操作会写入本机记忆文件。'))return;
-  fetch('/api/memory',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',scope:scope,id:id})})
-    .then(function(r){return r.json();}).then(function(d){
-      if(d.ok)renderMemory(d.memories);
-      else alert('删除失败：'+(d.message||d.error||''));
-    }).catch(function(e){alert('网络错误：'+e);});
+  JSY.confirm('确定删除这条记忆？此操作会写入本机记忆文件。').then(function(ok){
+    if(!ok)return;
+    fetch('/api/memory',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',scope:scope,id:id})})
+      .then(function(r){return r.json();}).then(function(d){
+        if(d.ok)renderMemory(d.memories);
+        else JSY.toast('删除失败：'+(d.message||d.error||''),'error');
+      }).catch(function(e){JSY.toast('网络错误：'+e,'error');});
+  });
 }
 
 function editMemory(scope,id,oldText){
@@ -1947,8 +1951,8 @@ function editMemory(scope,id,oldText){
   fetch('/api/memory',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'edit',scope:scope,id:id,new_text:nv})})
     .then(function(r){return r.json();}).then(function(d){
       if(d.ok)renderMemory(d.memories);
-      else alert('修改失败：'+(d.message||d.error||''));
-    }).catch(function(e){alert('网络错误：'+e)});
+      else JSY.toast('修改失败：'+(d.message||d.error||''),'error');
+    }).catch(function(e){JSY.toast('网络错误：'+e,'error');});
 }
 
 // ===== 视频文案提取 =====
