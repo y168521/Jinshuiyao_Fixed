@@ -44,6 +44,8 @@ button.primary:hover { opacity:.85; }
 .filter-tag.active { background:rgba(200,117,90,.15); border-color:var(--c-hot); color:var(--c-hot); }
 @media(max-width:600px){ body{ padding:12px; } #omissionTable{ font-size:11px; } }
 </style>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/ui-feedback.css">
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/ui-feedback.js"></script>
 </head>
 <body>
 <div style="margin-bottom:10px;"><a href="/lottery" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回彩票分析中心</a></div>
@@ -196,7 +198,7 @@ function sortBy(key){
 
 function exportOmissionCsv(){
   const t = document.getElementById('omissionTable');
-  if(!t){ alert('暂无数据可导出'); return; }
+  if(!t){ JSY.toast('暂无数据可导出'); return; }
   const cfg = LOT_CFG[document.getElementById('lotType').value] || {name:'彩票'};
   exportTableCsv(t, '遗漏表_'+cfg.name+'_'+new Date().toISOString().slice(0,10)+'.csv');
 }

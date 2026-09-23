@@ -47,6 +47,8 @@
     .note { color: var(--muted); font-size: 0.78rem; margin-top: 0.5rem; }
     @media (max-width: 768px) { .container { padding: 1rem; } .num-btn { width: 30px; height: 30px; font-size: 0.75rem; } }
   </style>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/ui-feedback.css">
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/ui-feedback.js"></script>
 </head>
 <body>
   <header class="header">
@@ -302,8 +304,8 @@
     function calcPrize() {
       var type = document.getElementById('lotType').value;
       var cfg = LOT_CONFIG[type];
-      if (myReds.length < cfg.k) { alert('请至少选择 ' + cfg.k + ' 个号码'); return; }
-      if (drawReds.length < cfg.k) { alert('请填写开奖号码'); return; }
+      if (myReds.length < cfg.k) { JSY.toast('请至少选择 ' + cfg.k + ' 个号码'); return; }
+      if (drawReds.length < cfg.k) { JSY.toast('请填写开奖号码'); return; }
 
       // Determine hit
       var redHit = countHits(myReds, drawReds);

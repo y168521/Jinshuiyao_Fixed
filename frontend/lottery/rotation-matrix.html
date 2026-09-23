@@ -55,6 +55,8 @@
       .stat-grid { grid-template-columns: repeat(2, 1fr); }
     }
   </style>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/ui-feedback.css">
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/ui-feedback.js"></script>
 </head>
 <body>
   <header class="header">
@@ -280,7 +282,7 @@
       var isDigit = !!config.digit;
 
       if (selectedReds.length < config.k) {
-        alert('请至少选择 ' + config.k + ' 个红球号码');
+        JSY.toast('请至少选择 ' + config.k + ' 个红球号码');
         return;
       }
 

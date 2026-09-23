@@ -65,6 +65,8 @@
       .num-btn { width: 30px; height: 30px; font-size: 0.75rem; }
     }
   </style>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/ui-feedback.css">
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/ui-feedback.js"></script>
 </head>
 <body>
   <header class="header">
@@ -303,7 +305,7 @@
       var type = document.getElementById('lotType').value;
       var cfg = LOT_CONFIG[type];
       if (selectedReds.length < cfg.k) {
-        alert('至少选择 ' + cfg.k + ' 个红球');
+        JSY.toast('至少选择 ' + cfg.k + ' 个红球');
         return;
       }
 

@@ -44,6 +44,8 @@ tr:hover td { background:rgba(255,255,255,.02); }
 .empty { text-align:center; padding:30px; color:var(--muted); font-size:13px; }
 @media(max-width:600px){ body{ padding:12px; } table{ font-size:12px; } th,td{ padding:6px 4px; } }
 </style>
+<link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/ui-feedback.css">
+<script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/ui-feedback.js"></script>
 </head>
 <body>
 <div style="margin-bottom:10px;"><a href="/fund" style="color:var(--muted);font-size:13px;text-decoration:none;">&larr; 返回基金分析中心</a></div>
@@ -156,7 +158,7 @@ async function confirmAdd() {
   const shares = parseFloat(document.getElementById('fShares').value) || 0;
   const cost = parseFloat(document.getElementById('fCost').value) || 0;
   const type = document.getElementById('fType').value;
-  if (!name || !code) { alert('名称和代码不能为空'); return; }
+  if (!name || !code) { JSY.toast('名称和代码不能为空'); return; }
   try {
     const r = await fetch(BASE + '/api/fund/portfolio/add', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -167,22 +169,27 @@ async function confirmAdd() {
       closeModal();
       loadPortfolio();
     } else {
-      alert('添加失败: ' + (j.error || ''));
+      JSY.toast('添加失败: ' + (j.error || ''));
     }
-  } catch (e) { alert('请求失败'); }
+  } catch (e) { JSY.toast('请求失败'); }
 }
 
-async function removeHolding(code) {
-  if (!confirm('确定删除该持仓？')) return;
-  try {
-    const r = await fetch(BASE + '/api/fund/portfolio/remove', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code })
-    });
-    const j = await r.json();
-    if (j.ok) loadPortfolio();
-    else alert('删除失败');
-  } catch (e) { alert('请求失败'); }
+/* JSY.confirm 为 Promise 化：原同步写法的「判空即返回」需整体包进 .then 回调 */
+function removeHolding(code) {
+  JSY.confirm('确定删除该持仓？').then(function (ok) {
+    if (!ok) return;
+    (async function () {
+      try {
+        const r = await fetch(BASE + '/api/fund/portfolio/remove', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code })
+        });
+        const j = await r.json();
+        if (j.ok) loadPortfolio();
+        else JSY.toast('删除失败');
+      } catch (e) { JSY.toast('请求失败'); }
+    })();
+  });
 }
 
 loadPortfolio();
