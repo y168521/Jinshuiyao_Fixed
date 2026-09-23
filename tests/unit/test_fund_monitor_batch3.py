@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""批3 切片A（JS-20260924-01）单元测试：组合概览聚合 + 渲染。"""
+"""批3 切片A（JS-20260924-03）单元测试：组合概览聚合 + 渲染。"""
 import sys, os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))

@@ -88,6 +88,10 @@ logger = logging.getLogger('fund_monitor')
 TARGET_PROFIT_DEFAULT = 0.164   # 统一止盈线 16.4%
 WARN_LINE_DEFAULT = 0.12        # 预警线 12%（两档制：先预警后止盈，保住 000216 现有提醒）
 
+# JS-20260924-02：Calmar = 年化收益/最大回撤。回撤极小时该比值发散（实测债基回撤 0.01%
+# → Calmar 145.62），数学上成立但无投资含义。回撤低于该阈值(%)时返回 None，渲染显示「—」。
+CALMAR_MIN_DRAWDOWN_PCT = 0.5
+
 # dca_amount/dca_freq：定投计划（七期 TRAE 报告完全一致，视为用户确认口径）。
 # 限购比较用「单次买入金额」= dca_amount，不再用 investment/30 折算（修 017641 误报）。
 FUND_CONFIG = [
@@ -416,24 +420,36 @@ class RiskCalculator:
         return round(excess_return / (returns.std() * np.sqrt(252)), 2)
 
     @staticmethod
-    def calc_calmar(nav_series: pd.Series) -> float:
-        """计算Calmar比率（年化收益/最大回撤）"""
-        if nav_series.empty or len(nav_series) < 5:
-            return 0.0
+    def calc_calmar(nav_series: pd.Series) -> Optional[float]:
+        """计算Calmar比率（年化收益/最大回撤）
+
+        JS-20260924-02：回撤极小时该比值发散（实测债基回撤 0.01% → Calmar 145.62），
+        数学上成立但无投资含义；样本不足时同理。两种情形均返回 None，渲染显示「—」，
+        宁可留白也不给伪精确值。
+        """
+        if nav_series is None or nav_series.empty or len(nav_series) < 5:
+            return None
         returns = nav_series.pct_change().dropna()
         if returns.empty:
-            return 0.0
+            return None
         annual_return = returns.mean() * 252
-        max_dd = RiskCalculator.calc_max_drawdown(nav_series) / 100
+        max_dd_pct = RiskCalculator.calc_max_drawdown(nav_series)
+        if max_dd_pct is None or abs(max_dd_pct) < CALMAR_MIN_DRAWDOWN_PCT:
+            return None
+        max_dd = abs(max_dd_pct) / 100
         if max_dd == 0:
-            return 0.0
+            return None
         return round(annual_return / max_dd, 2)
 
     @staticmethod
-    def calc_total_return(nav_series: pd.Series) -> float:
-        """计算区间总收益率（%）"""
-        if nav_series.empty or len(nav_series) < 2:
-            return 0.0
+    def calc_total_return(nav_series: pd.Series) -> Optional[float]:
+        """计算区间总收益率（%）
+
+        JS-20260924-02：样本不足时原返回 0.0，被渲染成「0.00%」——看起来像
+        「没涨没跌」而非「数据不足」。改为返回 None，渲染显示「—」。
+        """
+        if nav_series is None or nav_series.empty or len(nav_series) < 2:
+            return None
         total = (nav_series.iloc[-1] - nav_series.iloc[0]) / nav_series.iloc[0]
         return round(total * 100, 2)
 
@@ -524,7 +540,7 @@ class SignalDetector:
 # ================================================================
 
 # ================================================================
-# 组合概览聚合（JS-20260924-01 批3·切片A）：跨基金对比，复用 monitor_data 已有字段，
+# 组合概览聚合（JS-20260924-03 批3·切片A）：跨基金对比，复用 monitor_data 已有字段，
 # 不取任何新数据。区间收益/风险来自批2与旧管线，定投计划来自 FUND_CONFIG。
 # ================================================================
 
@@ -611,6 +627,30 @@ def _render_portfolio_overview(ov: Dict) -> str:
     return f'<div class="summary-bar">{"".join(cards)}</div>'
 
 
+def _fill_daily_return_from_history(snapshot: Dict, hist_series) -> None:
+    """快照日涨跌缺失时，用历史末两个净值补算（JS-20260924-02 修复2）。
+
+    get_fund_snapshot 的日涨跌优先取 daily_df 的「日增长率」列，缺失时仅当
+    nav_yesterday 存在才补算；而 daily_df 往往只含最新一列 → nav_yesterday 为 None
+    → 日涨跌整列显示 "--"。历史序列（akshare）始终连续，可据此算出
+    「最新可得一日涨跌」，语义与报告头部标注的净值日期一致。
+    """
+    if snapshot is None or hist_series is None:
+        return
+    if snapshot.get("daily_return") is not None:
+        return
+    if len(hist_series) < 2:
+        return
+    try:
+        prev = float(hist_series.iloc[-2])
+        last = float(hist_series.iloc[-1])
+        if prev == 0:
+            return
+        snapshot["daily_return"] = round((last - prev) / prev * 100, 2)
+    except (TypeError, ValueError, ZeroDivisionError):
+        return
+
+
 class ReportGenerator:
     """HTML日报生成器 - 暗色科技风"""
 
@@ -666,7 +706,7 @@ class ReportGenerator:
         limit_warn_count = sum(1 for p in profiles.values() if p.get("limit", {}).get("level") == "warn")
         limit_tighten_count = sum(1 for p in profiles.values() if p.get("limit_change") == "tighter")
         
-        # JS-20260924-01 批3·切片A：组合概览（跨基金聚合，复用已有数据，不取新源）
+        # JS-20260924-03 批3·切片A：组合概览（跨基金聚合，复用已有数据，不取新源）
         overview_html = _render_portfolio_overview(_aggregate_portfolio(data))
 
         # 基金卡片HTML
@@ -703,6 +743,10 @@ class ReportGenerator:
                 if v is None or isinstance(v, str):
                     return "neutral"
                 return "up" if v > 0 else "down" if v < 0 else "neutral"
+
+            def _disp(v, suffix=""):
+                """风险/收益指标渲染：None（样本不足或回撤≈0）显式显示「—」，不露伪精确值。"""
+                return "—" if v is None else f"{v}{suffix}"
 
             ir_3m, ir_3m_cls = _fmt_ir(_ir_map.get("近3月")), _cls_ir(_ir_map.get("近3月"))
             ir_6m, ir_6m_cls = _fmt_ir(_ir_map.get("近6月")), _cls_ir(_ir_map.get("近6月"))
@@ -746,25 +790,25 @@ class ReportGenerator:
                         </div>
                         <div class="metric">
                             <div class="metric-label">最大回撤</div>
-                            <div class="metric-value">{risks.get("max_drawdown", "--")}%</div>
+                            <div class="metric-value">{_disp(risks.get("max_drawdown"), "%")}</div>
                         </div>
                         <div class="metric">
                             <div class="metric-label">年化波动</div>
-                            <div class="metric-value">{risks.get("volatility", "--")}%</div>
+                            <div class="metric-value">{_disp(risks.get("volatility"), "%")}</div>
                         </div>
                     </div>
                     <div class="metric-row">
                         <div class="metric">
                             <div class="metric-label">夏普比率</div>
-                            <div class="metric-value">{risks.get("sharpe", "--")}</div>
+                            <div class="metric-value">{_disp(risks.get("sharpe"))}</div>
                         </div>
                         <div class="metric">
                             <div class="metric-label">Calmar</div>
-                            <div class="metric-value">{risks.get("calmar", "--")}</div>
+                            <div class="metric-value">{_disp(risks.get("calmar"))}</div>
                         </div>
                         <div class="metric">
                             <div class="metric-label">90天收益</div>
-                            <div class="metric-value">{risks.get("total_return", "--")}%</div>
+                            <div class="metric-value">{_disp(risks.get("total_return"), "%")}</div>
                         </div>
                         <div class="metric">
                             <div class="metric-label">申购状态</div>
@@ -1273,9 +1317,21 @@ class DailyFundMonitor:
             if nav is None and hist_series is not None:
                 # 快照净值缺失（周末/QDII延迟）时用历史最新净值兜底，避免止盈检测失效
                 nav = float(hist_series.iloc[-1])
-            if nav is not None and hist_series is not None:
+
+            # JS-20260924-02 修复1：止盈判定端点必须与 calc_total_return 同源（都用历史末值）。
+            # 此前传的是快照 nav_today(daily_df/东财)，而指标行用 history.iloc[-1](akshare)，
+            # 两源最新净值略有差异 → 卡片「90天收益」与止盈注「90天区间收益」算出两个值
+            # （实测 8 只全部不一致，差 0.33~0.53pp）。
+            tp_nav = (float(hist_series.iloc[-1])
+                      if hist_series is not None and not hist_series.empty else nav)
+
+            # JS-20260924-02 修复2：快照日涨跌缺失时，用历史末两个净值补算（历史序列始终连续）。
+            # daily_df 只含最新一列时 nav_yesterday 为 None，导致「日涨跌」整列全 "--"。
+            _fill_daily_return_from_history(snapshot, hist_series)
+
+            if tp_nav is not None and hist_series is not None:
                 signals["take_profit"] = self.signal_detector.check_take_profit(
-                    nav, fund["investment"], fund["target_profit"], hist_series,
+                    tp_nav, fund["investment"], fund["target_profit"], hist_series,
                     warn_line=fund.get("warn_line")
                 )
             else:

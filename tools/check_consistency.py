@@ -617,8 +617,13 @@ def check_std_thresholds():
                 'SCALE_SURGE_WARN_PCT', 'MANAGER_CHANGE_WARN_DAYS',
                 'MANAGER_TTL_HOURS', 'SCALE_TTL_DAYS', 'PURCHASE_TTL_HOURS',
             ],
-            os.path.join(BASE_DIR, 'core', 'data_truth_guard.py'): [
+            # JS-20260924-02：该文件已迁到 core/infra/ 下，旧路径会让本闸门「源文件缺失」而失效
+            os.path.join(BASE_DIR, 'core', 'infra', 'data_truth_guard.py'): [
                 'MATCH_STALE_WARN_DAYS', 'MATCH_STALE_FAIL_DAYS', 'LOT_STALE_WARN_DAYS',
+            ],
+            # JS-20260924-02：Calmar 回撤下限（回撤≈0 时比值发散，留白优于伪精确值）
+            os.path.join(BASE_DIR, 'scripts', 'daily_fund_monitor.py'): [
+                'CALMAR_MIN_DRAWDOWN_PCT',
             ],
             os.path.join(BASE_DIR, 'tools', 'code_health_gate.py'): [
                 'MAX_FUNC_LINES', 'MAX_SILENT_SWALLOW', 'MAX_BARE_EXCEPT',
