@@ -274,6 +274,20 @@ input, textarea, select {
 }
 input:focus, textarea:focus, select:focus { border-color: var(--gold); }
 
+/* 键盘焦点环（无障碍 · 全站统一 · JS-20260924-09）
+   取证：①上方 input/textarea/select 带 `outline:none`，聚焦反馈只剩边框变金色，
+   对键盘用户过弱；②全站 206 个 button + 225 个 a 无任何设计系统级焦点样式，
+   全靠浏览器默认环在深色底上对比度存疑；③tokens.css 中 --js-ice 的定义用途
+   本就写明「数据/链接/焦点环」（三主题对比度 8.4 / 6.52 / 8.26，均 AAA），
+   但此前从未被接线。
+   特异度：:where() 计 0，仅 :focus-visible 计 (0,0,1,0)，高于元素选择器 (0,0,0,1)，
+   故可盖过 `outline:none`；页面自有 :focus 样式仍优先 → 零回归。
+   :focus-visible 只在键盘/辅助技术聚焦时出现，鼠标点击不显示 → 不影响鼠标用户观感。 */
+:where(a, button, [tabindex], summary, input, textarea, select):focus-visible {
+  outline: 2px solid var(--js-ice, #5BC0DE);
+  outline-offset: 2px;
+}
+
 /* ── 滚动条 ── */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: var(--deep); }
