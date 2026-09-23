@@ -95,10 +95,15 @@ p { margin-bottom: 0.8rem; }
 .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
 .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1rem; }
 
+/* P2 栅格中间档（与 theme.css 对齐，2026-09-24 抽样验收补）：此前仅 768px 直塌 1 列，
+   769~1200px 区间 4 列被压到 ~190px 极挤。补 1200/1024 中间档，逐级 4→3→2→1。 */
+@media (max-width: 1200px) { .grid-4 { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 1024px) { .grid-4, .grid-3 { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 768px) {
-  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .grid-3, .grid-4 { grid-template-columns: repeat(2, 1fr); }
   .hero h1 { font-size: 2rem; }
 }
+@media (max-width: 480px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
 
 .table-wrap { overflow-x: auto; margin: 1rem 0; max-height: 600px; }
 .table-wrap table { min-width: 700px; }

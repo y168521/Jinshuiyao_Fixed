@@ -202,10 +202,16 @@ a:hover { color: var(--gold); }
 .badge-err { background: rgba(200,117,90,.12); color: var(--err); }
 
 /* ── 网格布局 ── */
-.grid { display: grid; gap: 16px; }
+/* P2-G 收口（2026-09-24 抽样验收）：.grid-2/3/4 此前缺 display:grid，
+   单用类名时退化为 block（P2 中间档形同虚设）。这里补齐 display:grid，
+   与 .grid 一致，使共享栅格类在任意页面都生效。 */
+.grid, .grid-2, .grid-3, .grid-4 { display: grid; gap: 16px; }
 .grid-2 { grid-template-columns: repeat(2, 1fr); }
 .grid-3 { grid-template-columns: repeat(3, 1fr); }
 .grid-4 { grid-template-columns: repeat(4, 1fr); }
+/* 防栅格撑破：1fr 子项默认 min-width:auto，长内容会把列顶宽导致窄屏横向溢出。
+   塌缩期间尤其明显，统一置 0 让列可收缩。 */
+.grid > *, .grid-2 > *, .grid-3 > *, .grid-4 > * { min-width: 0; }
 
 /* ── 分割线 ── */
 .divider { border: none; border-top: 1px solid var(--gold-border); margin: 24px 0; }

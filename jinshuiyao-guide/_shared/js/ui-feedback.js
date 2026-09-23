@@ -56,6 +56,25 @@
     else body.textContent = opts.bodyText || '';
     dialog.appendChild(body);
 
+    var inputNode = null;
+    if (opts.input) {
+      inputNode = document.createElement(opts.input.multiline === false ? 'input' : 'textarea');
+      inputNode.className = 'jsy-fb-input';
+      if (opts.input.value != null) inputNode.value = opts.input.value;
+      if (opts.input.placeholder) inputNode.setAttribute('placeholder', opts.input.placeholder);
+      if (inputNode.tagName === 'TEXTAREA') {
+        inputNode.rows = opts.input.rows || 3;
+        inputNode.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); close('ok'); }
+        });
+      } else {
+        inputNode.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); close('ok'); }
+        });
+      }
+      body.appendChild(inputNode);
+    }
+
     var footer = document.createElement('div');
     footer.className = 'jsy-fb-actions';
     (opts.actions || []).forEach(function (a) {
@@ -76,8 +95,11 @@
     function focusables() {
       return dialog.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
     }
-    var f = focusables();
-    if (f.length) f[0].focus();
+    if (inputNode) inputNode.focus();
+    else {
+      var f = focusables();
+      if (f.length) f[0].focus();
+    }
 
     function onKey(e) {
       if (e.key === 'Escape') {
@@ -102,7 +124,7 @@
       document.removeEventListener('keydown', onKey);
       backdrop.remove();
       document.body.style.overflow = prevOverflow;
-      if (opts.onClose) opts.onClose(key);
+      if (opts.onClose) opts.onClose(key, inputNode ? inputNode.value : undefined);
     }
     return { close: close };
   }
@@ -135,6 +157,31 @@
         actions: opts.actions || [{ key: 'close', label: '关闭', primary: true }],
         cancelKey: opts.cancelKey,
         onClose: function (key) { resolve(key); }
+      });
+    });
+  };
+
+  /* ── Prompt：返回 Promise<string|null>（null=取消），L2 令牌、a11y 同 Confirm ── */
+  JSY.prompt = function (message, opts) {
+    opts = opts || {};
+    return new Promise(function (resolve) {
+      openDialog({
+        title: opts.title || '请输入',
+        bodyText: message,
+        input: {
+          value: opts.value != null ? opts.value : '',
+          placeholder: opts.placeholder,
+          multiline: opts.multiline !== false,
+          rows: opts.rows
+        },
+        actions: [
+          { key: 'ok', label: opts.okText || '确定', primary: true },
+          { key: 'cancel', label: opts.cancelText || '取消', primary: false }
+        ],
+        cancelKey: 'cancel',
+        onClose: function (key, value) {
+          resolve(key === 'cancel' ? null : (value != null ? value : ''));
+        }
       });
     });
   };

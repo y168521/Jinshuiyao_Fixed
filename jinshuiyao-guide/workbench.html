@@ -1946,13 +1946,14 @@ function delMemory(scope,id){
 }
 
 function editMemory(scope,id,oldText){
-  var nv=prompt('修改记忆内容：',oldText||'');
-  if(nv===null)return;nv=nv.trim();if(!nv)return;
-  fetch('/api/memory',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'edit',scope:scope,id:id,new_text:nv})})
-    .then(function(r){return r.json();}).then(function(d){
-      if(d.ok)renderMemory(d.memories);
-      else JSY.toast('修改失败：'+(d.message||d.error||''),'error');
-    }).catch(function(e){JSY.toast('网络错误：'+e,'error');});
+  JSY.prompt('修改记忆内容：', { value: oldText||'', okText:'保存', cancelText:'取消' }).then(function(nv){
+    if(nv===null)return;nv=nv.trim();if(!nv)return;
+    fetch('/api/memory',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'edit',scope:scope,id:id,new_text:nv})})
+      .then(function(r){return r.json();}).then(function(d){
+        if(d.ok)renderMemory(d.memories);
+        else JSY.toast('修改失败：'+(d.message||d.error||''),'error');
+      }).catch(function(e){JSY.toast('网络错误：'+e,'error');});
+  });
 }
 
 // ===== 视频文案提取 =====

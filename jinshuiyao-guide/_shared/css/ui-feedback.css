@@ -61,6 +61,24 @@
   filter: brightness(1.08);
 }
 
+.jsy-fb-input {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--gold-border, #C9A96E);
+  border-radius: var(--js-radius-sm, 6px);
+  color: var(--ink, #E8ECF1);
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: var(--font, inherit);
+  line-height: 1.5;
+  outline: none;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.jsy-fb-input:focus { border-color: var(--gold, #C9A96E); }
+
 @keyframes jsy-fb-fade {
   from { opacity: 0; }
   to { opacity: 1; }
