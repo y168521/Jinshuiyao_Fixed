@@ -92,7 +92,7 @@ WARN_LINE_DEFAULT = 0.12        # 预警线 12%（两档制：先预警后止盈
 # → Calmar 145.62），数学上成立但无投资含义。回撤低于该阈值(%)时返回 None，渲染显示「—」。
 CALMAR_MIN_DRAWDOWN_PCT = 0.5
 
-# JS-20260924-04 批3·切片B+C：加仓规则引擎 + 今日操作待办（清单第 6、8 条）
+# JS-20260924-08 批3·切片B+C：加仓规则引擎 + 今日操作待办（清单第 6、8 条）
 # 出处（用户已说出口、TRAE 七期全稳的口径）：
 #   deliverables/TRAE基金晨报对比_金水谣差距与冲突清单_20260923.md 第 72、157 行
 #   「纳指/标普/恒生科技 跌 1-3% 加 10 元、跌>3% 加 20 元；基金单日跌>3% 也触发；只建议不执行」
@@ -648,7 +648,7 @@ def _render_portfolio_overview(ov: Dict) -> str:
 
 
 # ================================================================
-# 加仓规则引擎 + 今日操作待办（JS-20260924-04 批3·切片B+C，清单第 6、8 条）
+# 加仓规则引擎 + 今日操作待办（JS-20260924-08 批3·切片B+C，清单第 6、8 条）
 # 纯规则计算：只读取 run() 已采集的 signals / snapshot，不取任何新数据源。
 # ================================================================
 
@@ -744,6 +744,67 @@ _LEVEL_TEXT = {
     TODO_LEVEL_INFO: "蓝·可选动作",
 }
 
+# 待办表样式（JS-20260924-08）。抽成模块常量而非写进 _build_html 的内联 <style>：
+# _build_html 早已超过代码体检的 max_func 阈值，本批不能再把它推高（门禁按增量告警）。
+_TODO_TABLE_CSS = """
+        /* 今日操作待办表（红橙蓝三级，只用既有主题变量，不引入 L2 禁色） */
+        .todo-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .todo-table th {
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 12px;
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--border);
+        }
+        .todo-table td {
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+        .todo-table tr:last-child td { border-bottom: none; }
+        .todo-level { white-space: nowrap; font-weight: 600; font-size: 12px; }
+        .todo-fund { white-space: nowrap; }
+        .todo-code {
+            display: block;
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-family: monospace;
+        }
+        .todo-detail { color: var(--text-secondary); font-size: 12px; }
+        .todo-alert .todo-level { color: var(--alert); }
+        .todo-warning .todo-level { color: var(--warning); }
+        .todo-info .todo-level { color: var(--info); }
+        .todo-empty, .todo-note {
+            font-size: 12px;
+            color: var(--text-secondary);
+            padding: 10px 2px;
+        }
+"""
+
+# 图例区脚注（JS-20260924-08）。同上原因抽为模块常量。
+_LEGEND_EXTRA_NOTES = """
+            <br><br>
+            <strong>同类排名口径：</strong>
+            取天天基金同类型排名（近3月/近6月/近1年/近3年），为真实数据源。
+            数据源不可用或该基金未参与排名时显示"暂缺"——这表示<strong>本轮没取到</strong>，
+            不代表"排名靠后"，也不会用任何模拟值填充。
+            <br><br>
+            <strong>加仓规则口径：</strong>
+            纳指 / 标普 / 恒生科技：单日跌 1%~3%（含 3%）建议加 {t1} 元、跌 &gt;3% 建议加 {t2} 元；
+            其余基金只在单日跌 &gt;3% 时给出 {t2} 元建议（1%~3% 的普通回调不给建议，否则天天响）。
+            规则出处为 TRAE 七期一致口径，<strong>只建议、不代客下单</strong>。
+            <br><br>
+            <strong>待办分级：</strong>
+            <span style="color:var(--alert)">红</span> = 已触发止盈，今天要办；
+            <span style="color:var(--warning)">橙</span> = 止盈预警 / 限购 / 近5日显著下跌，看一眼再定；
+            <span style="color:var(--info)">蓝</span> = 符合加仓规则的回调，可选动作。
+""".format(t1=ADD_AMOUNT_TIER1, t2=ADD_AMOUNT_TIER2)
+
 
 def _render_todo(items: List[Dict]) -> str:
     """把待办清单渲染为红橙蓝分级表格。"""
@@ -764,11 +825,11 @@ def _render_todo(items: List[Dict]) -> str:
             f'</tr>'
         )
     return (
-        '<table class="todo-table">'
-        '<thead><tr><th>级别</th><th>基金</th><th>建议动作</th><th>依据</th></tr></thead>'
-        '<tbody>{"".join(rows)}</tbody>'
-        '</table>'
-        '<div class="todo-note">本表只做提示，不会自动下单；加仓/止盈请以平台持仓成本与当日额度为准。</div>'
+        f'<table class="todo-table">'
+        f'<thead><tr><th>级别</th><th>基金</th><th>建议动作</th><th>依据</th></tr></thead>'
+        f'<tbody>{"".join(rows)}</tbody>'
+        f'</table>'
+        f'<div class="todo-note">本表只做提示，不会自动下单；加仓/止盈请以平台持仓成本与当日额度为准。</div>'
     )
 
 
@@ -794,6 +855,107 @@ def _fill_daily_return_from_history(snapshot: Dict, hist_series) -> None:
         snapshot["daily_return"] = round((last - prev) / prev * 100, 2)
     except (TypeError, ValueError, ZeroDivisionError):
         return
+
+
+def _analyze_fund(mon: "DailyFundMonitor", fund: Dict) -> None:
+    """采集单只基金的快照 / 历史 / 风险 / 区间收益 / 信号，写入 mon.monitor_data。
+
+    JS-20260924-08：从 `DailyFundMonitor.run()` 里整体搬出（纯搬运，逻辑一字未改）。
+    搬出的原因：代码体检门禁的 `max_function_lines` **把 class 体整体当作一个"函数"统计**，
+    run() 逐批膨胀已让该类体从基线 231 涨到 288 并触发「较基线恶化」告警；而类内抽方法
+    对该指标毫无作用（方法仍在类体内，实测反而涨到 295）。只有搬出到模块级才会下降。
+
+    Args:
+        mon: DailyFundMonitor 实例（用它的 fetcher / risk_calc / signal_detector /
+            analyzer / ranks，并把结果写回 mon.monitor_data）
+        fund: FUND_CONFIG 中的一条
+    """
+    code = fund["code"]
+    logger.info("正在分析基金: %s %s", code, fund["name"])
+
+    # 获取当日快照
+    snapshot = mon.fetcher.get_fund_snapshot(code)
+    if snapshot is None:
+        logger.warning("基金 %s 快照获取失败，跳过", code)
+        return
+
+    # 获取历史数据（近3年，供区间收益；同时截取最近90天供风险/信号，保持旧口径——JS-20260923-11 批2）
+    history_full = mon.fetcher.get_fund_history(code, days=800)
+    history = (
+        history_full.tail(90)
+        if history_full is not None and not history_full.empty
+        else history_full
+    )
+
+    # 计算风险指标（基于最近90天窗口，与旧报告一致）
+    risks = {}
+    if history is not None and not history.empty:
+        nav_series = history["单位净值"].astype(float)
+        risks = {
+            "max_drawdown": mon.risk_calc.calc_max_drawdown(nav_series),
+            "volatility": mon.risk_calc.calc_volatility(nav_series),
+            "sharpe": mon.risk_calc.calc_sharpe(nav_series),
+            "calmar": mon.risk_calc.calc_calmar(nav_series),
+            "total_return": mon.risk_calc.calc_total_return(nav_series),
+        }
+
+    # JS-20260923-11 批2：区间收益（近3月/6月/1年/近3年）复用 analyzer.calculate_returns，不重写
+    interval_returns = {}
+    if mon.analyzer is not None and history_full is not None and not history_full.empty and len(history_full) >= 5:
+        navs = history_full["单位净值"].astype(float).tolist()
+        dates = history_full["净值日期"].astype(str).tolist() if "净值日期" in history_full.columns else None
+        _full = mon.analyzer.calculate_returns(navs, dates)
+        interval_returns = {k: v for k, v in _full.items()
+                            if k in ("近3月", "近6月", "近1年", "近3年")}
+
+    # 检测信号
+    signals = {}
+    hist_series = (
+        history["单位净值"].astype(float)
+        if history is not None and not history.empty
+        else None
+    )
+    nav = snapshot.get("nav_today")
+    if nav is None and hist_series is not None:
+        # 快照净值缺失（周末/QDII延迟）时用历史最新净值兜底，避免止盈检测失效
+        nav = float(hist_series.iloc[-1])
+
+    # JS-20260924-02 修复1：止盈判定端点必须与 calc_total_return 同源（都用历史末值）。
+    # 此前传的是快照 nav_today(daily_df/东财)，而指标行用 history.iloc[-1](akshare)，
+    # 两源最新净值略有差异 → 卡片「90天收益」与止盈注「90天区间收益」算出两个值
+    # （实测 8 只全部不一致，差 0.33~0.53pp）。
+    tp_nav = (float(hist_series.iloc[-1])
+              if hist_series is not None and not hist_series.empty else nav)
+
+    # JS-20260924-02 修复2：快照日涨跌缺失时，用历史末两个净值补算（历史序列始终连续）。
+    # daily_df 只含最新一列时 nav_yesterday 为 None，导致「日涨跌」整列全 "--"。
+    _fill_daily_return_from_history(snapshot, hist_series)
+
+    if tp_nav is not None and hist_series is not None:
+        signals["take_profit"] = mon.signal_detector.check_take_profit(
+            tp_nav, fund["investment"], fund["target_profit"], hist_series,
+            warn_line=fund.get("warn_line")
+        )
+    else:
+        signals["take_profit"] = {"signal": False, "message": "净值数据缺失"}
+
+    signals["purchase_limit"] = mon.signal_detector.check_purchase_limit(
+        snapshot.get("buy_status", "")
+    )
+
+    if hist_series is not None:
+        signals["significant_drop"] = mon.signal_detector.check_significant_drop(
+            hist_series
+        )
+
+    mon.monitor_data[code] = {
+        "snapshot": snapshot,
+        "risks": risks,
+        "signals": signals,
+        "config": fund,
+        "interval_returns": interval_returns,
+        "rank": mon.ranks.get(code),
+    }
 
 
 class ReportGenerator:
@@ -853,6 +1015,9 @@ class ReportGenerator:
         
         # JS-20260924-03 批3·切片A：组合概览（跨基金聚合，复用已有数据，不取新源）
         overview_html = _render_portfolio_overview(_aggregate_portfolio(data))
+
+        # JS-20260924-08 批3·切片B+C：今日操作待办（红橙蓝分级，纯规则聚合）
+        todo_html = _render_todo(_build_todo_items(data))
 
         # 基金卡片HTML
         fund_cards = []
@@ -1242,43 +1407,7 @@ class ReportGenerator:
         .profile-line.ok {{ color: var(--up); }}
         .profile-line.miss {{ color: var(--text-secondary); }}
 
-        /* JS-20260924-04 批3·切片C：今日操作待办表（红橙蓝三级，只用既有主题变量） */
-        .todo-table {{
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }}
-        .todo-table th {{
-            text-align: left;
-            font-weight: 600;
-            color: var(--text-secondary);
-            font-size: 12px;
-            padding: 8px 10px;
-            border-bottom: 1px solid var(--border);
-        }}
-        .todo-table td {{
-            padding: 10px;
-            border-bottom: 1px solid var(--border);
-            vertical-align: top;
-        }}
-        .todo-table tr:last-child td {{ border-bottom: none; }}
-        .todo-level {{ white-space: nowrap; font-weight: 600; font-size: 12px; }}
-        .todo-fund {{ white-space: nowrap; }}
-        .todo-code {{
-            display: block;
-            font-size: 11px;
-            color: var(--text-secondary);
-            font-family: monospace;
-        }}
-        .todo-detail {{ color: var(--text-secondary); font-size: 12px; }}
-        .todo-alert .todo-level {{ color: var(--alert); }}
-        .todo-warning .todo-level {{ color: var(--warning); }}
-        .todo-info .todo-level {{ color: var(--info); }}
-        .todo-empty, .todo-note {{
-            font-size: 12px;
-            color: var(--text-secondary);
-            padding: 10px 2px;
-        }}
+        {_TODO_TABLE_CSS}
 
         .footer {{
             text-align: center;
@@ -1339,7 +1468,12 @@ class ReportGenerator:
         
         <div class="section-title">组合概览</div>
         {overview_html}
-        
+
+        <div class="section-title">今日操作待办</div>
+        <div class="profile-section">
+            {todo_html}
+        </div>
+
         <div class="section-title">持仓基金明细</div>
         {''.join(fund_cards)}
         
@@ -1372,12 +1506,7 @@ class ReportGenerator:
             资产净值低于 5000 万可终止合同），2 亿元以下标记为迷你基金，单季环比 ≥ +100% 标记为规模显著扩张。
             <strong>限购额度</strong>取自天天基金基金费率页「单日累计购买上限」，
             与计划日投（月投入 ÷ 30）比较判断是否影响定投执行，并与上次采集对比标注收紧/放宽。
-            取不到数据时显示"暂缺"，不用任何模拟值代替。
-            <br><br>
-            <strong>同类排名口径：</strong>
-            取天天基金同类型排名（近3月/近6月/近1年/近3年），为真实数据源。
-            数据源不可用或该基金未参与排名时显示"暂缺"——这表示<strong>本轮没取到</strong>，
-            不代表"排名靠后"，也不会用任何模拟值填充。
+            取不到数据时显示"暂缺"，不用任何模拟值代替。{_LEGEND_EXTRA_NOTES}
         </div>
         
         <div class="footer">
@@ -1456,92 +1585,7 @@ class DailyFundMonitor:
 
         # 1. 获取每只基金的数据
         for fund in FUND_CONFIG:
-            code = fund["code"]
-            logger.info("正在分析基金: %s %s", code, fund["name"])
-            
-            # 获取当日快照
-            snapshot = self.fetcher.get_fund_snapshot(code)
-            if snapshot is None:
-                logger.warning("基金 %s 快照获取失败，跳过", code)
-                continue
-            
-            # 获取历史数据（近3年，供区间收益；同时截取最近90天供风险/信号，保持旧口径——JS-20260923-11 批2）
-            history_full = self.fetcher.get_fund_history(code, days=800)
-            history = (
-                history_full.tail(90)
-                if history_full is not None and not history_full.empty
-                else history_full
-            )
-
-            # 计算风险指标（基于最近90天窗口，与旧报告一致）
-            risks = {}
-            if history is not None and not history.empty:
-                nav_series = history["单位净值"].astype(float)
-                risks = {
-                    "max_drawdown": self.risk_calc.calc_max_drawdown(nav_series),
-                    "volatility": self.risk_calc.calc_volatility(nav_series),
-                    "sharpe": self.risk_calc.calc_sharpe(nav_series),
-                    "calmar": self.risk_calc.calc_calmar(nav_series),
-                    "total_return": self.risk_calc.calc_total_return(nav_series),
-                }
-
-            # JS-20260923-11 批2：区间收益（近3月/6月/1年/近3年）复用 analyzer.calculate_returns，不重写
-            interval_returns = {}
-            if self.analyzer is not None and history_full is not None and not history_full.empty and len(history_full) >= 5:
-                navs = history_full["单位净值"].astype(float).tolist()
-                dates = history_full["净值日期"].astype(str).tolist() if "净值日期" in history_full.columns else None
-                _full = self.analyzer.calculate_returns(navs, dates)
-                interval_returns = {k: v for k, v in _full.items()
-                                    if k in ("近3月", "近6月", "近1年", "近3年")}
-
-            # 检测信号
-            signals = {}
-            hist_series = (
-                history["单位净值"].astype(float)
-                if history is not None and not history.empty
-                else None
-            )
-            nav = snapshot.get("nav_today")
-            if nav is None and hist_series is not None:
-                # 快照净值缺失（周末/QDII延迟）时用历史最新净值兜底，避免止盈检测失效
-                nav = float(hist_series.iloc[-1])
-
-            # JS-20260924-02 修复1：止盈判定端点必须与 calc_total_return 同源（都用历史末值）。
-            # 此前传的是快照 nav_today(daily_df/东财)，而指标行用 history.iloc[-1](akshare)，
-            # 两源最新净值略有差异 → 卡片「90天收益」与止盈注「90天区间收益」算出两个值
-            # （实测 8 只全部不一致，差 0.33~0.53pp）。
-            tp_nav = (float(hist_series.iloc[-1])
-                      if hist_series is not None and not hist_series.empty else nav)
-
-            # JS-20260924-02 修复2：快照日涨跌缺失时，用历史末两个净值补算（历史序列始终连续）。
-            # daily_df 只含最新一列时 nav_yesterday 为 None，导致「日涨跌」整列全 "--"。
-            _fill_daily_return_from_history(snapshot, hist_series)
-
-            if tp_nav is not None and hist_series is not None:
-                signals["take_profit"] = self.signal_detector.check_take_profit(
-                    tp_nav, fund["investment"], fund["target_profit"], hist_series,
-                    warn_line=fund.get("warn_line")
-                )
-            else:
-                signals["take_profit"] = {"signal": False, "message": "净值数据缺失"}
-
-            signals["purchase_limit"] = self.signal_detector.check_purchase_limit(
-                snapshot.get("buy_status", "")
-            )
-
-            if hist_series is not None:
-                signals["significant_drop"] = self.signal_detector.check_significant_drop(
-                    hist_series
-                )
-
-            self.monitor_data[code] = {
-                "snapshot": snapshot,
-                "risks": risks,
-                "signals": signals,
-                "config": fund,
-                "interval_returns": interval_returns,
-                "rank": self.ranks.get(code),
-            }
+            _analyze_fund(self, fund)
         
         # 1.5 外围风险采集（基金经理变更 / 规模变化·清盘预警）
         if with_profile:

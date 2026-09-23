@@ -624,6 +624,9 @@ def check_std_thresholds():
             # JS-20260924-02：Calmar 回撤下限（回撤≈0 时比值发散，留白优于伪精确值）
             os.path.join(BASE_DIR, 'scripts', 'daily_fund_monitor.py'): [
                 'CALMAR_MIN_DRAWDOWN_PCT',
+                # JS-20260924-08 批3·切片B：加仓规则引擎阈值（TRAE 七期全稳口径）
+                'ADD_DROP_TIER1_PCT', 'ADD_DROP_TIER2_PCT',
+                'ADD_AMOUNT_TIER1', 'ADD_AMOUNT_TIER2',
             ],
             os.path.join(BASE_DIR, 'tools', 'code_health_gate.py'): [
                 'MAX_FUNC_LINES', 'MAX_SILENT_SWALLOW', 'MAX_BARE_EXCEPT',

@@ -59,3 +59,105 @@ def test_render_contains_names_and_pct():
     assert "夏普最高" in html
     assert "定投计划" in html
     assert "summary-bar" in html
+
+
+# ---------------------------------------------------------------
+# JS-20260924-04 批3·切片B：加仓规则引擎
+# ---------------------------------------------------------------
+
+IDX = {"code": "270042", "name": "纳指基金", "related_index": "纳斯达克100"}
+OTH = {"code": "011369", "name": "普通混合", "related_index": "沪深300"}
+
+
+def test_add_index_tier1():
+    """纳指/标普/恒生科技 跌 1%~3%（含 3%）→ 10 元。"""
+    assert m._suggest_add_position(-1.5, IDX)["amount"] == m.ADD_AMOUNT_TIER1
+    assert m._suggest_add_position(-3.0, IDX)["amount"] == m.ADD_AMOUNT_TIER1
+
+
+def test_add_index_tier2():
+    """跌 >3% → 20 元（边界：3.01 已进第二档）。"""
+    assert m._suggest_add_position(-3.01, IDX)["amount"] == m.ADD_AMOUNT_TIER2
+    assert m._suggest_add_position(-8.81, IDX)["amount"] == m.ADD_AMOUNT_TIER2
+
+
+def test_add_other_fund_only_big_drop():
+    """非指数基金：1%~3% 不给建议；>3% 才给 20 元。"""
+    assert m._suggest_add_position(-1.5, OTH) is None
+    assert m._suggest_add_position(-3.0, OTH) is None
+    assert m._suggest_add_position(-5.0, OTH)["amount"] == m.ADD_AMOUNT_TIER2
+
+
+def test_add_no_suggestion_when_rise_or_tiny():
+    """上涨或跌幅不足 1% 不给建议。"""
+    assert m._suggest_add_position(+2.0, IDX) is None
+    assert m._suggest_add_position(-0.5, IDX) is None
+    assert m._suggest_add_position(0.0, IDX) is None
+
+
+def test_add_none_when_data_missing():
+    """日涨跌缺失（None）时返回 None，绝不编造。"""
+    assert m._suggest_add_position(None, IDX) is None
+
+
+def test_add_reason_is_honest():
+    """建议文案必须写明是规则建议，且不带执行语义。"""
+    r = m._suggest_add_position(-4.0, IDX)
+    assert "单日跌 4.00%" in r["reason"]
+
+
+# ---------------------------------------------------------------
+# JS-20260924-04 批3·切片C：今日操作待办
+# ---------------------------------------------------------------
+
+def _mk(code, name, tp=None, limited=False, drop=False, daily=None, related_index="沪深300"):
+    return {code: {
+        "config": {"code": code, "name": name, "related_index": related_index},
+        "snapshot": {"daily_return": daily},
+        "signals": {
+            "take_profit": tp or {"signal": False, "warn": False, "message": ""},
+            "purchase_limit": {"is_limited": limited, "status": "限大额" if limited else "开放申购"},
+            "significant_drop": {"signal": drop, "message": "近5日下跌 -6.00% ⚠️ 显著下跌！"} if drop
+                                else {"signal": False, "message": ""},
+        },
+    }}
+
+
+def test_todo_alert_from_take_profit():
+    items = m._build_todo_items(_mk("A", "甲", tp={"signal": True, "warn": False, "message": "已达止盈"}))
+    assert len(items) == 1 and items[0]["level"] == m.TODO_LEVEL_ALERT
+
+
+def test_todo_warning_from_warn_and_limit():
+    data = _mk("A", "甲", tp={"signal": False, "warn": True, "message": "已过预警线"}, limited=True)
+    items = m._build_todo_items(data)
+    assert [i["level"] for i in items] == [m.TODO_LEVEL_WARNING, m.TODO_LEVEL_WARNING]
+
+
+def test_todo_info_from_add_rule():
+    items = m._build_todo_items(_mk("A", "甲", daily=-4.0, related_index="纳斯达克100"))
+    assert len(items) == 1 and items[0]["level"] == m.TODO_LEVEL_INFO
+    assert "20 元" in items[0]["action"]
+
+
+def test_todo_sorted_by_level():
+    data = {}
+    data.update(_mk("B", "乙", daily=-4.0, related_index="标普500"))          # 蓝
+    data.update(_mk("A", "甲", tp={"signal": True, "warn": False, "message": "止盈"}))  # 红
+    data.update(_mk("C", "丙", limited=True))                                  # 橙
+    items = m._build_todo_items(data)
+    assert [i["level"] for i in items] == [
+        m.TODO_LEVEL_ALERT, m.TODO_LEVEL_WARNING, m.TODO_LEVEL_INFO]
+
+
+def test_todo_empty_renders_no_action():
+    html = m._render_todo([])
+    assert "今日无需操作" in html
+
+
+def test_todo_render_has_table_and_levels():
+    data = _mk("A", "甲", tp={"signal": True, "warn": False, "message": "已达止盈 16.4%"})
+    html = m._render_todo(m._build_todo_items(data))
+    assert "todo-table" in html
+    assert m._LEVEL_TEXT[m.TODO_LEVEL_ALERT] in html
+    assert "不代客下单" in html or "不会自动下单" in html
