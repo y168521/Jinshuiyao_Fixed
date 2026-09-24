@@ -650,6 +650,11 @@ def check_std_thresholds():
             os.path.join(BASE_DIR, 'tools', 'check_consistency.py'): [
                 'AI_DECISION_STALE_WARN_DAYS',
             ],
+            # JS-20260925-05：健康看门狗阈值（把"孤儿检查器"接进自动链路后，
+            # 阈值同样必须受闸门约束，否则又是一处改代码不改文档的漂移）
+            os.path.join(BASE_DIR, 'tools', 'health_watch.py'): [
+                'ASSET_STALE_DAYS', 'TASK_LATE_FACTOR',
+            ],
         }
         consts = {}
         watch = []

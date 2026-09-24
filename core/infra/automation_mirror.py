@@ -31,6 +31,12 @@ _interval_min = 15  # 每 15 分钟巡检一次守卫窗口
 
 # 镜像任务表（Batch 1：纯脚本，无 AI，脚本均已存在）
 MIRROR_TASKS = [
+    # JS-20260925-05：健康看门狗 —— 把"孤儿检查器"接进自动链路。
+    # 教训：staleness_check.py 早在 2026-08-02 就抓到过 kg_rebuild 没跑成功，
+    # 但它从未被任何定时任务调用（全仓引用数 0），于是问题潜伏 46 天无人知晓。
+    # **"有日志"不等于"会报警"，更不等于"有人看见"** —— 这里补的就是后两层。
+    {"name": "mirror_health_watch", "script": "tools/health_watch.py",
+     "guard": "daily@08:00", "desc": "健康看门狗(派生资产/长任务/决策卡)"},
     {"name": "mirror_closeout", "script": "tools/closeout_gate.py",
      "guard": "daily@23:30", "desc": "收工自检(五查门禁)"},
     {"name": "mirror_frontend_probe", "script": "scripts/frontend_health_probe.py",
@@ -122,8 +128,9 @@ def _write_log(name, desc, rc, out, err):
                 "out": (out or "")[-1500:],
                 "err": (err or "")[-1500:],
             }, ensure_ascii=False) + "\n")
-    except Exception:
-        pass
+    except Exception as _we:
+        import logging
+        logging.getLogger(__name__).debug("[automation_mirror] 镜像日志写入失败: %s", _we)
 
 
 def _make_func(task):
