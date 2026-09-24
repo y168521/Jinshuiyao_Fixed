@@ -2086,6 +2086,8 @@ class App:
                 self.log("所有预测均已复盘", "INFO")
                 return
             self.log(f"开始复盘 {total} 条记录...")
+            # JS-20260924-32：复盘回写统一走单一真源（含 actual 开奖号）
+            from utils.review_writeback import stamp_review
             processed = 0
             hit_list = []
             skip_count = 0
@@ -2122,7 +2124,6 @@ class App:
                 if not act:
                     skip_count += 1
                     continue
-                p["draw_date"] = dt if dt else ""
                 pn = clean_nums(p["nums"])
                 ac = clean_nums(act)
                 # 命中计数统一走单一真源（JS-20260917-02）：
@@ -2134,8 +2135,6 @@ class App:
                 # 与 domains/lottery/domain.py 的纯前区口径存在既存差异，另行统一。
                 if lot not in ("福彩3D", "排列三", "七星彩", "快乐8") and "+" in pn and "+" in ac:
                     hits += len(set(parse_reds(pn.split("+")[1])) & set(parse_reds(ac.split("+")[1])))
-                p["reviewed"] = True
-                p["hits"] = hits
                 # 命中类型判定（直选/组选/未中）—— JS-20260724-02 口径统一：与彩票看板口径一致
                 hit_type = "未中"
                 if lot in ("福彩3D", "排列三"):
@@ -2146,11 +2145,14 @@ class App:
                 else:
                     if hits > 0:                       # 多球种：任意奖级命中近似组选
                         hit_type = "组选"
-                p["hit_type"] = hit_type
                 # 复式覆盖度 = 命中号码数 / 开奖号码总数 —— JS-20260724-03
                 # 衡量候选集合对开奖号码的覆盖程度（复式选更多号应覆盖更多）
                 act_num_count = len(parse_reds(ac.replace("+", ",")))
-                p["coverage"] = round(hits / act_num_count, 3) if act_num_count else 0
+                # JS-20260924-32：回写统一走单一真源。此前此处手写 5 个字段却漏了
+                # actual（开奖号），与 core/infra/scheduler.py 是同一个遗漏。
+                stamp_review(p, actual=act, draw_date=(dt if dt else ""),
+                             hits=hits, hit_type=hit_type,
+                             coverage=(round(hits / act_num_count, 3) if act_num_count else 0))
                 hit_list.append(hits)
                 self.schemes.update_hit(p.get("scheme", ""), hits)
                 if hits == 0:

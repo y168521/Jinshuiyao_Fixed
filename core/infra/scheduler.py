@@ -255,7 +255,9 @@ class JinshuiyaoScheduler(TaskScheduler):
         与 GUI 手动复盘同口径（main_window._review_job）：
         - 只复盘"数据文件里已有开奖号码"的记录（未开奖/数据缺失的跳过，等下轮）
         - 命中数按彩种分别计算（福彩3D/排列三 多重集、快乐8 集合、其余红+蓝）
-        - 写回 reviewed/hits/hit_type/coverage/draw_date 到 predictions.json
+        - 写回 actual/reviewed/hits/hit_type/coverage/draw_date 到 predictions.json
+          （JS-20260924-32：统一走 utils.review_writeback.stamp_review 单一真源，
+           此前手写字段漏了 actual，导致自动复盘的记录查不到开奖号）
         - 分组喂给 SmartBrain.learn_from_review 学习
         """
         logger.info("[自动复盘] 开始自动复盘...")
@@ -266,6 +268,7 @@ class JinshuiyaoScheduler(TaskScheduler):
             from utils.locks import preds_lock
             from models.lottery_data import Data
             from utils.number_utils import clean_nums, parse_reds
+            from utils.review_writeback import stamp_review
             from collections import Counter as _Ctr
 
             preds_data = _load_pred_cache_cached()
@@ -309,9 +312,6 @@ class JinshuiyaoScheduler(TaskScheduler):
                     if "+" in pn and "+" in ac:
                         hits += len(set(parse_reds(pn.split("+")[1])) & set(parse_reds(ac.split("+")[1])))
 
-                pred["draw_date"] = dt if dt else ""
-                pred["reviewed"] = True
-                pred["hits"] = hits
                 hit_type = "未中"
                 if lot in ("福彩3D", "排列三"):
                     if pn == ac:
@@ -321,9 +321,13 @@ class JinshuiyaoScheduler(TaskScheduler):
                 else:
                     if hits > 0:
                         hit_type = "组选"
-                pred["hit_type"] = hit_type
                 act_num_count = len(parse_reds(ac.replace("+", ",")))
-                pred["coverage"] = round(hits / act_num_count, 3) if act_num_count else 0
+                # JS-20260924-32：回写统一走单一真源。此前此处手写 5 个字段却漏了
+                # actual（开奖号）→ 自动复盘每天新增约 30 条「已复盘但查不到开奖号、
+                # 事后无法重算」的记录。同类项在 gui/main_window.py 同样存在。
+                stamp_review(pred, actual=act, draw_date=(dt if dt else ""),
+                             hits=hits, hit_type=hit_type,
+                             coverage=(round(hits / act_num_count, 3) if act_num_count else 0))
                 reviewed_now.append(pred)
 
             if reviewed_now:

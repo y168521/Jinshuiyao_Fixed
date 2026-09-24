@@ -360,6 +360,7 @@ class LotteryDomain(DomainBase):
             # 回写 predictions.json —— 标记已复盘的记录
             try:
                 from utils.safe_json import safe_load_json, safe_write_json
+                from utils.review_writeback import stamp_review
                 pred_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "金水谣数据", "predictions.json")
                 all_preds = safe_load_json(pred_file, default=[])
                 if isinstance(all_preds, list):
@@ -371,11 +372,11 @@ class LotteryDomain(DomainBase):
                         d = detail_map.get((p.get("lot"), p.get("period")))
                         if d is None:
                             continue
-                        p["reviewed"] = True
-                        p["hits"] = d.get("match", 0)
-                        # 回存开奖号码，使历史命中可事后复核（原只存 hits，无法重算口径）
-                        if d.get("actual"):
-                            p["actual"] = d.get("actual")
+                        # JS-20260924-32：回写统一走单一真源（与 scheduler/GUI 同端点）。
+                        # 本路径原本就会写 actual，改单一真源后行为不变，
+                        # 但字段集合由 stamp_review 统一定义，不会再出现漏项。
+                        stamp_review(p, actual=d.get("actual"),
+                                     hits=d.get("match", 0))
                     safe_write_json(pred_file, all_preds)
             except Exception as e:
                 logger.warning("回写predictions.json失败: %s", e)
