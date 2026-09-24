@@ -24,6 +24,12 @@ ROOT_DIR = os.path.dirname(BASE_DIR)  # 模型/
 HTML_DIR = os.path.join(BASE_DIR, 'jinshuiyao-guide')
 FRONTEND_DIR = os.path.join(BASE_DIR, 'frontend')
 
+# JS-20260925-03：AI 决策卡新鲜度阈值（天）。
+# 决策卡是「上一个 AI 为什么这么改」的唯一载体，断档 = 后续 AI 检索到的全是旧结论。
+# 之所以要机器盯着：入库链路本身是好的（经验箱那条三元组来源每天都在涨），
+# 断的是「AI 收工时写卡」这一步——纯靠自觉的环节，30 天没人发现（实测 2026-08-26 停更）。
+AI_DECISION_STALE_WARN_DAYS = 14
+
 
 def _find_git():
     """探测 git 可执行文件（PATH 无 git 时回退常见安装路径）"""
@@ -635,6 +641,15 @@ def check_std_thresholds():
             os.path.join(BASE_DIR, 'tools', 'closeout_gate.py'): [
                 'TRAIL_SHRINK_RATIO', 'TRAIL_SHRINK_MIN_LINES',
             ],
+            # JS-20260925-02：知识网关相关度门槛（limit 修好后紧接着补的质量闸，
+            # 否则"截断生效了但截断的全是噪声"，等于只修了一半）
+            os.path.join(BASE_DIR, 'core', 'infra', 'knowledge_gateway.py'): [
+                'KB_RELEVANCE_RATIO', 'KB_MIN_SCORE_ABS',
+            ],
+            # JS-20260925-03：AI 决策卡新鲜度阈值
+            os.path.join(BASE_DIR, 'tools', 'check_consistency.py'): [
+                'AI_DECISION_STALE_WARN_DAYS',
+            ],
         }
         consts = {}
         watch = []
@@ -694,6 +709,44 @@ def check_prize_rules_freshness():
         return ["  PRIZE-RULES: 检查自身异常（%s: %s）" % (type(e).__name__, e)]
 
 
+def check_ai_decisions_freshness():
+    """⑪ AI 决策卡新鲜度（JS-20260925-03）
+
+    为什么要有这一项：`金水谣数据/log/ai_decisions.md` 是「上一个 AI 为什么这么改」
+    的唯一载体，由 `extract_from_ai_decisions` 自动转成知识卡 + 三元组供后续 AI 检索。
+    但它只能检测"文件变了没"——**没人往里写，它就一直安静**，于是断档 30 天
+    （实测最后一条停在 2026-08-26）无人察觉，期间所有 AI 检索到的都是旧结论。
+
+    这是典型的「链路是好的、源头没人喂」型停滞，靠人记必漏，必须机器盯。
+
+    能变绿：补一张决策卡即可（append-only），属「可行动的告警」而非噪音。
+    读不出日期 / 文件缺失一律按过期处理（静默才是敌人）。
+    """
+    path = os.path.join(BASE_DIR, '金水谣数据', 'log', 'ai_decisions.md')
+    try:
+        if not os.path.isfile(path):
+            return ["  AI-DECISION: 决策卡文件缺失（%s）→ 无法判断新鲜度" % path]
+        with open(path, 'r', encoding='utf-8', errors='replace') as f:
+            text = f.read()
+        dates = re.findall(r'^###\s*(\d{4}-\d{2}-\d{2})', text, re.M)
+        if not dates:
+            return ["  AI-DECISION: 决策卡里解析不出任何 `### YYYY-MM-DD` 标题 → 按过期处理"]
+        last = max(dates)
+        try:
+            import datetime as _dt
+            d = _dt.date(*[int(x) for x in last.split('-')])
+            days = (_dt.date.today() - d).days
+        except Exception:
+            return ["  AI-DECISION: 最新卡片日期 %s 解析失败 → 按过期处理" % last]
+        if days > AI_DECISION_STALE_WARN_DAYS:
+            return ["  AI-DECISION: 决策卡已 %d 天无新增（最新 %s，阈值 %d 天）→ "
+                    "补一张决策卡即可变绿：向 %s 追加 `### YYYY-MM-DD ...` 十字段卡片" %
+                    (days, last, AI_DECISION_STALE_WARN_DAYS, path)]
+        return []
+    except Exception as e:  # 检查自身异常必须报出来，不能静默放行
+        return ["  AI-DECISION: 检查自身异常（%s: %s）" % (type(e).__name__, e)]
+
+
 def run_all(changed_files=None):
     """运行全部检查。changed_files: pre-commit 增量模式的变更文件列表（相对 BASE_DIR）"""
     css_fn = check_css_classes
@@ -708,6 +761,7 @@ def run_all(changed_files=None):
         '文档表格管道数': check_doc_tables,
         '标准阈值-代码常量': check_std_thresholds,
         '彩票奖级规则新鲜度': check_prize_rules_freshness,
+        'AI决策卡新鲜度': check_ai_decisions_freshness,
     }
     all_ok = True
     report = []

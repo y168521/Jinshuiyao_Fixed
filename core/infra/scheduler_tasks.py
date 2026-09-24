@@ -31,6 +31,63 @@ logger = logging.getLogger(__name__)
 # 统一延后 60 秒错峰，同时保证"开机 1 分钟内即可自动补给"。
 _FIRST_RUN_DELAY = 60
 
+# JS-20260925-04：跨重启补跑 —— 长周期任务的 last_run 持久化。
+# 背景（实测取证）：服务实际连续运行时间只有几小时（日志显示 09-24 04:42 启动、
+# 08 点后中断，直到 09-25 05:41 才重启），而 kg_rebuild / data_maintenance /
+# memory_decay / cross_link / kb_lint / vector_index_rebuild / health_backup /
+# file_cleanup 全是 24 小时周期 —— 必须等满一个间隔才首跑的任务永远等不到，
+# 于是 knowledge_graph.json 停在 2026-08-10 长达 46 天无人察觉（调度器每次都
+# 正常打印「已注册任务 kg_rebuild」，看起来一切正常，实际一次都没跑过）。
+# 修法：把各任务「上次成功执行时间」落盘，注册时若距上次已超过一个间隔就按
+# run_now 处理（开机即补）。读写失败一律降级，绝不影响调度器本身。
+_LASTRUN_FILE = os.path.join(_proj_root, "金水谣数据", "log", "scheduler_lastrun.json")
+_LASTRUN_LOCK = threading.Lock()
+
+
+def _load_lastrun():
+    """读取持久化的各任务上次成功执行时间。读不到/损坏一律返回空 dict（降级）。"""
+    try:
+        if not os.path.isfile(_LASTRUN_FILE):
+            return {}
+        import json as _json
+        with open(_LASTRUN_FILE, "r", encoding="utf-8") as f:
+            data = _json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception as e:
+        logger.warning("[调度器] last_run 持久化读取失败（降级为不补跑）: %s", e)
+        return {}
+
+
+def _persist_lastrun(name):
+    """记录某任务本次**成功**执行时间（失败不记，留待下次补跑）。"""
+    try:
+        import json as _json
+        with _LASTRUN_LOCK:
+            data = _load_lastrun()
+            data[name] = datetime.now().isoformat()
+            try:
+                from utils.safe_json import safe_write_json
+                safe_write_json(_LASTRUN_FILE, data)
+            except Exception:
+                tmp = _LASTRUN_FILE + ".tmp"
+                with open(tmp, "w", encoding="utf-8") as f:
+                    _json.dump(data, f, ensure_ascii=False, indent=2)
+                os.replace(tmp, _LASTRUN_FILE)
+    except Exception as e:
+        logger.warning("[调度器] last_run 持久化写入失败（不影响任务本身）: %s", e)
+
+
+def _due_for_catchup(name, interval_minutes):
+    """距上次成功执行是否已超过一个间隔（决定本次开机是否补跑）。"""
+    last = _load_lastrun().get(name)
+    if not last:
+        return True  # 从未成功执行过 → 必须补
+    try:
+        dt = datetime.fromisoformat(last)
+        return (datetime.now() - dt).total_seconds() >= interval_minutes * 60
+    except Exception:
+        return True
+
 class TaskScheduler:
     """基于 threading.Timer 的通用定时任务调度器
 
@@ -72,6 +129,13 @@ class TaskScheduler:
                 覆盖默认 _FIRST_RUN_DELAY。用于依赖型任务错峰，
                 如 auto_review 须等 data_refresh 完成后首跑。
         """
+        # JS-20260925-04：跨重启补跑判定（必须放在加锁之前，
+        # _due_for_catchup 内部会读盘，不要持锁做 IO）
+        if enabled and _due_for_catchup(name, interval_minutes):
+            if not run_now:
+                logger.info("任务 '%s' 距上次成功执行已超过 %d 分钟 → 本次开机补跑", name, interval_minutes)
+            run_now = True
+
         with self._lock:
             if name in self._tasks:
                 logger.warning("任务 '%s' 已存在，将更新配置", name)
@@ -186,7 +250,7 @@ class TaskScheduler:
             args=(name,),
             daemon=True,
         )
-        thread.setName("scheduler_once_{}".format(name))
+        thread.name = "scheduler_once_{}".format(name)
         thread.start()
         return True
 
@@ -252,7 +316,7 @@ class TaskScheduler:
             self._timer_callback,
             args=(name,),
         )
-        timer.setName("scheduler_{}".format(name))
+        timer.name = "scheduler_{}".format(name)
         timer.daemon = True
         self._timers[name] = timer
         timer.start()
@@ -311,6 +375,8 @@ class TaskScheduler:
                 task["last_run"] = datetime.now().isoformat()
                 task["run_count"] += 1
                 task["last_error"] = None
+            # JS-20260925-04：仅在成功时落盘，失败留待下次补跑
+            _persist_lastrun(name)
 
             logger.info(
                 "[调度器] 任务 '%s' 执行完成 (耗时: %.1fs)", name, elapsed,

@@ -23,6 +23,30 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 EXPBOX_PATH = os.path.join(BASE_DIR, '金水谣数据', 'log', '经验收集箱.md')
 TRIPLE_PATH = os.path.join(BASE_DIR, 'knowledge', 'graph_triples.json')
 
+# --- 相关度门槛（JS-20260925-02）-------------------------------------------
+# 背景：BM25 只要 score>0 就返回，"沾一点边"的弱相关条目会淹没真正有用的结果。
+# 但四个来源的**分数尺度差异极大**（实测同一次查询：cards 最高 11.65、
+# triples 9.88、experiences 8.83、project_docs 只有 0.92），
+# 所以门槛必须是「相对本次 top1 的比例」而不是绝对分数——
+# 用绝对阈值会把 project_docs 这种短文本来源整片误杀。
+KB_RELEVANCE_RATIO = 0.35
+"""保留阈值：条目分数 ≥ 本次 top1 分数 × 本比例才保留。
+
+实测依据（2026-09-25，limit=50 下的分数分布）：
+  - 0.35 主要砍掉长尾（各来源尾部常见大片 2.57/2.58 的平坦低分区），
+    对 top 结果无影响；top1 **恒保留**（避免整源被清空）。
+  - 放宽到 0.2 几乎不过滤；收紧到 0.5 会把 "基金规模预警" 这类
+    正经查询从 41 张卡压到 2 张，过严。
+"""
+
+KB_MIN_SCORE_ABS = 0.0
+"""绝对分数下限（默认 0.0 = 不额外收紧）。
+
+仅作为给调用方/后续调优的保留开关：当某来源整体分数极低（全是噪声）时，
+可用它做二次过滤。注意与 KB_RELEVANCE_RATIO 是「两者都要满足（AND）」。
+阈值登记见 `金水谣_标准唯一真源.md` §三，改代码常量后必须回写文档。
+"""
+
 # 项目文档（网关的"项目级上下文"来源）—— 名称 → 路径（内层优先，外层兜底）
 _PROJECT_DOCS = [
     ('AI协作交接中心.md', 'AI协作交接中心.md'),
@@ -79,6 +103,29 @@ def _tokenize(text):
     return tokens
 
 
+def _apply_relevance_gate(scored):
+    """相关度门槛：只保留「分数 ≥ top1 × KB_RELEVANCE_RATIO」的条目（JS-20260925-02）。
+
+    Args:
+        scored: 已按 score 降序排列的 [{...'score'...}] 列表。
+
+    Returns:
+        过滤后的列表。**top1 恒保留**（即使它自己低于绝对下限），
+        保证门槛永远不会把某个来源整片清空——"一条都没有"比"有几条弱相关"
+        更容易被误读成"知识库里没有这个知识"。
+
+    设计取舍：门槛用**相对比例**而非绝对分数，因为四个来源的分数尺度
+    差一个量级（cards/triples 可达 10+，project_docs 只有 0.x），
+    绝对阈值会静默误杀短文本来源。比例常量见 `KB_RELEVANCE_RATIO`。
+    """
+    if not scored:
+        return []
+    top = scored[0].get('score', 0) or 0.0
+    floor = max(top * KB_RELEVANCE_RATIO, KB_MIN_SCORE_ABS)
+    kept = [it for it in scored if (it.get('score', 0) or 0.0) >= floor]
+    return kept if kept else scored[:1]
+
+
 def _bm25(query, docs, limit=None, k1=1.5, b=0.75):
     """docs: [{id, text, *extra}] → [{id, score, *extra}] 按相关度降序取前 limit 条。
 
@@ -92,6 +139,10 @@ def _bm25(query, docs, limit=None, k1=1.5, b=0.75):
             experiences 三源全走本函数，导致 `search(limit=1)` 返回 328 条，
             API 实际返回量约为声明值的 40 倍：对 LLM 不是"召回更全"，
             而是噪声淹没 + 上下文爆炸。
+
+    流程：全量打分 → 排序 → **相关度门槛**（JS-20260925-02）→ limit 截断。
+    门槛必须在截断**之前**：先截 8 条再过滤等于在矮子里拔将军，
+    真正的强相关条目可能已被 limit 砍掉。
     """
     if not docs or not query.strip():
         return []
@@ -123,6 +174,9 @@ def _bm25(query, docs, limit=None, k1=1.5, b=0.75):
             item['score'] = round(score, 4)
             scored.append(item)
     scored.sort(key=lambda x: x['score'], reverse=True)
+    # JS-20260925-02：相关度门槛必须先于截断——先截 8 条再过滤等于在矮子里拔将军，
+    # 真正的强相关条目可能已经被 limit 砍掉了。
+    scored = _apply_relevance_gate(scored)
     # JS-20260925-01：真截断（此前签名有 limit 却从不使用）。
     # 排序后才截断，保证留下的是最相关的前 N 条，而不是随机裁。
     if limit and limit > 0:
@@ -265,6 +319,8 @@ def _recall_project_docs(query, limit):
             'score': scored[0]['score'],
         })
     out.sort(key=lambda x: x.get('score', 0), reverse=True)
+    # JS-20260925-02：逐文档打分时 top1 恒为文档自身，门槛只能在汇总后生效
+    out = _apply_relevance_gate(out)
     return out[:limit]
 
 
