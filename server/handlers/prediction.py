@@ -379,3 +379,61 @@ def handle_prediction_hit_trend(handler):
         handler._send_json({"ok": True, "window": window, "lots": lots})
     except Exception as e:
         handler._send_json({"ok": False, "error": f"滚动命中率趋势失败: {e}"}, 500)
+
+
+def handle_lottery_prize_rules(handler):
+    """GET /api/lottery/prize-rules — 官方中奖规则（唯一真源）
+
+    JS-20260924-34：官方奖级此前写死在前端 `frontend/lottery/prize-calculator.html`
+    的 PRIZE_TABLES 里，后端复盘完全用不上它（复盘用的是「号码重合数」另一套口径）。
+    现规则收敛到 `config/lottery_prize_rules.json`，本端点把它发给前端，
+    前后端共用同一份真源 —— 改规则只改一处。
+
+    附带返回 `staleness`（规则已多少天未核对 / 是否过期），前端据此提示人工复核。
+    规则读不到时返回 ok=False，**不返回任何猜测的规则**。
+    """
+    try:
+        from utils.lottery_prize import load_rules, rules_staleness
+        rules = load_rules(force=True)
+        if not isinstance(rules, dict):
+            handler._send_json({"ok": False, "error": "官方奖级规则读不到（暂缺，不做猜测）"}, 503)
+            return
+        handler._send_json({
+            "ok": True,
+            "rules": rules.get("rules", {}),
+            "version": rules.get("version"),
+            "updated_at": rules.get("updated_at"),
+            "source_note": rules.get("source_note"),
+            "staleness": rules_staleness(rules),
+        })
+    except Exception as e:
+        handler._send_json({"ok": False, "error": f"官方奖级规则读取失败: {e}"}, 500)
+
+
+def handle_lottery_prize_judge(handler):
+    """GET /api/lottery/prize-judge?lot=&my=&draw= — 按官方规则判定中奖
+
+    JS-20260924-34：奖金计算器此前在前端**另写了一份**按彩种硬编码的匹配逻辑
+    （超 40 行 if/else 链），与后端口径各写各的。现统一由 `utils.lottery_prize.
+    judge_prize` 判定，前端只负责取号与展示 —— 规则改了，两边一起变。
+
+    返回 status=not_applicable 表示玩法套不上官方奖级（如 3D 组六复式、
+    快乐8 非 10 码），前端应显示「暂缺」而不是「未中奖」。
+    """
+    try:
+        from urllib.parse import urlparse, parse_qs
+        from utils.lottery_prize import judge_prize
+        qs = parse_qs(urlparse(handler.path).query)
+
+        def _g(k):
+            v = qs.get(k) or [""]
+            return (v[0] or "").strip()
+
+        lot, my, draw = _g("lot"), _g("my"), _g("draw")
+        if not lot or not my or not draw:
+            handler._send_json({"ok": False, "error": "缺少 lot / my / draw 参数"}, 400)
+            return
+        res = judge_prize(lot, my, draw)
+        handler._send_json({"ok": True, "lot": lot, "result": res})
+    except Exception as e:
+        handler._send_json({"ok": False, "error": f"官方奖级判定失败: {e}"}, 500)

@@ -437,6 +437,16 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
             h_prediction.handle_prediction_hit_trend(self)
             return
 
+        # /api/lottery/prize-rules — 官方中奖规则（唯一真源 config/lottery_prize_rules.json）
+        if parsed.path == '/api/lottery/prize-rules':
+            h_prediction.handle_lottery_prize_rules(self)
+            return
+
+        # /api/lottery/prize-judge — 按官方规则判定中奖（前后端共用一个判定端点）
+        if parsed.path == '/api/lottery/prize-judge':
+            h_prediction.handle_lottery_prize_judge(self)
+            return
+
         # /open?file=xxx — 打开文件（返回JSON，前端fetch静默调用）
         # 注意：/open 路由必须在 / 之前检查，否则 / 路径中的 return 会导致此处死代码
         if parsed.path == '/open':

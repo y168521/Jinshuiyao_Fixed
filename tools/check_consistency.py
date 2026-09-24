@@ -664,6 +664,36 @@ def check_std_thresholds():
         return []
 
 
+def check_prize_rules_freshness():
+    """⑩ 彩票官方中奖规则新鲜度（JS-20260924-34）
+
+    为什么要有这一项：官方奖级此前**写死在前端 JS 里**，既没有日期也没有提醒，
+    规则过时了谁都不知道。现规则收敛到 `config/lottery_prize_rules.json` 并带
+    `updated_at`；本检查在超过 `stale_days`（默认 180 天）时告警，提醒人工核对
+    官方公告后更新——**只提醒，绝不自动改写规则**（自动抓官方站点一旦页面改版
+    就会静默抓错，比不更新更危险）。
+
+    能变绿：把 updated_at 改成核对当日即可，属「可行动的告警」而非噪音。
+    读不出日期/文件缺失一律按过期处理（静默才是敌人）。
+    """
+    try:
+        sys.path.insert(0, BASE_DIR)
+        from utils.lottery_prize import rules_staleness, load_rules
+        rules = load_rules(force=True)
+        if not isinstance(rules, dict):
+            return ["  PRIZE-RULES: 官方奖级规则文件读不到（%s）" %
+                    os.path.join(BASE_DIR, 'config', 'lottery_prize_rules.json')]
+        st = rules_staleness(rules)
+        if not st.get("is_stale"):
+            return []
+        days = st.get("days")
+        return ["  PRIZE-RULES: 中奖规则已 %s未核对（≥%s 天）→ 请核对官方公告后更新 "
+                "config/lottery_prize_rules.json 的 updated_at 与 version" %
+                ("未知天数" if days is None else "%d 天" % days, st.get("stale_days"))]
+    except Exception as e:  # 检查自身异常必须报出来，不能静默放行
+        return ["  PRIZE-RULES: 检查自身异常（%s: %s）" % (type(e).__name__, e)]
+
+
 def run_all(changed_files=None):
     """运行全部检查。changed_files: pre-commit 增量模式的变更文件列表（相对 BASE_DIR）"""
     css_fn = check_css_classes
@@ -677,6 +707,7 @@ def run_all(changed_files=None):
         'CSS类定义完整': lambda: css_fn(changed_files),
         '文档表格管道数': check_doc_tables,
         '标准阈值-代码常量': check_std_thresholds,
+        '彩票奖级规则新鲜度': check_prize_rules_freshness,
     }
     all_ok = True
     report = []

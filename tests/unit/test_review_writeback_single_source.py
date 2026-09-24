@@ -117,6 +117,14 @@ class TestAutoReviewPersistsActual(unittest.TestCase):
         self.assertEqual(row.get("actual"), _FakeData.RESULT,
                          "自动复盘未回存开奖号 → 历史命中事后无法重算")
 
+    def test_auto_review_stamps_official_prize(self):
+        """自动复盘必须顺带落官方奖级（三条路径共用 stamp_review，改一处即全覆盖）"""
+        data = self._run([{"lot": "双色球", "period": 2026109,
+                           "nums": "01,02,03,04,05,06+07", "type": "单注"}])
+        row = data[0]
+        self.assertIn("prize_tier", row, "自动复盘未落官方奖级")
+        self.assertIn("prize_status", row)
+
     def test_auto_review_keeps_hit_type_and_coverage(self):
         """修 actual 的同时不许把 hit_type/coverage 修丢"""
         data = self._run([{"lot": "大乐透", "period": 2026109,

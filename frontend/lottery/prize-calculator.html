@@ -66,6 +66,7 @@
     <span style="color:var(--muted);font-size:0.85rem">选号对比 · 奖级估算</span>
   </header>
   <div class="container">
+    <div id="rulesMeta" class="card hidden" style="border-left:3px solid var(--accent);padding:0.75rem 1rem;font-size:0.85rem;line-height:1.6"></div>
     <div class="card">
       <div class="card-title"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent)"></span>选择彩种与号码</div>
       <div class="flex-row">
@@ -119,7 +120,7 @@
         <div id="matchSummary" style="margin-bottom:0.5rem"></div>
         <table class="prize-table" id="prizeTable"><thead><tr><th>奖级</th><th>条件</th><th>固定奖金</th><th>中奖注数</th><th>小计</th></tr></thead><tbody id="prizeBody"></tbody></table>
         <div class="total-box" id="totalBox"><div class="total" id="totalPrize">0</div><div class="label">合计奖金 (元)</div></div>
-        <div class="note">注：一等奖/二等奖为浮动奖，此处按固定奖估算；实际奖金以官方公告为准。</div>
+        <div class="note">注：一/二等奖为浮动奖，本页按官方公布的最低奖金估算；实际奖金以官方公告为准。<br>奖级与奖金均来自唯一真源 <code>config/lottery_prize_rules.json</code>（非本页硬编码），更新该 JSON 即全站生效。</div>
       </div>
       <div class="card">
         <div class="card-title"><span style="width:8px;height:8px;border-radius:50%;background:var(--ice)"></span>奖级速查表</div>
@@ -139,63 +140,54 @@
       '快乐8': { k: 10, bk: 0, redRange: [1,80], name: '快乐8' },
     };
 
-    var PRIZE_TABLES = {
-      '双色球': [
-        { tier: '一等奖', cond: '6+1', fixed: '浮动', min: 5000000 },
-        { tier: '二等奖', cond: '6+0', fixed: '浮动', min: 200000 },
-        { tier: '三等奖', cond: '5+1', fixed: 3000 },
-        { tier: '四等奖', cond: '5+0 / 4+1', fixed: 200 },
-        { tier: '五等奖', cond: '4+0 / 3+1', fixed: 10 },
-        { tier: '六等奖', cond: '2+1 / 1+1 / 0+1', fixed: 5 },
-      ],
-      '大乐透': [
-        { tier: '一等奖', cond: '5+2', fixed: '浮动', min: 5000000 },
-        { tier: '二等奖', cond: '5+1', fixed: '浮动', min: 200000 },
-        { tier: '三等奖', cond: '5+0', fixed: 10000 },
-        { tier: '四等奖', cond: '4+2', fixed: 3000 },
-        { tier: '五等奖', cond: '4+1', fixed: 300 },
-        { tier: '六等奖', cond: '3+2', fixed: 200 },
-        { tier: '七等奖', cond: '4+0 / 3+1 / 2+2', fixed: 100 },
-        { tier: '八等奖', cond: '3+0 / 1+2 / 2+1 / 0+2', fixed: 15 },
-        { tier: '九等奖', cond: '2+0 / 1+1 / 0+1', fixed: 5 },
-      ],
-      '福彩3D': [
-        { tier: '直选', cond: '百十个位全中(顺序)', fixed: 1040 },
-        { tier: '组三', cond: '三位中，有对子(不顺序)', fixed: 346 },
-        { tier: '组六', cond: '三位不同(不顺序)', fixed: 173 },
-      ],
-      '排列三': [
-        { tier: '直选', cond: '百十个位全中(顺序)', fixed: 1040 },
-        { tier: '组三', cond: '三位中，有对子(不顺序)', fixed: 346 },
-        { tier: '组六', cond: '三位不同(不顺序)', fixed: 173 },
-      ],
-      '七乐彩': [
-        { tier: '一等奖', cond: '7+0', fixed: '浮动', min: 500000 },
-        { tier: '二等奖', cond: '6+0', fixed: '浮动', min: 10000 },
-        { tier: '三等奖', cond: '5+0', fixed: '浮动', min: 1000 },
-        { tier: '四等奖', cond: '4+0', fixed: 200 },
-        { tier: '五等奖', cond: '3+0', fixed: 50 },
-        { tier: '六等奖', cond: '2+0', fixed: 10 },
-        { tier: '七等奖', cond: '1+0', fixed: 5 },
-      ],
-      '七星彩': [
-        { tier: '一等奖', cond: '7位全中(顺序)', fixed: '浮动', min: 5000000 },
-        { tier: '二等奖', cond: '连续6位中', fixed: '浮动', min: 100000 },
-        { tier: '三等奖', cond: '连续5位中', fixed: 3000 },
-        { tier: '四等奖', cond: '连续4位中', fixed: 500 },
-        { tier: '五等奖', cond: '连续3位中', fixed: 30 },
-        { tier: '六等奖', cond: '连续2位中', fixed: 5 },
-      ],
-      '快乐8': [
-        { tier: '选十中十', cond: '10/10', fixed: '浮动', min: 5000000 },
-        { tier: '选十中九', cond: '9/10', fixed: 8000 },
-        { tier: '选十中八', cond: '8/10', fixed: 800 },
-        { tier: '选十中七', cond: '7/10', fixed: 80 },
-        { tier: '选十中六', cond: '6/10', fixed: 5 },
-        { tier: '选十中五', cond: '5/10', fixed: 3 },
-        { tier: '选十中零', cond: '0/10', fixed: 2 },
-      ],
-    };
+    // JS-20260924-34：官方奖级不再写死在前端，改为从后端唯一真源
+    // config/lottery_prize_rules.json 拉取（见 /api/lottery/prize-rules）。
+    // 改规则只需改那一个 JSON，本页与后端复盘同时生效。
+    var PRIZE_TABLES = {};
+    var RULES_META = { version: null, updated_at: null, source_note: null, staleness: null };
+
+    function loadPrizeRules() {
+      return fetch('/api/lottery/prize-rules')
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j || !j.ok || !j.rules) throw new Error((j && j.error) || '规则返回为空');
+          PRIZE_TABLES = j.rules;
+          RULES_META = {
+            version: j.version || null,
+            updated_at: j.updated_at || null,
+            source_note: j.source_note || null,
+            staleness: j.staleness || null
+          };
+          renderRulesMeta();
+        })
+        .catch(function (e) {
+          PRIZE_TABLES = {};
+          var el = document.getElementById('rulesMeta');
+          if (el) {
+            el.classList.remove('hidden');
+            el.innerHTML = '<b>官方奖级规则加载失败（暂缺，不做猜测）</b><br>'
+              + '<span style="opacity:.8">' + String(e && e.message || e) + '</span>';
+          }
+        });
+    }
+
+    function renderRulesMeta() {
+      var el = document.getElementById('rulesMeta');
+      if (!el) return;
+      var st = RULES_META.staleness || {};
+      var parts = [];
+      parts.push('规则版本 ' + (RULES_META.version || '—') + '（更新于 ' + (RULES_META.updated_at || '—') + '）');
+      if (st.is_stale) {
+        el.classList.remove('hidden');
+        el.style.borderLeftColor = 'var(--gold)';
+        el.innerHTML = '<b>中奖规则已 ' + (st.days == null ? '未知天数' : st.days + ' 天') + '未核对</b><br>'
+          + '<span style="opacity:.85">超过 ' + st.stale_days + ' 天请核对官方公告后更新 '
+          + 'config/lottery_prize_rules.json（本系统不会自动改写规则）</span>';
+        return;
+      }
+      el.classList.add('hidden');
+      el.title = parts.join(' ');
+    }
 
     var myReds = [], myBlues = [], drawReds = [], drawBlues = [];
 
@@ -310,123 +302,72 @@
       });
     }
 
+    function pad2(n) { return (n < 10 ? '0' : '') + String(n); }
+
+    function buildNumStr(arr) { return arr.map(pad2).join(','); }
+
     function calcPrize() {
       var type = document.getElementById('lotType').value;
       var cfg = LOT_CONFIG[type];
       if (myReds.length < cfg.k) { JSY.toast('请至少选择 ' + cfg.k + ' 个号码'); return; }
       if (drawReds.length < cfg.k) { JSY.toast('请填写开奖号码'); return; }
 
-      // Determine hit
-      var redHit = countHits(myReds, drawReds);
-      var blueHit = cfg.blueRange ? countHits(myBlues, drawBlues) : 0;
+      // JS-20260924-34：判定统一交给后端 utils.lottery_prize.judge_prize，
+      // 前端只负责取号与展示（此前前端另写了一份按彩种硬编码的 if/else 匹配链，
+      // 与后端口径各写各的，规则一改就两边不一致）。
+      var myStr = buildNumStr(myReds) + (cfg.blueRange && myBlues.length ? '+' + buildNumStr(myBlues) : '');
+      var drawStr = buildNumStr(drawReds) + (cfg.blueRange && drawBlues.length ? '+' + buildNumStr(drawBlues) : '');
 
-      var prizeTable = PRIZE_TABLES[type];
-      var tierResults = [];
+      fetch('/api/lottery/prize-judge?lot=' + encodeURIComponent(type)
+            + '&my=' + encodeURIComponent(myStr)
+            + '&draw=' + encodeURIComponent(drawStr))
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j || !j.ok) throw new Error((j && j.error) || '判定失败');
+          var res = j.result || {};
 
-      if (cfg.digit) {
-        // 3D/排列三
-        var myStr = myReds.slice(0,3).sort(function(a,b){return a-b;}).join('');
-        var drawStr = drawReds.slice(0,3).sort(function(a,b){return a-b;}).join('');
-        var myExact = myReds.slice(0,3).join('');
-        var drawExact = drawReds.slice(0,3).join('');
-        var isDuiZi = myReds[0]===myReds[1] || myReds[1]===myReds[2] || myReds[0]===myReds[2];
-        var isTongDuiZi = myReds[0]===myReds[1] && myReds[1]===myReds[2];
+          // 命中概览始终显示「号码重合数」（与后端口径一致的 countHits 本地统计）
+          var redHit = countHits(myReds, drawReds);
+          var blueHit = cfg.blueRange ? countHits(myBlues, drawBlues) : 0;
+          document.getElementById('matchSummary').innerHTML =
+            '号码重合: <b>' + redHit + '/' + cfg.k + '</b>'
+            + (cfg.blueRange ? ' | 后区重合: <b>' + blueHit + '/' + cfg.bk + '</b>' : '')
+            + ' | 官方判定: <b>' + (res.status === 'win' ? (res.tier || '中奖') : prizeStatusText(res.status)) + '</b>';
 
-        var hasZhiXuan = 0, hasZuSan = 0, hasZuLiu = 0;
-        var totalPrize = 0;
+          var tierResults = [];
+          var totalPrize = 0;
+          if (res.status === 'win') {
+            var p = numericPrize(res.prize, res.tier, type);
+            totalPrize = p;
+            tierResults.push({
+              tier: res.tier, cond: condOf(type, res.tier), count: 1,
+              prize: p, subtotal: p, isFloat: isFloatPrize(res.prize)
+            });
+          }
+          displayPrizeResult(tierResults, totalPrize, type, res.status);
+        })
+        .catch(function (e) {
+          JSY.toast('官方奖级判定失败: ' + String(e && e.message || e));
+        });
+    }
 
-        if (myExact === drawExact) { hasZhiXuan = 1; totalPrize += 1040; }
-        if (myStr === drawStr) {
-          if (isTongDuiZi) { /* 豹子，直选已覆盖 */ }
-          else if (isDuiZi) { hasZuSan = 1; totalPrize += 346; }
-          else { hasZuLiu = 1; totalPrize += 173; }
-        }
+    function prizeStatusText(status) {
+      if (status === 'lose') return '未中奖';
+      if (status === 'not_applicable') return '暂缺（该玩法套不上官方奖级）';
+      return '暂缺（规则读不到）';
+    }
 
-        tierResults = [
-          { tier: '直选', count: hasZhiXuan, prize: 1040, subtotal: hasZhiXuan*1040 },
-          { tier: '组三', count: hasZuSan, prize: 346, subtotal: hasZuSan*346 },
-          { tier: '组六', count: hasZuLiu, prize: 173, subtotal: hasZuLiu*173 },
-        ];
-        document.getElementById('matchSummary').innerHTML = '我的号码: <b>' + myReds.slice(0,3).join(',') + '</b> | 开奖: <b>' + drawReds.slice(0,3).join(',') + '</b>';
-        displayPrizeResult(tierResults, totalPrize, type);
-        return;
-      }
+    function isFloatPrize(prize) { return !(typeof prize === 'number'); }
 
-      if (cfg.seq) {
-        // 七星彩: sequential match
-        var seqHit = 0;
-        for (var i = 0; i < 7; i++) {
-          if (myReds[i] === drawReds[i]) seqHit++; else break;
-        }
-        var totalPrize = 0;
-        tierResults = prizeTable.map(function(t) {
-          var hit = 0;
-          if (t.tier.indexOf('一等奖') >= 0 && seqHit >= 7) hit = 1;
-          else if (t.tier.indexOf('二等奖') >= 0 && seqHit >= 6) hit = 1;
-          else if (t.tier.indexOf('三等奖') >= 0 && seqHit >= 5) hit = 1;
-          else if (t.tier.indexOf('四等奖') >= 0 && seqHit >= 4) hit = 1;
-          else if (t.tier.indexOf('五等奖') >= 0 && seqHit >= 3) hit = 1;
-          else if (t.tier.indexOf('六等奖') >= 0 && seqHit >= 2) hit = 1;
-          var p = typeof t.fixed === 'number' ? t.fixed : (t.min || 0);
-          totalPrize += hit * p;
-          return { tier: t.tier, cond: t.cond, count: hit, prize: p, subtotal: hit*p, isFloat: typeof t.fixed !== 'number' };
-        }).filter(function(r){ return r.count > 0; });
-        document.getElementById('matchSummary').innerHTML = '连续命中: <b>' + seqHit + '</b> 位';
-        displayPrizeResult(tierResults, totalPrize, type);
-        return;
-      }
+    function numericPrize(prize, tier, type) {
+      if (typeof prize === 'number') return prize;
+      var t = (PRIZE_TABLES[type] || []).filter(function (x) { return x.tier === tier; })[0];
+      return t && typeof t.min === 'number' ? t.min : 0;
+    }
 
-      // Standard ball lotteries (双色球 / 大乐透 / 七乐彩 / 快乐8)
-      var totalPrize = 0;
-      tierResults = [];
-      prizeTable.forEach(function(t) {
-        var matched = false;
-        var isFloat = typeof t.fixed !== 'number';
-
-        if (type === '双色球') {
-          if (t.tier === '一等奖' && redHit === 6 && blueHit >= 1) matched = true;
-          else if (t.tier === '二等奖' && redHit === 6) matched = true;
-          else if (t.tier === '三等奖' && redHit === 5 && blueHit >= 1) matched = true;
-          else if (t.tier === '四等奖' && ((redHit === 5) || (redHit === 4 && blueHit >= 1))) matched = true;
-          else if (t.tier === '五等奖' && ((redHit === 4) || (redHit === 3 && blueHit >= 1))) matched = true;
-          else if (t.tier === '六等奖' && blueHit >= 1) matched = true;
-        } else if (type === '大乐透') {
-          if (t.tier === '一等奖' && redHit === 5 && blueHit === 2) matched = true;
-          else if (t.tier === '二等奖' && redHit === 5 && blueHit === 1) matched = true;
-          else if (t.tier === '三等奖' && redHit === 5) matched = true;
-          else if (t.tier === '四等奖' && redHit === 4 && blueHit === 2) matched = true;
-          else if (t.tier === '五等奖' && redHit === 4 && blueHit === 1) matched = true;
-          else if (t.tier === '六等奖' && redHit === 3 && blueHit === 2) matched = true;
-          else if (t.tier === '七等奖' && ((redHit === 4) || (redHit === 3 && blueHit === 1) || (redHit === 2 && blueHit === 2))) matched = true;
-          else if (t.tier === '八等奖' && ((redHit === 3) || (redHit === 1 && blueHit === 2) || (redHit === 2 && blueHit === 1) || blueHit === 2)) matched = true;
-          else if (t.tier === '九等奖' && blueHit === 1) matched = true;
-        } else if (type === '七乐彩') {
-          if (t.tier === '一等奖' && redHit === 7) matched = true;
-          else if (t.tier === '二等奖' && redHit === 6) matched = true;
-          else if (t.tier === '三等奖' && redHit === 5) matched = true;
-          else if (t.tier === '四等奖' && redHit === 4) matched = true;
-          else if (t.tier === '五等奖' && redHit === 3) matched = true;
-          else if (t.tier === '六等奖' && redHit === 2) matched = true;
-          else if (t.tier === '七等奖' && redHit === 1) matched = true;
-        } else if (type === '快乐8') {
-          if (t.tier === '选十中十' && redHit === 10) matched = true;
-          else if (t.tier === '选十中九' && redHit === 9) matched = true;
-          else if (t.tier === '选十中八' && redHit === 8) matched = true;
-          else if (t.tier === '选十中七' && redHit === 7) matched = true;
-          else if (t.tier === '选十中六' && redHit === 6) matched = true;
-          else if (t.tier === '选十中五' && redHit === 5) matched = true;
-          else if (t.tier === '选十中零' && redHit === 0) matched = true;
-        }
-
-        if (matched) {
-          var p = isFloat ? (t.min || 0) : t.fixed;
-          totalPrize += p;
-          tierResults.push({ tier: t.tier, cond: t.cond, count: 1, prize: p, subtotal: p, isFloat: isFloat });
-        }
-      });
-
-      document.getElementById('matchSummary').innerHTML = '红球命中: <b>' + redHit + '/' + cfg.k + '</b> | 蓝球命中: <b>' + blueHit + '/' + (cfg.bk || 0) + '</b>';
-      displayPrizeResult(tierResults, totalPrize, type);
+    function condOf(type, tier) {
+      var t = (PRIZE_TABLES[type] || []).filter(function (x) { return x.tier === tier; })[0];
+      return t ? (t.cond || '') : '';
     }
 
     function countHits(a, b) {
@@ -437,14 +378,16 @@
       return hits;
     }
 
-    function displayPrizeResult(tierResults, totalPrize, type) {
+    function displayPrizeResult(tierResults, totalPrize, type, status) {
       var section = document.getElementById('resultSection');
       section.classList.remove('hidden');
 
       var body = document.getElementById('prizeBody');
       body.innerHTML = '';
       if (tierResults.length === 0) {
-        body.innerHTML = '<tr><td colspan="5" style="color:var(--muted);padding:1rem">未中奖</td></tr>';
+        // 诚实区分：未中奖 与 规则套不上/读不到，不能都写成「未中奖」
+        body.innerHTML = '<tr><td colspan="5" style="color:var(--muted);padding:1rem">'
+          + (status ? prizeStatusText(status) : '未中奖') + '</td></tr>';
       } else {
         tierResults.forEach(function(r) {
           var tr = document.createElement('tr');
@@ -455,19 +398,27 @@
       }
       document.getElementById('totalPrize').textContent = totalPrize.toLocaleString();
 
-      // Reference table
+      // Reference table（奖级表来自后端规则真源，不再是前端硬编码）
       var refBody = document.getElementById('refBody');
-      var prizeTable = PRIZE_TABLES[type];
+      var prizeTable = PRIZE_TABLES[type] || [];
       refBody.innerHTML = '';
+      if (prizeTable.length === 0) {
+        refBody.innerHTML = '<tr><td colspan="3" style="color:var(--muted);padding:1rem">奖级表暂缺（规则未加载）</td></tr>';
+        return;
+      }
       prizeTable.forEach(function(t) {
         var tr = document.createElement('tr');
-        tr.innerHTML = '<td>' + t.tier + '</td><td>' + t.cond + '</td><td>' + (typeof t.fixed === 'number' ? t.fixed.toLocaleString() : t.fixed + (t.min ? ' ('+t.min.toLocaleString()+'起)': '')) + '</td>';
+        var prizeTxt = (typeof t.prize === 'number')
+          ? t.prize.toLocaleString()
+          : String(t.prize || '—') + (t.min ? ' (' + t.min.toLocaleString() + '起)' : '');
+        tr.innerHTML = '<td>' + t.tier + '</td><td>' + (t.cond || '') + '</td><td>' + prizeTxt + '</td>';
         refBody.appendChild(tr);
       });
     }
 
-    // Init
+    // Init：先拉官方奖级规则，再渲染号码盘
     onLotTypeChange();
+    loadPrizeRules().then(function () { onLotTypeChange(); });
   </script>
   <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/topnav.js"></script>
 </body>

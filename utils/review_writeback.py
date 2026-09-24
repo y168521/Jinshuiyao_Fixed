@@ -25,7 +25,13 @@ pred["reviewed"]（同类项全量为零）。
 """
 
 # 复盘回写的完整字段集合（新增字段必须在此登记，否则各路径会再次出现漏项）
-REVIEW_FIELDS = ("actual", "draw_date", "reviewed", "hits", "hit_type", "coverage")
+# prize_tier / prize_status：官方奖级判定结果（JS-20260924-34），与 hits（号码重合数）
+# 是两套并存口径 —— hits 供学习与既有统计，prize_tier 才是「官方到底中奖没有」。
+REVIEW_FIELDS = ("actual", "draw_date", "reviewed", "hits", "hit_type", "coverage",
+                 "prize_tier", "prize_status")
+
+# 官方奖级判定失败时的兜底状态（区别于「未中奖」——规则读不到 ≠ 没中奖）
+PRIZE_STATUS_ERROR = "error"
 
 
 def stamp_review(pred, actual=None, draw_date=None, hits=None,
@@ -58,10 +64,34 @@ def stamp_review(pred, actual=None, draw_date=None, hits=None,
 
     if actual is not None:
         pred["actual"] = actual
+        _stamp_official_prize(pred, actual)
     if draw_date is not None:
         pred["draw_date"] = draw_date
     if hit_type is not None:
         pred["hit_type"] = hit_type
     if coverage is not None:
         pred["coverage"] = coverage
+    return pred
+
+
+def _stamp_official_prize(pred, actual):
+    """回填官方奖级判定结果（JS-20260924-34）
+
+    放在这里是刻意的：三条复盘路径（domains / scheduler 自动 / GUI 手动）**都已经**
+    调用 stamp_review，在此补算即可全覆盖，不必改三处。
+
+    判定失败（规则缺失/玩法不适用/异常）一律写 status 而不猜奖级——
+    「规则读不到」绝不等于「没中奖」，两者必须可区分。
+    """
+    try:
+        from utils.lottery_prize import judge_prize
+        res = judge_prize(pred.get("lot", ""), pred.get("nums", ""), actual)
+    except Exception:
+        res = None
+    if not isinstance(res, dict):
+        pred["prize_tier"] = None
+        pred["prize_status"] = PRIZE_STATUS_ERROR
+        return pred
+    pred["prize_tier"] = res.get("tier")
+    pred["prize_status"] = res.get("status") or PRIZE_STATUS_ERROR
     return pred
