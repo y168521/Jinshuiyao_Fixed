@@ -79,9 +79,20 @@ def _tokenize(text):
     return tokens
 
 
-def _bm25(query, docs, k1=1.5, b=0.75):
-    """docs: [{id, text, *extra}] → [{id, score, *extra}] 按相关度降序。
-    空文档/空查询安全。avgdl 为 0 时退化为词频匹配。"""
+def _bm25(query, docs, limit=None, k1=1.5, b=0.75):
+    """docs: [{id, text, *extra}] → [{id, score, *extra}] 按相关度降序取前 limit 条。
+
+    空文档/空查询安全。avgdl 为 0 时退化为词频匹配。
+
+    Args:
+        limit: 返回条数上限。**为 0 / None 时不限制**（保持向后兼容）。
+            JS-20260925-01：此前本函数签名里有 limit 却从未使用，
+            `return scored` 直接把全部得分>0 的文档返回 —— 实测
+            `_bm25(docs=50, limit=1)` 返回 50 条。cards / triples /
+            experiences 三源全走本函数，导致 `search(limit=1)` 返回 328 条，
+            API 实际返回量约为声明值的 40 倍：对 LLM 不是"召回更全"，
+            而是噪声淹没 + 上下文爆炸。
+    """
     if not docs or not query.strip():
         return []
     q_tokens = _tokenize(query)
@@ -112,6 +123,10 @@ def _bm25(query, docs, k1=1.5, b=0.75):
             item['score'] = round(score, 4)
             scored.append(item)
     scored.sort(key=lambda x: x['score'], reverse=True)
+    # JS-20260925-01：真截断（此前签名有 limit 却从不使用）。
+    # 排序后才截断，保证留下的是最相关的前 N 条，而不是随机裁。
+    if limit and limit > 0:
+        scored = scored[:limit]
     return scored
 
 
