@@ -33,16 +33,16 @@
     --copper-soft:rgba(200,117,90,.12);
     /* ── 统一强调色（冰蓝→交互默认）── */
     --accent:var(--ice);
-    --accent-light:#4ABBD8;
+    --accent-light:var(--js-ice-light);
     /* ── 旧名兼容（渐进迁移）── */
     /* 注：--ok/--err/--warn 由 theme.css 提供（墨绿金/赤铜/香槟金），此处不覆盖，避免语义色重载红灯 */
-    --bg:var(--deep);         /* 原 #f5f7fb → 深海墨蓝 */
-    --bg2:var(--card-bg);     /* 原 #ffffff → 深蓝灰 */
-    --bg3:rgba(11,26,47,.45); /* 原 #f0f3f9 → 深海半透明 */
-    --bg4:rgba(22,40,64,.6);  /* 原 #e6ebf3 → 蓝灰半透明 */
-    --muted:var(--ink-dim);   /* 原 #5b6b88 → 银白暗 */
-    --dim:rgba(232,236,241,.4); /* 原 #8a96b0 → 更暗 */
-    --rule:var(--gold-border);/* 原 #e6ebf3 → 金色淡边框 */
+    --bg:var(--deep);         /* 原浅色底 → 深海墨蓝 */
+    --bg2:var(--card-bg);     /* 原白底 → 深蓝灰 */
+    --bg3:rgba(11,26,47,.45); /* 原浅灰底 → 深海半透明 */
+    --bg4:rgba(22,40,64,.6);  /* 原浅灰底 → 蓝灰半透明 */
+    --muted:var(--ink-dim);   /* 原中性灰 → 银白暗 */
+    --dim:rgba(232,236,241,.4); /* 原浅中性灰 → 更暗 */
+    --rule:var(--gold-border);/* 原浅灰 → 金色淡边框 */
     /* ── 第二 style 块（记忆/营销/视频视图）所用别名 ── */
     --border:var(--gold-border);     /* 通用边框 */
     --text:var(--ink);               /* 主文字 */
@@ -140,7 +140,7 @@
   /* ========== V1: 首页概览（暗色金系）========== */
   .home-view{padding:1.5rem 2rem;max-width:1100px;margin:0 auto}
   .hero{
-    background:linear-gradient(135deg,#0d2137 0%,#0B1A2F 50%,#102a45 100%);
+    background:linear-gradient(135deg, var(--js-surface-1) 0%, var(--js-deep) 50%, var(--js-surface-2) 100%);
     border:1px solid var(--gold-border);
     border-radius:18px;padding:2rem 2.2rem;color:var(--ink);
     box-shadow:var(--shadow-gold),var(--shadow);
@@ -232,7 +232,7 @@
     word-break:break-word;
   }
   .msg-ai{background:var(--bg3);border:1px solid var(--gold-border);border-bottom-left-radius:4px;color:var(--ink)}
-  .msg-user{background:linear-gradient(135deg,var(--gold),#b8944f);color:var(--deep);border-bottom-right-radius:4px}
+  .msg-user{background:linear-gradient(135deg,var(--gold),var(--js-gold-deep));color:var(--deep);border-bottom-right-radius:4px}
   .msg-user a{color:var(--deep);text-decoration:underline}
   .msg pre{background:rgba(0,0,0,.3);padding:.6rem .8rem;border-radius:8px;overflow-x:auto;font-size:.8rem;margin:.4rem 0;color:var(--ice)}
   .msg code{background:rgba(0,0,0,.3);padding:.1rem .35rem;border-radius:4px;font-size:.82rem;color:var(--ice)}
@@ -278,7 +278,7 @@
   }
   .video-url-input:focus{border-color:var(--gold)}
   .video-extract-btn{
-    padding:.5rem 1rem;background:linear-gradient(135deg,var(--gold),#b8944f);color:var(--deep);border:none;border-radius:8px;
+    padding:.5rem 1rem;background:linear-gradient(135deg,var(--gold),var(--js-gold-deep));color:var(--deep);border:none;border-radius:8px;
     font-family:var(--font);font-size:.82rem;cursor:pointer;font-weight:600;
   }
   .video-result{margin-top:.5rem;font-size:.82rem;color:var(--ink-dim);max-height:80px;overflow-y:auto}
@@ -305,7 +305,7 @@
   }
   .input-tool-btn:hover{border-color:var(--gold);color:var(--gold)}
   .send-btn{
-    width:38px;height:38px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--gold),#b8944f);color:var(--deep);
+    width:38px;height:38px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--js-gold-deep));color:var(--deep);
     font-size:1rem;cursor:pointer:transition:all .15s;display:flex;align-items:center;justify-content:center;
   }
   .send-btn:hover{filter:brightness(1.1)}
@@ -346,7 +346,7 @@
     color:var(--ink-dim);font-family:var(--font);font-size:.78rem;cursor:pointer;transition:all .15s;
   }
   .value-tab:hover{color:var(--ink);border-color:var(--dim)}
-  .value-tab.active{background:linear-gradient(135deg,var(--gold),#b8944f);color:var(--deep);border-color:var(--gold);font-weight:600}
+  .value-tab.active{background:linear-gradient(135deg,var(--gold),var(--js-gold-deep));color:var(--deep);border-color:var(--gold);font-weight:600}
 
   .domain-filters{display:flex;gap:.35rem;flex-wrap:wrap}
   .domain-tag{
@@ -447,7 +447,7 @@
   .syscard.c-cyan::before{background:linear-gradient(90deg,var(--ice),transparent)}
   .syscard.c-green::before{background:linear-gradient(90deg,var(--jade),transparent)}
   .syscard.c-amber::before{background:linear-gradient(90deg,var(--gold),transparent)}
-  .syscard.c-purple::before{background:linear-gradient(90deg,#4ABBD8,transparent)}
+  .syscard.c-purple::before{background:linear-gradient(90deg, var(--ice), transparent)}
   .syscard.c-pink::before{background:linear-gradient(90deg,var(--copper),transparent)}
 
   .sch{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.7rem}
@@ -471,14 +471,14 @@
     flex:1;padding:.5rem .7rem;border:none;border-radius:9px;font-family:var(--font);
     font-size:.82rem;font-weight:600;cursor:pointer;text-align:center;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:.35rem;
   }
-  .scbtn-primary{background:linear-gradient(135deg,var(--gold),#b8944f);color:var(--deep)}
+  .scbtn-primary{background:linear-gradient(135deg,var(--gold),var(--js-gold-deep));color:var(--deep)}
   .scbtn-primary:hover{filter:brightness(1.1);box-shadow:var(--shadow-gold)}
-  .scbtn-green{background:var(--jade);color:#fff}
-  .scbtn-green:hover{background:#258a7a}
-  .scbtn-amber{background:linear-gradient(135deg,var(--gold),#b8944f);color:var(--deep)}
+  .scbtn-green{background:var(--jade);color:var(--ink)}
+  .scbtn-green:hover{background:var(--jade)}
+  .scbtn-amber{background:linear-gradient(135deg,var(--gold),var(--js-gold-deep));color:var(--deep)}
   .scbtn-amber:hover{filter:brightness(1.1)}
   .scbtn-purple{background:var(--ice);color:var(--deep)}
-  .scbtn-purple:hover{background:#4ABBD8}
+  .scbtn-purple:hover{background:var(--ice)}
   .scbtn-ghost{background:var(--bg3);color:var(--ink-dim);border:1px solid var(--gold-border)}
   .scbtn-ghost:hover{border-color:var(--gold);color:var(--gold)}
   .scbtn-disabled{background:var(--bg3);color:var(--dim);cursor:not-allowed}
@@ -493,7 +493,7 @@
     color:var(--ink-dim);font-family:var(--font);font-size:.76rem;cursor:pointer;transition:all .15s;
   }
   .dfchip:hover{border-color:var(--gold);color:var(--ink)}
-  .dfchip.active{background:linear-gradient(135deg,var(--gold),#b8944f);color:var(--deep);border-color:var(--gold)}
+  .dfchip.active{background:linear-gradient(135deg,var(--gold),var(--js-gold-deep));color:var(--deep);border-color:var(--gold)}
 
   .dash-search{
     width:100%;max-width:320px;padding:.5rem .8rem .5rem 2rem;border:1px solid var(--gold-border);
@@ -539,10 +539,10 @@
   .af-input:focus{border-color:var(--accent)}
   textarea.af-input{min-height:100px;resize:vertical;max-height:300px}
   .af-btn{
-    padding:.6rem 1.5rem;background:linear-gradient(135deg,var(--gold),#b9975f);color:#0B1A2F;border:none;border-radius:10px;
+    padding:.6rem 1.5rem;background:linear-gradient(135deg,var(--gold),var(--js-gold-deep));color:#0B1A2F;border:none;border-radius:10px;
     font-family:var(--font);font-size:.88rem;font-weight:700;cursor:pointer;transition:all .15s;
   }
-  .af-btn:hover{background:linear-gradient(135deg,#d8bd84,#c9a96e)}
+  .af-btn:hover{background:linear-gradient(135deg, var(--js-gold-light), var(--gold))}
   .af-output{
     background:var(--bg2);border:1px solid var(--rule);border-radius:12px;padding:1rem;margin-top:1rem;
   }
@@ -625,7 +625,7 @@
   .tstep.active .tdot{border-color:var(--ice);background:var(--ice-soft)}
   .tstep.active .tdot::after{content:'';position:absolute;left:50%;top:50%;width:6px;height:6px;border-radius:50%;background:var(--ice);transform:translate(-50%,-50%);animation:pulse 1s infinite}
   .tstep.done .tdot{border-color:var(--ok);background:var(--ok)}
-  .tstep.done .tdot::after{content:'✓';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#fff;font-size:.6rem;font-weight:700}
+  .tstep.done .tdot::after{content:'✓';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:var(--ink);font-size:.6rem;font-weight:700}
   @keyframes pulse{0%,100%{opacity:.4;transform:translate(-50%,-50%) scale(.8)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}}
 
   /* 知识库：网格 / 列表 视图切换 */
@@ -1108,7 +1108,7 @@
   .cm-links{width:100%;min-height:110px;border:1px solid var(--border);border-radius:10px;padding:.6rem .8rem;background:var(--bg3);color:var(--text);font-size:.85rem;font-family:inherit;resize:vertical;box-sizing:border-box}
   .cm-industry{width:100%;border:1px solid var(--border);border-radius:10px;padding:.6rem .8rem;background:var(--bg3);color:var(--text);font-size:.88rem;box-sizing:border-box}
   .cm-platform{width:100%;border:1px solid var(--border);border-radius:10px;padding:.6rem .8rem;background:var(--bg3);color:var(--text);font-size:.88rem;box-sizing:border-box}
-  .cm-btn{padding:.6rem .9rem;border:none;border-radius:10px;background:linear-gradient(135deg,var(--gold),#b9975f);color:#0B1A2F;font-size:.9rem;font-weight:700;cursor:pointer}
+  .cm-btn{padding:.6rem .9rem;border:none;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--js-gold-deep));color:#0B1A2F;font-size:.9rem;font-weight:700;cursor:pointer}
   .cm-btn:hover{opacity:.9}
   .cm-btn:disabled{opacity:.5;cursor:not-allowed}
   .cm-btn-amber{background:#C9A96E}
@@ -1122,7 +1122,7 @@
   .ve-box{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.1rem}
   .ve-input-row{display:flex;gap:.6rem;flex-wrap:wrap}
   .ve-url{flex:1;min-width:240px;border:1px solid var(--border);border-radius:10px;padding:.6rem .8rem;background:var(--bg3);color:var(--text);font-size:.9rem;box-sizing:border-box}
-  .ve-btn{background:linear-gradient(135deg,var(--gold),#b9975f);color:#0B1A2F;border:none;border-radius:10px;padding:.6rem 1.1rem;font-size:.9rem;font-weight:700;cursor:pointer;white-space:nowrap}
+  .ve-btn{background:linear-gradient(135deg,var(--gold),var(--js-gold-deep));color:#0B1A2F;border:none;border-radius:10px;padding:.6rem 1.1rem;font-size:.9rem;font-weight:700;cursor:pointer;white-space:nowrap}
   .ve-btn:hover{filter:brightness(1.05)}
   .ve-btn:disabled{opacity:.6;cursor:wait}
   .ve-hint{font-size:.78rem;color:var(--muted);margin:.7rem 0;line-height:1.5}
@@ -1150,10 +1150,10 @@
   .ai-team-item:hover{border-color:var(--gold);background:var(--gold-soft)}
   .ai-team-item.active{border-color:var(--gold);background:var(--gold-soft)}
   .ai-avatar{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.95rem;font-weight:800;color:var(--deep);flex-shrink:0}
-  .ai-avatar.qoder{background:linear-gradient(135deg,var(--ice),#3a9cb8)}
-  .ai-avatar.workbuddy{background:linear-gradient(135deg,var(--gold),#b8944f)}
-  .ai-avatar.trae{background:linear-gradient(135deg,var(--jade),#1e6b60)}
-  .ai-avatar.doubao{background:linear-gradient(135deg,var(--copper),#a85a42)}
+  .ai-avatar.qoder{background:linear-gradient(135deg,var(--ice), var(--js-ice-deep))}
+  .ai-avatar.workbuddy{background:linear-gradient(135deg,var(--gold),var(--js-gold-deep))}
+  .ai-avatar.trae{background:linear-gradient(135deg,var(--jade), var(--js-jade-deep))}
+  .ai-avatar.doubao{background:linear-gradient(135deg,var(--copper), var(--js-copper-deep))}
   .ai-info{flex:1;min-width:0}
   .ai-name{font-size:.88rem;font-weight:600;color:var(--ink)}
   .ai-role{font-size:.74rem;color:var(--muted);margin-top:.1rem}
@@ -1175,7 +1175,7 @@
   .ws-tabs{display:flex;gap:.2rem;padding:.3rem 0}
   .ws-tab{padding:.4rem .85rem;border:none;border-radius:8px;font-family:var(--font);font-size:.82rem;font-weight:600;cursor:pointer;color:var(--muted);background:transparent;transition:all .15s}
   .ws-tab:hover{color:var(--ink-mid);background:var(--bg3)}
-  .ws-tab.active{color:var(--deep);background:linear-gradient(135deg,var(--gold),#b8944f)}
+  .ws-tab.active{color:var(--deep);background:linear-gradient(135deg,var(--gold),var(--js-gold-deep))}
   .ws-panel{display:none;padding:.6rem 0}
   .ws-panel.active{display:block}
   /* 协作记录 */
@@ -1192,18 +1192,18 @@
   .action-item{display:flex;align-items:center;gap:.5rem;padding:.55rem .7rem;background:var(--bg3);border:1px solid var(--border);border-radius:10px}
   .action-check{width:18px;height:18px;border:2px solid var(--rule);border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
   .action-check:hover{border-color:var(--gold)}
-  .action-check.checked{background:var(--jade);border-color:var(--jade);color:#fff;font-size:.7rem}
+  .action-check.checked{background:var(--jade);border-color:var(--jade);color:var(--ink);font-size:.7rem}
   .action-text{flex:1;font-size:.84rem;color:var(--ink-mid)}
   .action-text.done{text-decoration:line-through;color:var(--muted)}
   /* 协作聊天 */
   .chat-messages{flex:1;min-height:200px;max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:.5rem;padding:.5rem 0}
   .collab-msg{max-width:80%;padding:.55rem .75rem;border-radius:12px;font-size:.84rem;line-height:1.5}
-  .collab-msg.from-user{align-self:flex-end;background:linear-gradient(135deg,var(--gold),#b8944f);color:var(--deep);border-bottom-right-radius:4px}
+  .collab-msg.from-user{align-self:flex-end;background:linear-gradient(135deg,var(--gold),var(--js-gold-deep));color:var(--deep);border-bottom-right-radius:4px}
   .collab-msg.from-ai{align-self:flex-start;background:var(--bg3);border:1px solid var(--border);color:var(--ink-mid);border-bottom-left-radius:4px}
   .chat-input-row{display:flex;gap:.5rem;margin-top:.4rem}
   .chat-input{flex:1;padding:.55rem .8rem;border:1px solid var(--border);border-radius:10px;font-family:var(--font);font-size:.84rem;color:var(--ink);background:var(--deep);outline:none;transition:border-color .2s}
   .chat-input:focus{border-color:var(--gold)}
-  .chat-send-btn{padding:.55rem 1.2rem;border:none;border-radius:10px;background:linear-gradient(135deg,var(--gold),#b8944f);color:var(--deep);font-family:var(--font);font-size:.84rem;font-weight:700;cursor:pointer;transition:opacity .15s}
+  .chat-send-btn{padding:.55rem 1.2rem;border:none;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--js-gold-deep));color:var(--deep);font-family:var(--font);font-size:.84rem;font-weight:700;cursor:pointer;transition:opacity .15s}
   .chat-send-btn:hover{opacity:.88}
   /* 响应式 */
   @media(max-width:900px){
@@ -1231,7 +1231,7 @@
   </div>
   <div style="display:flex;gap:.4rem">
     <button class="obtn" onclick="hideUrlToast()">取消</button>
-    <button class="obtn" style="background:linear-gradient(135deg,var(--gold),#b9975f);color:#0B1A2F;border-color:var(--gold)" onclick="extractAndArchive()">提取归档</button>
+    <button class="obtn" style="background:linear-gradient(135deg,var(--gold),var(--js-gold-deep));color:#0B1A2F;border-color:var(--gold)" onclick="extractAndArchive()">提取归档</button>
   </div>
 </div>
 

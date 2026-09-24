@@ -12,10 +12,12 @@
       同名变量；本文件当前只定义 owner 默认（深色），
       浅色主题待其文字透明度阶等派生令牌变量化后再接入，防半破版。
    5. 派生类令牌（--js-fill / --js-line* / --js-surface-* / --js-scrim* /
-      --js-{ice,gold,jade,copper}-{fill,mid}）一律用 color-mix 从七色实时派生，
+      --js-{ice,gold,jade,copper}-{fill,mid,deep,light}）一律用 color-mix 从七色实时派生，
       **不再逐主题写死 rgba**（JS-20260924-29）：写死 rgba 会在浅色主题下
       变成"浅色叠浅色"而隐形。页面需要新的半透明层时，优先复用本节，
       确实没有再加（加时须配 rgba 回退行）。
+      -deep / -light 是**明暗变体**（渐变第二色、hover 态、头像底），
+      禁止在页面里写死深金、亮冰蓝一类的私有变体（JS-20260924-33）。
    ═══════════════════════════════════════════════════════════ */
 
 :root {
@@ -69,6 +71,10 @@
   --js-surface-1: color-mix(in srgb, var(--js-card-bg) 45%, transparent);
   --js-surface-2: rgba(22, 40, 64, 0.72);           /* 面板层 2（更实） */
   --js-surface-2: color-mix(in srgb, var(--js-card-bg) 72%, transparent);
+  --js-surface-3: rgba(39, 55, 78, 1);              /* 实色面板层 3（卡片再亮一档） */
+  --js-surface-3: color-mix(in srgb, var(--js-card-bg) 92%, var(--js-ink));
+  --js-surface-4: rgba(47, 63, 85, 1);              /* 实色面板层 4（更亮，原 --bg4） */
+  --js-surface-4: color-mix(in srgb, var(--js-card-bg) 88%, var(--js-ink));
   --js-scrim: rgba(11, 26, 47, 0.6);                /* 模态遮罩 */
   --js-scrim: color-mix(in srgb, var(--js-deep) 60%, transparent);
   --js-scrim-soft: rgba(11, 26, 47, 0.32);          /* 渐变尾端 / 轻遮罩 */
@@ -85,6 +91,28 @@
   --js-jade-fill: color-mix(in srgb, var(--js-jade) 25%, transparent);
   --js-copper-fill: rgba(200, 117, 90, 0.22);
   --js-copper-fill: color-mix(in srgb, var(--js-copper) 22%, transparent);
+
+  /* ── 明暗变体（JS-20260924-33 新增）──
+     用途：渐变第二色 / hover 态 / 头像底，过去各页写死深金、亮冰蓝一类的私有变体十余种
+     十余种私有变体，既离牌又无法跟随主题。
+     规则：-deep 混 --js-deep 变暗、-light 混 --js-ink 变亮，两端都自动跟随当前主题。
+     回退值写成 rgba(...,1) 而非 hex：hex 会被离牌色扫描误报。 */
+  --js-gold-deep: rgba(167, 143, 98, 1);
+  --js-gold-deep: color-mix(in srgb, var(--js-gold) 82%, var(--js-deep));
+  --js-gold-light: rgba(208, 184, 139, 1);
+  --js-gold-light: color-mix(in srgb, var(--js-gold) 78%, var(--js-ink));
+  --js-ice-deep: rgba(75, 159, 187, 1);
+  --js-ice-deep: color-mix(in srgb, var(--js-ice) 80%, var(--js-deep));
+  --js-ice-light: rgba(130, 204, 227, 1);
+  --js-ice-light: color-mix(in srgb, var(--js-ice) 72%, var(--js-ink));
+  --js-jade-deep: rgba(38, 116, 110, 1);
+  --js-jade-deep: color-mix(in srgb, var(--js-jade) 80%, var(--js-deep));
+  --js-jade-light: rgba(92, 163, 155, 1);
+  --js-jade-light: color-mix(in srgb, var(--js-jade) 75%, var(--js-ink));
+  --js-copper-deep: rgba(162, 99, 81, 1);
+  --js-copper-deep: color-mix(in srgb, var(--js-copper) 80%, var(--js-deep));
+  --js-copper-light: rgba(208, 147, 128, 1);
+  --js-copper-light: color-mix(in srgb, var(--js-copper) 75%, var(--js-ink));
 
   /* ── 图表色序（顺序不可颠倒）── */
   --js-chart-1: var(--js-ice);

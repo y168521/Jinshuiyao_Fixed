@@ -12,8 +12,8 @@
       /* 映射到 theme.css 设计令牌 */
       --bg: var(--deep);
       --bg2: var(--card-bg);
-      --bg3: #1c3350;
-      --bg4: #243d5c;
+      --bg3: var(--js-surface-3);
+      --bg4: var(--js-surface-4);
       --dim: var(--ink-mid);
       --accent-light: var(--ice);
       --accent-dark: var(--jade);
@@ -842,7 +842,7 @@
     .value-tab.active {
       background: var(--accent);
       border-color: var(--accent);
-      color: #fff;
+      color: var(--ink);
       box-shadow: 0 2px 8px rgba(91,192,222,.25);
     }
 
@@ -865,11 +865,11 @@
       font-weight: 500;
     }
     .domain-tag:hover { color: var(--ink); border-color: var(--dim); background: var(--bg3); }
-    .domain-tag.active { color: #fff; border-color: transparent; }
-    .domain-tag[data-domain="lottery"].active { background: linear-gradient(135deg,#C8755A,#d4917e); }
-    .domain-tag[data-domain="stock"].active { background: linear-gradient(135deg,#C9A96E,#d9c39a); }
-    .domain-tag[data-domain="football"].active { background: linear-gradient(135deg,#2D8B7E,#4aab9e); }
-    .domain-tag[data-domain="general"].active { background: linear-gradient(135deg,#5BC0DE,#7dd3e8); }
+    .domain-tag.active { color: var(--ink); border-color: transparent; }
+    .domain-tag[data-domain="lottery"].active { background: linear-gradient(135deg, var(--copper), var(--js-copper-light)); }
+    .domain-tag[data-domain="stock"].active { background: linear-gradient(135deg, var(--gold), var(--js-gold-light)); }
+    .domain-tag[data-domain="football"].active { background: linear-gradient(135deg, var(--jade), var(--js-jade-light)); }
+    .domain-tag[data-domain="general"].active { background: linear-gradient(135deg, var(--ice), var(--js-ice-light)); }
 
     /* 知识卡片内容区 */
     .knowledge-content {
@@ -909,10 +909,10 @@
       transition: opacity 0.25s;
       border-radius: 14px 0 0 14px;
     }
-    .knowledge-card[data-domain="lottery"]::after { background: linear-gradient(180deg,#C8755A,#d4917e); }
-    .knowledge-card[data-domain="stock"]::after { background: linear-gradient(180deg,#C9A96E,#d9c39a); }
-    .knowledge-card[data-domain="football"]::after { background: linear-gradient(180deg,#2D8B7E,#4aab9e); }
-    .knowledge-card[data-domain="general"]::after { background: linear-gradient(180deg,#5BC0DE,#7dd3e8); }
+    .knowledge-card[data-domain="lottery"]::after { background: linear-gradient(180deg, var(--copper), var(--js-copper-light)); }
+    .knowledge-card[data-domain="stock"]::after { background: linear-gradient(180deg, var(--gold), var(--js-gold-light)); }
+    .knowledge-card[data-domain="football"]::after { background: linear-gradient(180deg, var(--jade), var(--js-jade-light)); }
+    .knowledge-card[data-domain="general"]::after { background: linear-gradient(180deg, var(--ice), var(--js-ice-light)); }
     .knowledge-card:hover {
       border-color: transparent;
       transform: translateY(-3px);
@@ -1155,29 +1155,29 @@
     .topbar-badge.free::before { background: #2D8B7E; }
     .topbar-badge.paid { background: rgba(201,169,110,0.18); color: #C9A96E; }
     .topbar-badge.paid::before { background: #C9A96E; }
-    .topbar-badge.local { background: rgba(120,130,140,0.16); color: #5b6770; }
-    .topbar-badge.local::before { background: #5b6770; }
+    .topbar-badge.local { background: var(--js-fill); color: var(--js-ink-dim); }
+    .topbar-badge.local::before { background: var(--js-ink-dim); }
     .sidebar-badge.free { background: rgba(45,139,126,0.16); color: #2D8B7E; }
     .sidebar-badge.free::before { background: #2D8B7E; }
     .sidebar-badge.paid { background: rgba(201,169,110,0.18); color: #C9A96E; }
     .sidebar-badge.paid::before { background: #C9A96E; }
-    .sidebar-badge.local { background: rgba(120,130,140,0.16); color: #5b6770; }
-    .sidebar-badge.local::before { background: #5b6770; }
+    .sidebar-badge.local { background: var(--js-fill); color: var(--js-ink-dim); }
+    .sidebar-badge.local::before { background: var(--js-ink-dim); }
 
     /* ===== 每条AI消息的模型来源标签 ===== */
     .model-tag { display: inline-block; margin: 0.35rem 0 0; font-size: 0.7rem; padding: 0.12rem 0.5rem; border-radius: 999px; font-weight: 600; letter-spacing: 0.02em; }
     .model-tag.free { background: rgba(45,139,126,0.14); color: #2D8B7E; }
     .model-tag.paid { background: rgba(201,169,110,0.16); color: #C9A96E; }
-    .model-tag.local { background: rgba(120,130,140,0.14); color: #5b6770; }
+    .model-tag.local { background: var(--js-fill); color: var(--js-ink-dim); }
 
     /* ===== 待提醒横幅 ===== */
-    .reminder-banner { background: linear-gradient(135deg, rgba(201,169,110,0.20), rgba(201,169,110,0.10)); border: 1px solid rgba(201,169,110,0.5); border-radius: 12px; padding: 0.7rem 0.9rem; margin-bottom: 0.6rem; font-size: 0.88rem; line-height: 1.5; color: #8a6d3b; white-space: pre-wrap; }
+    .reminder-banner { background: linear-gradient(135deg, rgba(201,169,110,0.20), rgba(201,169,110,0.10)); border: 1px solid rgba(201,169,110,0.5); border-radius: 12px; padding: 0.7rem 0.9rem; margin-bottom: 0.6rem; font-size: 0.88rem; line-height: 1.5; color: var(--js-gold-light); white-space: pre-wrap; }
 
     /* ===== 消息操作（复制/删除） ===== */
     .msg-actions { display: flex; gap: 0.3rem; margin-top: 0.3rem; opacity: 0; transition: opacity 0.15s; }
     .msg-row:hover .msg-actions { opacity: 1; }
-    .msg-action { border: none; background: rgba(128,128,128,0.12); color: var(--ink-dim, #888); cursor: pointer; border-radius: 8px; padding: 0.18rem 0.42rem; font-size: 0.8rem; line-height: 1; }
-    .msg-action:hover { background: rgba(128,128,128,0.22); color: var(--ink, #333); }
+    .msg-action { border: none; background: var(--js-fill); color: var(--ink-dim); cursor: pointer; border-radius: 8px; padding: 0.18rem 0.42rem; font-size: 0.8rem; line-height: 1; }
+    .msg-action:hover { background: var(--js-fill); color: var(--ink); }
   </style>
   <link rel="stylesheet" href="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/css/ui-feedback.css">
   <script src="/Jinshuiyao_Fixed/jinshuiyao-guide/_shared/js/ui-feedback.js"></script>
@@ -2773,7 +2773,7 @@
         label.textContent = key + "（" + themeMeaning(key) + "）";
         var input = document.createElement("input");
         input.type = "color";
-        input.value = (vars[key] || "#000000");
+        input.value = (vars[key] || "#0B1A2F");
         input.id = "pk" + key;
         input.dataset.var = key;
         var sw = document.createElement("span");
@@ -2937,12 +2937,12 @@
     if (!items.length) { menu.style.display = 'none'; return; }
     var html = items.map(function (it, i) {
       var isCustom = it._custom;
-      return '<div data-i="' + i + '" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid rgba(201,169,110,.12);color:#D8DEE9;">' +
+      return '<div data-i="' + i + '" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid rgba(201,169,110,.12);color:var(--js-ink);">' +
         '<span style="color:#C9A96E;font-weight:600;">/' + it.label + '</span>' +
-        (isCustom ? '<span style="color:#5B6B81;font-size:10px;margin-left:6px;">自定义</span>' : '') +
-        '<div style="color:#8A94A6;font-size:12px;margin-top:2px;">' + it.text + '</div></div>';
+        (isCustom ? '<span style="color:var(--js-ink-dim);font-size:10px;margin-left:6px;">自定义</span>' : '') +
+        '<div style="color:var(--js-ink-mid);font-size:12px;margin-top:2px;">' + it.text + '</div></div>';
     }).join('') +
-      '<div data-save="1" style="padding:8px 12px;cursor:pointer;color:#5B6B81;font-size:12px;border-top:1px dashed rgba(201,169,110,.2);">＋ 将当前内容存为自定义指令（共 ' + getPresets().length + ' 条）</div>';
+      '<div data-save="1" style="padding:8px 12px;cursor:pointer;color:var(--js-ink-dim);font-size:12px;border-top:1px dashed rgba(201,169,110,.2);">＋ 将当前内容存为自定义指令（共 ' + getPresets().length + ' 条）</div>';
     menu.innerHTML = html;
     menu.style.display = 'block';
     var divs = menu.querySelectorAll('[data-i]');
