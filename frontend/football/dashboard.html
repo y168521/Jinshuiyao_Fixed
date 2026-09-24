@@ -16,29 +16,30 @@
 
 :root {
   /* ── 背景层次（P0-2 · 2026-09-23：改引全站令牌，回退值保留原 Slate 配色）── */
-  --bg-deep: var(--js-deep, #0a0e1a);
-  --bg: var(--js-deep, #0f172a);
-  --bg2: var(--js-card-bg, #1e293b);
-  --bg3: var(--js-card-bg, #273548);
-  --bg4: var(--js-border-elev-1, #334155);
+  --bg-deep: var(--js-deep, #0B1A2F);
+  --bg: var(--js-deep, #0B1A2F);
+  --bg2: var(--js-card-bg, #162840);
+  --bg3: var(--js-card-bg, #162840);
+  --bg4: var(--js-card-bg, #162840);
   /* ── 文字 ── */
-  --ink: var(--js-ink, #e2e8f0);
-  --ink-bright: var(--js-ink, #f8fafc);
-  --muted: var(--js-ink-dim, #94a3b8);
-  --muted-dim: var(--js-ink-disabled, #64748b);
+  --ink: var(--js-ink, #E8ECF1);
+  --ink-bright: var(--js-ink, #E8ECF1);
+  --muted: var(--js-ink-mid, rgba(232,236,241,.7));
+  --muted-dim: var(--js-ink-disabled, rgba(232,236,241,.38));
   /* ── 边框 ── */
-  --rule: var(--js-gold-border, #334155);
-  --rule-light: var(--js-border-elev-0, rgba(51, 65, 85, 0.5));
-  /* ── 主强调色（原青绿 → 统一为墨绿金）── */
-  --accent: var(--js-jade, #00d4aa);
-  --accent-bright: var(--js-ice, #00ffcc);
-  --accent-blue: var(--js-ice, #00d4ff);
+  --rule: var(--js-border-elev-1, rgba(91,192,222,.3));
+  --rule-light: var(--js-border-elev-0, rgba(91,192,222,.15));
+  /* ── 主强调色：香槟金（与同胞页 jinshuiyao-dashboard 对齐）──
+     不选墨绿金：jade 语义=成功会与 --success 撞色，且小字对比度 3.6 不达标 */
+  --accent: var(--js-gold, #C9A96E);
+  --accent-bright: var(--js-gold, #C9A96E);
+  --accent-blue: var(--js-ice, #5BC0DE);
   /* ── 次强调色：冰水蓝 ── */
-  --accent2: var(--js-ice, #5bc0de);
+  --accent2: var(--js-ice, #5BC0DE);
   --accent2-light: var(--js-ice, #5BC0DE);
   /* ── 警告（原橙黄 → 统一为香槟金）── */
-  --warning: var(--js-gold, #f59e0b);
-  --warning-dark: var(--js-gold, #d29922);
+  --warning: var(--js-gold, #C9A96E);
+  --warning-dark: var(--js-gold, #C9A96E);
   /* ── 成功 ── */
   --success: var(--js-jade, #2D8B7E);
   --success-bright: var(--js-jade, #2D8B7E);
@@ -46,16 +47,16 @@
   --danger: var(--js-copper, #C8755A);
   --danger-dark: var(--js-copper, #C8755A);
   /* ── 渐变 ── */
-  --gradient-accent: linear-gradient(135deg, var(--js-jade, #00d4aa), var(--js-ice, #00d4ff));
-  --gradient-accent-h: linear-gradient(90deg, var(--js-jade, #00d4aa), var(--js-ice, #00d4ff));
-  --gradient-blue: linear-gradient(135deg, var(--js-ice, #5bc0de), var(--js-card-bg, #2e8ca8));
+  --gradient-accent: linear-gradient(135deg, var(--js-gold, #C9A96E), var(--js-ice, #5BC0DE));
+  --gradient-accent-h: linear-gradient(90deg, var(--js-gold, #C9A96E), var(--js-ice, #5BC0DE));
+  --gradient-blue: linear-gradient(135deg, var(--js-ice, #5BC0DE), var(--js-card-bg, #162840));
   --gradient-win: linear-gradient(90deg, var(--js-jade, #2D8B7E), var(--js-jade, #2D8B7E));
-  --gradient-draw: linear-gradient(90deg, var(--js-gold, #d29922), var(--js-gold, #f59e0b));
+  --gradient-draw: linear-gradient(90deg, var(--js-gold, #C9A96E), var(--js-gold, #C9A96E));
   --gradient-lose: linear-gradient(90deg, var(--js-copper, #C8755A), var(--js-copper, #C8755A));
   /* ── Glassmorphism（改引令牌：浅色主题下变实底面板，避免深玻璃压白底）── */
-  --glass-bg: var(--js-card-bg, rgba(30, 41, 59, 0.75));
-  --glass-bg-light: var(--js-card-bg, rgba(30, 41, 59, 0.5));
-  --glass-border: var(--js-border-elev-0, rgba(51, 65, 85, 0.6));
+  --glass-bg: var(--js-card-bg, rgba(22, 40, 64, 0.75));
+  --glass-bg-light: var(--js-card-bg, rgba(22, 40, 64, 0.5));
+  --glass-border: var(--js-border-elev-0, rgba(91,192,222,.15));
   --glass-blur: blur(16px);
   /* ── 尺寸 ── */
   --card-radius: 14px;
@@ -83,7 +84,7 @@ body::before {
     radial-gradient(ellipse at 15% 5%, rgba(0, 212, 170, 0.07) 0%, transparent 50%),
     radial-gradient(ellipse at 85% 10%, rgba(91, 192, 222, 0.05) 0%, transparent 40%),
     radial-gradient(ellipse at 50% 90%, rgba(0, 212, 255, 0.04) 0%, transparent 50%),
-    linear-gradient(180deg, #0a0e1a 0%, #0f172a 30%, #1e293b 100%);
+    linear-gradient(180deg, var(--js-deep) 0%, var(--js-deep) 30%, var(--js-card-bg) 100%);
   z-index: -1;
   pointer-events: none;
 }
@@ -116,7 +117,7 @@ body::before {
   background: var(--gradient-accent);
   border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
-  font-weight: 900; font-size: 16px; color: var(--js-deep, #0f172a);
+  font-weight: 900; font-size: 16px; color: var(--js-deep, #0B1A2F);
   box-shadow: 0 2px 12px rgba(0, 212, 170, 0.3);
 }
 
@@ -166,12 +167,12 @@ body::before {
 .data-notice.mock {
   background: rgba(245, 158, 11, 0.10);
   border-color: rgba(245, 158, 11, 0.45);
-  color: #fcd34d;
+  color: var(--js-gold);
 }
 .data-notice.real {
   background: rgba(45, 139, 126, 0.10);
   border-color: rgba(45, 139, 126, 0.45);
-  color: #7fd1c4;
+  color: var(--js-ice);
 }
 .data-notice a { color: var(--accent-bright); text-decoration: underline; }
 
@@ -352,11 +353,11 @@ body::before {
 .team-flag:hover { transform: scale(1.05); }
 
 .team-flag.home {
-  background: linear-gradient(135deg, #1a472a 0%, #2d8a4e 50%, #1a472a 100%);
+  background: var(--js-jade);
 }
 
 .team-flag.away {
-  background: linear-gradient(135deg, #c1272d 0%, #ff6b35 50%, #c1272d 100%);
+  background: var(--js-copper);
 }
 
 .team-name {
@@ -424,7 +425,7 @@ body::before {
   background: var(--gradient-accent);
   border: none;
   border-radius: var(--card-radius);
-  color: var(--js-deep, #0f172a);
+  color: var(--js-deep, #0B1A2F);
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
@@ -653,7 +654,7 @@ body::before {
 .factor-tag.selected {
   background: var(--gradient-accent);
   border-color: transparent;
-  color: var(--js-deep, #0f172a);
+  color: var(--js-deep, #0B1A2F);
   font-weight: 600;
   box-shadow: 0 2px 12px rgba(0, 212, 170, 0.25);
 }
@@ -746,7 +747,7 @@ body::before {
 
 .compare-sub-tab.active {
   background: var(--gradient-accent);
-  color: var(--js-deep, #0f172a);
+  color: var(--js-deep, #0B1A2F);
   border-color: transparent;
   font-weight: 600;
 }
@@ -871,9 +872,9 @@ body::before {
   flex-shrink: 0;
 }
 
-.path-rank.top1 { background: var(--gradient-accent); color: var(--js-deep, #0f172a); }
+.path-rank.top1 { background: var(--gradient-accent); color: var(--js-deep, #0B1A2F); }
 .path-rank.top2 { background: var(--gradient-blue); color: #fff; }
-.path-rank.top3 { background: var(--gradient-draw); color: var(--js-deep, #0f172a); }
+.path-rank.top3 { background: var(--gradient-draw); color: var(--js-deep, #0B1A2F); }
 
 .path-scores {
   display: flex;
@@ -1383,7 +1384,7 @@ body::before {
   background: var(--gradient-accent);
   border: none;
   border-radius: var(--card-radius-pill);
-  color: var(--js-deep, #0f172a);
+  color: var(--js-deep, #0B1A2F);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -2120,6 +2121,9 @@ body::before {
 <script src="assets/charts.js"></script>
 
 <script>
+/* ECharts / canvas 无法解析 CSS var()：写成 'var(--js-x, #yyy)' 会被当成非法色值而失效。
+   必须运行时用 getComputedStyle 取令牌真源（与同胞页 jinshuiyao-dashboard 同款做法）。 */
+function jsv(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
 /* ═══════════════════════════════════════════════════════════
    标签页切换逻辑 (覆盖 charts.js 中的 switchTab)
    ═══════════════════════════════════════════════════════════ */
@@ -2177,13 +2181,13 @@ window.renderAttackDefenseChart = function(homeName, awayName, homeStats, awaySt
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
       backgroundColor: 'rgba(15,23,42,0.95)',
-      borderColor: 'var(--js-gold-border, #334155)',
-      textStyle: { color: '#e2e8f0', fontSize: 12 }
+      borderColor: jsv('--js-gold-border'),
+      textStyle: { color: jsv('--js-ink'), fontSize: 12 }
     },
     legend: {
       data: [homeName, awayName],
       bottom: 0,
-      textStyle: { color: 'var(--js-ink-dim, #94a3b8)', fontSize: 12 },
+      textStyle: { color: jsv('--js-ink-mid'), fontSize: 12 },
       itemWidth: 14,
       itemHeight: 8
     },
@@ -2191,15 +2195,15 @@ window.renderAttackDefenseChart = function(homeName, awayName, homeStats, awaySt
     xAxis: {
       type: 'value',
       max: 100,
-      axisLabel: { color: '#64748b', fontSize: 11 },
+      axisLabel: { color: jsv('--js-ink-dim'), fontSize: 11 },
       splitLine: { lineStyle: { color: 'rgba(51,65,85,0.4)' } },
       axisLine: { show: false }
     },
     yAxis: {
       type: 'category',
       data: categories,
-      axisLabel: { color: 'var(--js-ink-dim, #94a3b8)', fontSize: 12 },
-      axisLine: { lineStyle: { color: 'var(--js-gold-border, #334155)' } },
+      axisLabel: { color: jsv('--js-ink-mid'), fontSize: 12 },
+      axisLine: { lineStyle: { color: jsv('--js-gold-border') } },
       axisTick: { show: false }
     },
     series: [
@@ -2211,8 +2215,8 @@ window.renderAttackDefenseChart = function(homeName, awayName, homeStats, awaySt
         itemStyle: {
           borderRadius: [0, 6, 6, 0],
           color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-            { offset: 0, color: '#00d4aa' },
-            { offset: 1, color: '#00d4ff' }
+            { offset: 0, color: jsv('--js-gold') },
+            { offset: 1, color: jsv('--js-ice') }
           ])
         }
       },
@@ -2224,8 +2228,8 @@ window.renderAttackDefenseChart = function(homeName, awayName, homeStats, awaySt
         itemStyle: {
           borderRadius: [0, 6, 6, 0],
           color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-            { offset: 0, color: 'var(--js-ice, #5bc0de)' },
-            { offset: 1, color: 'var(--js-ice, #5bc0de)' }
+            { offset: 0, color: jsv('--js-ice') },
+            { offset: 1, color: jsv('--js-ice') }
           ])
         }
       }
