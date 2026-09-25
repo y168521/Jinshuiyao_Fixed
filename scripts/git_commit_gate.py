@@ -22,7 +22,19 @@ import os
 import sys
 import subprocess
 
-ROOT = "C:/Users/Administrator/Nutstore/1/我的坚果云/模型/Jinshuiyao_Fixed"
+# ROOT 由脚本位置推导，不再写死绝对路径。
+# 背景（JS-20260925-10）：原值硬编码 C:/.../模型/Jinshuiyao_Fixed。双机部署时
+# 台式机=D 盘、笔记本=E 盘，写死路径在另一台机器上指向不存在的目录 →
+# 所有 git 调用失败 → 门禁静默失效（"不可用"会被误读成"干净"）。
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# git 可执行文件。默认 "git"（依赖 PATH）；调用方可覆写为本机真实路径
+# （如 E:\下载\Git\bin\git.exe，它不在 PATH 里）。
+GIT_EXE = os.environ.get("JS_GIT_EXE", "git")
+
+# 视为"源码"的后缀 —— 未跟踪闸只关心这些，运行时产物由 .gitignore 负责。
+SOURCE_SUFFIX = (".py", ".sh", ".ps1", ".bat")
+SOURCE_SKIP_DIRS = ("__pycache__", ".git", "node_modules", "venv", ".venv")
 
 # 运行时噪音黑名单（目录前缀 / 文件名模式 / 后缀）
 # 这些产物按铁律不入库，出现在本地的未提交清单里属于噪音，应被过滤。
@@ -66,7 +78,7 @@ def git_porcelain():
     """返回 git status --porcelain，中文路径用原样（quotepath=false）。"""
     try:
         out = subprocess.check_output(
-            ["git", "-c", "core.quotepath=false", "status", "--porcelain"],
+            [GIT_EXE, "-c", "core.quotepath=false", "status", "--porcelain"],
             cwd=ROOT,
             stderr=subprocess.DEVNULL,
         ).decode("utf-8", "ignore")
@@ -76,10 +88,55 @@ def git_porcelain():
         return ""
 
 
+def git_porcelain_all():
+    """同上，但强制 --untracked-files=all 展开目录。
+
+    为什么必须单独一个函数（JS-20260925-09）：
+    `git status` 默认把未跟踪**目录**折叠成一行 `?? audio_toolkit/`，
+    里面有几个 .py 完全看不出来。曾因此让 20 个源码文件停留在未跟踪状态。
+    """
+    try:
+        out = subprocess.check_output(
+            [GIT_EXE, "-c", "core.quotepath=false", "status",
+             "--porcelain", "--untracked-files=all"],
+            cwd=ROOT,
+            stderr=subprocess.DEVNULL,
+        ).decode("utf-8", "ignore")
+        return out
+    except Exception as e:
+        sys.stderr.write(f"[git 状态获取失败] {e}\n")
+        return ""
+
+
+def untracked_sources(porcelain=None):
+    """返回「从未入库的源码文件」列表（相对仓库根，正斜杠）。
+
+    只收 SOURCE_SUFFIX；.json/.log 等运行时产物不算 —— 它们该由 .gitignore
+    管，报出来是噪音（铁律：告警只报能变绿的）。
+
+    注意：返回 [] 有两种可能——真干净，或 git 调用失败。调用方必须自行
+    区分（本模块的 closeout_gate 第 10 闸在 git 不可用时直接 FAIL，不退化放行）。
+    """
+    if porcelain is None:
+        porcelain = git_porcelain_all()
+    out = []
+    for line in porcelain.splitlines():
+        if not line.startswith("??"):
+            continue
+        p = line[3:].strip().strip('"').replace("\\", "/")
+        if not p.lower().endswith(SOURCE_SUFFIX):
+            continue
+        parts = p.split("/")
+        if any(d in parts for d in SOURCE_SKIP_DIRS):
+            continue
+        out.append(p)
+    return out
+
+
 def is_ignored(path: str) -> bool:
     """用 check-ignore 判断路径是否被忽略；仅看退出码，不打印噪音。"""
     rc = subprocess.call(
-        ["git", "-c", "core.quotepath=false", "check-ignore", "-q", path],
+        [GIT_EXE, "-c", "core.quotepath=false", "check-ignore", "-q", path],
         cwd=ROOT,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
@@ -93,7 +150,7 @@ def main():
     if porcelain == "":
         # 可能是真的干净，也可能是 git 不可用；用一次简单探测区分
         probe = subprocess.call(
-            ["git", "rev-parse", "--is-inside-work-tree"],
+            [GIT_EXE, "rev-parse", "--is-inside-work-tree"],
             cwd=ROOT,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,

@@ -11,10 +11,13 @@
   7. 金水谣数据完整性（WARN）
   8. 本轮事项反向自查（tools/item_register.py）—— 防"排查/诊断类工作不留痕"
   9. 留痕文件行数骤降闸 —— 防"误把并发会话的中间态当最终版提交"导致历史留痕丢失
+ 10. 未跟踪源码闸 —— 防"新建目录被 git status 折叠成一行，源码数月未入库"
+ 11. 孤儿检查器闸 —— 防"检查脚本写完没人接进调用链，问题抓到了也没人看见"
 
-硬阻断项（FAIL 即禁止收工）：1-5、8、9；6/7 仅告警。可用 --override 紧急跳过。
+硬阻断项（FAIL 即禁止收工）：1-5、8-11；6/7 仅告警。可用 --override 紧急跳过。
 """
 
+import io
 import os
 import re
 import shutil
@@ -355,6 +358,177 @@ def _check_trail_line_shrink():
     return True
 
 
+# ===== 第 10 闸：未跟踪源码 = 0（JS-20260925-09）=====
+
+
+def _check_untracked_sources():
+    """未跟踪源码闸：任何从未入库的 .py/.sh/.ps1/.bat 都会阻断收工。
+
+    背景（JS-20260925-09）：`git status` 把未跟踪**目录**折叠成一行
+    `?? audio_toolkit/`，看不出里面有 5 个 .py；曾因此让 20 个源码文件
+    长期停留在未跟踪状态（此前 2026-09-24 的 core/ 子包也栽过一次，61 文件）。
+
+    git 不可用一律 FAIL：不可用绝不能退化成"看起来干净"而放行，
+    否则本闸就是一根永远不响的警报器。
+    """
+    git = _git_exe()
+    if not git:
+        print("  [FAIL] 未跟踪源码闸: git 不可用（已探测 %d 个候选路径）"
+              " → 闸门无法工作，禁止收工" % len(_GIT_CANDS))
+        return False
+    try:
+        if os.path.join(BASE_DIR, "scripts") not in sys.path:
+            sys.path.insert(0, os.path.join(BASE_DIR, "scripts"))
+        import git_commit_gate as _gcg
+        _gcg.GIT_EXE = git
+        untracked = _gcg.untracked_sources()
+    except Exception as e:
+        print("  [FAIL] 未跟踪源码闸: 检查不可用 (%s: %s) → 禁止收工"
+              % (type(e).__name__, e))
+        return False
+    if untracked:
+        print("  [FAIL] 未跟踪源码闸: %d 个源码文件从未入库" % len(untracked))
+        for p in untracked[:UNTRACKED_REPORT_MAX]:
+            print("         ?? %s" % p)
+        if len(untracked) > UNTRACKED_REPORT_MAX:
+            print("         ... 另有 %d 个" % (len(untracked) - UNTRACKED_REPORT_MAX))
+        print("         修复：git add <路径>；新建目录必须显式 add（目录会被折叠成一行）")
+        return False
+    print("  [OK] 未跟踪源码闸: 无未跟踪源码文件")
+    return True
+
+
+# ===== 第 11 闸：孤儿检查器（JS-20260925-05 复盘）=====
+
+# 扫描范围：只有这三类目录下、名字含这些关键字的 .py 才算"检查器"
+ORPHAN_SCAN_DIRS = ("tools", "scripts")
+ORPHAN_NAME_KEYS = ("_check", "_guard", "_watch", "_gate", "_probe", "_monitor", "_lint")
+# 引用来源的文件类型（md/txt 里的散文提及不算执行，但要先收集再逐行判定）
+ORPHAN_REF_EXTS = (".py", ".ps1", ".bat", ".sh", ".md", ".txt", ".json", ".yaml", ".yml")
+ORPHAN_SKIP_DIRS = (".git", "__pycache__", "node_modules", "venv", ".venv",
+                    "archive", "90_归档文档")
+UNTRACKED_REPORT_MAX = 20
+
+# "确实会执行"的命令特征。两处防假警（缺一不可）：
+#  - `(?<![\w.])` 排除 `xxx.py` 里那个 `py`（前接句点）。否则任何提到文件名的
+#    散文都会被判成"有执行语义"——这正是 staleness_check 潜伏 46 天的假象来源。
+#  - 反引号包裹的 markdown 行内代码（`tools/x_check.py`）属散文，判定前先剔除。
+EXEC_CMD_RE = re.compile(
+    r"(?<![\w.])(?:python|py)\b|subprocess|Popen|sys\.executable|runpy|"
+    r"Start-Process|(?<![\w.])exec\s", re.I)
+
+
+def _is_exec_reference(line, mod, base, ref_ext):
+    """判断一行是否构成"真实执行引用"，而非散文/注释提及。
+
+    为什么必须区分（JS-20260925-10 取证）：`staleness_check.py` 曾在 4 个文件里
+    被提到，但全是注释与 docstring 里的"背景介绍"——按"名字出现次数"统计是 4，
+    看起来很健康，实际一次都没被调用过（潜伏 46 天）。
+    所以：出现名字 ≠ 会被执行，必须配上执行语义才算数。
+    """
+    s = line.strip()
+    if not s:
+        return False
+    if s[0] in "#/*-":
+        return False
+    # 1) import / from 语句（含 `from pkg import mod` 与 `from mod import X`）
+    if s.startswith("import ") or s.startswith("from "):
+        if re.search(r"\b" + re.escape(mod) + r"\b", s):
+            return True
+    # 2) 函数调用 mod(...)
+    if re.search(r"\b" + re.escape(mod) + r"\s*\(", s):
+        return True
+    # 3) 文件名出现 + 执行语义（subprocess / sys.executable / 命令行）
+    #    判定前先剔除 markdown 行内代码（`xxx`）——那是散文的一部分，不是执行。
+    if base in re.sub(r"`[^`]*`", "", s):
+        if ref_ext in (".ps1", ".bat", ".sh"):
+            return True
+        if EXEC_CMD_RE.search(s):
+            return True
+    return False
+
+
+def _scan_orphan_checkers(root=None):
+    """扫描孤儿检查器，返回 {"total": n, "orphans": [relpath, ...]}。
+
+    判定：tools/ scripts/ 下名字含检查器关键字的 .py，若全仓找不到任何
+    "执行引用"即判为孤儿。排除自身文件。
+    """
+    root = root or BASE_DIR
+    cands = []
+    for d in ORPHAN_SCAN_DIRS:
+        dd = os.path.join(root, d)
+        if not os.path.isdir(dd):
+            continue
+        for fn in sorted(os.listdir(dd)):
+            if not fn.endswith(".py") or fn == "__init__.py":
+                continue
+            if not any(k in fn for k in ORPHAN_NAME_KEYS):
+                continue
+            cands.append(d + "/" + fn)
+
+    docs = []
+    failed = []   # 读取失败必须记账：静默跳过会让"扫描覆盖不全"伪装成"没有孤儿"
+    for dp, dns, fns in os.walk(root):
+        dns[:] = [x for x in dns if x not in ORPHAN_SKIP_DIRS]
+        for fn in fns:
+            if not fn.endswith(ORPHAN_REF_EXTS):
+                continue
+            fp = os.path.join(dp, fn)
+            rel = os.path.relpath(fp, root).replace("\\", "/")
+            try:
+                with io.open(fp, "r", encoding="utf-8", errors="ignore") as f:
+                    docs.append((rel, f.read()))
+            except Exception as e:
+                failed.append("%s (%s)" % (rel, type(e).__name__))
+
+    orphans = []
+    for c in cands:
+        mod = os.path.basename(c)[:-3]
+        base = os.path.basename(c)
+        hits = 0
+        for rel, txt in docs:
+            if rel == c:
+                continue
+            ext = os.path.splitext(rel)[1].lower()
+            for line in txt.splitlines():
+                if _is_exec_reference(line, mod, base, ext):
+                    hits += 1
+                    break
+        if hits == 0:
+            orphans.append(c)
+    return {"total": len(cands), "orphans": orphans, "failed": failed}
+
+
+def _check_orphan_checkers():
+    """孤儿检查器闸：检查脚本写完必须接进调用链，否则 FAIL 阻断。
+
+    背景（JS-20260925-05）：`tools/staleness_check.py` 2026-08-02 首跑就抓到过
+    kg_rebuild 失败，但因为没人调用它，问题潜伏 46 天。铁律：
+    "有日志 ≠ 会报警 ≠ 有人看见"——产生/拦截/呈现三层都要通。
+    """
+    try:
+        res = _scan_orphan_checkers()
+    except Exception as e:
+        print("  [FAIL] 孤儿检查器闸: 扫描异常 (%s: %s) → 禁止收工"
+              % (type(e).__name__, e))
+        return False
+    if res.get("failed"):
+        print("  [WARN] 孤儿检查器闸: %d 个文件读取失败，本次扫描覆盖不全：%s"
+              % (len(res["failed"]), "；".join(res["failed"][:5])))
+    orphans = res["orphans"]
+    if orphans:
+        print("  [FAIL] 孤儿检查器闸: %d/%d 个检查器从未被调用："
+              % (len(orphans), res["total"]))
+        for p in orphans[:UNTRACKED_REPORT_MAX]:
+            print("         %s" % p)
+        print("         修复：接进调用链（automation_mirror / 定时任务 / 门禁），"
+              "或确认废弃后归档到 archive/ 并在原位留指针")
+        return False
+    print("  [OK] 孤儿检查器闸: %d 个检查器均有调用方" % res["total"])
+    return True
+
+
 def _log_gate_result(all_ok, override):
     """记录门禁结果到审计轨迹。
 
@@ -446,6 +620,14 @@ def main():
 
     # 9: 留痕文件行数骤降闸（JS-20260924-28）—— 防误提交并发会话重写中的中间态
     if not _check_trail_line_shrink():
+        all_ok = False
+
+    # 10: 未跟踪源码闸（JS-20260925-09）—— 防"新建目录被折叠，源码数月未入库"
+    if not _check_untracked_sources():
+        all_ok = False
+
+    # 11: 孤儿检查器闸（JS-20260925-05）—— 防"检查脚本写完没人接进调用链"
+    if not _check_orphan_checkers():
         all_ok = False
 
     _log_gate_result(all_ok, override)

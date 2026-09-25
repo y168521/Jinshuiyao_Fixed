@@ -640,6 +640,8 @@ def check_std_thresholds():
             # JS-20260924-28：留痕行数骤降闸阈值（防误提交并发会话重写中的中间态）
             os.path.join(BASE_DIR, 'tools', 'closeout_gate.py'): [
                 'TRAIL_SHRINK_RATIO', 'TRAIL_SHRINK_MIN_LINES',
+                # JS-20260925-10：第 10 闸（未跟踪源码）报告条数上限
+                'UNTRACKED_REPORT_MAX',
             ],
             # JS-20260925-02：知识网关相关度门槛（limit 修好后紧接着补的质量闸，
             # 否则"截断生效了但截断的全是噪声"，等于只修了一半）
@@ -772,6 +774,106 @@ def check_ai_decisions_freshness():
         return ["  AI-DECISION: 检查自身异常（%s: %s）" % (type(e).__name__, e)]
 
 
+# ===== ⑫ 告警落盘契约（JS-20260925-08 复盘）=====
+# 背景：server/__init__.py 提示「详见 金水谣数据/log/selfcheck.log」，但当时全仓
+# 只有一处**读**（handlers/health.py），没有任何代码在写 → 用户按提示去找一个
+# 根本不存在的文件，比没有告警更浪费时间。
+# 铁律：产生 / 拦截 / 呈现三层都要通；「告警指向空气」是最隐蔽的一种断链。
+ALERT_HINT_RE = re.compile(
+    r'详见\s*([^\s，。；、）)\'"、]+\.(?:log|json|md|txt|csv))')
+# 只有出现这些动词，才认为"确实在写"这个文件
+WRITE_VERBS_RE = re.compile(
+    r"(open\s*\([^)]*['\"][wa]\+?['\"]|write_text|write_bytes|\.write\s*\(|"
+    r"json\.dump|safe_write_json|safe_append|to_csv|append_text)")
+ALERT_SCAN_SKIP_DIRS = ('.git', '__pycache__', 'node_modules', 'venv', '.venv',
+                        'archive', '90_归档文档', 'obsidian-vault')
+# 正则可能误提的散文式提示（如「详见交接中心§六」），显式排除
+ALERT_SINK_ALLOWLIST = ('交接中心', '上方', '下文', '附录', '标准')
+
+
+def _iter_py_files():
+    """遍历仓库内 .py（跳过归档/副本/虚拟环境）。"""
+    for dp, dns, fns in os.walk(BASE_DIR):
+        dns[:] = [d for d in dns if d not in ALERT_SCAN_SKIP_DIRS]
+        for fn in sorted(fns):
+            if fn.endswith('.py'):
+                yield os.path.join(dp, fn)
+
+
+def _read_py_cache():
+    """预读所有 .py → ([(相对路径, 行列表)], [读取失败项])。
+
+    读失败必须记账回传：静默跳过会让"扫描覆盖不全"伪装成"契约都满足"。
+    """
+    out, failed = [], []
+    for fp in _iter_py_files():
+        rel = os.path.relpath(fp, BASE_DIR).replace('\\', '/')
+        if rel.startswith('tests/'):
+            continue
+        try:
+            with open(fp, 'r', encoding='utf-8', errors='ignore') as f:
+                out.append((rel, f.read().splitlines()))
+        except Exception as e:
+            failed.append('%s (%s)' % (rel, type(e).__name__))
+    return out, failed
+
+
+def _find_writers(base, files):
+    """返回写入者相对路径集合。
+
+    两段式判定（为什么不能只比"同一行"）：真实代码里路径通常先赋给常量
+    （`SELFCHECK_LOG = os.path.join(..., 'selfcheck.log')`），真正执行写入的是
+    `open(SELFCHECK_LOG, 'a')` —— 两行相距几十行。只比同一行会把已经修好的
+    落盘逻辑误判成"没人写"（假警比没告警更坏）。
+    """
+    consts, direct = set(), set()
+    for rel, lines in files:
+        for ln in lines:
+            if base not in ln:
+                continue
+            if WRITE_VERBS_RE.search(ln):
+                direct.add(rel)
+            m = re.match(r'^\s*([A-Z][A-Z0-9_]{2,})\s*=', ln)
+            if m:
+                consts.add(m.group(1))
+    writers = set(direct)
+    for c in consts:
+        for rel, lines in files:
+            for ln in lines:
+                if c in ln and WRITE_VERBS_RE.search(ln):
+                    writers.add(rel)
+                    break
+    return writers
+
+
+def check_alert_sink_writers():
+    """⑫ 告警落盘契约：提示"详见 X"的 X，必须有代码真的在写它。
+
+    能变绿：给该 sink 补一个真实写入调用即可，属可行动告警而非噪音。
+    """
+    files, failed = _read_py_cache()
+    errors = ['  ALERT-SINK: 读取失败 %s' % f for f in failed]
+    sinks = {}
+    for rel, lines in files:
+        if rel == 'tools/check_consistency.py':
+            continue
+        for ln in lines:
+            for m in ALERT_HINT_RE.finditer(ln):
+                p = m.group(1)
+                if any(w in p for w in ALERT_SINK_ALLOWLIST):
+                    continue
+                base = os.path.basename(p.replace('\\', '/'))
+                sinks.setdefault(base, set()).add(rel)
+    for base, srcs in sorted(sinks.items()):
+        writers = _find_writers(base, files)
+        if not writers:
+            errors.append(
+                "  ALERT-SINK: 「详见 …/%s」由 %s 提示，但全仓找不到任何写入者 → "
+                "告警指向空气（用户会去看一个不存在的文件）。修复：补真实写入调用，"
+                "或把提示改成指向确实会生成的文件" % (base, '、'.join(sorted(srcs))))
+    return errors
+
+
 def run_all(changed_files=None):
     """运行全部检查。changed_files: pre-commit 增量模式的变更文件列表（相对 BASE_DIR）"""
     css_fn = check_css_classes
@@ -787,6 +889,7 @@ def run_all(changed_files=None):
         '标准阈值-代码常量': check_std_thresholds,
         '彩票奖级规则新鲜度': check_prize_rules_freshness,
         'AI决策卡新鲜度': check_ai_decisions_freshness,
+        '告警落盘契约': check_alert_sink_writers,
     }
     all_ok = True
     report = []
