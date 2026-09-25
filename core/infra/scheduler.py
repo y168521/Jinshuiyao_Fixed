@@ -30,11 +30,42 @@ from utils.log_rotation import check_and_rotate
 
 logger = logging.getLogger(__name__)
 
-from .scheduler_tasks import TaskScheduler  # 拆分自本文件(J S-20260810-10), 重导出保持 import 兼容
+from .scheduler_tasks import TaskScheduler
+# JS-20260925-06：档案清理唯一真源，禁止各写一份 [-N:] 截断
+from .archive_guard import (
+    trim_archive as _guard_trim_archive,
+    extract_record_ts as _guard_extract_ts,
+)
+  # 拆分自本文件(J S-20260810-10), 重导出保持 import 兼容
 
 # P2-2: PRED_CACHE 进程内短 TTL 缓存，避免同周期多任务重复整文件 reload
 _PRED_CACHE_TTL = 30  # 秒
+
+# JS-20260925-06：预测档案（金水谣数据/predictions.json）
+# 语义是「历史复盘档案」（含 actual/prize_tier/prize_status），
+# 不是缓存，禁止按条数硬截。
+PRED_ARCHIVE_KEEP_DAYS = 1095        # 按时间保留：3 年
+PRED_ARCHIVE_MAX_RECORDS = 50000    # 条数兜底上限（防文件无限膨胀；当前量级远低于此）
+# 骤降守卫比例不在此定义：单一真源在 core.infra.archive_guard.ARCHIVE_SHRINK_GUARD_RATIO，
+# 两处各写一个数字迟早会漂移（已跑过这个坑）。
+
 _pred_cache_cache = {"data": None, "ts": 0.0}
+
+
+def _pred_record_ts(item):
+    """委托 core.infra.archive_guard.extract_record_ts（单一真源）。"""
+    return _guard_extract_ts(item)
+
+
+def _trim_pred_archive(records, keep_days=PRED_ARCHIVE_KEEP_DAYS,
+                       max_records=PRED_ARCHIVE_MAX_RECORDS, now=None):
+    """按时间保留预测档案并防骤降，委托 core.infra.archive_guard.trim_archive。
+    
+    返回 (kept, before, after, blocked)；blocked=True 时调用方必须放弃写入。
+    """
+    return _guard_trim_archive(records, keep_days=keep_days,
+                               max_records=max_records, now=now,
+                               label="预测档案")
 
 
 def _load_pred_cache_cached():
@@ -542,21 +573,31 @@ class JinshuiyaoScheduler(TaskScheduler):
             if preds_data:
                 if isinstance(preds_data, dict) and "predictions" in preds_data:
                     cleaned = 0
+                    blocked = False
                     for lot, items in preds_data["predictions"].items():
-                        if isinstance(items, list) and len(items) > 200:
-                            # 只保留最近200条
-                            removed = len(items) - 200
-                            preds_data["predictions"][lot] = items[-200:]
-                            cleaned += removed
-                    if cleaned > 0:
+                        if not isinstance(items, list):
+                            continue
+                        kept, _b, _a, blk = _trim_pred_archive(items)
+                        if blk:
+                            blocked = True
+                            continue
+                        if _a != _b:
+                            preds_data["predictions"][lot] = kept
+                            cleaned += _b - _a
+                    if blocked:
+                        logger.error("[数据维护] 放弃本次预测档案清理")
+                    elif cleaned > 0:
                         safe_write_json(PRED_CACHE, preds_data)
                         _pred_cache_cache["data"] = None  # P2-2: 写后失效缓存
                         logger.info("[数据维护] 清理过期预测记录 %d 条", cleaned)
-                elif isinstance(preds_data, list) and len(preds_data) > 200:
-                    removed = len(preds_data) - 200
-                    safe_write_json(PRED_CACHE, preds_data[-200:])
-                    _pred_cache_cache["data"] = None  # P2-2: 写后失效缓存
-                    logger.info("[数据维护] 清理过期预测记录 %d 条", removed)
+                elif isinstance(preds_data, list):
+                    kept, before_n, after_n, blocked = _trim_pred_archive(preds_data)
+                    if blocked:
+                        logger.error("[数据维护] 放弃本次预测档案清理")
+                    elif after_n != before_n:
+                        safe_write_json(PRED_CACHE, kept)
+                        _pred_cache_cache["data"] = None  # P2-2: 写后失效缓存
+                        logger.info("[数据维护] 清理过期预测记录 %d 条", before_n - after_n)
         except Exception as e:
             logger.error("[数据维护] 预测记录清理失败: %s", e)
 

@@ -63,6 +63,31 @@ OPTIONAL_ASSETS = frozenset(["Skill备用区(兼容)"])
 缺失属常态、也不需要修复 → 报出来只会稀释真正的问题。
 **告警的价值等于它能不能变绿**，不能变绿的存量告警就是噪音。"""
 
+CORE_ARCHIVES = {
+    "预测档案": os.path.join(BASE_DIR, "金水谣数据", "predictions.json"),
+    "向量记忆索引": os.path.join(BASE_DIR, "金水谣数据", "agent_memory", "vector_index.json"),
+}
+"""④ 核心**累积型**档案清单（不是缓存，只增不删）。
+
+为什么单独列：2026-09-25 事故中 predictions.json 被当成缓存按 200 条硬截，
+3258 条一夜变 200 条，而当时**没有任何告警**。滚动窗口类状态
+（confidence_history / recent_forms 等）本就只留最近 N 次，不在本清单内。
+"""
+
+ARCHIVE_BASELINE_FILE = os.path.join(BASE_DIR, "金水谣数据", "log", "archive_baseline.json")
+ARCHIVE_BASELINE_MIN_COUNT = 50
+"""基线低于本条数时不做骤降判断。
+
+理由：小样本下「3 条 → 1 条」比例上是骤降，但没有任何业务意义，
+报出来只会稀释真正的告警（噪音比没有告警更糟）。
+"""
+
+# 单一真源：骤降比例与清理守卫共用同一个常量，避免两份数字漂移
+try:
+    from core.infra.archive_guard import ARCHIVE_SHRINK_GUARD_RATIO  # noqa: E402
+except Exception:  # 导入失败绝不静默：降级为门禁可感知的显式值
+    ARCHIVE_SHRINK_GUARD_RATIO = 0.5
+
 ALERT_FILE = os.path.join(BASE_DIR, "金水谣数据", "log", "健康告警.md")
 LASTRUN_FILE = os.path.join(BASE_DIR, "金水谣数据", "log", "scheduler_lastrun.json")
 SCHED_CFG = os.path.join(BASE_DIR, "config", "scheduler.json")
@@ -188,9 +213,80 @@ def check_decisions():
                  "detail": "%s: %s" % (type(e).__name__, e), "how": "人工核查文件"}]
 
 
+def _archive_count(path):
+    """读取档案条数：list 取长度，dict 取 entries 长度（其余形态视为无法判定 → None）。"""
+    try:
+        if not os.path.isfile(path):
+            return None
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return None
+    if isinstance(data, list):
+        return len(data)
+    if isinstance(data, dict):
+        for key in ("entries", "records", "predictions"):
+            v = data.get(key)
+            if isinstance(v, list):
+                return len(v)
+    return None
+
+
+def _load_baseline():
+    try:
+        if os.path.isfile(ARCHIVE_BASELINE_FILE):
+            with open(ARCHIVE_BASELINE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {}
+
+
+def _save_baseline(base):
+    try:
+        os.makedirs(os.path.dirname(ARCHIVE_BASELINE_FILE), exist_ok=True)
+        with open(ARCHIVE_BASELINE_FILE, "w", encoding="utf-8") as f:
+            json.dump(base, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+
+def check_archives():
+    """④ 核心档案条数骤降（最高水位基线对比）
+
+    基线规则：**只升不降**。档案正常增长时抬高水位；下降时不更新水位，
+    这样「每天悄悄删一点」的渐进式泄漏最终也会被累计捕获。
+    """
+    out = []
+    base = _load_baseline()
+    changed = False
+    for name, path in CORE_ARCHIVES.items():
+        cur = _archive_count(path)
+        if cur is None:
+            out.append({"item": "档案不可读", "name": name,
+                        "detail": "读不到条数：%s" % path,
+                        "how": "确认文件存在且是 JSON 数组 / 含 entries 字段"})
+            continue
+        prev = base.get(name, {}).get("count")
+        if prev is None or cur > prev:
+            base[name] = {"count": cur, "ts": datetime.now().isoformat()}
+            changed = True
+            continue
+        # cur <= prev：不更新水位，但判断是否跌破守卫线
+        if prev >= ARCHIVE_BASELINE_MIN_COUNT and cur < prev * ARCHIVE_SHRINK_GUARD_RATIO:
+            out.append({"item": "档案条数骤降", "name": name,
+                        "detail": "%d → %d（跌破最高水位的 %d%%）"
+                                  % (prev, cur, int(ARCHIVE_SHRINK_GUARD_RATIO * 100)),
+                        "how": "①若是误删：从 .bak / archive 硬备份恢复；"
+                               "②若确属正常过期清理：删除 archive_baseline.json 重置水位"})
+    if changed:
+        _save_baseline(base)
+    return out
+
+
 def collect():
     alerts = []
-    for fn in (check_assets, check_scheduler, check_decisions):
+    for fn in (check_assets, check_scheduler, check_decisions, check_archives):
         try:
             alerts.extend(fn())
         except Exception as e:  # 单个检查器崩了必须报出来，不能静默吞掉
@@ -208,7 +304,8 @@ def render(alerts):
              "- 生成时间：%s" % datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
              "- 告警条数：**%d**" % len(alerts), ""]
     if not alerts:
-        lines += ["## ✅ 全部健康", "", "三项检查（派生资产 / 调度器任务 / 决策卡）均在阈值内。", ""]
+        lines += ["## ✅ 全部健康", "",
+                  "四项检查（派生资产 / 调度器任务 / 决策卡 / 核心档案条数）均在阈值内。", ""]
         return "\n".join(lines)
     lines += ["| 类别 | 对象 | 现状 | 如何变绿 |", "|---|---|---|---|"]
     for a in alerts:

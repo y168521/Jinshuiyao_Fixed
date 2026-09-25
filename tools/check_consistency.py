@@ -654,6 +654,22 @@ def check_std_thresholds():
             # 阈值同样必须受闸门约束，否则又是一处改代码不改文档的漂移）
             os.path.join(BASE_DIR, 'tools', 'health_watch.py'): [
                 'ASSET_STALE_DAYS', 'TASK_LATE_FACTOR',
+                'ARCHIVE_BASELINE_MIN_COUNT',
+            ],
+            # JS-20260925-06：档案清理守卫阈值（predictions.json 被硬截 3258→200 的事故）。
+            # 档案保留策略的每一处数字都要能被闸门盯住——这次事故的根因之一就是
+            # 硬编码魔数 200 从来没进过任何文档。
+            os.path.join(BASE_DIR, 'core', 'infra', 'archive_guard.py'): [
+                'ARCHIVE_SHRINK_GUARD_RATIO', 'DEFAULT_ARCHIVE_KEEP_DAYS',
+            ],
+            os.path.join(BASE_DIR, 'core', 'infra', 'scheduler.py'): [
+                'PRED_ARCHIVE_KEEP_DAYS', 'PRED_ARCHIVE_MAX_RECORDS',
+            ],
+            os.path.join(BASE_DIR, 'core', 'ai', 'agent_vector_memory.py'): [
+                'VECTOR_MEM_KEEP_DAYS', 'VECTOR_MEM_MAX_ENTRIES',
+            ],
+            os.path.join(BASE_DIR, 'core', 'ai', 'ai_agent.py'): [
+                'AGENT_MEM_KEEP_DAYS', 'AGENT_MEM_MAX_RECORDS',
             ],
         }
         consts = {}
