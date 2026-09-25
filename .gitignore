@@ -28,6 +28,8 @@ AI代码助手(DeepSeek备用)/usage.json
 # Python
 # ==========================================
 __pycache__/
+# JS 编号占位锁（next_js_number.py 运行时临时文件）
+tools/.js_locks/
 *.pyc
 *.pyo
 *.pyd
@@ -215,3 +217,19 @@ tools/.wrapup_skip_count.txt
 # JS-20260920-07 收工门禁计划任务日志/标记（运行时产物，不入库）
 金水谣数据/log/closeout_gate_task.log
 金水谣数据/log/closeout_gate_task.FAIL
+
+# ==========================================
+# JS-20260925-09 临时调试产物（一次性排查脚本与门禁输出快照，不入库）
+# 这些文件是 2026-09-24 排查代码体检门禁时留下的，留在工作区会让
+# `git status` 长期有 40 条噪声，真正的未纳入源码反而被淹没。
+# ==========================================
+gate*.txt
+gate_detail.txt
+cb_check.txt
+_check_cb.py
+_check_swallow.py
+
+# JS-20260925-09 调度器运行时状态（每次启动重写，不入库；
+# 注意 predictions 档案的硬备份在 archive/ 下，不受本规则影响）
+金水谣数据/log/scheduler_lastrun.json
+金水谣数据/log/kb_lint_state.json

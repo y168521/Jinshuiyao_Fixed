@@ -1,0 +1,118 @@
+%%{init: {'theme':'base','themeVariables':{'fontFamily':'Microsoft YaHei, SimHei, sans-serif','primaryColor':'#e8f4fd','primaryTextColor':'#1a1a2e','primaryBorderColor':'#2c6e9e','lineColor':'#5a7a9a','secondaryColor':'#f0f7e8','tertiaryColor':'#fdf2e8'}}}%%
+
+flowchart TD
+    %% ========== 入口层 ==========
+    subgraph ENTRY["入口层"]
+        BAT["启动金水谣助手.bat"]
+        LBAT["launch.bat<br/>自动查找 Python 3.14"]
+        LAUNCH["launch_jinshuiyao.py<br/>自愈 venv + 预检 + pyc 缓存管理"]
+        BAT --> LBAT --> LAUNCH
+    end
+
+    %% ========== 服务层 ==========
+    subgraph SERVER["服务层 server/"]
+        SVRMAIN["server.main()<br/>绑定 18888 端口<br/>后台启动线程"]
+        ROUTER["router.py :: GuideHandler<br/>限流 + 异常保护 + 路由分发"]
+        HANDLERS["handlers/ (21 个处理器)<br/>ai · lottery · fund · stock<br/>football · knowledge · prediction<br/>static · health · sync · ..."]
+        SVCFG["config.py<br/>端口/路径/超时/线程池"]
+        SVRUTILS["utils.py<br/>日志/IP/外部调用熔断"]
+        SVRMAIN --> ROUTER --> HANDLERS
+        SVRMAIN -.-> SVCFG
+        ROUTER -.-> SVRUTILS
+    end
+
+    LAUNCH --> SVRMAIN
+
+    %% ========== 核心层 ==========
+    subgraph CORE["核心层 core/ (~59 模块)"]
+        AIAGENT["ai_agent.py<br/>JinshuiyaoAgent<br/>AI 助手主入口"]
+        AISVC["ai_service.py<br/>AIService 单例<br/>online/offline 模式"]
+        KGW["knowledge_gateway.py<br/>四源召回<br/>BM25+图谱+向量+经验"]
+        SCHED["scheduler.py<br/>后台调度器<br/>经验监听+定时同步+知识维护"]
+        SEC["security.py<br/>SSRF 校验单一真源<br/>is_safe_http_url"]
+        DSPATCH["dispatch_*.py (9 个)<br/>域分发薄委托层"]
+        PIPE["pipeline_state.py<br/>Agent 流水线实时状态"]
+        ADPM["adaptive_models.py<br/>模型智能匹配/额度切换"]
+        AIAGENT --> AISVC
+        AIAGENT --> KGW
+        AIAGENT --> DSPATCH
+        ROUTER -.-> SEC
+        SVRMAIN -.-> SCHED
+    end
+
+    HANDLERS --> CORE
+
+    %% ========== 引擎层 ==========
+    subgraph ENGINES["引擎层 engines/"]
+        EREG["__init__.py<br/>引擎注册表 get_engine/list_engines"]
+        EPRED["prediction_service.py<br/>多引擎融合→方案生成"]
+        EDIM["dimension_consensus.py<br/>多维度共识融合"]
+        EMATH["math_selector/<br/>run_math_model()<br/>组合+统计+时序+蒙特卡洛+校准"]
+        ELOT["lottery_stats.py<br/>遗漏表/趋势分类/号码跟随"]
+        ESTRAT["strategy_cards.py<br/>策略知识卡提炼"]
+        EBRAIN["brain_daily.py<br/>智能大脑每日简报"]
+        EEVO["evolution_*.py (4个)<br/>L3 自适应进化"]
+        EOTH["其他引擎<br/>trend/morph/killer/hurst/<br/>correlation/cold_tunnel/miss_analyzer"]
+        EREG --> EPRED
+        EPRED --> EDIM
+        EPRED --> EMATH
+        EPRED --> EOTH
+        EREG --> ELOT
+        EREG --> ESTRAT
+        EREG --> EBRAIN
+        EREG --> EEVO
+    end
+
+    DSPATCH --> ENGINES
+
+    %% ========== 业务域层 ==========
+    subgraph DOMAINS["业务域层 domains/ (均继承 DomainBase)"]
+        DLOT["lottery/LotteryDomain<br/>7 彩种 + 14 引擎"]
+        DFUND["fund/FundDomain<br/>净值/持仓/分析"]
+        DSTOCK["stock/StockDomain<br/>技术指标+趋势+选股"]
+        DFB["football/FootballDomain<br/>泊松+赔率+比分路径"]
+        DCR["creator/CreatorDomain<br/>文案/TTS/OCR/去水印"]
+        DMUS["music/MusicDomain<br/>音频分析/转换/生成"]
+    end
+
+    DSPATCH --> DOMAINS
+    DOMAINS --> ENGINES
+
+    %% ========== 基础设施层 ==========
+    subgraph INFRA["基础设施层"]
+        JSY["jinshuiyao/<br/>足球泊松子系统<br/>PoissonModel/DecisionEngine/Backtester"]
+        KNOW["knowledge/<br/>双知识库<br/>MiroFishDB+图谱+向量+三元组"]
+        CTRL["controllers/<br/>预算/方案管理"]
+        FETCH["fetchers/ + filters/<br/>数据获取与过滤"]
+        IMP["importers/<br/>数据导入"]
+        UTIL["utils/<br/>safe_json/locks/backup 等 18 个"]
+        BT["backtesting/<br/>回测引擎"]
+        GUI["gui/<br/>Tkinter 主窗口"]
+        SC["smart-coder/<br/>智能代码助手"]
+    end
+
+    DOMAINS --> JSY
+    DOMAINS --> FETCH
+    DOMAINS --> CTRL
+    KGW --> KNOW
+    AISVC -.-> UTIL
+
+    %% ========== 前端/数据/工具 ==========
+    subgraph FRONTEND["前端与工具"]
+        FE["frontend/<br/>lottery/fund/stock/football<br/>dashboard/trend/quant"]
+        GUIDE["jinshuiyao-guide/<br/>控制中心等导航页"]
+        TOOLS["tools/<br/>ops/gate/compliance/run_review 等"]
+        TESTS["tests/<br/>~900 用例"]
+        CFGDIR["config/<br/>ai_mode/model_router/llm_budget"]
+    end
+
+    HANDLERS -.-> FE
+    HANDLERS -.-> GUIDE
+    SVRMAIN -.-> TOOLS
+    style ENTRY fill:#fdf2e8
+    style SERVER fill:#e8f4fd
+    style CORE fill:#f0f7e8
+    style ENGINES fill:#fdf2e8
+    style DOMAINS fill:#e8f4fd
+    style INFRA fill:#f0f7e8
+    style FRONTEND fill:#fdf2e8

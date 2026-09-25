@@ -8,9 +8,21 @@
 """
 import os
 import sys
+import time
+import logging
 import importlib
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+logger = logging.getLogger("jinshuiyao.startup_selfcheck")
+
+# JS-20260925-08：自检结果必须落盘。
+# 此前 server/__init__.py 提示「详见 金水谣数据/log/selfcheck.log」，
+# 但全仓“只读不写”（health.py 也读它）
+# → 用户被告知去看一个不存在的文件，异常内容永远看不到。
+# 这是「告警指向空气」的又一例。
+SELFCHECK_LOG = os.path.join(BASE_DIR, "金水谣数据", "log", "selfcheck.log")
+SELFCHECK_LOG_MAX_BYTES = 512 * 1024  # 超过则保留后半段，防日志无限膨胀
 
 # ---------------------------------------------------------------------------
 # 终端编码自适应：GBK 环境降级为纯文本符号，UTF-8 正常显示 Emoji
@@ -29,10 +41,18 @@ _ICON_INFO = lambda: _safe_icon("ℹ️", "[--]")
 
 
 def _check_import(name, path=None):
+    """导入检查。name 支持点分包路径（如 core.ai.ai_service）。
+    
+    JS-20260925-08：原先传的是「目录」+「裸模块名」，
+    模块迁到子包后路径没跟着改 → 功能明明可用却报 3 项异常。
+    **假警会淹没真问题**，比没有告警更糟。
+    """
     saved = list(sys.path)
     try:
         if path and path not in sys.path:
             sys.path.insert(0, path)
+        if BASE_DIR not in sys.path:
+            sys.path.insert(0, BASE_DIR)
         importlib.import_module(name)
         return True, "可正常加载"
     except Exception as e:
@@ -41,19 +61,58 @@ def _check_import(name, path=None):
         sys.path[:] = saved
 
 
+def _render_report_text(report):
+    """把自检结果渲染成纯文本（供 /api/selfcheck/history 直读）。"""
+    ts = time.strftime("%Y-%m-%d %H:%M:%S")
+    head = "启动自检: " + (
+        "全部通过" if report.get("all_passed")
+        else "存在异常（见下方 NG 项）")
+    lines = ["[%s] %s" % (ts, head)]
+    for k, v in (report.get("departments") or {}).items():
+        flag = "OK " if v.get("passed") else "NG "
+        lines.append("  %s %s: %s" % (flag, k, v.get("note", "")))
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _append_selfcheck_log(report):
+    """把自检结果追加到 selfcheck.log。
+    
+    落盘失败不能让自检本身崩掉（自检是启动链路上的一环），
+    但也绝不能静默吞掉——写 warning。
+    """
+    try:
+        os.makedirs(os.path.dirname(SELFCHECK_LOG), exist_ok=True)
+        keep = None
+        if os.path.isfile(SELFCHECK_LOG) and \
+                os.path.getsize(SELFCHECK_LOG) > SELFCHECK_LOG_MAX_BYTES:
+            with open(SELFCHECK_LOG, "r", encoding="utf-8", errors="replace") as f:
+                keep = f.read()[-SELFCHECK_LOG_MAX_BYTES // 2:]
+        mode = "w" if keep else "a"
+        with open(SELFCHECK_LOG, mode, encoding="utf-8") as f:
+            if keep:
+                f.write("...(较早内容已截断)...\n")
+                f.write(keep)
+            f.write(_render_report_text(report))
+    except Exception as e:
+        logger.warning("[启动自检] 结果落盘失败（异常内容将无法追溯）: %s", e)
+
+
 def run_startup_check_safe():
+
     deps = {}
 
     # 1) 核心功能模块
     checks = [
-        ("视频提取", "video_extractor", os.path.join(BASE_DIR, "core")),
-        ("内容提炼", "content_refiner", os.path.join(BASE_DIR, "core")),
+        # JS-20260925-08：用点分包路径，不再用「目录+裸模块名」
+        ("视频提取", "core.infra.video_extractor", None),
+        ("内容提炼", "core.ai.content_refiner", None),
         ("知识库归档", "archive_knowledge",
          os.path.join(BASE_DIR, "knowledge", "用户知识库")),
         ("知识库体检", "lint_knowledge",
          os.path.join(BASE_DIR, "knowledge", "用户知识库")),
         ("任务智能路由", "jinshuiyao_router", BASE_DIR),
-        ("AI服务", "ai_service", os.path.join(BASE_DIR, "core")),
+        ("AI服务", "core.ai.ai_service", None),
     ]
     for label, mod, p in checks:
         ok, note = _check_import(mod, p)
@@ -140,4 +199,6 @@ def run_startup_check_safe():
     summary = (f"{_ICON_OK()} 全部功能模块正常，可以放心使用。" if all_ok
                else f"{_ICON_WARN()} 检测到 {bad} 项异常，请在下方逐项查看并联系助手处理。")
 
-    return {"all_passed": all_ok, "summary": summary, "departments": deps}
+    report = {"all_passed": all_ok, "summary": summary, "departments": deps}
+    _append_selfcheck_log(report)
+    return report
