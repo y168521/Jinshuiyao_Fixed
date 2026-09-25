@@ -671,6 +671,10 @@ def check_std_thresholds():
             os.path.join(BASE_DIR, 'core', 'ai', 'ai_agent.py'): [
                 'AGENT_MEM_KEEP_DAYS', 'AGENT_MEM_MAX_RECORDS',
             ],
+            # JS-20260925-07：备份跳过的告警阈值（备份整包报废的伴生修复）
+            os.path.join(BASE_DIR, 'utils', 'data_backup.py'): [
+                'BACKUP_SKIP_WARN_COUNT',
+            ],
         }
         consts = {}
         watch = []

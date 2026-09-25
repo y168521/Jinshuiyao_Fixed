@@ -33,6 +33,11 @@ logger = logging.getLogger(__name__)
 _DEFAULT_DATA_DIR = None
 _DEFAULT_BACKUP_SUBDIR = "backups"
 
+# JS-20260925-07：备份过程中单个文件失效（如 .bak 轮转让它瞬间消失）
+# 允许跳过的上限。超过则 ERROR 提示备份可能不完整——
+# “全都跳过还假装成功”是最危险的静默失败。
+BACKUP_SKIP_WARN_COUNT = 20
+
 
 def _get_default_data_dir() -> str:
     """获取默认的金水谣数据目录路径
@@ -114,14 +119,33 @@ def backup_all(data_dir: Optional[str] = None, output_dir: Optional[str] = None)
         # 仍然创建空备份
         pass
 
+    skipped = []
     try:
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
             for abs_filepath, rel_path in files_to_backup:
-                zf.write(abs_filepath, rel_path)
+                try:
+                    zf.write(abs_filepath, rel_path)
+                except (OSError, ValueError) as e:
+                    # JS-20260925-07：遍历收集列表与写 zip 之间有时间差，
+                    # 并发清理/.bak 轮转会让文件瞬间消失。
+                    # 单个文件写不进去就让整个备份崩掉（干包前功尽弃）
+                    # 是本次事故的伴生现象，不该让它把备份整个拖夸。
+                    skipped.append(abs_filepath)
+                    logger.warning("备份跳过（文件已消失或不可读）: %s (%s)", abs_filepath, e)
+                    continue
 
         file_size_mb = os.path.getsize(zip_path) / (1024 * 1024)
-        logger.info("全量备份完成: %s (共 %d 个文件, 大小: %.2f MB)",
-                    zip_path, len(files_to_backup), file_size_mb)
+        if skipped:
+            logger.warning(
+                "全量备份完成但有 %d 个文件被跳过: %s (%.2f MB)",
+                len(skipped), zip_path, file_size_mb)
+            if len(skipped) > BACKUP_SKIP_WARN_COUNT:
+                logger.error(
+                    "跳过文件数 %d 超过阈值 %d，备份可能严重不完整: %s",
+                    len(skipped), BACKUP_SKIP_WARN_COUNT, zip_path)
+        else:
+            logger.info("全量备份完成: %s (共 %d 个文件, 大小: %.2f MB)",
+                        zip_path, len(files_to_backup), file_size_mb)
 
         return zip_path
 
