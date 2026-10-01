@@ -4,6 +4,7 @@
 测试隔离：monkeypatch `_STORE_ROOT` 指向 tmp_path，**绝不污染真实数据**
 （编码规范 §7 测试隔离规范）。
 """
+import json
 import os
 import sys
 
@@ -14,11 +15,20 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from core.infra import knowledge_store as ks  # noqa: E402
+from tools import check_consistency as cc  # noqa: E402
 
 
 @pytest.fixture
 def store(tmp_path, monkeypatch):
     monkeypatch.setattr(ks, "_STORE_ROOT", str(tmp_path / "ks"))
+    return ks
+
+
+@pytest.fixture
+def gate(tmp_path, monkeypatch):
+    """第 ⑬ 项门禁的隔离夹具：存储根 + 水位基线都指向 tmp_path。"""
+    monkeypatch.setattr(ks, "_STORE_ROOT", str(tmp_path / "ks"))
+    monkeypatch.setattr(cc, "KNOWLEDGE_STORE_WATERMARK", str(tmp_path / "wm.json"))
     return ks
 
 
@@ -223,3 +233,75 @@ def test_stats(store):
     s = store.stats()
     assert s["keys"] == 1
     assert s["verify_ok"] is True
+
+
+def test_stats_keys_excludes_tombstones(store):
+    """墓碑保留是设计本意，但统计不能把它算进 active（否则门禁看到虚高数字）。"""
+    store.put("经验", "K1", {"a": 1}, _meta())
+    store.delete("经验", "K1", reason="清理")
+    s = store.stats()
+    assert s["keys"] == 0, "软删除后 active 应为 0，实际 %s" % s["keys"]
+    assert s["by_status"].get("deleted") == 1, "墓碑必须留在统计里，供追溯"
+
+
+# ---------------------------------------------------------------------------
+# 第 ⑬ 项门禁反证：绿不算数，能红才算数
+# ---------------------------------------------------------------------------
+def test_gate_silent_on_clean_store(gate):
+    for i in range(3):
+        gate.put("知识", "K%d" % i, {"v": i}, _meta())
+    assert cc.check_knowledge_store() == []
+
+
+def test_gate_catches_tampered_payload(gate):
+    """篡改 payload（字节等长）→ 必须报 checksum 不符。
+
+    ⚠️ 重写日志必须走**二进制**：文本模式在 Windows 会把 \\n 写成 \\r\\n，
+    每行多 1 字节导致全库 offset 错位（会把本用例污染成 index_mismatch）。
+    """
+    for i in range(3):
+        gate.put("知识", "K%d" % i, {"v": i}, _meta())
+    path = gate.records_path()
+    raw0 = open(path, "rb").read()
+    orig = raw0.decode("utf-8").splitlines(True)[0]
+    v = json.loads(orig)["payload"]["v"]
+    new = orig.replace('"v":%d' % v, '"v":%d' % ((v + 1) % 10))
+    ob, nb = orig.encode("utf-8"), new.encode("utf-8")
+    assert len(ob) == len(nb), "字节长度必须相同，否则测的不是 checksum"
+    open(path, "wb").write(raw0.replace(ob, nb, 1))
+
+    errs = cc.check_knowledge_store()
+    assert any("checksum" in e for e in errs), "篡改未被抓到 → 闸门是哑巴: %s" % errs
+    open(path, "wb").write(raw0)
+
+
+def test_gate_catches_key_shrink_by_watermark(gate):
+    """业务键从 10 骤降到 3（<50%）→ 必须报骤降。
+
+    用**最高水位**而不是"比上次"：每天悄悄删一点时，"比上次"会被骗过去。
+    """
+    for i in range(10):
+        gate.put("知识", "K%d" % i, {"v": i}, _meta())
+    assert cc.check_knowledge_store() == []          # 先落水位 10
+    for i in range(7):
+        gate.delete("知识", "K%d" % i, reason="反证骤降")
+    errs = cc.check_knowledge_store()
+    assert any("骤降" in e for e in errs), "骤降未被抓到 → 闸门是哑巴: %s" % errs
+
+
+def test_gate_reports_read_failure(monkeypatch, gate):
+    """读存储失败 / 模块导入失败必须报错，不能静默放行（静默才是真敌人）。
+
+    说明：两个失败点（导入、读取）共用同一段 try/except 并同样返回 KB-STORE 错误，
+    这里覆盖"读取抛异常"这一支。
+    踩坑：不要试图用 `sys.modules[name] = None` 模拟导入失败——`from pkg import mod`
+    会直接取 pkg 的模块属性，压根不走 sys.modules，测出来是假绿。
+    """
+    gate.put("知识", "K0", {"v": 0}, _meta())
+
+    def boom():
+        raise RuntimeError("模拟读取失败")
+
+    monkeypatch.setattr(gate, "verify", boom)
+    errs = cc.check_knowledge_store()
+    assert errs and any("KB-STORE" in e for e in errs), "读取失败被静默吞掉了: %s" % errs

@@ -17,6 +17,7 @@ import os
 import sys
 import json
 import re
+import time
 import urllib.parse
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -29,6 +30,13 @@ FRONTEND_DIR = os.path.join(BASE_DIR, 'frontend')
 # 之所以要机器盯着：入库链路本身是好的（经验箱那条三元组来源每天都在涨），
 # 断的是「AI 收工时写卡」这一步——纯靠自觉的环节，30 天没人发现（实测 2026-08-26 停更）。
 AI_DECISION_STALE_WARN_DAYS = 14
+
+# JS-20261002-11：知识存储层「业务键数」最高水位基线（只升不降）。
+# 为什么要基线而不是直接比"比上次少"：事故原型 MEMORY JS-20260925-06 —— data_maintenance
+# 把 predictions.json 从 3258 条硬截成 200 条，单次看是"少了一点"，逐日累积才暴露。
+# 用**最高水位**（只升不降）才能捕获"每天悄悄删一点"；用"比上次"会被"上次也少"骗过去。
+KNOWLEDGE_STORE_WATERMARK = os.path.join(
+    BASE_DIR, '金水谣数据', 'knowledge_store', '.watermark.json')
 
 
 def _find_git():
@@ -568,9 +576,18 @@ def _parse_code_consts(path):
 
 
 def _num_value(node):
-    """取数值字面量，含负号。
-    注意：`X = -30.0` 在 AST 里是 UnaryOp(USub, Constant(30.0)) 而**不是** Constant
-    ——只判 Constant 会让所有负数常量被静默漏掉，造成"闸门假绿"。"""
+    """取数值字面量，含负号与**常量表达式**。
+
+    支持四种 AST 形态，漏一种即"静默漏检"（常量写进 §三 却从不被校验 = 闸门假绿）：
+      1. `X = 1`            → Constant
+      2. `X = -30.0`        → UnaryOp(USub, ...)，**不是** Constant（漏了它负数全丢）
+      3. `X = 2 * 1024 * 1024` → BinOp（`2MB`、秒数 `60 * 60 * 24` 都是这么写的，
+                                  JS-20261002-11 发现：这类常量此前整个逃过校验）
+      4. `X: float = 1.0`   → AnnAssign（在 _parse_code_consts 里处理）
+
+    ⚠️ 故意不收 Div：`X = 1 / 3` 会算出 0.333333，`%g` 格式化后与文档写法难对齐，
+    容易变成"改不动的假警"，故保守跳过。
+    """
     import ast as _ast
     if isinstance(node, _ast.Constant):
         v = node.value
@@ -582,6 +599,17 @@ def _num_value(node):
         if v is None:
             return None
         return -v if isinstance(node.op, _ast.USub) else v
+    if isinstance(node, _ast.BinOp):
+        lv, rv = _num_value(node.left), _num_value(node.right)
+        if lv is None or rv is None:
+            return None
+        if isinstance(node.op, _ast.Mult):
+            return lv * rv
+        if isinstance(node.op, _ast.Add):
+            return lv + rv
+        if isinstance(node.op, _ast.Sub):
+            return lv - rv
+        # Div / Pow / Mod 等不收（见 docstring）
     return None
 
 
@@ -663,6 +691,13 @@ def check_std_thresholds():
             # 硬编码魔数 200 从来没进过任何文档。
             os.path.join(BASE_DIR, 'core', 'infra', 'archive_guard.py'): [
                 'ARCHIVE_SHRINK_GUARD_RATIO', 'DEFAULT_ARCHIVE_KEEP_DAYS',
+            ],
+            # JS-20261002-11：知识存储层阈值（WAL + 版本链 + 软删除）。
+            # 立这些常量就是为了不再出现"硬编码魔数从来没进过任何文档"——
+            # 那正是 archive_guard 那次事故的根因，新建存储层必须一开始就受闸约束。
+            os.path.join(BASE_DIR, 'core', 'infra', 'knowledge_store.py'): [
+                'SCHEMA_VERSION', 'RETRY_MAX', 'RETRY_BASE_SLEEP',
+                'COMPACT_SHRINK_GUARD', 'DEFAULT_TTL_DAYS', 'MAX_LINE_BYTES',
             ],
             os.path.join(BASE_DIR, 'core', 'infra', 'scheduler.py'): [
                 'PRED_ARCHIVE_KEEP_DAYS', 'PRED_ARCHIVE_MAX_RECORDS',
@@ -874,6 +909,97 @@ def check_alert_sink_writers():
     return errors
 
 
+def _read_watermark():
+    """读知识存储水位基线。文件缺失 = 首次运行，返回 0（不算跌）。"""
+    if not os.path.isfile(KNOWLEDGE_STORE_WATERMARK):
+        return {}
+    try:
+        with open(KNOWLEDGE_STORE_WATERMARK, 'r', encoding='utf-8') as f:
+            d = json.load(f)
+        return d if isinstance(d, dict) else {}
+    except Exception:
+        # 基线损坏不能让整库变红，按"无基线"处理（下次写入会自愈）
+        return {}
+
+
+def check_knowledge_store():
+    """⑬ 知识存储一致性（JS-20261002-11）
+
+    为什么要有这一项：`core/infra/knowledge_store.py` 是本轮新建的版本化存储层，
+    自带 `verify()/find_expired()/compact()` 三道自检——**但没有任何东西定期跑它们**。
+    这正是 MEMORY「孤儿检查器潜伏 46 天」的原型：写了检查不接调用链 = 没有检查。
+    本项把它接进一致性门禁，保证每天有人看见。
+
+    查三件事（每一项都能变绿，不是噪音）：
+      1. **日志可解析 + 索引对得上**（verify）→ 索引是物化视图，坏了 `refresh()` 重建即可
+      2. **过期条目**（expires_at 到期）→ `deprecate()` 标记或更新 expires_at
+      3. **业务键骤降** → 用最高水位基线守（只升不降），从 `archive/` 恢复
+
+    边界：库不存在（从未写入）不算异常——空库恒绿是"还没数据"，不是"数据坏了"。
+    """
+    try:
+        sys.path.insert(0, BASE_DIR)
+        from core.infra import knowledge_store as ks
+    except Exception as e:
+        # 导入失败必须报出来：存储层校验不了 ≠ 存储层健康
+        return ["  KB-STORE: 模块导入失败（%s: %s）→ 无法校验，按失败处理" %
+                (type(e).__name__, e)]
+
+    errors = []
+    try:
+        rec = ks.records_path()
+        if not os.path.isfile(rec):
+            return []           # 从未写入，空库不算异常
+        v = ks.verify()
+        st = ks.stats()
+    except Exception as e:
+        return ["  KB-STORE: 读取存储失败（%s: %s）→ 不静默放行" % (type(e).__name__, e)]
+
+    if not v.get("ok"):
+        if v.get("bad_lines"):
+            errors.append(
+                "  KB-STORE: %d 行无法解析（多为崩溃残留的半行）→ 归档后重写该行；"
+                "日志是权威，宁可丢一行也不能整库失效" % len(v["bad_lines"]))
+        if v.get("bad_checksum"):
+            errors.append(
+                "  KB-STORE: %d 条 checksum 与 payload 不符（内容被外部改动）→ "
+                "用 history() 找就近版本 rollback()" % len(v["bad_checksum"]))
+        if v.get("index_mismatch"):
+            errors.append(
+                "  KB-STORE: %d 条索引 offset 与日志对不上 → 调用 "
+                "core.infra.knowledge_store.refresh() 重建索引（索引是物化视图，可安全重建）"
+                % len(v["index_mismatch"]))
+
+    expired = st.get("expired") or 0
+    if expired:
+        errors.append(
+            "  KB-STORE: %d 条已过期（expires_at 早于今天）→ 用 deprecate() 标记墓碑，"
+            "或确认仍有效则更新 expires_at（只提醒不自动删）" % expired)
+
+    # 骤降守卫：最高水位基线，只升不降
+    keys_now = int(st.get("keys") or 0)
+    prev = int(_read_watermark().get("max_keys") or 0)
+    if keys_now > prev:
+        try:
+            d = os.path.dirname(KNOWLEDGE_STORE_WATERMARK)
+            if d and not os.path.isdir(d):
+                os.makedirs(d, exist_ok=True)
+            with open(KNOWLEDGE_STORE_WATERMARK, 'w', encoding='utf-8') as f:
+                json.dump({"max_keys": keys_now,
+                           "updated_at": time.strftime('%Y-%m-%d %H:%M:%S')}, f,
+                          ensure_ascii=False)
+        except Exception as e:
+            # 基线写不进去 = 骤降守卫失效，等于没守卫 → 必须报出来
+            errors.append("  KB-STORE: 水位基线落盘失败（%s: %s）→ 骤降守卫失效" %
+                          (type(e).__name__, e))
+    elif prev and keys_now < prev * ks.COMPACT_SHRINK_GUARD:
+        errors.append(
+            "  KB-STORE: 业务键从最高水位 %d 骤降到 %d（低于 %.0f%%）→ 疑似误删或误压实，"
+            "请先从 金水谣数据/knowledge_store/archive/ 恢复；确认是有意清理后再重置基线 %s"
+            % (prev, keys_now, ks.COMPACT_SHRINK_GUARD * 100, KNOWLEDGE_STORE_WATERMARK))
+    return errors
+
+
 def run_all(changed_files=None):
     """运行全部检查。changed_files: pre-commit 增量模式的变更文件列表（相对 BASE_DIR）"""
     css_fn = check_css_classes
@@ -890,6 +1016,7 @@ def run_all(changed_files=None):
         '彩票奖级规则新鲜度': check_prize_rules_freshness,
         'AI决策卡新鲜度': check_ai_decisions_freshness,
         '告警落盘契约': check_alert_sink_writers,
+        '知识存储一致性': check_knowledge_store,
     }
     all_ok = True
     report = []

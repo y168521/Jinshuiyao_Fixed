@@ -494,8 +494,15 @@ def rollback(ns, key, rev):
         return put(ns, key, payload, meta)
 
 
-def scan(ns=None, status="active"):
-    """列出指定命名空间（或全部）的当前版本，支持按状态过滤。"""
+def scan(ns=None, status="active", with_payload=False):
+    """列出指定命名空间（或全部）的当前版本，支持按状态过滤。
+
+    Args:
+        with_payload: 附带物化后的 payload。默认 False（只给索引摘要，省一次读盘）。
+            ⚠️ 需要按内容体检时必须显式打开：初版调用方以为 scan 自带 payload，
+            结果 `node.get("payload")` 恒为 None → 缺失统计永远 0（**假绿**）。
+            本函数已持 RLock，内部再调 get() 不会死锁（正是不用普通 Lock 的原因）。
+    """
     with _lock:
         idx = _load_index()
         out = []
@@ -504,9 +511,13 @@ def scan(ns=None, status="active"):
                 continue
             if status and node.get("status") != status:
                 continue
-            out.append({"ns": node.get("ns"), "key": node.get("key"),
-                        "rev": node.get("rev"), "id": node.get("id"),
-                        "ts": node.get("ts"), "status": node.get("status")})
+            item = {"ns": node.get("ns"), "key": node.get("key"),
+                    "rev": node.get("rev"), "id": node.get("id"),
+                    "ts": node.get("ts"), "status": node.get("status")}
+            if with_payload:
+                rec = get(node.get("ns"), node.get("key"))
+                item["payload"] = (rec or {}).get("payload")
+            out.append(item)
         return out
 
 
