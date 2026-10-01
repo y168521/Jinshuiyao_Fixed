@@ -185,8 +185,9 @@ def _done(used, task_type, reason, text, user_prompt=None, cfg=None):
         try:
             from core.ai import model_shadow
             model_shadow.maybe_shadow(task_type, user_prompt, text, used)
-        except Exception:
-            pass
+        except Exception as _se:
+            import logging
+            logging.getLogger(__name__).debug("[model_router] model_shadow调用失败: %s", _se)
     return text, None, {"used": used, "reason": reason,
                         "policy": cfg.get("policy", "auto"), "task_type": task_type}
 
@@ -199,8 +200,9 @@ def _log(used, task_type, reason):
         with _lock:
             with open(_STATS_PATH, "a", encoding="utf-8") as f:
                 f.write(line + "\n")
-    except Exception:
-        pass
+    except Exception as _le:
+        import logging
+        logging.getLogger(__name__).debug("[model_router] 路由统计写入失败: %s", _le)
 
 
 def route_report() -> str:

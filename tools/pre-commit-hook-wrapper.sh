@@ -135,6 +135,20 @@ if [ $rc -ne 0 ]; then
 fi
 echo "[pre-commit] OK 仓库卫生通过"
 
+# v6 (JS-20260924-09): 留痕合规检查 —— 有源码改动时必须先补交接中心/总索引/经验箱。
+#   背景：各 AI 反复漏写留痕，导致下一个 AI 无法溯源。本闸在 pre-commit 阶段硬阻断，
+#   强制"做完即登记"。SKIP_TRAIL_CHECK=1 可紧急跳过（仅用于自动同步自身配置变更等）。
+echo "[pre-commit] 6/6 留痕合规检查（源码改动必须先登记三件套）..."
+"$PY" "$ROOT/tools/check_trail_compliance.py"
+rc=$?
+if [ $rc -ne 0 ]; then
+  echo "[pre-commit] FAIL 留痕缺失，已阻止提交。"
+  echo "[pre-commit] 修复：在 AI协作交接中心.md / 工作留痕总索引.md / 经验收集箱.md 追加当日登记"
+  echo "[pre-commit] 紧急跳过：SKIP_TRAIL_CHECK=1 git commit"
+  exit 1
+fi
+echo "[pre-commit] OK 留痕合规"
+
 echo "[pre-commit] ========================================"
 echo "[pre-commit] 全部检查通过，可以提交！"
 echo "[pre-commit] ========================================"

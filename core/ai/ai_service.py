@@ -211,56 +211,28 @@ def _check_api_key() -> bool:
 
 
 def auto_detect_mode(force: bool = False) -> str:
-    """自动检测网络和API Key，切换到合适的模式
-
-    检测逻辑：
-      1. 如果有网络且有API Key → 在线模式
-      2. 如果无网络或无API Key → 本地模式
-
-    Args:
-        force: 是否强制检测（即使配置了手动模式）
-
-    Returns:
-        str: 检测后的模式（'online' 或 'offline'）
-    """
-    # 读取配置，检查是否启用自动检测
+    """自动检测网络和 API Key 并切换模式（在线/本地）。force=True 时忽略用户手动设置。"""
     auto_enable = True
     try:
         if os.path.isfile(_MODE_CONFIG_PATH):
             with open(_MODE_CONFIG_PATH, "r", encoding="utf-8") as f:
                 cfg = json.load(f)
                 auto_enable = cfg.get("auto_switch_on_error", True)
-                # 如果用户手动设置了模式且没有强制检测，尊重用户选择
                 if not force and cfg.get("mode") and cfg.get("last_updated"):
-                    # 检查最后更新时间，如果是最近更新的，认为是用户手动设置的
-                    # 这里简化处理：如果配置文件存在且有mode，且没有force，就不自动切换
                     current_mode = cfg.get("mode", "online")
                     logger.info("[ai_service] 检测到用户手动设置的模式: %s，跳过自动检测", current_mode)
                     return current_mode
     except Exception as e:
         logger.debug("[ai_service] 读取配置失败，使用默认自动检测: %s", e)
-
-    # 检测网络
     has_network = _check_network()
     logger.info("[ai_service] 网络检测: %s", "可用" if has_network else "不可用")
-
-    # 检测API Key
     has_api_key = _check_api_key()
-    # 仅记录 API Key“是否存在”，从不打印真实密钥内容（semgrep logger-credential-leak 误报）
-    logger.info("[ai_service] API Key检测: %s", "存在" if has_api_key else "不存在")  # nosemgrep: python.lang.security.audit.logging.logger-credential-leak.python-logger-credential-disclosure
-
-    # 决定模式
-    if has_network and has_api_key:
-        target_mode = "online"
-    else:
-        target_mode = "offline"
-
-    # 切换模式
+    logger.info("[ai_service] API Key检测: %s", "存在" if has_api_key else "不存在")  # nosemgrep
+    target_mode = "online" if (has_network and has_api_key) else "offline"
     if set_mode(target_mode):
         logger.info("[ai_service] 自动检测完成，已切换到: %s", target_mode)
     else:
         logger.warning("[ai_service] 自动检测完成，但切换模式失败")
-
     return target_mode
 
 
@@ -378,662 +350,500 @@ _SUBSYSTEM_PROMPTS = {
 }
 
 
-class AIService:
-    """统一AI服务 — 所有子系统共用入口
+def _ais_init_state(self, provider: str, api_key: str, key_file: str):
+    self.provider = provider
+    self._config = PROVIDERS.get(provider, PROVIDERS["deepseek"])
+    self._timeout = 30
+    self._stream_timeout = 60
+    self._last_call_time = 0
+    self._min_interval = 2
+    self._fail_count = 0
+    self._fail_threshold = 5
+    self._breaker_until = 0
+    self._total_calls = 0
+    self._total_success = 0
+    self._retry_count = 2
+    self._mode = get_mode()
+    self._state_lock = threading.Lock()
+    self.api_key = api_key or _ais_auto_read_key(self, key_file)
+    self._token_usage = {"total_prompt_tokens": 0, "total_completion_tokens": 0,
+                         "total_tokens": 0, "calls_with_usage": 0, "last_usage": None, "daily": {}}
+    self._usage_write_count = 0
+    self._usage_last_write_time = 0.0
+    _ais_restore_usage_from_file(self)
+    self._session = None
+    _ais_init_session(self)
+    self._ollama_available = False
+    _ais_detect_ollama(self)
 
-    特性：
-      - 支持双模式切换（online/offline）
-      - 自动读取 deepseek_key.txt 或环境变量 DEEPSEEK_API_KEY
-      - 内置频率限制（防止API过载）
-      - 内置熔断保护（连续失败自动暂停）
-      - 子系统预设Prompt（也可自定义）
-      - 支持 requests 连接池（自动重试）
-      - 支持流式响应（SSE）
-      - 模型 fallback 链（自动切换备选模型）
-    """
 
-    def __init__(self, provider: str = "zhipu", api_key: str = "",
-                 key_file: str = ""):
-        """初始化AI服务
-
-        Args:
-            provider: 供应商名称，默认 zhipu（glm-4.5-air 免费额度大，优先用）
-            api_key: API密钥，为空则自动从文件/环境变量读取
-            key_file: 密钥文件路径，为空则自动查找
-        """
-        self.provider = provider
-        self._config = PROVIDERS.get(provider, PROVIDERS["deepseek"])
-        self._timeout = 30
-        self._stream_timeout = 60
-        self._last_call_time = 0
-        self._min_interval = 2  # 最小调用间隔（秒）
-        self._fail_count = 0
-        self._fail_threshold = 5  # 连续失败N次后熔断
-        self._breaker_until = 0  # 熔断恢复时间戳
-        self._total_calls = 0
-        self._total_success = 0
-        self._retry_count = 2  # 失败重试次数
-
-        # 运行模式
-        self._mode = get_mode()
-
-        # 共享状态锁（JS-20260723-37）：_fail_count 读改写、provider 切换须串行，
-        # 防止多线程 chat() 并发导致计数丢失 / 切到错误模型。
-        self._state_lock = threading.Lock()
-
-        # 读取API Key
-        self.api_key = api_key or self._auto_read_key(key_file)
-
-        # Token用量追踪
-        self._token_usage = {
-            "total_prompt_tokens": 0,
-            "total_completion_tokens": 0,
-            "total_tokens": 0,
-            "calls_with_usage": 0,
-            "last_usage": None,
-            "daily": {},
-        }
-        # 持久化写入节流控制（每10次调用或每5分钟写一次）
-        self._usage_write_count = 0
-        self._usage_last_write_time = 0.0
-        # 从 token_usage.json 恢复历史用量（重启不归零）
-        self._restore_usage_from_file()
-
-        # 初始化 requests session（连接池）
+def _ais_init_session(self):
+    if requests is None:
+        return
+    try:
+        self._session = requests.Session()
+        adapter = requests.adapters.HTTPAdapter(pool_connections=5, pool_maxsize=10, max_retries=2)
+        self._session.mount('https://', adapter)
+        self._session.mount('http://', adapter)
+        self._session.headers.update({"Content-Type": "application/json"})
+    except Exception as e:
+        logger.debug("[ai_service] session初始化失败，使用urllib降级: %s", e)
         self._session = None
-        self._init_session()
 
-        # 自动检测Ollama是否可用
+
+def _ais_auto_read_key(self, key_file: str = "") -> str:
+    key = get_api_key(key_file)
+    if key:
+        logger.info("[ai_service] API Key读取成功")
+    else:
+        logger.warning("[ai_service] 未找到API Key，AI功能将不可用")
+    return key
+
+
+def _ais_track_usage(self, api_response: Dict):
+    usage = api_response.get("usage")
+    if not usage:
+        return
+    prompt_tk = usage.get("prompt_tokens", 0)
+    completion_tk = usage.get("completion_tokens", 0)
+    total_tk = usage.get("total_tokens", 0)
+    self._token_usage["total_prompt_tokens"] += prompt_tk
+    self._token_usage["total_completion_tokens"] += completion_tk
+    self._token_usage["total_tokens"] += total_tk
+    self._token_usage["calls_with_usage"] += 1
+    self._token_usage["last_usage"] = {"prompt": prompt_tk, "completion": completion_tk, "total": total_tk}
+    try:
+        today = datetime.now().strftime("%Y-%m-%d")
+        day_entry = self._token_usage.setdefault("daily", {}).setdefault(today, {"tokens": 0, "calls": 0})
+        day_entry["tokens"] += total_tk
+        day_entry["calls"] += 1
+    except Exception as e:
+        logger.debug("[ai_service] 日用量统计异常: %s", e)
+    self._usage_write_count += 1
+    now_ts = time.time()
+    if self._usage_write_count >= 10 or (now_ts - self._usage_last_write_time) >= 300:
+        _ais_persist_usage_to_file(self)
+        self._usage_write_count = 0
+        self._usage_last_write_time = now_ts
+
+
+def _ais_restore_usage_from_file(self):
+    try:
+        data = safe_load_json(_TOKEN_USAGE_FILE, default=None, verify_checksum_flag=False)
+        if data and isinstance(data, dict):
+            self._token_usage["total_tokens"] = data.get("total_tokens", 0)
+            self._token_usage["total_prompt_tokens"] = data.get("total_prompt_tokens", 0)
+            self._token_usage["total_completion_tokens"] = data.get("total_completion_tokens", 0)
+            self._token_usage["calls_with_usage"] = data.get("total_calls", 0)
+            self._token_usage["daily"] = data.get("daily", {})
+            logger.info("[ai_service] 恢复Token用量: total_tokens=%d, calls=%d",
+                        self._token_usage["total_tokens"], self._token_usage["calls_with_usage"])
+    except Exception as e:
+        logger.warning("[ai_service] 恢复Token用量失败: %s", e)
+
+
+def _ais_persist_usage_to_file(self):
+    try:
+        payload = {
+            "total_tokens": self._token_usage["total_tokens"],
+            "total_prompt_tokens": self._token_usage["total_prompt_tokens"],
+            "total_completion_tokens": self._token_usage["total_completion_tokens"],
+            "total_calls": self._token_usage["calls_with_usage"],
+            "last_updated": datetime.now().isoformat(timespec="seconds"),
+            "daily": self._token_usage.get("daily", {}),
+        }
+        safe_write_json(_TOKEN_USAGE_FILE, payload, embed_checksum=False)
+        logger.debug("[ai_service] Token用量已持久化: total_tokens=%d", payload["total_tokens"])
+    except Exception as e:
+        logger.warning("[ai_service] Token用量持久化写入失败: %s", e)
+
+
+def _ais_detect_ollama(self):
+    import socket
+    try:
+        sock = socket.create_connection(("127.0.0.1", 11434), timeout=0.3)
+        sock.close()
+    except (OSError, socket.timeout):
         self._ollama_available = False
-        self._detect_ollama()
+        return
+    if self._session is None:
+        return
+    try:
+        resp = self._session.get("http://localhost:11434/api/tags", timeout=2)
+        if resp.status_code == 200:
+            models = resp.json().get("models", [])
+            if models:
+                available = [m["name"] for m in models[:5]]
+                self._ollama_available = True
+                logger.info("[ai_service] 检测到Ollama: %s", available)
+                if "llama3.2" not in available:
+                    first_model = available[0].split(":")[0]
+                    PROVIDERS["ollama"]["model"] = first_model
+                    logger.info("[ai_service] Ollama默认模型设为: %s", first_model)
+    except Exception:
+        self._ollama_available = False
 
-    def _init_session(self):
-        """初始化 requests session（连接池）"""
-        if requests is None:
-            return
+
+def _ais_is_breaker_open(self) -> bool:
+    return time.time() < self._breaker_until
+
+
+def _ais_record_success(self):
+    with self._state_lock:
+        self._total_calls += 1
+        self._total_success += 1
+        self._fail_count = 0
+
+
+def _ais_record_failure(self):
+    with self._state_lock:
+        self._total_calls += 1
+        self._fail_count += 1
+        if self._fail_count >= self._fail_threshold:
+            self._breaker_until = time.time() + 60
+            logger.warning("[ai_service] 连续失败%d次，熔断器打开60秒", self._fail_count)
+
+
+def _ais_ensure_rate_limit(self):
+    elapsed = time.time() - self._last_call_time
+    if elapsed < self._min_interval:
+        time.sleep(self._min_interval - elapsed)
+
+
+def _ais_build_payload(self, system_prompt: str, user_prompt: str,
+                       temperature: float = None, max_tokens: int = None,
+                       stream: bool = False) -> Dict:
+    config = self._config
+    return {
+        "model": config["model"],
+        "messages": [{"role": "system", "content": system_prompt},
+                     {"role": "user", "content": user_prompt}],
+        "temperature": temperature if temperature is not None else config["temperature"],
+        "max_tokens": max_tokens if max_tokens is not None else config["max_tokens"],
+        "stream": stream,
+    }
+
+
+def _ais_call_api(self, payload: Dict) -> Optional[Dict]:
+    headers = {"Authorization": f"Bearer {self.api_key}"}
+    api_url = self._config["api_url"]
+    if self._session is not None:
         try:
-            self._session = requests.Session()
-            adapter = requests.adapters.HTTPAdapter(
-                pool_connections=5,
-                pool_maxsize=10,
-                max_retries=2
-            )
-            self._session.mount('https://', adapter)
-            self._session.mount('http://', adapter)
-            self._session.headers.update({
-                "Content-Type": "application/json",
-            })
-        except Exception as e:
-            logger.debug("[ai_service] session初始化失败，使用urllib降级: %s", e)
-            self._session = None
-
-    def _auto_read_key(self, key_file: str = "") -> str:
-        """自动读取API Key（复用统一入口 get_api_key）"""
-        key = get_api_key(key_file)
-        if key:
-            logger.info("[ai_service] API Key读取成功")
-        else:
-            logger.warning("[ai_service] 未找到API Key，AI功能将不可用")
-        return key
-
-    def _track_usage(self, api_response: Dict):
-        """从API响应中追踪Token用量"""
-        usage = api_response.get("usage")
-        if usage:
-            prompt_tk = usage.get("prompt_tokens", 0)
-            completion_tk = usage.get("completion_tokens", 0)
-            total_tk = usage.get("total_tokens", 0)
-            self._token_usage["total_prompt_tokens"] += prompt_tk
-            self._token_usage["total_completion_tokens"] += completion_tk
-            self._token_usage["total_tokens"] += total_tk
-            self._token_usage["calls_with_usage"] += 1
-            self._token_usage["last_usage"] = {
-                "prompt": prompt_tk,
-                "completion": completion_tk,
-                "total": total_tk,
-            }
-            # 按日统计
-            try:
-                today = datetime.now().strftime("%Y-%m-%d")
-                daily = self._token_usage.setdefault("daily", {})
-                day_entry = daily.setdefault(today, {"tokens": 0, "calls": 0})
-                day_entry["tokens"] += total_tk
-                day_entry["calls"] += 1
-            except Exception as e:
-                logger.debug("[ai_service] 日用量统计异常: %s", e)
-            # 节流持久化：每10次调用或每5分钟写一次
-            self._usage_write_count += 1
-            now_ts = time.time()
-            if (self._usage_write_count >= 10
-                    or (now_ts - self._usage_last_write_time) >= 300):
-                self._persist_usage_to_file()
-                self._usage_write_count = 0
-                self._usage_last_write_time = now_ts
-
-    def _restore_usage_from_file(self):
-        """启动时从 token_usage.json 恢复历史Token用量"""
-        try:
-            data = safe_load_json(_TOKEN_USAGE_FILE, default=None,
-                                  verify_checksum_flag=False)
-            if data and isinstance(data, dict):
-                self._token_usage["total_tokens"] = data.get("total_tokens", 0)
-                self._token_usage["total_prompt_tokens"] = data.get("total_prompt_tokens", 0)
-                self._token_usage["total_completion_tokens"] = data.get("total_completion_tokens", 0)
-                self._token_usage["calls_with_usage"] = data.get("total_calls", 0)
-                self._token_usage["daily"] = data.get("daily", {})
-                logger.info("[ai_service] 从持久化文件恢复Token用量: total_tokens=%d, calls=%d",
-                            self._token_usage["total_tokens"],
-                            self._token_usage["calls_with_usage"])
-        except Exception as e:
-            # 仅打印异常对象 e（类型/消息），不含任何密钥/Token 明文（semgrep logger-credential-leak 误报）
-            logger.warning("[ai_service] 恢复Token用量失败（文件不存在或损坏）: %s", e)  # nosemgrep: python.lang.security.audit.logging.logger-credential-leak.python-logger-credential-disclosure
-
-    def _persist_usage_to_file(self):
-        """将累计Token用量写入 token_usage.json（节流调用，非每次触发）"""
-        try:
-            payload = {
-                "total_tokens": self._token_usage["total_tokens"],
-                "total_prompt_tokens": self._token_usage["total_prompt_tokens"],
-                "total_completion_tokens": self._token_usage["total_completion_tokens"],
-                "total_calls": self._token_usage["calls_with_usage"],
-                "last_updated": datetime.now().isoformat(timespec="seconds"),
-                "daily": self._token_usage.get("daily", {}),
-            }
-            safe_write_json(_TOKEN_USAGE_FILE, payload, embed_checksum=False)
-            logger.debug("[ai_service] Token用量已持久化: total_tokens=%d",
-                         payload["total_tokens"])
-        except Exception as e:
-            # 仅打印异常对象 e，不含 Token 明文（semgrep logger-credential-leak 误报）
-            logger.warning("[ai_service] Token用量持久化写入失败: %s", e)  # nosemgrep: python.lang.security.audit.logging.logger-credential-leak.python-logger-credential-disclosure
-
-    def _detect_ollama(self):
-        """检测本地Ollama服务是否可用（先socket探活，未安装时瞬间跳过）"""
-        import socket
-        # 第一步：TCP探活（0.3秒超时，无重试），端口不通直接返回
-        try:
-            sock = socket.create_connection(("127.0.0.1", 11434), timeout=0.3)
-            sock.close()
-        except (OSError, socket.timeout):
-            self._ollama_available = False
-            return
-        # 第二步：端口通了才发HTTP请求获取模型列表
-        if self._session is None:
-            return
-        try:
-            resp = self._session.get(
-                "http://localhost:11434/api/tags",
-                timeout=2
-            )
+            resp = self._session.post(api_url, json=payload, headers=headers, timeout=self._timeout)
             if resp.status_code == 200:
-                models = resp.json().get("models", [])
-                if models:
-                    available = [m["name"] for m in models[:5]]
-                    self._ollama_available = True
-                    logger.info("[ai_service] 检测到Ollama: %s", available)
-                    # 自动更新Ollama model配置为实际可用模型
-                    if "llama3.2" not in available:
-                        # 使用第一个可用模型
-                        first_model = available[0].split(":")[0]
-                        PROVIDERS["ollama"]["model"] = first_model
-                        logger.info("[ai_service] Ollama默认模型设为: %s", first_model)
-        except Exception:
-            self._ollama_available = False
+                data = resp.json()
+                _ais_track_usage(self, data)
+                return data
+            logger.warning("[ai_service] API错误 %d: %s", resp.status_code, resp.text[:200])
+            return None
+        except requests.exceptions.Timeout:
+            logger.warning("[ai_service] 请求超时 (%ss)", self._timeout)
+            return None
+        except requests.exceptions.ConnectionError as e:
+            logger.warning("[ai_service] 连接失败: %s", e)
+            return None
+        except Exception as e:
+            logger.warning("[ai_service] 请求异常: %s", e)
+            return None
+    try:
+        import urllib.request
+        import urllib.error
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(api_url, data=data,
+                                     headers={**headers, "Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(req, timeout=self._timeout) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        logger.warning("[ai_service] urllib HTTP错误: %d", e.code)
+        return None
+    except Exception as e:
+        logger.warning("[ai_service] urllib异常: %s", e)
+        return None
+
+
+def _ais_call_api_stream(self, payload: Dict) -> Generator[str, None, None]:
+    headers = {"Authorization": f"Bearer {self.api_key}"}
+    api_url = self._config["api_url"]
+    if self._session is None:
+        logger.warning("[ai_service] 流式响应需要requests库支持")
+        yield ""
+        return
+    try:
+        with self._session.post(api_url, json=payload, headers=headers,
+                                timeout=self._stream_timeout, stream=True) as resp:
+            if resp.status_code != 200:
+                logger.warning("[ai_service] 流式API错误 %d", resp.status_code)
+                yield ""
+                return
+            for line in resp.iter_lines(decode_unicode=True):
+                if not line or line.strip() == "":
+                    continue
+                if line.startswith("data: "):
+                    data_str = line[6:]
+                    if data_str.strip() == "[DONE]":
+                        break
+                    try:
+                        delta = json.loads(data_str).get("choices", [{}])[0].get("delta", {}).get("content", "")
+                        if delta:
+                            yield delta
+                    except json.JSONDecodeError:
+                        continue
+    except Exception as e:
+        logger.warning("[ai_service] 流式请求异常: %s", e)
+        yield ""
+
+
+def _ais_try_free_first(self, system_prompt, user_prompt, temperature, max_tokens, free_first) -> Optional[str]:
+    """免费优先（W63补38）：免费池可用时先走免费模型。返回文本或 None。"""
+    if self._mode == "offline" or free_first is False:
+        return None
+    try:
+        from core.ai.free_model_pool import get_free_provider_cfgs, call_ai_failover
+        _cfgs = get_free_provider_cfgs()
+        if not _cfgs:
+            return None
+        _t = temperature if temperature is not None else 0.7
+        _m = max_tokens if max_tokens is not None else 800
+        _text, _err, _used = call_ai_failover(
+            _cfgs, system_prompt, user_prompt, timeout=60, max_tokens=_m, temperature=_t,
+            force_json_mode=False, allow_paid_fallback=False)
+        if _text:
+            _log_conv(system_prompt=system_prompt, user_prompt=user_prompt, reply=_text,
+                      provider=(_used or {}).get("_provider", "siliconflow"),
+                      model=(_used or {}).get("_model_id", "free"), token_usage={},
+                      duration_ms=0, success=True)
+            return _text
+    except Exception as e:
+        logger.debug("[ai_service] 免费优先调用异常: %s", e)
+    return None
+
+
+def _ais_chat_retry(self, payload, system_prompt, user_prompt, _call_start) -> Optional[str]:
+    """主重试循环：调用 API 并记录成功日志。返回文本或 None（全部失败）。"""
+    for attempt in range(self._retry_count + 1):
+        data = self._call_api(payload)
+        if data is not None:
+            try:
+                result = data["choices"][0]["message"]["content"]
+                _ais_record_success(self)
+                _duration = (time.time() - _call_start) * 1000
+                _usage = data.get("usage", {})
+                _log_conv(system_prompt=system_prompt, user_prompt=user_prompt, reply=result,
+                          provider=self.provider, model=self._config.get("model", ""),
+                          token_usage={"prompt": _usage.get("prompt_tokens", 0),
+                                       "completion": _usage.get("completion_tokens", 0),
+                                       "total": _usage.get("total_tokens", 0)},
+                          duration_ms=_duration, success=True)
+                return result
+            except (KeyError, IndexError) as e:
+                logger.warning("[ai_service] 响应解析失败: %s", e)
+                continue
+        if attempt < self._retry_count:
+            time.sleep(1)
+    return None
+
+
+def _ais_try_adaptive_model(self, system_prompt, user_prompt, temperature, max_tokens, _call_start) -> Optional[str]:
+    """模型自适应（W63补52/53）：dashscope 额度耗尽时自动切换可用模型重试。"""
+    if self.provider not in ("dashscope",) or not self.api_key:
+        return None
+    try:
+        from core.ai.adaptive_models import find_working_model
+        best = find_working_model(self.provider, self.api_key, preferred=self._config.get("model", ""))
+        if not best or best == self._config.get("model", ""):
+            return None
+        logger.info("[ai_service] 额度自适应: %s → %s", self._config.get("model", ""), best)
+        with self._state_lock:
+            self._config["model"] = best
+        data = self._call_api(_ais_build_payload(self, system_prompt, user_prompt, temperature, max_tokens))
+        if data is not None:
+            try:
+                result = data["choices"][0]["message"]["content"]
+                _ais_record_success(self)
+                _log_conv(system_prompt=system_prompt, user_prompt=user_prompt, reply=result,
+                          provider=self.provider, model=best,
+                          token_usage={"prompt": 0, "completion": 0, "total": 0},
+                          duration_ms=(time.time() - _call_start) * 1000, success=True)
+                return result
+            except (KeyError, IndexError):
+                pass
+    except Exception as e:
+        logger.debug("[ai_service] 模型自适应异常: %s", e)
+    return None
+
+
+def _ais_try_fallback(self, system_prompt, user_prompt, temperature, max_tokens, _fallback_depth) -> Optional[str]:
+    """fallback 链：切换到下一个供应商重试。返回文本或 None。"""
+    while (_fallback_depth < len(FALLBACK_CHAIN) and FALLBACK_CHAIN[_fallback_depth] == self.provider):
+        _fallback_depth += 1
+    if _fallback_depth >= len(FALLBACK_CHAIN):
+        return None
+    fallback_provider = FALLBACK_CHAIN[_fallback_depth]
+    _kf = PROVIDER_KEY_FILES.get(fallback_provider, "")
+    if _kf and _kf != "deepseek_key.txt" and not os.path.isfile(os.path.join(_SECRETS_DIR, _kf)):
+        return _ais_chat(self, system_prompt, user_prompt, temperature, max_tokens,
+                         _fallback_depth=_fallback_depth + 1)
+    logger.info("[ai_service] 尝试fallback到: %s", fallback_provider)
+    old_provider = self.provider
+    self.switch_provider(fallback_provider)
+    try:
+        return _ais_chat(self, system_prompt, user_prompt, temperature, max_tokens,
+                         _fallback_depth=_fallback_depth + 1)
+    finally:
+        self.switch_provider(old_provider)
+
+
+def _ais_chat_offline(self, system_prompt, user_prompt, temperature, max_tokens) -> str:
+    """离线模式：优先用 Ollama，否则返回空串。"""
+    if self._ollama_available and self.provider != "ollama":
+        old_provider = self.provider
+        self.switch_provider("ollama")
+        try:
+            return _ais_chat(self, system_prompt, user_prompt, temperature, max_tokens,
+                             _fallback_depth=len(FALLBACK_CHAIN))
+        finally:
+            self.switch_provider(old_provider)
+    logger.debug("[ai_service] 本地模式，跳过API调用")
+    return ""
+
+
+def _ais_chat(self, system_prompt: str, user_prompt: str,
+              temperature: float = None, max_tokens: int = None,
+              _fallback_depth: int = 0, free_first: bool = None) -> str:
+    free_text = _ais_try_free_first(self, system_prompt, user_prompt, temperature, max_tokens, free_first)
+    if free_text is not None:
+        return free_text
+    if self._mode == "offline":
+        return _ais_chat_offline(self, system_prompt, user_prompt, temperature, max_tokens)
+    if not self.api_key:
+        logger.warning("[ai_service] API Key未配置")
+        return ""
+    if _ais_is_breaker_open(self):
+        logger.warning("[ai_service] 熔断器打开中，跳过调用")
+        return ""
+    _ais_ensure_rate_limit(self)
+    payload = _ais_build_payload(self, system_prompt, user_prompt, temperature, max_tokens)
+    self._last_call_time = time.time()
+    _call_start = time.time()
+    result = _ais_chat_retry(self, payload, system_prompt, user_prompt, _call_start)
+    if result is not None:
+        return result
+    _ais_record_failure(self)
+    _log_conv(system_prompt=system_prompt, user_prompt=user_prompt, reply="",
+              provider=self.provider, model=self._config.get("model", ""),
+              duration_ms=(time.time() - _call_start) * 1000, success=False,
+              error_msg=f"连续{self._retry_count + 1}次调用失败")
+    adaptive = _ais_try_adaptive_model(self, system_prompt, user_prompt, temperature, max_tokens, _call_start)
+    if adaptive is not None:
+        return adaptive
+    fb = _ais_try_fallback(self, system_prompt, user_prompt, temperature, max_tokens, _fallback_depth)
+    return fb if fb is not None else ""
+
+
+def _ais_chat_stream(self, system_prompt: str, user_prompt: str,
+                     temperature: float = None, max_tokens: int = None
+                     ) -> Generator[str, None, None]:
+    if self._mode == "offline" or not self.api_key or _ais_is_breaker_open(self):
+        yield ""
+        return
+    _ais_ensure_rate_limit(self)
+    payload = _ais_build_payload(self, system_prompt, user_prompt, temperature, max_tokens, stream=True)
+    self._last_call_time = time.time()
+    collected = []
+    for chunk in _ais_call_api_stream(self, payload):
+        if chunk:
+            collected.append(chunk)
+            yield chunk
+        else:
+            break
+    if collected:
+        _ais_record_success(self)
+    else:
+        _ais_record_failure(self)
+
+
+def _ais_analyze(self, subsystem: str, content: str, extra_system: str = "", **kwargs) -> str:
+    system_prompt = _SUBSYSTEM_PROMPTS.get(subsystem, _SUBSYSTEM_PROMPTS["general"])
+    if extra_system:
+        system_prompt = system_prompt + "\n" + extra_system
+    return _ais_chat(self, system_prompt, content, **kwargs)
+
+
+def _ais_quick(self, subsystem: str, content: str) -> str:
+    return _ais_analyze(self, subsystem, content, extra_system="用一句话回答，不超过50字。",
+                        max_tokens=200, temperature=0.3)
+
+
+def _ais_switch_provider(self, provider: str):
+    with self._state_lock:
+        if provider in PROVIDERS:
+            self.provider = provider
+            self._config = PROVIDERS[provider]
+            key_file = PROVIDER_KEY_FILES.get(provider, "")
+            if key_file:
+                _kf = os.path.join(_SECRETS_DIR, key_file)
+                if key_file == "deepseek_key.txt":
+                    self.api_key = get_api_key(_kf)
+                else:
+                    self.api_key = get_api_key(_kf) if os.path.isfile(_kf) else ""
+            if provider == "dashscope" and "dashscope" in PROVIDERS:
+                try:
+                    from core.ai.adaptive_models import current_model
+                    _m = current_model(provider, self._config.get("model", ""))
+                    if _m:
+                        self._config["model"] = _m
+                except Exception as e:
+                    logger.debug("[ai_service] adaptive_models.current_model 异常: %s", e)
+            logger.info("[ai_service] 已切换到供应商: %s", provider)
+        else:
+            logger.warning("[ai_service] 不支持的供应商: %s", provider)
+
+
+class AIService:
+    """统一AI服务 — 所有子系统共用入口（方法委托模块级函数）。"""
+    def __init__(self, provider: str = "zhipu", api_key: str = "", key_file: str = ""):
+        _ais_init_state(self, provider, api_key, key_file)
 
     @property
     def mode(self) -> str:
-        """当前运行模式"""
         return self._mode
 
     @property
     def is_online(self) -> bool:
-        """是否为在线模式"""
         return self._mode == "online"
 
     @property
     def is_available(self) -> bool:
-        """AI服务是否可用"""
-        # 本地模式：检查Ollama是否可用作为替代
         if self._mode == "offline":
             return self._ollama_available
-        return bool(self.api_key) and not self._is_breaker_open()
+        return bool(self.api_key) and not _ais_is_breaker_open(self)
 
     @property
     def stats(self) -> Dict:
-        """调用统计"""
-        return {
-            "provider": self.provider,
-            "model": self._config["model"],
-            "mode": self._mode,
-            "available": self.is_available,
-            "total_calls": self._total_calls,
-            "total_success": self._total_success,
-            "fail_count": self._fail_count,
-            "is_breaker_open": self._is_breaker_open(),
-            "ollama_detected": self._ollama_available,
-            "token_usage": self._token_usage,
-        }
+        return {"provider": self.provider, "model": self._config["model"], "mode": self._mode,
+                "available": self.is_available, "total_calls": self._total_calls,
+                "total_success": self._total_success, "fail_count": self._fail_count,
+                "is_breaker_open": _ais_is_breaker_open(self),
+                "ollama_detected": self._ollama_available, "token_usage": self._token_usage}
 
     def _is_breaker_open(self) -> bool:
-        """熔断器是否打开"""
-        return time.time() < self._breaker_until
+        return _ais_is_breaker_open(self)
+    def _call_api(self, payload):
+        return _ais_call_api(self, payload)
+    def _detect_ollama(self):
+        _ais_detect_ollama(self)
 
-    def _record_success(self):
-        with self._state_lock:
-            self._total_calls += 1
-            self._total_success += 1
-            self._fail_count = 0
-
-    def _record_failure(self):
-        with self._state_lock:
-            self._total_calls += 1
-            self._fail_count += 1
-            if self._fail_count >= self._fail_threshold:
-                # 熔断60秒
-                self._breaker_until = time.time() + 60
-                logger.warning(
-                    "[ai_service] 连续失败%d次，熔断器打开60秒",
-                    self._fail_count
-                )
-
-    def _ensure_rate_limit(self):
-        """频率限制"""
-        elapsed = time.time() - self._last_call_time
-        if elapsed < self._min_interval:
-            time.sleep(self._min_interval - elapsed)
-
-    def _build_payload(self, system_prompt: str, user_prompt: str,
-                       temperature: float = None, max_tokens: int = None,
-                       stream: bool = False) -> Dict:
-        """构建API请求体"""
-        config = self._config
-        return {
-            "model": config["model"],
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            "temperature": temperature if temperature is not None else config["temperature"],
-            "max_tokens": max_tokens if max_tokens is not None else config["max_tokens"],
-            "stream": stream,
-        }
-
-    def _call_api(self, payload: Dict) -> Optional[Dict]:
-        """调用API（requests优先，urllib降级）
-
-        Returns:
-            API响应JSON，失败返回None
-        """
-        headers = {"Authorization": f"Bearer {self.api_key}"}
-        api_url = self._config["api_url"]
-
-        # 方法1: requests + 连接池
-        if self._session is not None:
-            try:
-                resp = self._session.post(
-                    api_url,
-                    json=payload,
-                    headers=headers,
-                    timeout=self._timeout,
-                )
-                if resp.status_code == 200:
-                    data = resp.json()
-                    self._track_usage(data)
-                    return data
-                else:
-                    logger.warning("[ai_service] API错误 %d: %s",
-                                  resp.status_code, resp.text[:200])
-                    return None
-            except requests.exceptions.Timeout:
-                logger.warning("[ai_service] 请求超时 (%ss)", self._timeout)
-                return None
-            except requests.exceptions.ConnectionError as e:
-                logger.warning("[ai_service] 连接失败: %s", e)
-                return None
-            except Exception as e:
-                logger.warning("[ai_service] 请求异常: %s", e)
-                return None
-
-        # 方法2: urllib 降级
-        try:
-            import urllib.request
-            import urllib.error
-            data = json.dumps(payload).encode("utf-8")
-            req = urllib.request.Request(
-                api_url, data=data,
-                headers={**headers, "Content-Type": "application/json"},
-                method="POST",
-            )
-            with urllib.request.urlopen(req, timeout=self._timeout) as resp:
-                return json.loads(resp.read().decode("utf-8"))
-        except urllib.error.HTTPError as e:
-            logger.warning("[ai_service] urllib HTTP错误: %d", e.code)
-            return None
-        except Exception as e:
-            logger.warning("[ai_service] urllib异常: %s", e)
-            return None
-
-    def _call_api_stream(self, payload: Dict) -> Generator[str, None, None]:
-        """流式调用API（SSE解析）
-
-        Yields:
-            每次返回一个文本块（增量输出）
-        """
-        headers = {"Authorization": f"Bearer {self.api_key}"}
-        api_url = self._config["api_url"]
-
-        if self._session is None:
-            logger.warning("[ai_service] 流式响应需要requests库支持")
-            yield ""
-            return
-
-        try:
-            with self._session.post(
-                api_url, json=payload, headers=headers,
-                timeout=self._stream_timeout, stream=True,
-            ) as resp:
-                if resp.status_code != 200:
-                    logger.warning("[ai_service] 流式API错误 %d", resp.status_code)
-                    yield ""
-                    return
-
-                for line in resp.iter_lines(decode_unicode=True):
-                    if not line or line.strip() == "":
-                        continue
-                    if line.startswith("data: "):
-                        data_str = line[6:]
-                        if data_str.strip() == "[DONE]":
-                            break
-                        try:
-                            chunk = json.loads(data_str)
-                            delta = (chunk.get("choices", [{}])[0]
-                                     .get("delta", {}).get("content", ""))
-                            if delta:
-                                yield delta
-                        except json.JSONDecodeError:
-                            continue
-        except Exception as e:
-            logger.warning("[ai_service] 流式请求异常: %s", e)
-            yield ""
-
-    def chat(self, system_prompt: str, user_prompt: str,
-             temperature: float = None, max_tokens: int = None,
-             _fallback_depth: int = 0, free_first: bool = None) -> str:
-        """通用AI对话
-
-        Args:
-            system_prompt: 系统提示词
-            user_prompt: 用户输入
-            temperature: 温度参数，None使用供应商默认值
-            max_tokens: 最大token数，None使用供应商默认值
-            _fallback_depth: 内部使用，fallback递归深度
-            free_first: 免费优先（W63补38）。None=自动开启：硅基流动免费池可用时
-                先用免费模型（GLM-4-32B 等），免费池全部失败才走本供应商(付费DeepSeek)，
-                符合用户约定"能用免费就用，免费不行才付费"；False=跳过免费直走原路径。
-
-        Returns:
-            AI回复文本，失败返回空字符串
-        """
-        # 免费优先（W63补38）：离线模式保持本地 Ollama 优先，不混入
-        if self._mode != "offline" and free_first is not False:
-            try:
-                from core.ai.free_model_pool import get_free_provider_cfgs, call_ai_failover
-                _cfgs = get_free_provider_cfgs()
-                if _cfgs:
-                    _t = temperature if temperature is not None else 0.7
-                    _m = max_tokens if max_tokens is not None else 800
-                    _text, _err, _used = call_ai_failover(
-                        _cfgs, system_prompt, user_prompt,
-                        timeout=60, max_tokens=_m, temperature=_t,
-                        force_json_mode=False, allow_paid_fallback=False)
-                    if _text:
-                        _log_conv(
-                            system_prompt=system_prompt,
-                            user_prompt=user_prompt,
-                            reply=_text,
-                            provider=(_used or {}).get("_provider", "siliconflow"),
-                            model=(_used or {}).get("_model_id", "free"),
-                            token_usage={},
-                            duration_ms=0,
-                            success=True,
-                        )
-                        return _text
-            except Exception:
-                pass  # 免费池异常不影响原有付费路径
-
-        # 本地模式：尝试使用Ollama
-        if self._mode == "offline":
-            if self._ollama_available and self.provider != "ollama":
-                old_provider = self.provider
-                self.switch_provider("ollama")
-                logger.debug("[ai_service] 离线模式，使用Ollama")
-                try:
-                    result = self.chat(system_prompt, user_prompt,
-                                       temperature, max_tokens,
-                                       _fallback_depth=len(FALLBACK_CHAIN))
-                finally:
-                    self.switch_provider(old_provider)
-                return result
-            logger.debug("[ai_service] 本地模式，跳过API调用")
-            return ""
-
-        if not self.api_key:
-            logger.warning("[ai_service] API Key未配置")
-            return ""
-
-        if self._is_breaker_open():
-            logger.warning("[ai_service] 熔断器打开中，跳过调用")
-            return ""
-
-        self._ensure_rate_limit()
-
-        # 构建请求
-        payload = self._build_payload(system_prompt, user_prompt,
-                                      temperature, max_tokens)
-
-        # 调用API（带计时和持久化日志）
-        self._last_call_time = time.time()
-        _call_start = time.time()
-        for attempt in range(self._retry_count + 1):
-            data = self._call_api(payload)
-            if data is not None:
-                try:
-                    result = data["choices"][0]["message"]["content"]
-                    self._record_success()
-                    # 持久化对话日志
-                    _duration = (time.time() - _call_start) * 1000
-                    _usage = data.get("usage", {})
-                    _log_conv(
-                        system_prompt=system_prompt,
-                        user_prompt=user_prompt,
-                        reply=result,
-                        provider=self.provider,
-                        model=self._config.get("model", ""),
-                        token_usage={
-                            "prompt": _usage.get("prompt_tokens", 0),
-                            "completion": _usage.get("completion_tokens", 0),
-                            "total": _usage.get("total_tokens", 0),
-                        },
-                        duration_ms=_duration,
-                        success=True,
-                    )
-                    return result
-                except (KeyError, IndexError) as e:
-                    logger.warning("[ai_service] 响应解析失败: %s", e)
-                    continue
-            # 重试前等待
-            if attempt < self._retry_count:
-                time.sleep(1)
-
-        # 所有重试都失败 → 记录失败日志 → 模型自适应 → 尝试 fallback 模型
-        self._record_failure()
-        _log_conv(
-            system_prompt=system_prompt,
-            user_prompt=user_prompt,
-            reply="",
-            provider=self.provider,
-            model=self._config.get("model", ""),
-            duration_ms=(time.time() - _call_start) * 1000,
-            success=False,
-            error_msg=f"连续{self._retry_count + 1}次调用失败",
-        )
-
-        # 模型自适应（W63补52/53）：dashscope 等长尾平台额度耗尽(403)时
-        # 自动探测账号下可用的免费模型并切换重试，无需人工手动切换
-        _ssp, _usp = system_prompt, user_prompt
-        if self.provider in ("dashscope",) and self.api_key:
-            try:
-                from core.ai.adaptive_models import find_working_model
-                best = find_working_model(
-                    self.provider, self.api_key,
-                    preferred=self._config.get("model", ""))
-                if best and best != self._config.get("model", ""):
-                    logger.info("[ai_service] 额度自适应: %s → %s",
-                                self._config.get("model", ""), best)
-                    with self._state_lock:
-                        self._config["model"] = best
-                    data = self._call_api(self._build_payload(
-                        _ssp, _usp, temperature, max_tokens))
-                    if data is not None:
-                        try:
-                            result = data["choices"][0]["message"]["content"]
-                            self._record_success()
-                            _log_conv(
-                                system_prompt=_ssp, user_prompt=_usp,
-                                reply=result, provider=self.provider,
-                                model=best,
-                                token_usage={"prompt": 0, "completion": 0,
-                                             "total": 0},
-                                duration_ms=(time.time() - _call_start) * 1000,
-                                success=True,
-                            )
-                            return result
-                        except (KeyError, IndexError):
-                            pass
-            except Exception:
-                pass
-        # 当前供应商若就是链中下一项，先跳过自身位次
-        # （避免重复执行一次相同的失败请求，也避免链在此处断头）
-        while (_fallback_depth < len(FALLBACK_CHAIN)
-               and FALLBACK_CHAIN[_fallback_depth] == self.provider):
-            _fallback_depth += 1
-        if _fallback_depth < len(FALLBACK_CHAIN):
-            fallback_provider = FALLBACK_CHAIN[_fallback_depth]
-            # 跳过未配置密钥的远程供应商（避免在它处断链空手返回；
-            # deepseek 系保留环境变量回退，不受此限制）
-            _kf = PROVIDER_KEY_FILES.get(fallback_provider, "")
-            if _kf and _kf != "deepseek_key.txt" and not os.path.isfile(
-                    os.path.join(_SECRETS_DIR, _kf)):
-                return self.chat(
-                    system_prompt, user_prompt, temperature, max_tokens,
-                    _fallback_depth=_fallback_depth + 1)
-            logger.info("[ai_service] 尝试fallback到: %s", fallback_provider)
-            old_provider = self.provider
-            self.switch_provider(fallback_provider)
-            try:
-                result = self.chat(system_prompt, user_prompt,
-                                   temperature, max_tokens,
-                                   _fallback_depth=_fallback_depth + 1)
-            finally:
-                # 恢复原供应商
-                self.switch_provider(old_provider)
-            return result
-
-        return ""
-
-    def chat_stream(self, system_prompt: str, user_prompt: str,
-                    temperature: float = None, max_tokens: int = None
-                    ) -> Generator[str, None, None]:
-        """流式AI对话（SSE）
-
-        使用方式：
-            for chunk in ai.chat_stream("prompt", "问话"):
-                print(chunk, end="", flush=True)
-
-        Yields:
-            文本增量块
-        """
-        if self._mode == "offline" or not self.api_key or self._is_breaker_open():
-            yield ""
-            return
-
-        self._ensure_rate_limit()
-
-        payload = self._build_payload(system_prompt, user_prompt,
-                                      temperature, max_tokens,
-                                      stream=True)
-        self._last_call_time = time.time()
-
-        collected = []
-        for chunk in self._call_api_stream(payload):
-            if chunk:
-                collected.append(chunk)
-                yield chunk
-            else:
-                break
-
-        if collected:
-            self._record_success()
-        else:
-            self._record_failure()
-
-    def analyze(self, subsystem: str, content: str,
-                extra_system: str = "", **kwargs) -> str:
-        """按子系统分析的快捷方法
-
-        Args:
-            subsystem: 子系统名称 (football/lottery/stock/fund/music/general)
-            content: 要分析的内容
-            extra_system: 额外的系统提示词（追加到预设Prompt后面）
-            **kwargs: 传递给 chat() 的参数 (temperature, max_tokens)
-
-        Returns:
-            AI分析文本
-        """
-        system_prompt = _SUBSYSTEM_PROMPTS.get(subsystem,
-                                                _SUBSYSTEM_PROMPTS["general"])
-        if extra_system:
-            system_prompt = system_prompt + "\n" + extra_system
-        return self.chat(system_prompt, content, **kwargs)
-
-    def quick(self, subsystem: str, content: str) -> str:
-        """快速分析（短token版，适合实时显示）"""
-        return self.analyze(subsystem, content,
-                            extra_system="用一句话回答，不超过50字。",
-                            max_tokens=200, temperature=0.3)
-
-    def switch_provider(self, provider: str):
-        """切换AI供应商（持锁，保证 provider/_config 原子切换）
-
-        切换时按 PROVIDER_KEY_FILES 读取对应平台的密钥文件
-        （如切到 dashscope 读 dashscope_key.txt）；该平台密钥文件不存在则
-        api_key 置空（视为不可用，绝不回退用别的平台密钥）。
-        """
-        with self._state_lock:
-            if provider in PROVIDERS:
-                self.provider = provider
-                self._config = PROVIDERS[provider]
-                key_file = PROVIDER_KEY_FILES.get(provider, "")
-                if key_file:
-                    _kf = os.path.join(_SECRETS_DIR, key_file)
-                    if key_file == "deepseek_key.txt":
-                        # deepseek 保留历史兼容回退（默认路径+环境变量）
-                        self.api_key = get_api_key(_kf)
-                    else:
-                        # 其他平台严格绑定本平台密钥文件，缺失视为不可用
-                        self.api_key = get_api_key(_kf) if os.path.isfile(_kf) else ""
-                # 读取持久化的可用模型（自适应切换后的选择，如百炼额度耗尽自动替换）
-                if provider == "dashscope" and "dashscope" in PROVIDERS:
-                    try:
-                        from core.ai.adaptive_models import current_model
-                        _m = current_model(
-                            provider, self._config.get("model", ""))
-                        if _m:
-                            self._config["model"] = _m
-                    except Exception:
-                        pass
-                logger.info("[ai_service] 已切换到供应商: %s", provider)
-            else:
-                logger.warning("[ai_service] 不支持的供应商: %s", provider)
+    def chat(self, system_prompt, user_prompt, temperature=None, max_tokens=None,
+             _fallback_depth=0, free_first=None):
+        return _ais_chat(self, system_prompt, user_prompt, temperature, max_tokens, _fallback_depth, free_first)
+    def chat_stream(self, system_prompt, user_prompt, temperature=None, max_tokens=None):
+        return _ais_chat_stream(self, system_prompt, user_prompt, temperature, max_tokens)
+    def analyze(self, subsystem, content, extra_system="", **kwargs):
+        return _ais_analyze(self, subsystem, content, extra_system, **kwargs)
+    def quick(self, subsystem, content):
+        return _ais_quick(self, subsystem, content)
+    def switch_provider(self, provider):
+        _ais_switch_provider(self, provider)
 
 
 # ---------------------------------------------------------------------------

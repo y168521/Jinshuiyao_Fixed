@@ -40,8 +40,9 @@ class ConcurrencyGate:
         """释放一个并发槽。"""
         try:
             self._sem.release()
-        except Exception:
-            pass
+        except Exception as _e:
+            import logging
+            logging.getLogger(__name__).debug("[concurrency_gate] release 失败: %s", _e)
 
     @property
     def active(self):

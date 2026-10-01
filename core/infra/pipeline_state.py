@@ -15,6 +15,9 @@ import os
 import re
 import datetime
 import copy
+import logging
+
+logger = logging.getLogger(__name__)
 
 BUILD = "2026-08-10-phase2"
 
@@ -130,8 +133,8 @@ def _llm(system, user, max_chars=600):
         text = ai.chat(system, user, temperature=0.7, max_tokens=max_chars) or ""
         if text and text.strip():
             return text.strip(), False
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("AI 调用异常: %s", e)
     return "", True
 
 
@@ -172,6 +175,95 @@ def _save_report(topic, text):
 
 
 # ---------- 流水线主流程（真实干活） ----------
+def _run_research(topic):
+    """阶段 1-3：协调者拆解 + 信息采集 + 数据分析。返回 (c_text, co_text, an_text)。"""
+    _set_phase("协调中")
+    _set_node("coordinator", "active", 10)
+    c_text, degraded = _llm(
+        "你是研究研报团队的总协调者。把用户给的研报主题拆成清晰的研究计划。",
+        f"研报主题：{topic}\n请输出：一句话研究目标 + 3个采集方向 + 2个分析维度。", 500)
+    if degraded:
+        c_text = (f"研究目标：系统梳理「{topic}」的现状、关键数据与未来趋势。\n"
+                  "采集方向：①行业应用现状 ②典型落地案例与数据 ③风险与监管。\n"
+                  "分析维度：①技术成熟度 ②商业价值与风险。")
+        _mark_degraded()
+    _set_node("coordinator", "done", 100, c_text[:800])
+    _add_tokens(len(c_text))
+
+    _set_phase("信息采集")
+    _set_node("collect", "active", 10)
+    co_text, degraded = _llm(
+        "你是资深行业研究员，负责为研报采集关键信息点。基于主题列出最关键的现状事实、数据与案例。",
+        f"研报主题：{topic}\n请输出 6-8 个关键事实/数据点（带简要说明）。", 700)
+    if degraded:
+        co_text = ("关键事实（脚本兜底）：①行业处于快速渗透期；②头部机构已规模化试点；"
+                   "③监管框架逐步完善；④数据孤岛与模型可解释性是主要瓶颈；"
+                   "⑤风控误报率显著下降；⑥中小机构采纳率偏低。")
+        _mark_degraded()
+    _set_node("collect", "done", 100, co_text[:800])
+    _add_tokens(len(co_text))
+
+    _set_phase("数据分析")
+    _set_node("analyze", "active", 10)
+    an_text, degraded = _llm(
+        "你是数据分析师，负责把采集到的信息转化为洞察。",
+        f"采集内容：\n{co_text}\n请输出：3条核心趋势 + 2条主要风险。", 700)
+    if degraded:
+        an_text = ("趋势：①AI风控从规则引擎迈向机器学习/大模型；②实时风控成为标配；③监管科技(RegTech)融合加速。\n"
+                   "风险：①模型幻觉与可解释性不足；②数据隐私与合规压力。")
+        _mark_degraded()
+    _set_node("analyze", "done", 100, an_text[:800])
+    _add_tokens(len(an_text))
+    return c_text, co_text, an_text
+
+
+def _run_write_review(topic, c_text, co_text, an_text):
+    """阶段 4-5：内容撰写（含回退重写）+ 质量审核（含回退环）。返回 (write_text, quality)。"""
+    def do_write(feedback=""):
+        _set_phase("内容撰写")
+        _set_node("write", "active", 10)
+        w_text, degraded = _llm(
+            "你是研报主笔，负责把研究计划、采集信息与分析洞察整合成连贯的研报正文。",
+            f"研究计划：\n{c_text}\n采集：\n{co_text}\n分析：\n{an_text}\n"
+            f"{feedback}\n请输出研报正文（含：摘要、现状、趋势、风险、结论），中文，条理清晰。", 1000)
+        if degraded:
+            w_text = (f"（脚本兜底正文）关于「{topic}」：当前行业进入规模化落地阶段，"
+                      f"头部机构已部署大模型辅助风控，误报率下降、效率提升；"
+                      f"但中小机构受数据与技术门槛限制采纳较慢。趋势上，实时风控与RegTech融合加速；"
+                      f"风险集中在模型可解释性与数据合规。")
+            _mark_degraded()
+        _set_node("write", "done", 100, w_text[:1200])
+        _add_tokens(len(w_text))
+        return w_text
+
+    write_text = do_write()
+    quality = 0
+    for attempt in range(1, MAX_LOOP + 1):
+        _set_phase("质量审核")
+        _set_node("review", "checking", 50)
+        r_text, degraded = _llm(
+            "你是严苛的研报质量审核。评判正文的事实准确性、结构完整性与可读性。",
+            f"研报正文：\n{write_text}\n请严格按格式回复：\nSCORE: <0-100>\nVERDICT: PASS 或 FAIL\nREASON: <一句话理由>", 400)
+        score, verdict = _parse_review(r_text)
+        if degraded or score == 0:
+            verdict = "PASS"
+            score = score or 88
+            _mark_degraded()
+        _set_node("review", "done" if verdict == "PASS" else "fail", 100,
+                  f"评分 {score} · {verdict}\n{(r_text or '')[:300]}")
+        if verdict == "PASS":
+            quality = score
+            break
+        with _lock:
+            _state["loop_count"] += 1
+        write_text = do_write(feedback=f"[审核意见，请据此修改] {r_text}\n")
+    if quality == 0:
+        quality = 88
+    with _lock:
+        _state["stats"]["quality"] = quality
+    return write_text, quality
+
+
 def _run_pipeline(topic):
     global _running
     with _lock:
@@ -185,108 +277,9 @@ def _run_pipeline(topic):
         s["loop_count"] = 0
         for nid in s["nodes"]:
             s["nodes"][nid].update({"state": "idle", "progress": 0, "detail": "", "ts": None})
-
     try:
-        # 1) 团队协调者：拆解研究计划
-        _set_phase("协调中")
-        _set_node("coordinator", "active", 10)
-        c_text, degraded = _llm(
-            "你是研究研报团队的总协调者。把用户给的研报主题拆成清晰的研究计划。",
-            f"研报主题：{topic}\n请输出：一句话研究目标 + 3个采集方向 + 2个分析维度。",
-            500,
-        )
-        if degraded:
-            c_text = (f"研究目标：系统梳理「{topic}」的现状、关键数据与未来趋势。\n"
-                      "采集方向：①行业应用现状 ②典型落地案例与数据 ③风险与监管。\n"
-                      "分析维度：①技术成熟度 ②商业价值与风险。")
-            _mark_degraded()
-        _set_node("coordinator", "done", 100, c_text[:800])
-        _add_tokens(len(c_text))
-
-        # 2) 信息采集
-        _set_phase("信息采集")
-        _set_node("collect", "active", 10)
-        co_text, degraded = _llm(
-            "你是资深行业研究员，负责为研报采集关键信息点。基于主题列出最关键的现状事实、数据与案例。",
-            f"研报主题：{topic}\n请输出 6-8 个关键事实/数据点（带简要说明）。",
-            700,
-        )
-        if degraded:
-            co_text = ("关键事实（脚本兜底）：①行业处于快速渗透期；②头部机构已规模化试点；"
-                       "③监管框架逐步完善；④数据孤岛与模型可解释性是主要瓶颈；"
-                       "⑤风控误报率显著下降；⑥中小机构采纳率偏低。")
-            _mark_degraded()
-        _set_node("collect", "done", 100, co_text[:800])
-        _add_tokens(len(co_text))
-
-        # 3) 数据分析
-        _set_phase("数据分析")
-        _set_node("analyze", "active", 10)
-        an_text, degraded = _llm(
-            "你是数据分析师，负责把采集到的信息转化为洞察。",
-            f"采集内容：\n{co_text}\n请输出：3条核心趋势 + 2条主要风险。",
-            700,
-        )
-        if degraded:
-            an_text = ("趋势：①AI风控从规则引擎迈向机器学习/大模型；②实时风控成为标配；③监管科技(RegTech)融合加速。\n"
-                       "风险：①模型幻觉与可解释性不足；②数据隐私与合规压力。")
-            _mark_degraded()
-        _set_node("analyze", "done", 100, an_text[:800])
-        _add_tokens(len(an_text))
-
-        # 4) 内容撰写（含回退重写）
-        def do_write(feedback=""):
-            _set_phase("内容撰写")
-            _set_node("write", "active", 10)
-            w_text, degraded = _llm(
-                "你是研报主笔，负责把研究计划、采集信息与分析洞察整合成连贯的研报正文。",
-                f"研究计划：\n{c_text}\n采集：\n{co_text}\n分析：\n{an_text}\n"
-                f"{feedback}\n请输出研报正文（含：摘要、现状、趋势、风险、结论），中文，条理清晰。",
-                1000,
-            )
-            if degraded:
-                w_text = (f"（脚本兜底正文）关于「{topic}」：当前行业进入规模化落地阶段，"
-                          f"头部机构已部署大模型辅助风控，误报率下降、效率提升；"
-                          f"但中小机构受数据与技术门槛限制采纳较慢。趋势上，实时风控与RegTech融合加速；"
-                          f"风险集中在模型可解释性与数据合规。")
-                _mark_degraded()
-            _set_node("write", "done", 100, w_text[:1200])
-            _add_tokens(len(w_text))
-            return w_text
-
-        write_text = do_write()
-
-        # 5) 质量审核（含回退环）
-        quality = 0
-        for attempt in range(1, MAX_LOOP + 1):
-            _set_phase("质量审核")
-            _set_node("review", "checking", 50)
-            r_text, degraded = _llm(
-                "你是严苛的研报质量审核。评判正文的事实准确性、结构完整性与可读性。",
-                f"研报正文：\n{write_text}\n请严格按格式回复：\nSCORE: <0-100>\nVERDICT: PASS 或 FAIL\nREASON: <一句话理由>",
-                400,
-            )
-            score, verdict = _parse_review(r_text)
-            if degraded or score == 0:
-                # 无法判定 → 视为通过，避免卡死
-                verdict = "PASS"
-                score = score or 88
-                _mark_degraded()
-            _set_node("review", "done" if verdict == "PASS" else "fail", 100,
-                      f"评分 {score} · {verdict}\n{(r_text or '')[:300]}")
-            if verdict == "PASS":
-                quality = score
-                break
-            # 不通过 → 回退撰写重写
-            with _lock:
-                _state["loop_count"] += 1
-            write_text = do_write(feedback=f"[审核意见，请据此修改] {r_text}\n")
-        if quality == 0:
-            quality = 88
-        with _lock:
-            _state["stats"]["quality"] = quality
-
-        # 6) 最终交付
+        c_text, co_text, an_text = _run_research(topic)
+        write_text, quality = _run_write_review(topic, c_text, co_text, an_text)
         _set_phase("交付中")
         _set_node("deliver", "active", 20)
         report = _assemble(topic, c_text, co_text, an_text, write_text, quality)

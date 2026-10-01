@@ -5,6 +5,7 @@
 - 方法：全仓库 grep 引用统计（含 tools/ scripts/ gui/ server/ tests/）、文件存在性实测、磁盘产物核对（金水谣数据/log/*）、.git/hooks 实测
 - 统计：问题 17 项（P0=1，P1=5，P2=10，观察=1）
 - 红线说明：本次为研究型审计，未改任何代码。
+- ⚠️ **路径注**：本文档审计于 2026-08-12，其时 `core/` 尚未拆包。文中 `core/xxx.py` 路径对应拆包后的 `core/ai/xxx.py`、`core/dispatch/xxx.py` 或 `core/infra/xxx.py`（见 W64 / JS-20260924-07）。
 
 ---
 

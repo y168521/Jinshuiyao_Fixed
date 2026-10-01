@@ -71,8 +71,8 @@ def _days_since(date_str):
                 return (datetime.now() - dt).days
             except ValueError:
                 continue
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("日期解析异常: %s", e)
     return 999
 
 
@@ -266,4 +266,7 @@ if __name__ == "__main__":
 
     if sys.platform == "win32" and sys.stdin.isatty():
         # 仅交互终端暂停，避免服务器/调度/无头上下文被 pause 卡死（JS-20260723-37）
-        os.system("pause >nul 2>&1")
+        try:
+            input("\n按回车键继续...")
+        except EOFError:
+            pass

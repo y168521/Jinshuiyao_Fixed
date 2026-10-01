@@ -66,8 +66,9 @@ def _shadow_run(task_type, user_prompt, prod_text, prod_used, cand):
         score = _judge(user_prompt, prod_text, cand_text)
         _record(task_type, cand, prod_used, candidate_text=cand_text,
                 score=score)
-    except Exception:
-        pass
+    except Exception as _se:
+        import logging
+        logging.getLogger(__name__).debug("[model_shadow] 候选评估失败: %s", _se)
 
 
 def _judge(user_prompt, prod_text, cand_text):
@@ -125,8 +126,9 @@ def _record(task_type, candidate, prod_used, candidate_text=None, score=None, er
         with _lock:
             with open(_EVAL_PATH, "a", encoding="utf-8") as f:
                 f.write(json.dumps(rec, ensure_ascii=False) + "\n")
-    except Exception:
-        pass
+    except Exception as _re:
+        import logging
+        logging.getLogger(__name__).debug("[model_shadow] 影子评测记录写入失败: %s", _re)
 
 
 def shadow_summary(min_samples=30):

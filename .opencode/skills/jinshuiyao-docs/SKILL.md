@@ -77,7 +77,7 @@ description: 金水谣文档登记与交接规范。Use when completing any task
   - 原文: 金水谣数据/log/经验收集箱.md#2026-08-02 第十六条（L1 原始层）
   - 关联: JS-20260802-13 / 交接中心 W63补17
 - **2026-08-02 第十三条：跨进程"联动"靠心跳文件——GUI与web状态互通** — ①跨进程状态互通最轻量的方案是"文件心跳+pid 存活校验"，比端口探测/进程枚举可靠（Windows 下无 psutil 也能做）；②联动要有"回显"闭环：web 发起动作，web 能看到结果，否则用户感觉不到联动；③日志联动要防两坑：目
-  - ①`core/gui_registry.py` 心跳注册：GUI 启动时写 金水谣数据/log/gui_status.json（pid/标题/启动时间），退出 atexit 自动清理；检测方读文件 + pid 存活校验（OpenProcess+GetExitCodeProcess=259），异常退出不残留脏状态；②5 个 GUI 入口统一接入 register()（try-except 包裹，失败
+  - ①`core/infra/gui_registry.py` 心跳注册：GUI 启动时写 金水谣数据/log/gui_status.json（pid/标题/启动时间），退出 atexit 自动清理；检测方读文件 + pid 存活校验（OpenProcess+GetExitCodeProcess=259），异常退出不残留脏状态；②5 个 GUI 入口统一接入 register()（try-except 包裹，失败
   - 原文: 金水谣数据/log/经验收集箱.md#2026-08-02 第十三条（L1 原始层）
   - 关联: JS-20260802-09 / 交接中心 W63补13
 - **2026-08-02 第十二条：相对路径的"幽灵垃圾目录"——cwd 不是项目根时数据写错位** — ①数据/日志路径必须锚定代码位置或显式配置，绝不依赖 cwd（GUI 经中转启动 cwd 不可控）；②用户报告"弹窗"往往是表层，深挖启动链（谁启动、cwd 是什么、异常在哪丢的）；③初始化失败弹窗必须带原因，否则用户/开发者无从下手；④未

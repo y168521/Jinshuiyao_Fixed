@@ -10,6 +10,33 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _build_card_content(refined_card: dict) -> str:
+    """从提炼卡片构建知识库正文"""
+    summary = refined_card.get("summary", "")
+    key_points = refined_card.get("key_points", [])
+    data_points = refined_card.get("data_points", [])
+    writing_techniques = refined_card.get("writing_techniques", [])
+    full_text = refined_card.get("full_text", "")
+
+    parts = []
+    if summary:
+        parts.append(f"【摘要】{summary}")
+    if key_points:
+        parts.append("【核心要点】")
+        parts.extend(f"  {i}. {p}" for i, p in enumerate(key_points[:10], 1))
+    if data_points:
+        parts.append("【数据事实】")
+        parts.extend(f"  - {p}" for p in data_points[:5])
+    if writing_techniques:
+        parts.append("【文案技巧】")
+        parts.extend(f"  - {t}" for t in writing_techniques[:5])
+    if full_text and len(full_text) > 500:
+        parts.append(f"\n【全文】{full_text[:2000]}")
+        if len(full_text) > 2000:
+            parts.append("...(内容已截断)")
+    return "\n".join(parts)
+
+
 def archive_refined_to_knowledge(agent, refined_card: dict) -> str:
     """将提炼结果归档到知识库
 
@@ -26,51 +53,19 @@ def archive_refined_to_knowledge(agent, refined_card: dict) -> str:
             return None
 
         title = refined_card.get("title", "无标题")
-        summary = refined_card.get("summary", "")
-        key_points = refined_card.get("key_points", [])
-        data_points = refined_card.get("data_points", [])
-        writing_techniques = refined_card.get("writing_techniques", [])
         tags = refined_card.get("tags", [])
         source_url = refined_card.get("source_url", "")
         source_platform = refined_card.get("source_platform", "")
         full_text = refined_card.get("full_text", "")
 
-        content_parts = []
-        if summary:
-            content_parts.append(f"【摘要】{summary}")
-        if key_points:
-            content_parts.append("【核心要点】")
-            for i, point in enumerate(key_points[:10], 1):
-                content_parts.append(f"  {i}. {point}")
-        if data_points:
-            content_parts.append("【数据事实】")
-            for point in data_points[:5]:
-                content_parts.append(f"  - {point}")
-        if writing_techniques:
-            content_parts.append("【文案技巧】")
-            for tech in writing_techniques[:5]:
-                content_parts.append(f"  - {tech}")
-        if full_text and len(full_text) > 500:
-            content_parts.append(f"\n【全文】{full_text[:2000]}")
-            if len(full_text) > 2000:
-                content_parts.append("...(内容已截断)")
-
-        content = "\n".join(content_parts)
-
+        content = _build_card_content(refined_card)
         domain = infer_domain_from_content(full_text + " " + " ".join(tags))
-        category = "resource"
-        priority = 5
-
         source_desc = f"{source_platform} - {source_url}" if source_platform else source_url
 
         card_id = db.add_card(
             title=title[:80] if title else "视频知识卡片",
-            content=content,
-            category=category,
-            domain=domain,
-            tags=tags[:10],
-            source=source_desc,
-            priority=priority,
+            content=content, category="resource", domain=domain,
+            tags=tags[:10], source=source_desc, priority=5,
         )
 
         logger.info("[knowledge_archiver] 知识卡片已归档: %s", card_id)

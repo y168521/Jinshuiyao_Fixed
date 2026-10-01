@@ -127,6 +127,58 @@ def format_football_odds(fetch_result: dict) -> str:
     return "赔率分析功能需要加载赛事数据后查看。请先问'今天有什么比赛'。"
 
 
+def _fmt_music_melody(pred):
+    return (
+        f"【AI音乐生成】\n\n"
+        f"曲目: {pred.get('name', '')}\n"
+        f"风格: {pred.get('style', '')}\n"
+        f"BPM: {pred.get('bpm', 0)}\n"
+        f"时长: {_as_float(pred.get('duration_sec', 0)):.0f}秒\n"
+        f"音符数: {pred.get('note_count', 0)}\n"
+        f"格式: WAV 无损\n"
+        f"文件: {pred.get('output', '')}\n\n"
+        f"已保存到音乐目录，可用任意播放器播放。"
+    )
+
+
+def _fmt_music_convert(pred):
+    return (
+        f"【格式转换完成】\n\n"
+        f"输出: {os.path.basename(pred.get('output', ''))}\n"
+        f"格式: {pred.get('format', '')}\n"
+        f"大小: {_as_float(pred.get('size_mb', 0)):.2f}MB\n"
+        f"耗时: {_as_float(pred.get('time_sec', 0)):.1f}秒"
+    )
+
+
+def _fmt_music_normalize(pred):
+    return (
+        f"【音量标准化完成】\n\n"
+        f"输出: {os.path.basename(pred.get('output', ''))}\n"
+        f"模式: {pred.get('mode', '')}\n"
+        f"目标响度: {pred.get('target_lufs', -14)} LUFS\n"
+        f"原始响度: {pred.get('original_lufs', '?')} LUFS"
+    )
+
+
+def _fmt_music_optimize(pred):
+    issues = pred.get("issues_fixed", [])
+    issues_text = "\n".join(f"  - {i}" for i in issues) if issues else "  - 音量标准化"
+    return (
+        f"【智能优化完成】\n\n"
+        f"输出: {os.path.basename(pred.get('output', ''))}\n"
+        f"修复项目:\n{issues_text}"
+    )
+
+
+_MUSIC_FORMATTERS = {
+    "melody": _fmt_music_melody,
+    "convert": _fmt_music_convert,
+    "normalize": _fmt_music_normalize,
+    "optimize": _fmt_music_optimize,
+}
+
+
 def format_music_result(result: dict) -> str:
     """格式化音乐生成结果"""
     predictions = result.get("predictions", [])
@@ -134,52 +186,10 @@ def format_music_result(result: dict) -> str:
         return result.get("summary", "未生成音乐")
 
     pred = predictions[0]
-    ptype = pred.get("type", "")
-
-    if ptype == "melody":
-        name = pred.get("name", "")
-        output = pred.get("output", "")
-        style = pred.get("style", "")
-        bpm = pred.get("bpm", 0)
-        duration = pred.get("duration_sec", 0)
-        note_count = pred.get("note_count", 0)
-        return (
-            f"【AI音乐生成】\n\n"
-            f"曲目: {name}\n"
-            f"风格: {style}\n"
-            f"BPM: {bpm}\n"
-            f"时长: {_as_float(duration):.0f}秒\n"
-            f"音符数: {note_count}\n"
-            f"格式: WAV 无损\n"
-            f"文件: {output}\n\n"
-            f"已保存到音乐目录，可用任意播放器播放。"
-        )
-    elif ptype == "convert":
-        return (
-            f"【格式转换完成】\n\n"
-            f"输出: {os.path.basename(pred.get('output', ''))}\n"
-            f"格式: {pred.get('format', '')}\n"
-            f"大小: {_as_float(pred.get('size_mb', 0)):.2f}MB\n"
-            f"耗时: {_as_float(pred.get('time_sec', 0)):.1f}秒"
-        )
-    elif ptype == "normalize":
-        return (
-            f"【音量标准化完成】\n\n"
-            f"输出: {os.path.basename(pred.get('output', ''))}\n"
-            f"模式: {pred.get('mode', '')}\n"
-            f"目标响度: {pred.get('target_lufs', -14)} LUFS\n"
-            f"原始响度: {pred.get('original_lufs', '?')} LUFS"
-        )
-    elif ptype == "optimize":
-        issues = pred.get("issues_fixed", [])
-        issues_text = "\n".join(f"  - {i}" for i in issues) if issues else "  - 音量标准化"
-        return (
-            f"【智能优化完成】\n\n"
-            f"输出: {os.path.basename(pred.get('output', ''))}\n"
-            f"修复项目:\n{issues_text}"
-        )
-    else:
-        return result.get("summary", "处理完成")
+    formatter = _MUSIC_FORMATTERS.get(pred.get("type", ""))
+    if formatter:
+        return formatter(pred)
+    return result.get("summary", "处理完成")
 
 
 def format_music_analysis(analysis: dict) -> str:
@@ -243,66 +253,50 @@ def format_refined_result(refined: dict) -> str:
     return "\n".join(lines)
 
 
-def format_fund_result(fetch_result: dict, analysis: dict, generate_result: dict, mode: str = "recommend") -> str:
-    """格式化基金结果（分析/推荐/行情）
+def _fmt_fund_quote(fetch_result):
+    if not fetch_result or not fetch_result.get("data"):
+        return "暂无基金行情数据"
+    lines = ["【基金行情】"]
+    for code, fd in list(fetch_result["data"].items())[:10]:
+        info = fd.get("info", {})
+        name = info.get("基金名称", f"基金{code}")
+        nav_df = fd.get("nav")
+        latest = None
+        if nav_df is not None:
+            try:
+                if hasattr(nav_df, "iloc") and len(nav_df) > 0:
+                    latest = float(nav_df.iloc[-1].get("单位净值", 0))
+            except (TypeError, ValueError, IndexError):
+                latest = None
+        latest_str = f"{latest:.4f}" if isinstance(latest, float) else "—"
+        lines.append(f"\n{code} {name}: 净值 {latest_str}")
+    mode_note = fetch_result.get("mode", "")
+    if mode_note:
+        lines.append(f"\n数据来源: {'真实' if mode_note == 'real' else '模拟(降级)'}")
+    return "\n".join(lines)
 
-    Args:
-        fetch_result: fetch() 返回 {"success", "data", "message", "mode"}
-        analysis: analyze() 返回 {"results": {code: analysis}}，可为 None
-        generate_result: generate() 返回 {"predictions", "summary"}，可为 None
-        mode: "quote" | "recommend"（默认）
 
-    Returns:
-        str: 格式化文本
-    """
-    if mode == "quote":
-        lines = ["【基金行情】"]
-        if not fetch_result:
-            return "暂无基金行情数据"
-        data = fetch_result.get("data", {})
-        if not data:
-            return "暂无基金行情数据"
-        for code, fd in list(data.items())[:10]:
-            info = fd.get("info", {})
-            name = info.get("基金名称", f"基金{code}")
-            nav_df = fd.get("nav")
-            latest = None
-            if nav_df is not None:
-                try:
-                    if hasattr(nav_df, "iloc") and len(nav_df) > 0:
-                        latest = float(nav_df.iloc[-1].get("单位净值", 0))
-                except (TypeError, ValueError, IndexError):
-                    latest = None
-            latest_str = f"{latest:.4f}" if isinstance(latest, float) else "—"
-            lines.append(f"\n{code} {name}: 净值 {latest_str}")
-        mode_note = fetch_result.get("mode", "")
-        if mode_note:
-            lines.append(f"\n数据来源: {'真实' if mode_note == 'real' else '模拟(降级)'}")
-        return "\n".join(lines)
-
-    lines = ["【基金分析】"]
+def _fmt_fund_recommend(fetch_result, analysis, generate_result):
     if not analysis or not analysis.get("results"):
         idle = ""
         if fetch_result:
             idle = f"（已获取{len(fetch_result.get('data', {}))}只基金数据，但分析未产出结果）"
-        return f"{lines[0]}\n暂无分析结果{idle}"
+        return f"【基金分析】\n暂无分析结果{idle}"
 
-    results = analysis.get("results", {})
-    for code, r in list(results.items())[:8]:
+    lines = ["【基金分析】"]
+    for code, r in list(analysis["results"].items())[:8]:
         info = r.get("info", {})
         name = info.get("基金名称", f"基金{code}")
         nav = r.get("nav_analysis", {})
         returns = nav.get("returns", {})
         risk = nav.get("risk", {})
         comp = r.get("composite_score", {})
-        score = comp.get("总分")
-        grade = comp.get("等级", "")
         annual = returns.get("年化收益率")
         max_dd = risk.get("最大回撤")
         annual_str = f"{_as_float(annual):.1f}%" if annual is not None else "—"
         dd_str = f"{_as_float(max_dd):.1f}%" if max_dd is not None else "—"
-        score_str = f"{_as_float(score):.0f}" if score is not None else "—"
-        lines.append(f"\n{code} {name} | 评级{grade} | 评分{score_str}")
+        score_str = f"{_as_float(comp.get('总分')):.0f}" if comp.get("总分") is not None else "—"
+        lines.append(f"\n{code} {name} | 评级{comp.get('等级', '')} | 评分{score_str}")
         lines.append(f"  年化{annual_str} | 回撤{dd_str}")
 
     if generate_result:
@@ -316,3 +310,20 @@ def format_fund_result(fetch_result: dict, analysis: dict, generate_result: dict
             lines.append(f"建议: 买入{buy} / 持有{hold} / 观望{watch}")
 
     return "\n".join(lines) if len(lines) > 1 else "暂无基金数据"
+
+
+def format_fund_result(fetch_result: dict, analysis: dict, generate_result: dict, mode: str = "recommend") -> str:
+    """格式化基金结果（分析/推荐/行情）
+
+    Args:
+        fetch_result: fetch() 返回 {"success", "data", "message", "mode"}
+        analysis: analyze() 返回 {"results": {code: analysis}}，可为 None
+        generate_result: generate() 返回 {"predictions", "summary"}，可为 None
+        mode: "quote" | "recommend"（默认）
+
+    Returns:
+        str: 格式化文本
+    """
+    if mode == "quote":
+        return _fmt_fund_quote(fetch_result)
+    return _fmt_fund_recommend(fetch_result, analysis, generate_result)

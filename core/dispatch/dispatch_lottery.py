@@ -31,89 +31,45 @@ def is_direct_lottery_request(agent, text: str) -> bool:
     return False
 
 
+def _try_predict(domain, lots=None):
+    """尝试 generate，失败则降级 predict_full，返回格式化结果或 None。"""
+    try:
+        result = domain.generate(lots=lots)
+    except Exception:
+        result = None
+    if result and result.get("status") == "ok":
+        return _fmt_lottery_detail(result)
+    try:
+        result = domain.predict_full(lots=lots)
+    except Exception:
+        result = None
+    if result and result.get("status") == "ok":
+        return _fmt_lottery(result)
+    return None
+
+
+_LOT_MAP = {"双色球": "双色球", "大乐透": "大乐透", "福彩3D": "福彩3D",
+            "排列三": "排列三", "七乐彩": "七乐彩", "七星彩": "七星彩", "快乐8": "快乐8"}
+
+
 def dispatch_lottery(agent, action: str, target: str, user_input: str = "") -> str:
     """调度彩票子系统"""
     domain = agent._get_domain("lottery")
     if not domain or not agent._initialized.get("lottery"):
         return "彩票子系统未就绪，请稍后再试。"
-
     try:
-        is_direct_predict = is_direct_lottery_request(agent, user_input)
-
-        if action == "predict" or is_direct_predict:
-            lot_map = {
-                "双色球": "双色球",
-                "大乐透": "大乐透",
-                "福彩3D": "福彩3D",
-                "排列三": "排列三",
-                "七乐彩": "七乐彩",
-                "七星彩": "七星彩",
-                "快乐8": "快乐8",
-            }
-            lot_name = lot_map.get(target, target)
+        if action == "predict" or is_direct_lottery_request(agent, user_input):
+            lot_name = _LOT_MAP.get(target, target)
             lots = [lot_name] if target != "全部彩种" and lot_name != "全部彩种" else None
-
-            try:
-                result = domain.generate(lots=lots)
-            except Exception:
-                result = None
-
-            if result and result.get("status") == "ok":
-                return _fmt_lottery_detail(result)
-
-            try:
-                result = domain.predict_full(lots=lots)
-            except Exception:
-                result = None
-
-            if result and result.get("status") == "ok":
-                return _fmt_lottery(result)
-
-            return "预测生成失败，请稍后再试。"
-
-        elif action == "predict_all":
-            try:
-                result = domain.generate()
-            except Exception:
-                result = None
-
-            if result and result.get("status") == "ok":
-                return _fmt_lottery_detail(result)
-
-            try:
-                result = domain.predict_full()
-            except Exception:
-                result = None
-
-            if result and result.get("status") == "ok":
-                return _fmt_lottery(result)
-
-            return "预测生成失败，请稍后再试。"
-
-        elif action == "history":
+            return _try_predict(domain, lots) or "预测生成失败，请稍后再试。"
+        if action == "predict_all":
+            return _try_predict(domain) or "预测生成失败，请稍后再试。"
+        if action == "history":
             result = domain.fetch()
             if result.get("success"):
-                summary = f"已获取最新开奖数据：{result.get('message', '')}"
-                return summary
+                return f"已获取最新开奖数据：{result.get('message', '')}"
             return "获取开奖数据失败"
-
-        else:
-            try:
-                result = domain.generate()
-            except Exception:
-                result = None
-
-            if result and result.get("status") == "ok":
-                return _fmt_lottery_detail(result)
-
-            try:
-                result = domain.predict_full()
-            except Exception:
-                result = None
-
-            if result and result.get("status") == "ok":
-                return _fmt_lottery(result)
-            return "操作执行失败"
+        return _try_predict(domain) or "操作执行失败"
     except Exception as e:
         logger.error("[agent] 彩票调度异常: %s", e)
         return f"彩票系统异常：{e}"

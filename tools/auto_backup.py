@@ -198,5 +198,9 @@ if __name__ == "__main__":
     else:
         print("备份失败或无需备份。")
 
-    if sys.platform == "win32":
-        os.system("pause >nul 2>&1")
+    if sys.platform == "win32" and sys.stdin.isatty():
+        # 仅交互终端暂停，避免服务器/调度/无头上下文被卡死
+        try:
+            input("\n按回车键继续...")
+        except EOFError:
+            pass

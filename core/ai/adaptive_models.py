@@ -15,9 +15,12 @@
 """
 import json
 import os
+import logging
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+logger = logging.getLogger(__name__)
 
 _SECRETS_DIR = os.path.join(os.path.expanduser("~"), ".jinshuiyao-secrets")
 
@@ -160,8 +163,8 @@ def remember_model(provider, model):
         os.makedirs(_SECRETS_DIR, exist_ok=True)
         with open(_meta_file(provider), "w", encoding="utf-8") as f:
             f.write(model)
-    except Exception:
-        pass
+    except Exception as _e:
+        logger.debug("remember_model failed: %s", _e)
 
 
 def current_model(provider, default=""):
@@ -173,8 +176,8 @@ def current_model(provider, default=""):
                 m = f.read().strip()
             if m:
                 return m
-    except Exception:
-        pass
+    except Exception as _e:
+        logger.debug("current_model read failed: %s", _e)
     return default
 
 

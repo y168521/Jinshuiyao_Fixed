@@ -20,7 +20,7 @@ import logging
 import time
 from collections import defaultdict
 from datetime import datetime
-from typing import Callable, Optional, List, Dict, Any
+from typing import Callable, Optional, List, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -59,12 +59,39 @@ class Signal:
         return f"Signal({self.signal_type}, from={self.source_domain}, data_keys={list(self.data.keys())})"
 
 
-class SignalBus:
-    """跨子系统信号总线
+def _deliver_signal(signal, subscribers) -> int:
+    """分发给精确匹配 + 通配符订阅者，返回分发数。"""
+    delivered = 0
+    for stype in (signal.signal_type, "*"):
+        for sub in subscribers.get(stype, []):
+            try:
+                sub["callback"](signal)
+                delivered += 1
+            except Exception as e:
+                logger.error("信号分发失败 %s → %s: %s", signal.id, sub["domain"], e)
+    return delivered
 
-    单例模式，所有子系统共享同一个总线。
-    支持发布/订阅/查询信号。
-    """
+
+def _filter_signals(history, signal_type, source_domain, since, limit) -> List[Signal]:
+    """从历史过滤信号，最新在前，最多 limit 条。"""
+    results = []
+    for sig in reversed(history):
+        if signal_type and sig.signal_type != signal_type:
+            continue
+        if source_domain and sig.source_domain != source_domain:
+            continue
+        if since and sig.timestamp < since:
+            continue
+        if sig.is_expired():
+            continue
+        results.append(sig)
+        if len(results) >= limit:
+            break
+    return results
+
+
+class SignalBus:
+    """跨子系统信号总线（单例，支持发布/订阅/查询）"""
 
     _instance = None
 
@@ -78,13 +105,6 @@ class SignalBus:
 
     def subscribe(self, signal_type: str, subscriber_domain: str,
                   callback: Callable[[Signal], None]):
-        """订阅信号
-
-        Args:
-            signal_type: 信号类型（支持通配符 "*" 订阅所有）
-            subscriber_domain: 订阅方子系统标识
-            callback: 回调函数
-        """
         self._subscribers[signal_type].append({
             "domain": subscriber_domain,
             "callback": callback,
@@ -93,73 +113,26 @@ class SignalBus:
         logger.info("信号订阅: %s[%s] → %s", subscriber_domain, signal_type, callback.__name__)
 
     def unsubscribe(self, signal_type: str, subscriber_domain: str):
-        """取消订阅"""
         self._subscribers[signal_type] = [
             s for s in self._subscribers[signal_type]
             if s["domain"] != subscriber_domain
         ]
 
     def publish(self, signal: Signal):
-        """发布信号
-
-        信号会分发给匹配的订阅者（包括通配符订阅者）。
-        过期信号不分发。
-        """
         if signal.is_expired():
             logger.debug("信号已过期，丢弃: %s", signal.id)
             return
-
-        # 保存到历史
         self._history.append(signal)
         if len(self._history) > self._max_history:
             self._history = self._history[-self._max_history:]
-
-        # 分发给精确匹配的订阅者
-        delivered = 0
-        for sub in self._subscribers.get(signal.signal_type, []):
-            try:
-                sub["callback"](signal)
-                delivered += 1
-            except Exception as e:
-                logger.error("信号分发失败 %s → %s: %s", signal.id, sub["domain"], e)
-
-        # 分发给通配符订阅者
-        for sub in self._subscribers.get("*", []):
-            try:
-                sub["callback"](signal)
-                delivered += 1
-            except Exception as e:
-                logger.error("通配信号分发失败 %s → %s: %s", signal.id, sub["domain"], e)
-
+        delivered = _deliver_signal(signal, self._subscribers)
         logger.debug("信号已发布: %s, 分发 %d 个订阅者", signal.id, delivered)
 
     def query(self, signal_type: Optional[str] = None, source_domain: Optional[str] = None,
               since: Optional[str] = None, limit: int = 20) -> List[Signal]:
-        """查询信号历史
-
-        Args:
-            signal_type: 信号类型过滤（None=全部）
-            source_domain: 来源子系统过滤（None=全部）
-            since: 起始时间
-            limit: 最大返回数
-        """
-        results = []
-        for sig in reversed(self._history):  # 最新的在前
-            if signal_type and sig.signal_type != signal_type:
-                continue
-            if source_domain and sig.source_domain != source_domain:
-                continue
-            if since and sig.timestamp < since:
-                continue
-            if sig.is_expired():
-                continue
-            results.append(sig)
-            if len(results) >= limit:
-                break
-        return results
+        return _filter_signals(self._history, signal_type, source_domain, since, limit)
 
     def stats(self) -> dict:
-        """总线统计"""
         return {
             "total_subscribers": sum(len(v) for v in self._subscribers.values()),
             "signal_types": list(self._subscribers.keys()),
@@ -172,49 +145,72 @@ class SignalBus:
 
     @classmethod
     def reset(cls):
-        """重置单例（仅测试用）"""
         cls._instance = None
 
 
+_DEFAULT_CROSS_DOMAIN_RULES = [
+    {
+        "id": "stock_trend_lottery_budget",
+        "name": "A股趋势→彩票预算",
+        "description": "当A股大盘连续下跌时，降低彩票投入预算；上涨时可适当增加",
+        "trigger_signal": "stock.trend_change",
+        "action_domain": "lottery",
+        "condition": lambda data: data.get("direction") == "down" and data.get("strength", 0) > 60,
+        "action": "adjust_budget",
+        "action_params": {"factor": 0.7},
+    },
+    {
+        "id": "lottery_hot_stock_sector",
+        "name": "彩票热号→板块异动",
+        "description": "彩票高频号码对应数字相关板块（如3/7/8对应幸运数字概念）",
+        "trigger_signal": "lottery.hot_number_shift",
+        "action_domain": "stock",
+        "condition": lambda data: data.get("shift_magnitude", 0) > 2,
+        "action": "watch_sectors",
+        "action_params": {"sectors": ["幸运数字", "数字娱乐"]},
+    },
+    {
+        "id": "football_result_lottery_emotion",
+        "name": "足彩结果→彩票情绪",
+        "description": "足彩大奖/冷门结果可能影响彩票投注热度",
+        "trigger_signal": "football.match_result",
+        "action_domain": "lottery",
+        "condition": lambda data: data.get("upset", False),
+        "action": "emotion_alert",
+        "action_params": {"alert": "足彩冷门，彩票投注热度可能上升"},
+    },
+]
+
+
+def _match_cross_domain_rules(signal, rules, action_log) -> List[dict]:
+    """遍历规则，匹配触发的跨域动作并写入 action_log。"""
+    actions = []
+    for rule in rules:
+        if signal.signal_type != rule["trigger_signal"]:
+            continue
+        if signal.source_domain == rule["action_domain"]:
+            continue
+        try:
+            if rule["condition"](signal.data):
+                action = {
+                    "rule_id": rule["id"], "rule_name": rule["name"],
+                    "action": rule["action"], "params": rule["action_params"],
+                    "target_domain": rule["action_domain"], "trigger_signal": signal.id,
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                }
+                actions.append(action)
+                action_log.append(action)
+                logger.info("跨域动作触发: %s → %s (%s)",
+                            rule["name"], rule["action_domain"], rule["action"])
+        except Exception as e:
+            logger.error("跨域规则执行失败 %s: %s", rule["id"], e)
+    return actions
+
+
 class CrossDomainAnalyzer:
-    """跨域分析器
+    """跨域分析器：检测不同子系统间的关联模式"""
 
-    检测不同子系统间的关联模式。
-    """
-
-    # 预定义的跨域关联规则
-    CROSS_DOMAIN_RULES = [
-        {
-            "id": "stock_trend_lottery_budget",
-            "name": "A股趋势→彩票预算",
-            "description": "当A股大盘连续下跌时，降低彩票投入预算；上涨时可适当增加",
-            "trigger_signal": "stock.trend_change",
-            "action_domain": "lottery",
-            "condition": lambda data: data.get("direction") == "down" and data.get("strength", 0) > 60,
-            "action": "adjust_budget",
-            "action_params": {"factor": 0.7},  # 降预算到70%
-        },
-        {
-            "id": "lottery_hot_stock_sector",
-            "name": "彩票热号→板块异动",
-            "description": "彩票高频号码对应数字相关板块（如3/7/8对应幸运数字概念）",
-            "trigger_signal": "lottery.hot_number_shift",
-            "action_domain": "stock",
-            "condition": lambda data: data.get("shift_magnitude", 0) > 2,
-            "action": "watch_sectors",
-            "action_params": {"sectors": ["幸运数字", "数字娱乐"]},
-        },
-        {
-            "id": "football_result_lottery_emotion",
-            "name": "足彩结果→彩票情绪",
-            "description": "足彩大奖/冷门结果可能影响彩票投注热度",
-            "trigger_signal": "football.match_result",
-            "action_domain": "lottery",
-            "condition": lambda data: data.get("upset", False),
-            "action": "emotion_alert",
-            "action_params": {"alert": "足彩冷门，彩票投注热度可能上升"},
-        },
-    ]
+    CROSS_DOMAIN_RULES = _DEFAULT_CROSS_DOMAIN_RULES
 
     def __init__(self, signal_bus: Optional[SignalBus] = None):
         self.bus = signal_bus or SignalBus()
@@ -222,41 +218,8 @@ class CrossDomainAnalyzer:
         self._action_log = []
 
     def analyze_signal(self, signal: Signal) -> List[dict]:
-        """分析信号，返回触发的跨域动作
-
-        Args:
-            signal: 收到的信号
-
-        Returns:
-            list: 触发的动作列表 [{"rule_id", "action", "params", "target_domain"}, ...]
-        """
-        actions = []
-
-        for rule in self._active_rules:
-            if signal.signal_type != rule["trigger_signal"]:
-                continue
-            if signal.source_domain == rule["action_domain"]:
-                continue  # 不处理自己发自己的信号
-
-            try:
-                if rule["condition"](signal.data):
-                    action = {
-                        "rule_id": rule["id"],
-                        "rule_name": rule["name"],
-                        "action": rule["action"],
-                        "params": rule["action_params"],
-                        "target_domain": rule["action_domain"],
-                        "trigger_signal": signal.id,
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    }
-                    actions.append(action)
-                    self._action_log.append(action)
-                    logger.info("跨域动作触发: %s → %s (%s)",
-                                rule["name"], rule["action_domain"], rule["action"])
-            except Exception as e:
-                logger.error("跨域规则执行失败 %s: %s", rule["id"], e)
-
-        return actions
+        """分析信号，返回触发的跨域动作列表"""
+        return _match_cross_domain_rules(signal, self._active_rules, self._action_log)
 
     def register_rule(self, rule: dict):
         """注册自定义跨域规则

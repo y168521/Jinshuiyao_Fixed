@@ -9,8 +9,11 @@
 
 import json
 import os
+import logging
 import threading
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 # 日志文件路径
 _LOG_DIR = os.path.join(
@@ -78,9 +81,9 @@ def log_conversation(
         with _write_lock:
             with open(_LOG_FILE, "a", encoding="utf-8") as f:
                 f.write(json.dumps(record, ensure_ascii=False) + "\n")
-    except Exception:
+    except Exception as _e:
         # 日志写入失败不影响主流程
-        pass
+        logger.debug("conversation log write failed: %s", _e)
 
 
 def read_recent(limit: int = 20) -> list:

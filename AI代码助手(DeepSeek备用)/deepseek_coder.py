@@ -218,7 +218,7 @@ def chat(messages, api_key, model="deepseek-v4-flash",
             _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             if _root not in _sys.path:
                 _sys.path.insert(0, _root)
-            from core.free_model_pool import get_free_provider_cfgs, call_ai_failover
+            from core.ai.free_model_pool import get_free_provider_cfgs, call_ai_failover
             _cfgs = get_free_provider_cfgs()
             if _cfgs:
                 _user = messages[-1]["content"] if messages else ""

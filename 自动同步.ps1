@@ -1,4 +1,4 @@
-﻿# Jinshuiyao auto-sync (called by Windows Task Scheduler via 同步代码.bat, every 1 hour)
+# Jinshuiyao auto-sync (called by Windows Task Scheduler via 同步代码.bat, every 1 hour)
 # 完整链路: pull -> 白名单提交源码/文档 -> push -> 双副本活文档回拷 -> vault刷新 -> 蒸馏 -> 数据守卫 -> 知识索引保鲜
 # 2026-08-12 修复: 计划任务实际只跑同步代码.bat(裸 pull+add -A)，本文件被绕过约10天；bat 已改为委托本 ps1。
 # Commits only source/docs, ignores runtime data. Exits silently when no changes.
@@ -39,6 +39,20 @@ if (-not $git) {
 $env:PATH = (Split-Path -Parent $git) + ";" + $env:PATH
 function git { & $script:git @args }
 
+# 0.5) 定位 python（2026-09-24 JS-20260924-09：提前到 step1 前，供留痕预检使用）
+function Resolve-Py {
+    $cands = @(
+        "$env:LOCALAPPDATA\Jinshuiyao\venv\Scripts\python.exe",
+        "E:\Project_Env\jinshuiyao_env\Scripts\python.exe",
+        "D:\Project_Env\jinshuiyao_env\Scripts\python.exe",
+        "C:\Project_Env\jinshuiyao_env\Scripts\python.exe",
+        "E:\Python314\python.exe",
+        "C:\Python314\python.exe"
+    )
+    foreach ($c in $cands) { if (Test-Path -LiteralPath $c) { return $c } }
+    return $null
+}
+
 # 1.5) 补推「已手动 commit 但没 push」的提交（2026-09-20 修复 JS-20260920-06）
 #    原逻辑只在"有未暂存改动"时才 commit+push；AI 在会话里手动 commit 后工作区干净，
 #    分支走到 "nothing staged, skip commit" → 本地提交永远推不上去（曾滞留 4 个提交）。
@@ -59,14 +73,29 @@ function Push-Pending {
 
 # 1) Pull remote first (laptop may have pushed).
 #    Stash unstaged changes if any (pull --rebase refuses otherwise), restore after.
+#    JS-20260924-22 修复：检查 stash pop 返回码，冲突时 drop stash 并中止，避免把冲突标记提交入库。
 git stash push -u -m "auto-sync-tmp" 2>&1 | Out-Null
+$hasStash = $LASTEXITCODE -eq 0
 git -c core.quotepath=false pull --rebase origin master 2>&1 | Out-Null
 $pullOk = $LASTEXITCODE -eq 0
-git stash pop 2>&1 | Out-Null
 if (-not $pullOk) {
+    # pull 失败，先恢复本地改动再退出
+    if ($hasStash) { git stash pop 2>&1 | Out-Null }
     Log "pull failed (conflict or offline), skip"
     Notify "拉取 GitHub 最新代码失败（断网或冲突），本次跳过同步。请检查网络，或找 AI 帮忙看。"
     exit 1
+}
+# pull 成功，恢复 stash
+if ($hasStash) {
+    git stash pop 2>&1 | Out-Null
+    $popOk = $LASTEXITCODE -eq 0
+    if (-not $popOk) {
+        # stash pop 冲突：清理 stash 栈，通知用户人工处理
+        git stash drop 2>&1 | Out-Null
+        Log "stash pop conflict, dropped stash, skip sync"
+        Notify "自动同步时本地改动与远程代码冲突，已暂存到 stash 并跳过本次同步。请手动处理冲突后重试。"
+        exit 1
+    }
 }
 
 # 2) Collect changed source/doc paths (exclude runtime data)
@@ -100,6 +129,21 @@ if ($candidates.Count -gt 0) {
     #    防止坏代码/未验证改动绕过 pre-commit 直接入库, W63补32 修复)
     $staged = git diff --cached --name-only 2>$null | Where-Object { $_ }
     if ($staged.Count -gt 0) {
+        # 4.0) 留痕预检（JS-20260924-09）：有源码改动但缺当日留痕时，跳过本次提交，
+        #      等 AI 补留痕后下一个周期再提交。不 exit 1，避免自动同步被卡死。
+        $_py = Resolve-Py
+        if ($_py) {
+            $trailRc = & $_py "$Repo/tools/check_trail_compliance.py" 2>&1 | Out-String
+        } else {
+            $trailRc = "WARN: 找不到 python，跳过留痕预检"
+            $LASTEXITCODE = 0
+        }
+        if ($LASTEXITCODE -ne 0) {
+            git reset --mixed 2>&1 | Out-Null
+            Log "skip commit: 缺留痕（交接中心/总索引/经验箱未登记当日改动），等下周期"
+            Log $trailRc
+            exit 0
+        }
         $commitOut = git commit -m "auto-sync: automatic sync $(Get-Date -Format 'yyyy-MM-dd HH:mm')" 2>&1 | Out-String
         $commitOk = $LASTEXITCODE -eq 0
         if (-not $commitOk) {
@@ -149,20 +193,7 @@ if ($candidates.Count -gt 0) {
 & powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\Administrator\Nutstore\1\我的坚果云\模型\obsidian-vault\刷新vault.ps1" 2>&1 | Out-Null
 
 # 6) 自动蒸馏: 经验收集箱新条目 -> SKILL.md(幂等), 有改动下轮自动同步提交
-#    2026-09-19 修复(JS-20260919-07): 原回退路径 %LOCALAPPDATA%\Jinshuiyao\venv 与 D:\Project_Env 均已不存在
-#    (系统重装 + 盘符变化)，导致步骤 6/7/8 静默跳过。改为「候选路径逐个探测」，并加写日志便于察觉。
-function Resolve-Py {
-    $cands = @(
-        "$env:LOCALAPPDATA\Jinshuiyao\venv\Scripts\python.exe",
-        "E:\Project_Env\jinshuiyao_env\Scripts\python.exe",
-        "D:\Project_Env\jinshuiyao_env\Scripts\python.exe",
-        "C:\Project_Env\jinshuiyao_env\Scripts\python.exe",
-        "E:\Python314\python.exe",
-        "C:\Python314\python.exe"
-    )
-    foreach ($c in $cands) { if (Test-Path -LiteralPath $c) { return $c } }
-    return $null
-}
+#    Resolve-Py 已在 step0.5 提前定义（供留痕预检复用）
 $py = Resolve-Py
 if ($py) {
     Log "step6/7/8 python = $py"

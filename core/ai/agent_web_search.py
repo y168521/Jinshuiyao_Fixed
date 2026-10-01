@@ -29,8 +29,8 @@ def _read_secret(name: str) -> str:
         if os.path.exists(p):
             with open(p, "r", encoding="utf-8") as f:
                 return f.read().strip()
-    except Exception:
-        pass
+    except Exception as _e:
+        logger.debug("read secret failed: %s", _e)
     return os.environ.get(name.replace(".txt", "").upper(), "") or ""
 
 

@@ -31,6 +31,13 @@
 5. 收工前再过一遍交接中心，确保**今天做的每件事都有 JS 编号**。
 
 > 判定标准：一个任务从"完成"到"登记"之间，最多只允许隔一个 git 提交的操作。
+>
+> 🔴 **自动化拦截（JS-20260924-16 已落地）**：pre-commit hook 第6步会强制检查——若本次提交包含源码/文档改动，但交接中心/总索引/经验箱三者中任意一个没有当日登记，**直接阻断提交**。自动同步脚本同样会在 commit 前预检，缺留痕则跳过本次提交（等下周期）。所以**不写留痕 = 代码提交不进去**。紧急跳过：`SKIP_TRAIL_CHECK=1 git commit`（仅限自动同步自身配置变更等极少数场景）。
+>
+> 🛠️ **多 AI 协作工具链（JS-20260924-13 已落地）**：
+> - **编号分配**：`py -3 tools/next_js_number.py` 输出今天下一个可用 JS 编号（如 `JS-20260924-13`），取号后立即使用，避免撞号。`--dry-run` 查看已用编号。
+> - **安全追加**：写留痕前用 `py -3 tools/safe_append.py --file <文件> --content <内容>`，脚本会先 `git pull --rebase` 拉取最新再追加，减少多 AI 并发覆盖。**留痕三件套只追加不修改已有行**。
+> - **日期容错**：留痕检查支持 `2026-09-24` / `2026/9/24` / `9月24日` / `JS-20260924-NN` 等多种日期格式，不会因格式不同误判。
 
 ---
 
@@ -113,34 +120,37 @@
 ## 知识网关（2026-08-02 加入）
 
 > 任何 AI（opencode / Claude Code / Cursor / 网页助手）接入项目知识库的统一入口：
-> **先读 `知识网关索引.md`**（全资产清单+检索入口），再用 `core/knowledge_gateway.py::search` 或 MCP 检索。
+> **先读 `知识网关索引.md`**（全资产清单+检索入口），再用 `core/infra/knowledge_gateway.py::search` 或 MCP 检索。
 
 | 入口 | 说明 |
 |------|------|
 | 知识网关索引 | `知识网关索引.md`（仓库根，`tools/gen_knowledge_index.py` 自动生成） |
-| 四源召回（代码） | `core/knowledge_gateway.py` — search()/summarize()，BM25+图谱+向量+经验+项目文档 |
+| 四源召回（代码） | `core/infra/knowledge_gateway.py` — search()/summarize()，BM25+图谱+向量+经验+项目文档 |
 | 四源召回（HTTP） | `GET /api/knowledge/gateway?q=xxx&limit=8`（服务器 18888） |
 | MCP 服务 | `tools/knowledge_mcp.py`（stdio JSON-RPC，Claude Code/Cursor 接入，见 `knowledge-mcp.md`） |
 | 经验箱直读 | `金水谣数据/log/经验收集箱.md`（L1 原始层，`## 日期` 标题） |
 
-**使用规则**：遇到报错/异常先查经验箱（90% 的坑有记录）；问题相关时 AI 助手会自动注入网关上下文（`core/ai_agent.py` 纯聊天路径），无需手动。
+**使用规则**：遇到报错/异常先查经验箱（90% 的坑有记录）；问题相关时 AI 助手会自动注入网关上下文（`core/ai/ai_agent.py` 纯聊天路径），无需手动。
 
 ## 核心模块重点登记（core/ 新增文件强制登记，非全量地图）
 
+> **core/ 结构（2026-09-24 拆包，W64）**：原 59 个平铺模块已按职责拆为三子包——`core/ai/`（AI 智能体与模型路由，22 模块）、`core/dispatch/`（业务域分发器，9 模块）、`core/infra/`（安全/调度/知识网关/GUI 等基础设施，28 模块）。`core/__init__.py` 保留 re-export 兼容旧引用。
+
 | 模块 | 职责 |
 |------|------|
-| `core/agent_orchestrator.py` | Agent 编排调度（ai_agent.reason() 惰性接线；公开 API 保留，无外部调用 W63补71） |
-| `core/agent_tools.py` | ~~Agent 工具集~~ 已删除（2026-08-10 架构体检：全库 0 引用孤儿） |
-| `core/agent_vector_memory.py` | Agent 向量记忆（ai_agent._get_vector_memory() 惰性接线） |
-| `core/gui_registry.py` | GUI 组件注册表（核心 GUI 模块） |
-| `core/tk_style.py` | ModernTheme 七色视觉主题（tkinter 统一样式） |
+| `core/ai/agent_orchestrator.py` | Agent 编排调度（ai_agent.reason() 惰性接线；公开 API 保留，无外部调用 W63补71） |
+| `core/ai/agent_vector_memory.py` | Agent 向量记忆（ai_agent._get_vector_memory() 惰性接线） |
+| `core/ai/adaptive_models.py` | 平台模型智能自动匹配（额度耗尽探测切换，含 list/probe/find_working_model，持久化到 secrets） |
+| `core/ai/ai_agent.py` | AI 助手主入口（JinshuiyaoAgent，纯聊天路径自动注入网关上下文） |
+| `core/infra/gui_registry.py` | GUI 组件注册表（核心 GUI 模块） |
+| `core/infra/tk_style.py` | ModernTheme 七色视觉主题（tkinter 统一样式） |
+| `core/infra/security.py` | 安全校验单一真源：is_safe_http_url 供 router/video_extractor SSRF 校验委托（JS-20260807-01） |
+| `core/infra/knowledge_gateway.py` | 四源召回知识网关：search()/summarize()，BM25+图谱+向量+经验+项目文档 |
+| `core/infra/pipeline_state.py` | Agent 内部分析流水线实时状态模块（HTTP 状态查询 + daemon 线程节点动态，失败降级 degraded） |
+| `core/infra/scheduler_tasks.py` | 通用定时任务容器 TaskScheduler（自 core/scheduler.py 拆分，JS-20260810-10） |
+| `core/dispatch/dispatch_fund.py` | 基金子系统薄委托：fetch→analyze→generate，供 ai_agent/_dispatch_fund 分发（W63补77 / JS-20260812-13） |
 | `engines/dimension_consensus.py` | 多维度共识引擎（预测融合） |
-| `core/adaptive_models.py` | 平台模型智能自动匹配（额度耗尽探测切换，含 list/probe/find_working_model，持久化到 secrets） |
 | `engines/strategy_cards.py` | 策略知识卡提炼引擎：复盘→7彩种×3类引擎挂钩卡（weight_calibration/kill_strategy/miss_breakthrough），refresh/ensure 幂等（W63补54 / JS-20260807-03） |
-| `core/security.py` | 安全校验单一真源：is_safe_http_url 供 router/video_extractor SSRF 校验委托（JS-20260807-01） |
-| `core/dispatch_fund.py` | 基金子系统薄委托：fetch→analyze→generate，供 ai_agent/_dispatch_fund 分发（W63补77 / JS-20260812-13） |
-| `core/pipeline_state.py` | Agent 内部分析流水线实时状态模块（HTTP 状态查询 + daemon 线程节点动态，失败降级 degraded） |
-| `core/scheduler_tasks.py` | 通用定时任务容器 TaskScheduler（自 core/scheduler.py 拆分，JS-20260810-10） |
 | `engines/brain_daily.py` | 智能大脑第2层每日简报（每日AI日报+汇总+报告，run_daily 定时入口） |
 | `engines/evolution_experience.py` | L3 经验驱动进化模块（自 engines/evolution.py 按 JS-20260810-10 拆分） |
 | `engines/evolution_feedback.py` / `evolution_manager.py` / `evolution_rule.py` | L3 自适应进化引擎子模块三件套（JS-20260810-10 自 engines/evolution.py 拆分） |
@@ -148,8 +158,8 @@
 | `engines/sync_network.py` | 离线优先同步管理器子模块：NetworkDetector 轻量网络状态检测（JS-20260810-10 拆分） |
 | `engines/sync_queue.py` | 离线优先同步管理器子模块：OfflineQueue 离线请求队列（本地 JSONL 持久化，联网后回放，JS-20260810-10 拆分） |
 
-> ⚠️ 本表是「新增文件强制登记」清单，**不是** core/ 全量模块地图（core/ 共约 59 个 .py，本表仅登记重点新增项）。完整模块导航请以 `知识网关索引.md` 或代码搜索为准（JS-20260806-10 校正）。
-> 新增 core/knowledge/server/engines 下的 .py 文件后，必须在本表登记（tools/wrapup/checks_infra.py 基线检查会拦）。
+> ⚠️ 本表是「新增文件强制登记」清单，**不是** core/ 全量模块地图（core/ 拆为 ai/dispatch/infra 三子包，共约 59 个 .py，本表仅登记重点项）。完整模块导航请以 `知识网关索引.md` 或代码搜索为准（JS-20260806-10 校正，2026-09-24 拆包更新路径）。
+> 新增 core/ai、core/dispatch、core/infra、engines 下的 .py 文件后，必须在本表登记（tools/wrapup/checks_infra.py 基线检查会拦）。
 
 ## 用户沟通
 

@@ -220,83 +220,73 @@ def _do_route(agent, target):
         return f"模型路由报告失败：{e}"
 
 
+def _theme_help(tm) -> str:
+    themes = tm.list_themes()
+    lines = ["【智能配色 · 我能帮你】",
+             "· 扫色合规检查：『检查 ai-agent.html 的颜色』",
+             "· 自动纠错：『把 ai-agent.html 的禁用色改掉』",
+             "· 建议主题：『帮我配一套浅色中性』『用七色体系』",
+             "· 套用主题：『把报告.html 套用七色』",
+             "",
+             "当前可用主题（回退序：客户自选→系统默认→个人七色）："]
+    for th in themes:
+        lines.append("  · {}（{}）".format(th["label"], th["kind"]))
+    return "\n".join(lines)
+
+
+def _theme_apply_file(tgt, fp, at, tm) -> str:
+    path = fp.group(1)
+    if not os.path.isfile(path):
+        return "找不到文件：{}".format(path)
+    with open(path, "r", encoding="utf-8", errors="ignore") as f:
+        content = f.read()
+    if "七色" in tgt or "修复" in tgt or "改掉" in tgt:
+        new_content, changes = at.fix_colors(content)
+        mode = "禁用色纠错"
+    else:
+        sug = at.suggest_theme(tgt)
+        new_content = tm.apply_to_html(content, sug["vars"])
+        changes = [{"from": "结构注入", "to": sug["label"]}]
+        mode = "套用主题（{})".format(sug["label"])
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(new_content)
+    return "【{}】{}\n已改写 {} 处，文件已保存。刷新页面即可生效。".format(
+        mode, os.path.basename(path), len(changes))
+
+
+def _theme_scan_file(fp, at) -> str:
+    path = fp.group(1)
+    if not os.path.isfile(path):
+        return "找不到文件：{}".format(path)
+    with open(path, "r", encoding="utf-8", errors="ignore") as f:
+        content = f.read()
+    scan = at.scan_colors(content)
+    result = "【配色扫描】{}\n".format(path) + at.explain_scan(scan)
+    if scan["violations"]:
+        result += "\n\n可说『把 {} 的禁用色改掉』自动纠错，或『把 {} 套用七色』整体重做。".format(
+            os.path.basename(path), os.path.basename(path))
+    return result
+
+
 def _do_theme(agent, target):
     try:
         from core.ai import agent_theme as at
         from core.infra import theme_manager as tm
         tgt = (target or "").strip()
-
-        # 0) 能力询问：『你能/会配色吗』之类 → 能力说明
         if re.search(r"(你能|你会|可以|会不会|能帮我).{0,4}(配色|配色吗|颜色|改颜色|识别颜色)", tgt):
-            themes = tm.list_themes()
-            lines = ["【智能配色 · 我能帮你】",
-                     "· 扫色合规检查：『检查 ai-agent.html 的颜色』",
-                     "· 自动纠错：『把 ai-agent.html 的禁用色改掉』",
-                     "· 建议主题：『帮我配一套浅色中性』『用七色体系』",
-                     "· 套用主题：『把报告.html 套用七色』",
-                     "",
-                     "当前可用主题（回退序：客户自选→系统默认→个人七色）："]
-            for th in themes:
-                lines.append("  · {}（{}）".format(th["label"], th["kind"]))
-            return "\n".join(lines)
-
-        # 抽取文本中出现的文件路径（不要求出现在句尾）
+            return _theme_help(tm)
         fp = re.search(r"([\w./\\-]+\.(?:html|css|scss|vue))", tgt, re.IGNORECASE)
-
-        # 1) 修复/套用主题到文件（点名文件 + 改/套用类动词）
         if fp and any(k in tgt for k in ["修复", "改掉", "改成", "套用", "应用", "换成", "apply", "fix", "重做", "整体重做"]):
-            path = fp.group(1)
-            if not os.path.isfile(path):
-                return "找不到文件：{}".format(path)
-            with open(path, "r", encoding="utf-8", errors="ignore") as f:
-                content = f.read()
-            if "七色" in tgt or "修复" in tgt or "改掉" in tgt:
-                new_content, changes = at.fix_colors(content)
-                mode = "禁用色纠错"
-            else:
-                sug = at.suggest_theme(tgt)
-                new_content = tm.apply_to_html(content, sug["vars"])
-                changes = [{"from": "结构注入", "to": sug["label"]}]
-                mode = "套用主题（{})".format(sug["label"])
-            with open(path, "w", encoding="utf-8") as f:
-                f.write(new_content)
-            return "【{}】{}\n已改写 {} 处，文件已保存。刷新页面即可生效。".format(
-                mode, os.path.basename(path), len(changes))
-
-        # 2) 扫描文件配色（点名文件 + 检查/扫描类动词，或仅点名文件）
+            return _theme_apply_file(tgt, fp, at, tm)
         if fp:
-            path = fp.group(1)
-            if not os.path.isfile(path):
-                return "找不到文件：{}".format(path)
-            with open(path, "r", encoding="utf-8", errors="ignore") as f:
-                content = f.read()
-            scan = at.scan_colors(content)
-            result = "【配色扫描】{}\n".format(path) + at.explain_scan(scan)
-            if scan["violations"]:
-                result += "\n\n可说『把 {} 的禁用色改掉』自动纠错，或『把 {} 套用七色』整体重做。".format(
-                    os.path.basename(path), os.path.basename(path))
-            return result
-
-        # 3) 自然语言建议主题（不点名文件）
+            return _theme_scan_file(fp, at)
         if any(k in tgt for k in ["配一套", "建议", "套用", "用七色", "浅色", "深色", "客户自选", "自选", "我的主题", "换主题", "改成", "换成", "配色", "配个", "配一"]):
             sug = at.suggest_theme(tgt)
             css = tm.theme_to_css_vars(sug["vars"])
             return ("【智能配色建议】\n主题：{}\n\n变量预览：\n{}\n\n"
                     "在「主题设置」面板保存即生效；也可说『把 xxx.html 套用这套主题』让我直接改文件。").format(
                 sug["label"], css)
-
-        # 4) 默认：能力说明 + 列出主题
-        themes = tm.list_themes()
-        lines = ["【智能配色 · 我能帮你】",
-                 "· 扫色合规检查：『检查 ai-agent.html 的颜色』",
-                 "· 自动纠错：『把 ai-agent.html 的禁用色改掉』",
-                 "· 建议主题：『帮我配一套浅色中性』『用七色体系』",
-                 "· 套用主题：『把报告.html 套用七色』",
-                 "",
-                 "当前可用主题（回退序：客户自选→系统默认→个人七色）："]
-        for th in themes:
-            lines.append("  · {}（{}）".format(th["label"], th["kind"]))
-        return "\n".join(lines)
+        return _theme_help(tm)
     except Exception as e:
         return f"配色处理失败：{e}"
 

@@ -212,11 +212,62 @@ def _http_call(cfg, system_prompt, user_prompt, timeout=30, max_tokens=64, tempe
             _tel(provider=cfg.get("_provider"), model=cfg.get("_model_id"),
                  in_tokens=_in, out_tokens=_out,
                  cost_yuan=round(_cost, 6), latency_ms=round(_dt, 1))
-        except Exception:
-            pass
+        except Exception as _te:
+            import logging
+            logging.getLogger(__name__).debug("[free_model_pool] telemetry记录失败: %s", _te)
         return data["choices"][0]["message"]["content"], None
     except Exception as e:
         return None, f"HTTP_ERROR: {e}"
+
+
+def _try_free_models(cfg_list, system_prompt, user_prompt, fn, timeout, max_tokens,
+                     temperature, force_json_mode):
+    """遍历免费模型池，带熔断器。成功返回 (text, None, cfg)，全挂返回 (None, last_err, None)。"""
+    from core.infra.circuit_breaker import get_breaker
+    last_err = None
+    for cfg in cfg_list:
+        mid = cfg.get("_model_id")
+        cb = get_breaker("llm:" + str(mid), failure_threshold=3, recovery_timeout=60)
+        if cb.state == "open":
+            last_err = "CB_OPEN:" + str(mid)
+            continue
+        c = cfg
+        if force_json_mode is not None:
+            c = dict(cfg)
+            c["json_mode"] = bool(force_json_mode)
+        text, err = fn(c, system_prompt, user_prompt,
+                       timeout=timeout, max_tokens=max_tokens, temperature=temperature)
+        if text is not None and not err:
+            cb.record_success()
+            _mark_healthy(mid)
+            return text, None, cfg
+        cb.record_failure()
+        last_err = err
+        _mark_unhealthy(mid, err)
+    return None, last_err, None
+
+
+def _try_paid_fallback(system_prompt, user_prompt, call_fn, timeout, max_tokens,
+                       temperature, force_json_mode, free_err):
+    """回退付费兜底。成功返回 (text, None, fb)，失败返回 (None, err, None)。"""
+    fb = get_fallback_cfg()
+    budget_ok = True
+    try:
+        from core.ai.llm_budget import get_guard
+        budget_ok = get_guard().allow_paid(provider="deepseek", prompt_chars=len(user_prompt or ""))
+    except Exception:
+        budget_ok = True
+    if not (fb and fb.get("api_key") and budget_ok):
+        return None, free_err, None
+    c = fb
+    if force_json_mode is not None:
+        c = dict(fb)
+        c["json_mode"] = bool(force_json_mode)
+    text, err = (call_fn or _http_call)(c, system_prompt, user_prompt,
+                                        timeout=timeout, max_tokens=max_tokens, temperature=temperature)
+    if text is not None and not err:
+        return text, None, fb
+    return None, err, None
 
 
 def call_ai_failover(cfg_list, system_prompt, user_prompt, call_fn=None,
@@ -230,52 +281,17 @@ def call_ai_failover(cfg_list, system_prompt, user_prompt, call_fn=None,
     force_json_mode: None=沿用各 cfg 自带 json_mode（代码审查用）；False=强制关闭（自然语言总结/聊天用）；True=强制开启。
     """
     fn = call_fn or _http_call
-    last_err = None
-    # ── P1-G7 LLM 级熔断：为每个模型建一个熔断器（复用 core.infra.circuit_breaker）──
-    from core.infra.circuit_breaker import get_breaker
-    for cfg in cfg_list:
-        mid = cfg.get("_model_id")
-        cb = get_breaker("llm:" + str(mid), failure_threshold=3, recovery_timeout=60)
-        # 熔断器 open → 直接跳过该供应商，避免反复白试（与 G1 健康闭环叠加）
-        if cb.state == "open":
-            last_err = "CB_OPEN:" + str(mid)
-            continue
-        c = cfg
-        if force_json_mode is not None:
-            c = dict(cfg)
-            c["json_mode"] = bool(force_json_mode)
-        text, err = fn(c, system_prompt, user_prompt,
-                       timeout=timeout, max_tokens=max_tokens, temperature=temperature)
-        if text is not None and not err:
-            cb.record_success()          # 成功 → 复位熔断
-            _mark_healthy(mid)
-            return text, None, cfg
-        cb.record_failure()              # 失败 → 累计，达阈值即熔断（G8 重试上限）
-        last_err = err
-        _mark_unhealthy(mid, err)
-    # 全挂 → 回退付费兜底（受成本闸约束，预算封顶则跳过付费，避免失控）
-    # allow_paid_fallback=False（代码审查场景：用户约定"能用免费就用，不然就算了"）时彻底跳过付费
+    text, last_err, cfg = _try_free_models(cfg_list, system_prompt, user_prompt, fn,
+                                           timeout, max_tokens, temperature, force_json_mode)
+    if text is not None:
+        return text, None, cfg
     if allow_paid_fallback:
-        fb = get_fallback_cfg()
-        _budget_ok = True
-        try:
-            from core.ai.llm_budget import get_guard
-            _budget_ok = get_guard().allow_paid(provider="deepseek", prompt_chars=len(user_prompt or ""))
-        except Exception:
-            _budget_ok = True
-        if fb and fb.get("api_key") and _budget_ok:
-            c = fb
-            if force_json_mode is not None:
-                c = dict(fb)
-                c["json_mode"] = bool(force_json_mode)
-            text, err = (call_fn or _http_call)(c, system_prompt, user_prompt,
-                                                timeout=timeout, max_tokens=max_tokens, temperature=temperature)
-        if text is not None and not err:
+        text, err, fb = _try_paid_fallback(system_prompt, user_prompt, call_fn, timeout,
+                                           max_tokens, temperature, force_json_mode, last_err)
+        if text is not None:
             return text, None, fb
         last_err = err
-    elif allow_paid_fallback and fb and fb.get("api_key") and not _budget_ok:
-        last_err = "BUDGET_TRIPPED"
-    elif not allow_paid_fallback:
+    else:
         last_err = "PAID_FALLBACK_DISABLED"
     return None, f"ALL_FREE_DOWN+fallback_failed:{last_err}", None
 
@@ -293,8 +309,9 @@ def call_paid(system_prompt, user_prompt, timeout=120, max_tokens=800, temperatu
         from core.ai.llm_budget import get_guard
         if not get_guard().allow_paid(provider="deepseek", prompt_chars=len(user_prompt or "")):
             return None, "BUDGET_TRIPPED"
-    except Exception:
-        pass
+    except Exception as _be:
+        import logging
+        logging.getLogger(__name__).debug("[free_model_pool] 预算守卫加载失败,放行: %s", _be)
     c = fb
     if force_json_mode is not None:
         c = dict(fb)
@@ -325,6 +342,44 @@ def _mark_unhealthy(model_id, err):
             st["degraded"] = True
 
 
+def _probe_one_model(fn, prov, pdata, m, timeout, probe, summary):
+    """探活单个模型，更新 summary 与状态缓存。"""
+    mid = m.get("id")
+    single = build_single_cfg(prov, pdata, m)
+    text, err = fn(single, "你是健康检查器，只回复 pong", probe, timeout, max_tokens=200)
+    entry = {"id": mid, "provider": prov, "healthy": err is None,
+             "error": str(err) if err else "", "ts": time.strftime("%Y-%m-%dT%H:%M:%S+08:00")}
+    summary["checked"].append(entry)
+    if err:
+        _mark_unhealthy(mid, err)
+        if "429" in str(err):
+            entry["degraded"] = True
+            summary["degraded"].append(mid)
+        else:
+            summary["down"].append(mid)
+    else:
+        _mark_healthy(mid)
+    with _lock:
+        _status_cache[mid] = {k: entry[k] for k in ("id", "provider", "healthy", "error", "ts")}
+        _status_cache[mid]["degraded"] = entry.get("degraded", False)
+        _status_cache[mid]["failures"] = _status_cache.get(mid, {}).get("failures", 0)
+
+
+def _persist_health_status(summary, cfg, status_path):
+    """写状态文件 + 全挂告警。"""
+    try:
+        out = {"ts": summary["ts"], "checked": summary["checked"],
+               "down": summary["down"], "degraded": summary["degraded"],
+               "all_down": summary["all_down"]}
+        if not safe_write_json(status_path, out, backup=True):
+            print(f"[free_model_pool] 状态文件写入失败: {status_path}", file=sys.stderr)
+        if summary["all_down"] and cfg.get("notify", {}).get("on_all_free_down", True):
+            print(f"[free_model_pool] [ALERT] 所有免费模型不可用，已回退付费兜底。状态见 {status_path}",
+                  file=sys.stderr)
+    except Exception as e:
+        print(f"[free_model_pool] 状态文件写入异常: {status_path} ({e})", file=sys.stderr)
+
+
 def health_check_all(config_path=_CONFIG_PATH, status_path=_STATUS_PATH, call_fn=None):
     """主动探活：对每个启用免费模型发轻量请求，更新健康状态；全挂写告警。
 
@@ -343,44 +398,10 @@ def health_check_all(config_path=_CONFIG_PATH, status_path=_STATUS_PATH, call_fn
         for m in pdata.get("models", []):
             if not m.get("enabled", True):
                 continue
-            mid = m.get("id")
-            single = build_single_cfg(prov, pdata, m)
-            # 2026-08-10 智谱接入后: thinking 模型(如 glm-4.5-air) 64 token 会被思考过程吃光,
-            # 探活给足 200 token 才能探到真实输出能力(否则只探到"能连上", 探不到"能回答")
-            text, err = fn(single, "你是健康检查器，只回复 pong", probe, timeout, max_tokens=200)
-            entry = {"id": mid, "provider": prov, "healthy": err is None,
-                     "error": str(err) if err else "", "ts": time.strftime("%Y-%m-%dT%H:%M:%S+08:00")}
-            summary["checked"].append(entry)
-            if err:
-                _mark_unhealthy(mid, err)
-                if "429" in str(err):
-                    entry["degraded"] = True
-                    summary["degraded"].append(mid)
-                else:
-                    summary["down"].append(mid)
-            else:
-                _mark_healthy(mid)
-            with _lock:
-                _status_cache[mid] = {k: entry[k] for k in ("id", "provider", "healthy", "error", "ts")}
-                _status_cache[mid]["degraded"] = entry.get("degraded", False)
-                _status_cache[mid]["failures"] = _status_cache.get(mid, {}).get("failures", 0)
-    # 修正(JS-20260805): 原只认 down 不认 degraded → 全模型被限流(429)时告警不响(监控盲区)。
-    # 现 all_down = 所有已检模型均不可用(down 或 degraded)。degraded 仍可被路由降权尝试, 但告警会响, 避免"免费池全限流偷偷烧付费"无提醒。
-    summary["all_down"] = (bool(summary["down"]) or bool(summary["degraded"])) and (len(summary["down"]) + len(summary["degraded"])) == len(summary["checked"])
-    # 写状态文件 + 全挂告警
-    try:
-        out = {"ts": summary["ts"], "checked": summary["checked"],
-               "down": summary["down"], "degraded": summary["degraded"],
-               "all_down": summary["all_down"]}
-        # 刀⑥(JS-20260807-02): 原子写，避免状态文件半写撕裂；safe_write_json 已含 makedirs+备份
-        if not safe_write_json(status_path, out, backup=True):
-            print(f"[free_model_pool] 状态文件写入失败: {status_path}", file=sys.stderr)
-        if summary["all_down"] and cfg.get("notify", {}).get("on_all_free_down", True):
-            print(f"[free_model_pool] [ALERT] 所有免费模型不可用，已回退付费兜底。状态见 {status_path}",
-                  file=sys.stderr)
-    except Exception as e:
-        # 刀⑥: 原 except:pass 静默吞错，改为 stderr 告警（与全挂告警同通道），不丢故障信号
-        print(f"[free_model_pool] 状态文件写入异常: {status_path} ({e})", file=sys.stderr)
+            _probe_one_model(fn, prov, pdata, m, timeout, probe, summary)
+    summary["all_down"] = (bool(summary["down"]) or bool(summary["degraded"])) and \
+        (len(summary["down"]) + len(summary["degraded"])) == len(summary["checked"])
+    _persist_health_status(summary, cfg, status_path)
     return summary
 
 
@@ -389,6 +410,7 @@ if __name__ == "__main__":
         if hasattr(sys.stdout, "reconfigure"):
             sys.stdout.reconfigure(encoding="utf-8", errors="replace")
             sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-    except Exception:
-        pass
+    except Exception as _re:
+        import logging
+        logging.getLogger(__name__).debug("[free_model_pool] stdout reconfigure失败: %s", _re)
     print(json.dumps(health_check_all(), ensure_ascii=False, indent=2))

@@ -20,7 +20,7 @@ import threading
 import logging
 import json
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -120,8 +120,63 @@ def _write_expbox_marker(hash_str: str) -> None:
 
 _expbox_extract_lock = threading.Lock()
 
+_ENTRY_KEYWORDS = ("做了什么", "有效方法", "问题", "根因", "方案", "教训")
+_ENTRY_PATTERN = re.compile(r"(?m)^#{2,3} \d{4}-\d{2}-\d{2}.*$")
 
-def extract_from_experience_box() -> Dict[str, Any]:
+
+def _read_expbox_content() -> str:
+    """读取经验收集箱全文，文件不存在或读取失败返回空串。"""
+    if not os.path.isfile(_EXPERIENCE_BOX_PATH):
+        return ""
+    try:
+        with open(_EXPERIENCE_BOX_PATH, "r", encoding="utf-8") as f:
+            return f.read()
+    except OSError:
+        return ""
+
+
+def _check_hash_changed(content: str, marker_path: str) -> tuple:
+    """计算当前哈希并与标记文件比对。返回 (changed: bool, current_hash: str)。"""
+    current_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
+    last_hash = ""
+    if os.path.isfile(marker_path):
+        try:
+            with open(marker_path, "r", encoding="utf-8") as f:
+                last_hash = f.read().strip()
+        except (OSError, ValueError):
+            last_hash = ""
+    return current_hash != last_hash, current_hash
+
+
+def _split_exp_entries(content: str) -> List[str]:
+    """按带日期的经验标题切分条目，返回有效条目列表。"""
+    positions = [m.start() for m in _ENTRY_PATTERN.finditer(content)]
+    entries = []
+    for idx, pos in enumerate(positions):
+        end = positions[idx + 1] if idx + 1 < len(positions) else len(content)
+        entry = content[pos:end].strip()
+        if any(k in entry for k in _ENTRY_KEYWORDS):
+            entries.append(entry)
+    return entries
+
+
+def _build_card_from_entry(entry: str) -> dict:
+    """从单条经验文本构建知识卡片 dict。"""
+    heading = entry.split("\n", 1)[0].replace("###", "", 1).replace("##", "", 1).strip()
+    title = heading[:40]
+    return {
+        "title": f"[跨AI经验] {title}",
+        "content": entry[:800],
+        "subsystem": "global",
+        "category": "skill",
+        "tags": ["跨AI经验", "经验收集箱", "自动提取"],
+        "effectiveness": 60,
+        "engine_hook": "",
+        "source": f"经验收集箱.md#{title}",
+    }
+
+
+def extract_from_experience_box() -> dict:
     """从经验收集箱中提取知识卡片。
 
     经验收集箱是所有外部AI工具（Qoder/豆包/TRAE/WorkBuddy等）
@@ -136,70 +191,26 @@ def extract_from_experience_box() -> Dict[str, Any]:
         return _extract_from_experience_box_inner()
 
 
-def _extract_from_experience_box_inner() -> Dict[str, Any]:
-    if not os.path.isfile(_EXPERIENCE_BOX_PATH):
-        return {"new_entries": 0, "extracted": 0, "saved": 0, "info": "经验收集箱不存在"}
-
-    # A: 内容哈希增量检测（替换旧的字节大小标记，根治"文件变短后永不触发同步"）
-    try:
-        with open(_EXPERIENCE_BOX_PATH, "r", encoding="utf-8") as f:
-            content = f.read()
-    except OSError:
+def _extract_from_experience_box_inner() -> dict:
+    content = _read_expbox_content()
+    if not content:
+        if not os.path.isfile(_EXPERIENCE_BOX_PATH):
+            return {"new_entries": 0, "extracted": 0, "saved": 0, "info": "经验收集箱不存在"}
         return {"new_entries": 0, "extracted": 0, "saved": 0, "info": "读取失败"}
 
-    current_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
-    last_hash = ""
-    if os.path.isfile(_EXPERIENCE_BOX_MARKER):
-        try:
-            with open(_EXPERIENCE_BOX_MARKER, "r", encoding="utf-8") as f:
-                last_hash = f.read().strip()
-        except (OSError, ValueError):
-            last_hash = ""
-    if current_hash == last_hash:
+    changed, current_hash = _check_hash_changed(content, _EXPERIENCE_BOX_MARKER)
+    if not changed:
         return {"new_entries": 0, "extracted": 0, "saved": 0, "info": "无新内容"}
 
-    # C: 按带日期的经验标题切分（兼容 ## 与 ### 两种标题级别，精确避免内嵌标题误拆）
-    pattern = re.compile(r"(?m)^#{2,3} \d{4}-\d{2}-\d{2}.*$")
-    positions = [m.start() for m in pattern.finditer(content)]
-    new_entries = []
-    for idx, pos in enumerate(positions):
-        end = positions[idx + 1] if idx + 1 < len(positions) else len(content)
-        entry = content[pos:end].strip()
-        # 条目有效性判定：任一分节字段存在即视为正式条目
-        # （旧格式用"做了什么/有效方法"，新格式用"问题/根因/方案/教训"）
-        if any(k in entry for k in ("做了什么", "有效方法", "问题", "根因", "方案", "教训")):
-            new_entries.append(entry)
-
+    new_entries = _split_exp_entries(content)
     if not new_entries:
         _write_expbox_marker(current_hash)
         return {"new_entries": 0, "extracted": 0, "saved": 0, "info": "无有效新条目"}
 
-    # 转化为知识卡片（延迟导入避免循环依赖）
     from core.infra.auto_knowledge import AutoKnowledgeExtractor
     extractor = AutoKnowledgeExtractor()
-    all_cards = []
-
-    for entry in new_entries:
-        # 提取标题（条目首行即经验标题；去掉 ##/### 前缀）
-        heading = entry.split("\n", 1)[0].replace("###", "", 1).replace("##", "", 1).strip()
-        title = heading[:40]
-        # E(溯源): source 带 文件#标题，可回溯到经验收集箱原文
-        card = {
-            "title": f"[跨AI经验] {title}",
-            "content": entry[:800],
-            "subsystem": "global",
-            "category": "skill",
-            "tags": ["跨AI经验", "经验收集箱", "自动提取"],
-            "effectiveness": 60,
-            "engine_hook": "",
-            "source": f"经验收集箱.md#{title}",
-        }
-        all_cards.append(card)
-
-    # 保存
+    all_cards = [_build_card_from_entry(e) for e in new_entries]
     saved = extractor.save_cards(all_cards) if all_cards else 0
-
-    # 更新标记（写入内容哈希）
     _write_expbox_marker(current_hash)
 
     result = {
@@ -208,13 +219,8 @@ def _extract_from_experience_box_inner() -> Dict[str, Any]:
         "saved": saved,
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
-
     if all_cards:
-        logger.info(
-            "经验收集箱提取: %d 条新经验, 保存 %d 张知识卡片",
-            len(new_entries), saved,
-        )
-
+        logger.info("经验收集箱提取: %d 条新经验, 保存 %d 张知识卡片", len(new_entries), saved)
     return result
 
 
@@ -319,97 +325,45 @@ def _experience_box_watch_loop(interval: int) -> None:
 # GraphRAG 三元组抽取
 # ---------------------------------------------------------------------------
 
-def extract_triples_from_experience_box(batch: int = _TRIPLE_BATCH) -> Dict[str, Any]:
-    """从经验收集箱抽取 GraphRAG 三元组（D）。
-
-    复用 A 的内容哈希标记判断是否已有新内容；仅对新条目分块调 DeepSeek 抽取三元组，
-    写入 knowledge/graph_triples.json（去重置信）。无 key / 离线 / 熔断 时降级返回。
-
-    Returns:
-        dict: processed（处理经验条数）, triples（解析到的三元组数）, saved（新增落库数）
-    """
-    if not os.path.isfile(_EXPERIENCE_BOX_PATH):
-        return {"processed": 0, "triples": 0, "saved": 0, "info": "经验收集箱不存在"}
-
-    # 复用 A 的哈希增量判定
-    try:
-        with open(_EXPERIENCE_BOX_PATH, "r", encoding="utf-8") as f:
-            content = f.read()
-    except OSError:
-        return {"processed": 0, "triples": 0, "saved": 0, "info": "读取失败"}
-
-    current_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
-    last_hash = ""
-    if os.path.isfile(_TRIPLE_MARKER):
-        try:
-            with open(_TRIPLE_MARKER, "r", encoding="utf-8") as f:
-                last_hash = f.read().strip()
-        except (OSError, ValueError):
-            last_hash = ""
-    if current_hash == last_hash:
-        return {"processed": 0, "triples": 0, "saved": 0, "info": "无新内容"}
-
-    # 切分新条目（与 A/C 同一规则：兼容 ## 与 ### 标题）
-    pattern = re.compile(r"(?m)^#{2,3} \d{4}-\d{2}-\d{2}.*$")
-    positions = [m.start() for m in pattern.finditer(content)]
-    new_entries = []
-    for idx, pos in enumerate(positions):
-        end = positions[idx + 1] if idx + 1 < len(positions) else len(content)
-        entry = content[pos:end].strip()
-        if any(k in entry for k in ("做了什么", "有效方法", "问题", "根因", "方案", "教训")):
-            new_entries.append(entry)
-
-    if not new_entries:
-        _write_triple_marker(current_hash)
-        return {"processed": 0, "triples": 0, "saved": 0, "info": "无有效新条目"}
-
-    # 检查 AIService 可用性（无 key/离线 直接降级跳过，控成本）
-    # ⚠ 降级时**不更新哈希标记**：否则 key 恢复后该批经验永远进不了图谱（真断链）。
+def _check_ai_available():
+    """检查 AIService 是否可用（有 key 且非离线）。返回 (ai, error_msg)。ai 可用时 error_msg 为 None。"""
     try:
         from core.ai.ai_service import AIService
         _ai = AIService()
         if not getattr(_ai, "api_key", None) or getattr(_ai, "_mode", "online") == "offline":
             logger.info("[GraphRAG] 无 API Key 或离线模式，跳过三元组抽取（降级，标记保留待 key 恢复后重提）")
-            return {"processed": len(new_entries), "triples": 0,
-                    "saved": 0, "info": "降级：无key/离线，标记未更新待重试"}
+            return None, "降级：无key/离线，标记未更新待重试"
+        return _ai, None
     except Exception as e:
         logger.warning("[GraphRAG] AIService 初始化失败，跳过（标记保留待重试）: %s", e)
-        return {"processed": len(new_entries), "triples": 0,
-                "saved": 0, "info": "AIService异常，标记未更新待重试"}
+        return None, "AIService异常，标记未更新待重试"
 
-    # 分块调 DeepSeek，控成本
+
+def _call_triple_chunks(ai, new_entries: List[str], batch: int) -> tuple:
+    """分块调 AI 抽取三元组。返回 (triples_all, chunks, early_return_info)。
+    early_return_info 非 None 时表示需提前返回（冷却中/异常）。"""
     triples_all: List[Dict[str, str]] = []
     chunks = 0
     for ci in range(0, len(new_entries), batch):
         if chunks >= _TRIPLE_MAX_CHUNKS:
             break
-        # 冷却期内不调模型（上次未解析的批次待重试，避免空转烧钱）
         if not _triple_retry_ready():
-            return {"processed": len(new_entries), "triples": 0,
-                    "saved": 0, "info": "三元组冷却中，标记保留待重试"}
+            return triples_all, chunks, "三元组冷却中，标记保留待重试"
         chunk = new_entries[ci:ci + batch]
         chunks += 1
         try:
-            user_prompt = (
-                "请为以下经验条目抽取三元组（JSON数组）：\n\n"
-                + "\n\n---\n\n".join(chunk)
-            )
-            reply = _ai.chat(_TRIPLE_SYSTEM_PROMPT, user_prompt,
-                             temperature=0.2, max_tokens=1500)
+            user_prompt = "请为以下经验条目抽取三元组（JSON数组）：\n\n" + "\n\n---\n\n".join(chunk)
+            reply = ai.chat(_TRIPLE_SYSTEM_PROMPT, user_prompt, temperature=0.2, max_tokens=1500)
             triples_all.extend(_parse_triples(reply))
         except Exception as e:
             logger.error("[GraphRAG] DeepSeek 调用异常(块%d): %s", chunks, e)
             _touch_triple_retry()
             break
+    return triples_all, chunks, None
 
-    if not triples_all:
-        # ⚠ 不更新哈希标记：否则该批经验永远进不了图谱（真断链）。
-        # 只记冷却时间，冷却过后 watcher/调度器会自动重试。
-        _touch_triple_retry()
-        return {"processed": len(new_entries), "triples": 0,
-                "saved": 0, "info": "未解析到三元组（标记保留，冷却后重试）"}
 
-    # 归一化 + 去重 + 写库（整段临界区加锁，避免监听/调度并发丢 append）
+def _dedup_save_triples(triples_all: list, current_hash: str) -> int:
+    """去重 + 写入三元组库（整段临界区加锁）。返回新增数。"""
     with _TRIPLE_STORE_LOCK:
         store = _load_triple_store()
         existing_keys = {
@@ -430,16 +384,55 @@ def extract_triples_from_experience_box(batch: int = _TRIPLE_BATCH) -> Dict[str,
                 "extracted_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             })
             added += 1
-
         if added > 0:
             store["built_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             _save_triple_store(store)
-
         _write_triple_marker(current_hash)
-    logger.info(
-        "[GraphRAG] 抽取三元组: 处理 %d 条经验(%d块), 解析 %d 个, 新增落库 %d 个",
-        len(new_entries), chunks, len(triples_all), added,
-    )
+    return added
+
+
+def extract_triples_from_experience_box(batch: int = _TRIPLE_BATCH) -> dict:
+    """从经验收集箱抽取 GraphRAG 三元组（D）。
+
+    复用 A 的内容哈希标记判断是否已有新内容；仅对新条目分块调 DeepSeek 抽取三元组，
+    写入 knowledge/graph_triples.json（去重置信）。无 key / 离线 / 熔断 时降级返回。
+
+    Returns:
+        dict: processed（处理经验条数）, triples（解析到的三元组数）, saved（新增落库数）
+    """
+    content = _read_expbox_content()
+    if not content:
+        if not os.path.isfile(_EXPERIENCE_BOX_PATH):
+            return {"processed": 0, "triples": 0, "saved": 0, "info": "经验收集箱不存在"}
+        return {"processed": 0, "triples": 0, "saved": 0, "info": "读取失败"}
+
+    changed, current_hash = _check_hash_changed(content, _TRIPLE_MARKER)
+    if not changed:
+        return {"processed": 0, "triples": 0, "saved": 0, "info": "无新内容"}
+
+    new_entries = _split_exp_entries(content)
+    if not new_entries:
+        _write_triple_marker(current_hash)
+        return {"processed": 0, "triples": 0, "saved": 0, "info": "无有效新条目"}
+
+    # 检查 AIService 可用性（无 key/离线 直接降级跳过，控成本）
+    # ⚠ 降级时**不更新哈希标记**：否则 key 恢复后该批经验永远进不了图谱（真断链）。
+    ai, err_msg = _check_ai_available()
+    if ai is None:
+        return {"processed": len(new_entries), "triples": 0, "saved": 0, "info": err_msg}
+
+    triples_all, chunks, early_info = _call_triple_chunks(ai, new_entries, batch)
+    if early_info:
+        return {"processed": len(new_entries), "triples": 0, "saved": 0, "info": early_info}
+
+    if not triples_all:
+        _touch_triple_retry()
+        return {"processed": len(new_entries), "triples": 0,
+                "saved": 0, "info": "未解析到三元组（标记保留，冷却后重试）"}
+
+    added = _dedup_save_triples(triples_all, current_hash)
+    logger.info("[GraphRAG] 抽取三元组: 处理 %d 条经验(%d块), 解析 %d 个, 新增落库 %d 个",
+                len(new_entries), chunks, len(triples_all), added)
     return {
         "processed": len(new_entries),
         "triples": len(triples_all),

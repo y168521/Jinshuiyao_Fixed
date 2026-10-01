@@ -5,11 +5,14 @@
 借鉴 OpenStack Stevedore 的 DriverManager 思想。
 """
 import logging
+import threading
 
 logger = logging.getLogger(__name__)
 
 # 已注册的子系统
 _registered_domains = {}
+# P0 修复：全局可变 dict 多线程共享须加锁保护（JS-20260924-25）
+_domains_lock = threading.Lock()
 
 
 def register(domain_id, domain_class, description=""):
@@ -20,12 +23,13 @@ def register(domain_id, domain_class, description=""):
         domain_class: 子系统类（必须实现标准接口）
         description: 子系统描述
     """
-    if domain_id in _registered_domains:
-        logger.warning("子系统 %s 已存在，将被覆盖", domain_id)
-    _registered_domains[domain_id] = {
-        "class": domain_class,
-        "description": description,
-    }
+    with _domains_lock:
+        if domain_id in _registered_domains:
+            logger.warning("子系统 %s 已存在，将被覆盖", domain_id)
+        _registered_domains[domain_id] = {
+            "class": domain_class,
+            "description": description,
+        }
     logger.info("子系统已注册: %s (%s)", domain_id, description or domain_class.__name__)
 
 
@@ -38,7 +42,8 @@ def get_domain(domain_id):
     Returns:
         子系统类，或 None
     """
-    entry = _registered_domains.get(domain_id)
+    with _domains_lock:
+        entry = _registered_domains.get(domain_id)
     if entry:
         return entry["class"]
     return None
@@ -50,9 +55,11 @@ def list_domains():
     Returns:
         list: [(domain_id, description), ...]
     """
-    return [(did, entry["description"]) for did, entry in _registered_domains.items()]
+    with _domains_lock:
+        return [(did, entry["description"]) for did, entry in _registered_domains.items()]
 
 
 def is_registered(domain_id):
     """检查子系统是否已注册"""
-    return domain_id in _registered_domains
+    with _domains_lock:
+        return domain_id in _registered_domains

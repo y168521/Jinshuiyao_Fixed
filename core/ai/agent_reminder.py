@@ -14,9 +14,12 @@
 import os
 import re
 import json
+import logging
 import threading
 from datetime import datetime
 from utils.safe_json import safe_write_json
+
+logger = logging.getLogger(__name__)
 
 # 系统级提醒规则（time 为 HH:MM；调度器每30分钟扫一次，±窗口内触发）
 SYSTEM_REMINDERS = [
@@ -101,8 +104,8 @@ def check_due(mem_dir, now=None, window_min=15):
                     ok = (ur["when"] == now.day)
                 if ok:
                     results.append({"id": ur["id"], "title": "你的日程", "text": ur["text"], "kind": "user"})
-    except Exception:
-        pass
+    except Exception as _e:
+        logger.debug("check_due user reminders failed: %s", _e)
     return results
 
 
@@ -118,8 +121,8 @@ def render_due(mem_dir, now=None):
                 data = json.load(f)
             fired = data.get("fired_log", {}) or {}
             pending = data.get("pending", []) or []
-    except Exception:
-        pass
+    except Exception as _e:
+        logger.debug("load pending_reminders failed: %s", _e)
     due = check_due(mem_dir, now)
     new_count = 0
     for d in due:
@@ -133,8 +136,8 @@ def render_due(mem_dir, now=None):
     try:
         os.makedirs(mem_dir, exist_ok=True)
         safe_write_json(pending_path, {"pending": pending, "fired_log": fired})
-    except Exception:
-        pass
+    except Exception as _e:
+        logger.debug("write pending_reminders failed: %s", _e)
     return new_count
 
 

@@ -311,6 +311,27 @@ def eval_manager_change(history: List[Dict[str, str]],
     return result
 
 
+def _get_col(item: Dict, keyword: str) -> str:
+    """从 dict 中取含关键词的首列值（HTML 表头列名不固定时用）"""
+    for k, v in item.items():
+        if keyword in k:
+            return v
+    return ""
+
+
+def _scale_level_msg(net_asset: float, latest_date: str, danger_yi: float,
+                     warn_yi: float) -> tuple:
+    """根据净资产返回 (level, message)"""
+    if net_asset < danger_yi:
+        return "danger", ("最新净资产 %.2f 亿元（%s），低于 5000 万清盘线，"
+                          "触发清盘风险条款（连续60个工作日低于5000万可终止合同）"
+                          % (net_asset, latest_date))
+    if net_asset < warn_yi:
+        return "warn", ("最新净资产 %.2f 亿元（%s），属迷你基金（<2亿），"
+                        "需关注流动性与运作稳定性" % (net_asset, latest_date))
+    return "safe", "最新净资产 %.2f 亿元（%s），规模正常" % (net_asset, latest_date)
+
+
 def eval_scale_risk(history: List[Dict[str, str]],
                     danger_yi: float = SCALE_DANGER_YI,
                     warn_yi: float = SCALE_WARN_YI,
@@ -326,37 +347,26 @@ def eval_scale_risk(history: List[Dict[str, str]],
               change_pct / consecutive_down / message
     """
     result = {
-        "ok": bool(history),
-        "level": "safe",
-        "latest_date": "",
-        "net_asset": None,
-        "change_pct": None,
-        "consecutive_down": 0,
-        "estimated": False,
-        "message": "",
+        "ok": bool(history), "level": "safe", "latest_date": "",
+        "net_asset": None, "change_pct": None, "consecutive_down": 0,
+        "estimated": False, "message": "",
     }
     if not history:
         result["message"] = "暂缺：未取到规模数据"
         return result
 
-    def _col(item, keyword):
-        for k, v in item.items():
-            if keyword in k:
-                return v
-        return ""
-
     latest = history[0]
-    result["latest_date"] = _col(latest, "日期") or latest.get("日期", "")
-    raw_asset = _col(latest, "净资产")
+    result["latest_date"] = _get_col(latest, "日期") or latest.get("日期", "")
+    raw_asset = _get_col(latest, "净资产")
     result["estimated"] = "*" in str(raw_asset)
     net_asset = _to_float(raw_asset)
     result["net_asset"] = net_asset
-    result["change_pct"] = _to_float(_col(latest, "变动率"))
+    result["change_pct"] = _to_float(_get_col(latest, "变动率"))
 
     # 连续下滑季度数
     down = 0
     for item in history:
-        pct = _to_float(_col(item, "变动率"))
+        pct = _to_float(_get_col(item, "变动率"))
         if pct is not None and pct < 0:
             down += 1
         else:
@@ -367,19 +377,9 @@ def eval_scale_risk(history: List[Dict[str, str]],
         result["message"] = "暂缺：最新净资产缺失"
         return result
 
-    if net_asset < danger_yi:
-        result["level"] = "danger"
-        result["message"] = ("最新净资产 %.2f 亿元（%s），低于 5000 万清盘线，"
-                             "触发清盘风险条款（连续60个工作日低于5000万可终止合同）"
-                             % (net_asset, result["latest_date"]))
-    elif net_asset < warn_yi:
-        result["level"] = "warn"
-        result["message"] = ("最新净资产 %.2f 亿元（%s），属迷你基金（<2亿），"
-                             "需关注流动性与运作稳定性" % (net_asset, result["latest_date"]))
-    else:
-        result["message"] = "最新净资产 %.2f 亿元（%s），规模正常" % (
-            net_asset, result["latest_date"])
-
+    level, msg = _scale_level_msg(net_asset, result["latest_date"], danger_yi, warn_yi)
+    result["level"] = level
+    result["message"] = msg
     if result["estimated"]:
         result["message"] += "（该期数值带 * 号，为未确认/估算值）"
 
@@ -393,7 +393,6 @@ def eval_scale_risk(history: List[Dict[str, str]],
         result["message"] += "；已连续 %d 个季度规模下滑" % result["consecutive_down"]
 
     # 规模暴增（原只判下跌，JS-20260920-08 补）：单季环比大涨同样值得预警。
-    # 注意：规模普涨（全市场景气）也可能触发，故只给 warn 级别、由用户结合语境判断。
     if pct is not None and pct >= surge_warn_pct:
         if result["level"] == "safe":
             result["level"] = "warn"
@@ -465,26 +464,9 @@ def eval_purchase_limit(limit: Dict[str, object],
 # ---------------------------------------------------------------------------
 # 抓取（带缓存 + 降级）
 # ---------------------------------------------------------------------------
-class FundProfileFetcher:
-    """基金外围风险数据抓取器（经理变更 / 规模变动）
+class _ProfileCacheMixin:
+    """HTTP + 缓存基础设施，供 FundProfileFetcher 继承（JS-20260924-28 拆类降复杂度）"""
 
-    - 串行低速抓取，失败不抛异常，返回 ok=False + reason
-    - 缓存优先；网络失败时允许用过期缓存兜底并标记 stale
-    """
-
-    def __init__(self, cache_dir: Optional[str] = None, timeout: int = 15,
-                 delay: float = 0.6, retries: int = 2, enabled: bool = True):
-        self.cache_dir = cache_dir or os.path.join(
-            _SCRIPT_DIR, "金水谣数据", "fund", "cache")
-        os.makedirs(self.cache_dir, exist_ok=True)
-        self.timeout = timeout
-        self.delay = delay
-        self.retries = retries
-        self.enabled = enabled
-        self._session = None
-        self._last_request_at = 0.0
-
-    # ---------------- 内部 ----------------
     def _http_get(self, url: str, referer: str = "") -> Optional[str]:
         if not self.enabled:
             return None
@@ -500,7 +482,6 @@ class FundProfileFetcher:
             headers["Referer"] = referer
 
         for attempt in range(1, self.retries + 1):
-            # 低速：两次请求之间至少间隔 delay 秒
             wait = self.delay - (time.time() - self._last_request_at)
             if wait > 0:
                 time.sleep(wait)
@@ -535,14 +516,30 @@ class FundProfileFetcher:
 
     def _write_cache(self, kind: str, code: str, rows: List[Dict], ok: bool, reason: str = ""):
         safe_write_json(self._cache_path(kind, code), {
-            "code": code,
-            "kind": kind,
+            "code": code, "kind": kind,
             "fetched_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "source": SOURCE_TAG,
-            "ok": ok,
-            "reason": reason,
-            "rows": rows,
+            "source": SOURCE_TAG, "ok": ok, "reason": reason, "rows": rows,
         })
+
+
+class FundProfileFetcher(_ProfileCacheMixin):
+    """基金外围风险数据抓取器（经理变更 / 规模变动）
+
+    - 串行低速抓取，失败不抛异常，返回 ok=False + reason
+    - 缓存优先；网络失败时允许用过期缓存兜底并标记 stale
+    """
+
+    def __init__(self, cache_dir: Optional[str] = None, timeout: int = 15,
+                 delay: float = 0.6, retries: int = 2, enabled: bool = True):
+        self.cache_dir = cache_dir or os.path.join(
+            _SCRIPT_DIR, "金水谣数据", "fund", "cache")
+        os.makedirs(self.cache_dir, exist_ok=True)
+        self.timeout = timeout
+        self.delay = delay
+        self.retries = retries
+        self.enabled = enabled
+        self._session = None
+        self._last_request_at = 0.0
 
     # ---------------- 公开方法 ----------------
     def fetch_manager_history(self, code: str, use_cache: bool = True) -> Dict:

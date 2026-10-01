@@ -33,7 +33,7 @@ description: 金水谣 · 动手前强制核实铁律。Use when about to make A
 ### 铁律 V3：动手改之前 → 先确认改动落点 + 验证手段
 - **范围**：任何 Edit/Write 之前。
 - **做法**：
-  1. 改核心文件（如 `core/free_model_pool.py`、钩子、启动器）前，先确认它的**真实调用链/是否活路径**（Grep 谁 import 它、谁启动它）。
+  1. 改核心文件（如 `core/ai/free_model_pool.py`、钩子、启动器）前，先确认它的**真实调用链/是否活路径**（Grep 谁 import 它、谁启动它）。
   2. 改完必须跑对应验证（自测/一致性/单测），**不靠"应该没问题"**。
   3. 工具自身故障（如钩子报错）要先区分"我的代码问题"还是"工具 bug"，**手动用正确路径跑等价检查**确认，再决定 `--no-verify` 等例外。
 - **失败样例（顺带发现）**：修模型名时直接改 `.git/hooks/pre-commit`，没先查 `install_hooks.py` 发现钩子真源是 `tools/pre-commit-hook-wrapper.sh` → 改动会被重装覆盖。后查源修正。

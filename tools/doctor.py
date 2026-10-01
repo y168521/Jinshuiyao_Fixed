@@ -710,6 +710,9 @@ if __name__ == "__main__":
         print(f"\n{icon_err()} 体检过程本身出错了: {e}")
         import traceback
         traceback.print_exc()
-    # Windows下暂停，让用户看到结果
-    if sys.platform == "win32":
-        os.system("pause >nul 2>&1")
+    # Windows下暂停，让用户看到结果（仅交互终端）
+    if sys.platform == "win32" and sys.stdin.isatty():
+        try:
+            input("\n按回车键继续...")
+        except EOFError:
+            pass
