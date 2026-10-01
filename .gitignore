@@ -46,6 +46,8 @@ build/
 金水谣数据/users/
 金水谣数据/fund/
 金水谣数据/music/*.wav
+# 知识存储层运行时数据（WAL 只增不减，不适合进 git；历史版本由 archive/ 与版本链自持）
+金水谣数据/knowledge_store/
 *.log
 # JS-20260923-01：轮转日志 jinshuiyao.log.1 是"标签后置"形态，*.log 覆盖不到
 # （与 JS-20260921-03 的 *_bak 同一类坑），单个 10 MB 会被自动同步的 git add -A 扫进仓库
