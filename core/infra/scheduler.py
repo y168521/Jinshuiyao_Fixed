@@ -389,6 +389,20 @@ class JinshuiyaoScheduler(TaskScheduler):
                     refresh_strategy_cards()
                 except Exception as e:
                     logger.warning("[自动复盘] 策略卡提炼失败(降级跳过): %s", e)
+
+                # 自迭代闭环守卫：学习后刷新内存历史 + 链路失配探测。
+                # 修复「学了但决策还在用旧状态」的静默停摆：
+                # 复盘回写与大脑学习分处不同阶段，任一环节没跟上系统就会
+                # 拿着旧状态继续出预测，日志却一切正常。此处把失配显式暴露。
+                try:
+                    brain.refresh_history()
+                    from engines.self_iteration import probe_linkage
+                    st = probe_linkage(brain)
+                    logger.info("[自动复盘] 链路探测: 失配=%s 学习滞后=%s 空转风险=%s 备注=%s",
+                                st.mismatch_detected, st.learning_lag,
+                                st.spin_risk, st.notes)
+                except Exception as e:
+                    logger.warning("[自动复盘] 链路探测失败(降级跳过): %s", e)
             except Exception as e:
                 logger.error("[自动复盘] 智能大脑学习失败: %s", e)
 

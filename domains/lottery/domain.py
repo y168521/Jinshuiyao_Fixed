@@ -347,6 +347,9 @@ class LotteryDomain(DomainBase):
                             from utils.number_utils import parse_reds
                             actual_nums.extend(parse_reds(s.split("+")[0]) if "+" in s else parse_reds(s))
                         self._smart_brain.learn_from_review(lot, group["preds"], actual_nums)
+                    # 复盘回写后刷新内存历史：本会话是常驻单例大脑，
+                    # 不刷新则后续决策会一直用复盘前的旧历史（静默停摆）。
+                    self._smart_brain.refresh_history()
                 except Exception as e:
                     logger.warning("SmartBrain学习失败: %s", e)
 

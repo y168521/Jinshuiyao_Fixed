@@ -771,6 +771,110 @@ def check_prize_rules_freshness():
         return ["  PRIZE-RULES: 检查自身异常（%s: %s）" % (type(e).__name__, e)]
 
 
+def check_prize_rules_content(rules=None):
+    """⑭ 彩票官方中奖规则【内容级】校验（JS-20261002-15 复盘修复）
+
+    为什么要有这一项：项⑩ 只查 updated_at 日期，规则内容滞后但日期被一并刷成当天
+    照样『假绿』——大乐透 9→7 奖级改了 8 个月，JSON 的 updated_at 也跟着被刷成当天，
+    门禁一路全绿，直到用户看图才发现「九等奖早取消了」。这是「门禁要能红才算数」的
+    原型案例：能变绿的存量告警才是真告警，假绿比没有告警更危险。
+
+    本项做**内容级**校验（不抓官方站点，遵守「本地配置+过期提醒」铁律，避免页面改版
+    静默抓错规则）：
+      1. 结构完整性：每个 tier 有非空 tier 名；按 judge 模式要求条件字段
+         （red_blue 需非空 match / positional_consecutive·keno10 需 n / three_digit 按形态）；
+         prize 字段必须存在（浮动奖允许为 null，但键不能丢）。
+      2. 全局禁名：任何彩种都不得再出现「八等奖」「九等奖」——这俩是大乐透旧 9 级遗留，
+         其余彩种从不使用，一旦出现即等于规则被回退到旧版（项⑩ 假绿的同一根因）。
+      3. 大乐透专项：tier 集合必须**精确等于** 7 级（财综〔2025〕51号 第26014期
+         2026-01-31 起生效），多一级 / 少一级 / 改名都报——这是本次真实踩中的回归，必须能红。
+
+    能变绿：把 JSON 改回正确结构（或官方真改了规则时，同步更新本函数的 EXPECTED 常量
+    并回写 §三 阈值表）即可。读不出文件 / 无 rules 一律按失败（静默才是敌人）。
+    """
+    # 大乐透新规 7 级（财综〔2025〕51号 第26014期 2026-01-31 起生效）。
+    # 阈值/常量五件套：常量在此 + docstring 出处 + 闸门 watch(本函数即闸门) +
+    # 单测先红后绿(tests/unit/test_check_consistency.py) + §三 登记见金水谣_标准唯一真源.md。
+    DLT_EXPECTED_TIERS = ["一等奖", "二等奖", "三等奖", "四等奖",
+                          "五等奖", "六等奖", "七等奖"]
+    OBSOLETE_TIER_NAMES = {"八等奖", "九等奖"}
+    # 各 judge 模式要求的 per-tier 条件字段（three_digit 按形态判定，无 per-tier 条件）
+    COND_FIELD_BY_MODE = {
+        "red_blue": "match",
+        "positional_consecutive": "n",
+        "keno10": "n",
+    }
+    try:
+        if rules is None:
+            sys.path.insert(0, BASE_DIR)
+            from utils.lottery_prize import load_rules
+            rules = load_rules(force=True)
+        if not isinstance(rules, dict):
+            return ["  PRIZE-CONTENT: 官方奖级规则文件读不到或解析失败（%s）"
+                    % os.path.join(BASE_DIR, 'config', 'lottery_prize_rules.json')]
+        all_rules = rules.get("rules") or {}
+        if not isinstance(all_rules, dict) or not all_rules:
+            return ["  PRIZE-CONTENT: rules 为空，无奖级可校验"]
+        errors = []
+        for lot, spec in all_rules.items():
+            if not isinstance(spec, dict):
+                errors.append("  PRIZE-CONTENT: 彩种 %s 的规则条目不是对象" % lot)
+                continue
+            mode = spec.get("judge")
+            tiers = spec.get("tiers") or []
+            if not isinstance(tiers, list) or not tiers:
+                errors.append("  PRIZE-CONTENT: 彩种 %s 无有效奖级表（tiers 为空）" % lot)
+                continue
+            cond_field = COND_FIELD_BY_MODE.get(mode)
+            names = []
+            for idx, t in enumerate(tiers):
+                if not isinstance(t, dict):
+                    errors.append("  PRIZE-CONTENT: 彩种 %s 第 %d 个奖级不是对象" % (lot, idx))
+                    continue
+                name = t.get("tier")
+                if not isinstance(name, str) or not name.strip():
+                    errors.append("  PRIZE-CONTENT: 彩种 %s 第 %d 个奖级 tier 名为空" % (lot, idx))
+                else:
+                    names.append(name)
+                # 结构完整性：按 judge 模式要求条件字段非空
+                if cond_field:
+                    val = t.get(cond_field)
+                    if cond_field == "match":
+                        if not isinstance(val, list) or not val:
+                            errors.append("  PRIZE-CONTENT: 彩种 %s 奖级 %s 缺非空 match"
+                                          % (lot, name))
+                    else:  # n
+                        if not isinstance(val, int) or isinstance(val, bool):
+                            errors.append("  PRIZE-CONTENT: 彩种 %s 奖级 %s 缺整数 %s"
+                                          % (lot, name, cond_field))
+                # prize 字段存在性（浮动奖允许为 None，但键不能丢）
+                if "prize" not in t:
+                    errors.append("  PRIZE-CONTENT: 彩种 %s 奖级 %s 缺 prize 字段" % (lot, name))
+            # 重名检测
+            if len(names) != len(set(names)):
+                errors.append("  PRIZE-CONTENT: 彩种 %s 奖级名重复：%s" % (lot, names))
+            # 全局禁名：出现旧 9 级遗留即回归
+            bad = OBSOLETE_TIER_NAMES & set(names)
+            if bad:
+                errors.append("  PRIZE-CONTENT: 彩种 %s 含已取消的旧奖级 %s"
+                              "（大乐透 9→7 级后不应存在，出现即规则被回退）"
+                              % (lot, "、".join(sorted(bad))))
+            # 大乐透专项：精确 7 级
+            if lot == "大乐透":
+                if set(names) != set(DLT_EXPECTED_TIERS):
+                    missing = set(DLT_EXPECTED_TIERS) - set(names)
+                    extra = set(names) - set(DLT_EXPECTED_TIERS)
+                    errors.append(
+                        "  PRIZE-CONTENT: 大乐透奖级集合异常（应为精确 7 级：%s）。"
+                        "缺失=%s 多余=%s → 核对财综〔2025〕51号 第26014期 2026-01-31 起新规"
+                        % ("/".join(DLT_EXPECTED_TIERS),
+                           "、".join(sorted(missing)) or "无",
+                           "、".join(sorted(extra)) or "无"))
+        return errors
+    except Exception as e:  # 检查自身异常必须报出来，不能静默放行（与⑩一致）
+        return ["  PRIZE-CONTENT: 检查自身异常（%s: %s）" % (type(e).__name__, e)]
+
+
 def check_ai_decisions_freshness():
     """⑪ AI 决策卡新鲜度（JS-20260925-03）
 
@@ -1014,6 +1118,7 @@ def run_all(changed_files=None):
         '文档表格管道数': check_doc_tables,
         '标准阈值-代码常量': check_std_thresholds,
         '彩票奖级规则新鲜度': check_prize_rules_freshness,
+        '彩票奖级规则内容校验': check_prize_rules_content,
         'AI决策卡新鲜度': check_ai_decisions_freshness,
         '告警落盘契约': check_alert_sink_writers,
         '知识存储一致性': check_knowledge_store,

@@ -295,6 +295,60 @@ def _purge_pycache_if_stale(root):
             return 0
 
 
+def _boot_self_iteration():
+    """开机自迭代：自动复盘 + 「感知→推理→决策」链路失配探测。
+
+    背景：调度器虽已把 auto_review 注册为 run_now（开机补跑），但用户诉求是
+    「开机就复盘、且要看见系统有没有在用旧数据空转」。此处在启动链路里显式
+    触发一次，并把探测结果打到启动日志，让「静默停止进化」变成可见信号。
+
+    设计约束：
+      - 后台守护线程，绝不阻塞服务启动
+      - 复盘任务幂等（只处理未复盘记录），与调度器自身的开机补跑不冲突
+      - 任何异常一律降级打印，绝不影响门户打开
+    """
+
+    def _run():
+        try:
+            import time as _time
+            _time.sleep(60)  # 等调度器完成任务注册再触发
+            from engines.self_iteration import run_self_iteration
+            data_dir = os.path.join(BASE, "金水谣数据")
+
+            def _review_fn():
+                try:
+                    from core.infra.scheduler import get_scheduler
+                    sched = get_scheduler()
+                    if sched.run_once("auto_review"):
+                        return {"reviews": -1}  # 实际条数由任务内部日志体现
+                except Exception as e:
+                    print("[开机自迭代] 触发自动复盘失败(降级): %s" % e)
+                return {"reviews": 0}
+
+            def _knowledge_fn():
+                try:
+                    from engines.strategy_cards import refresh_strategy_cards
+                    refresh_strategy_cards()
+                except Exception as e:
+                    print("[开机自迭代] 知识卡更新失败(降级): %s" % e)
+
+            report = run_self_iteration(data_dir, review_fn=_review_fn,
+                                        knowledge_refresh_fn=_knowledge_fn)
+            after = report.get("after") or {}
+            print("[开机自迭代] 闭环状态: 失配=%s 学习滞后=%s 空转风险=%s 备注=%s" % (
+                after.get("mismatch_detected"), after.get("learning_lag"),
+                after.get("spin_risk"), after.get("notes")))
+        except Exception as e:
+            print("[开机自迭代] 异常(降级，不影响服务): %s" % e)
+
+    try:
+        t = threading.Thread(target=_run, daemon=True)
+        t.name = "boot_self_iteration"
+        t.start()
+    except Exception as e:
+        print("[开机自迭代] 线程启动失败(降级): %s" % e)
+
+
 def main():
     log_path = _install_log_tee()
     try:
@@ -342,6 +396,12 @@ def main():
                 device_sync.record_task(
                     did, f"金水谣助手已启动并就绪（{today}）",
                     "done", "每日首次启动自动记录，表示本机助手可用", device_sync.identify_device())
+        except Exception:
+            pass
+
+        # 开机自迭代：触发一次自动复盘并探测链路失配（后台线程，不阻塞启动）
+        try:
+            _boot_self_iteration()
         except Exception:
             pass
 

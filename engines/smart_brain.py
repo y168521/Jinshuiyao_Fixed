@@ -37,6 +37,10 @@ class SmartBrain:
         # 加载复盘数据
         self.history = self._load_history()
 
+        # 跨实例自愈基准时间（_ensure_fresh 据此判定文件是否已更新）
+        self._history_loaded_at = self._mtime(self.pred_file)
+        self._state_loaded_at = self._mtime(self.STATE_FILE)
+
         logger.info("智能大脑就绪 (学习记录: %d条)", len(self.history))
 
     def _load_state(self):
@@ -47,6 +51,7 @@ class SmartBrain:
             "digit_bias": {},            # {彩种: {数字: 偏差值}}
             "confidence_history": [],    # [{lot, confidence, actual_hits}]
             "total_reviews": 0,
+            "learned_review_count": 0,   # 大脑已学习的复盘记录数（链路失配检测用）
             "last_updated": "",
         }
         loaded = safe_load_json(self.STATE_FILE, default=None)
@@ -90,12 +95,37 @@ class SmartBrain:
         """刷新历史数据（复盘回写后调用，确保generate使用最新数据）"""
         self.history = self._load_history()
 
+    def _mtime(self, path):
+        """取文件 mtime（不存在/异常一律返回 0.0，绝不抛错）。"""
+        try:
+            return os.path.getmtime(path) if os.path.isfile(path) else 0.0
+        except OSError:
+            return 0.0
+
+    def _ensure_fresh(self):
+        """跨实例自愈：predictions.json / brain_state.json 比内存副本新时自动重载。
+
+        这是「越用越聪明、不空转」的核心 —— 任何长生命周期大脑实例
+        （domain 单例、prediction_service 单例）在每次决策前都会借此拿到
+        最新数据与最新学习成果，无需外部手动 refresh_history。
+        """
+        pred_mt = self._mtime(self.pred_file)
+        if pred_mt and pred_mt > getattr(self, "_history_loaded_at", 0.0):
+            self.history = self._load_history()
+            self._history_loaded_at = pred_mt
+        state_mt = self._mtime(self.STATE_FILE)
+        if state_mt and state_mt > getattr(self, "_state_loaded_at", 0.0):
+            self.state = self._load_state()
+            self._state_loaded_at = state_mt
+
     # ================================================================
     # 能力1: 置信度评分
     # ================================================================
 
     def assess_confidence(self, lot, hot_weights=None, final_hot=None):
         """评估当前预测的置信度
+
+        决策前先自愈，确保基于最新历史而非陈旧内存副本。
 
         综合三个维度:
         1. 近期命中率趋势 (40%权重) - 最近10期的命中趋势
@@ -105,6 +135,9 @@ class SmartBrain:
         Returns:
             float: 0.0-1.0 的置信度分数
         """
+        # 决策前自愈：确保基于最新历史而非陈旧内存副本
+        self._ensure_fresh()
+
         # 维度1: 近期命中率趋势
         trend_score = self._calc_hit_trend(lot)
 
@@ -233,9 +266,12 @@ class SmartBrain:
     def get_strategy_weights(self, lot):
         """获取各方案的推荐权重
 
+        决策前先自愈，确保基于最新历史而非陈旧内存副本。
+
         Returns:
             dict: {方案名: 权重(0-1)} 如 {"默认方案": 0.45, "智能融合": 0.30, "参考方案": 0.25}
         """
+        self._ensure_fresh()
         lot_reviews = [p for p in self.history if p.get('lot') == lot]
 
         if len(lot_reviews) < 10:
@@ -321,9 +357,13 @@ class SmartBrain:
         - 预测少但命中多 → 升权 (正偏差)
         - 遗漏极久的号码 → 升权 (冷号突破)
 
+        决策阶段优先复用复盘学到的精确偏差（基于真实开奖号），避免每次
+        从头重算并覆盖学习成果（「旧数据空转」根因修复）。
+
         Returns:
             dict: {数字: 修正系数(0.5-1.5)}
         """
+        self._ensure_fresh()
         lot_reviews = [p for p in self.history if p.get('lot') == lot]
 
         # 确定号码范围
@@ -335,6 +375,19 @@ class SmartBrain:
         }
         rmin, rmax = ranges.get(lot, (1, 35))
         all_digits = list(range(rmin, rmax + 1))
+
+        # 优先复用复盘学到的精确偏差（基于真实开奖号，跨实例可见且最准）
+        persisted = self.state.get("digit_bias", {}).get(lot)
+        if persisted and len(lot_reviews) >= 20:
+            adjustments = {d: float(persisted.get(str(d), 1.0)) for d in all_digits}
+            cold_bonus = self._get_cold_breakthrough(lot, all_digits)
+            for d, bonus in cold_bonus.items():
+                adjustments[d] = min(1.5, adjustments.get(d, 1.0) + bonus)
+            logger.info("[%s] 号码修正(复用学习偏差): 升权TOP3=%s, 降权TOP3=%s",
+                        lot,
+                        sorted(adjustments.items(), key=lambda x: -x[1])[:3],
+                        sorted(adjustments.items(), key=lambda x: x[1])[:3])
+            return adjustments
 
         if len(lot_reviews) < 20:
             return {d: 1.0 for d in all_digits}
@@ -430,6 +483,7 @@ class SmartBrain:
             actual_nums: 实际开奖号码列表
         """
         self.state["total_reviews"] = self.state.get("total_reviews", 0) + 1
+        self.state["learned_review_count"] = self.state.get("learned_review_count", 0) + len(predictions)
         self.state["last_updated"] = str(len(self.history))
 
         # 更新号码偏差
@@ -437,6 +491,8 @@ class SmartBrain:
 
         # 每次复盘都保存状态（确保重启不丢失学习成果）
         self._save_state()
+        # 关键修复：学习后立即刷新内存历史，使同一实例的后续决策即时用上新数据
+        self.refresh_history()
         logger.info("智能大脑学习状态已保存 (累计%d次复盘)", self.state["total_reviews"])
 
     def _update_digit_bias(self, lot, predictions, actual_nums):
