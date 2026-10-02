@@ -40,6 +40,44 @@ _PLAY_EXPECTED = {
 }
 
 
+def get_probability_baseline(lot):
+    """取彩种的理论概率基线（公平随机模型）。
+
+    把 `engines/lottery_probability.py` 的闭式解接进决策链路，随预测结果一起
+    返回，供看板/报告展示「随机基线」。
+
+    **诚实约束（不可逾越）**：
+        这是彩票本身的随机结构，是"瞎猜也能达到的水平"，
+        与"本系统预测得好不好"完全无关。它只能用于：
+          - 说明彩票的真实难度（如头奖 1/21425712）
+          - 作为对照基线，看实际命中是否偏离随机（通常是没偏离）
+        严禁把基线与 SQI/置信度混为一谈，严禁渲染成"中奖率提升"。
+
+    Args:
+        lot: 彩种名
+
+    Returns:
+        dict: {"ok": True, ...baseline...} 或 {"ok": False, "reason": str}
+              任何异常一律降级为 ok=False，绝不抛错打断预测生成。
+    """
+    try:
+        from engines.lottery_probability import ProbabilityEngine
+        summary = ProbabilityEngine(lot).probability_summary()
+        return {
+            "ok": True,
+            "lot": lot,
+            "sample_space_total": summary["sample_space"]["total"],
+            "jackpot_prob": summary["jackpot_prob"],
+            "expected_front_hits": summary["expected_front_hits"],
+            "at_least_one_front_prob": summary["at_least_one_front_prob"],
+            "win_any_prize_prob": summary["win_any_prize_prob"],
+            "honest_note": summary.get("honest_note", ""),
+        }
+    except Exception as e:
+        logger.debug("[%s] 概率基线不可用(降级): %s", lot, e)
+        return {"ok": False, "lot": lot, "reason": str(e)}
+
+
 class PredictionService:
     """彩票预测服务
 
@@ -579,6 +617,10 @@ class PredictionService:
                 confidence = {"score": None, "level": "unknown",
                               "signals": {}, "note": "信号质量指数暂不可用"}
 
+            # 理论随机基线：随结果一并返回，用于说明彩票真实难度与对照。
+            # 这是"瞎猜的水平"，不是本系统的预测能力（见 get_probability_baseline 诚实约束）。
+            probability_baseline = get_probability_baseline(lot)
+
             return {
                 "success": True,
                 "lot": lot,
@@ -591,6 +633,7 @@ class PredictionService:
                 "ref_features": ref_features,
                 "dimension_consensus": dim_consensus,
                 "six_ref": six_ref,
+                "probability_baseline": probability_baseline,
             }
 
         except Exception as e:
