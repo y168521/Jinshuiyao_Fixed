@@ -313,26 +313,49 @@ class JinshuiyaoScheduler(TaskScheduler):
             preds_data = _load_pred_cache_cached()
             if not isinstance(preds_data, list) or not preds_data:
                 logger.info("[自动复盘] 无预测数据，跳过复盘")
-                return {"reviews": 0, "skipped": 0, "reason": "无预测数据"}
+                return {"reviews": 0, "skipped": 0, "holiday_skipped": 0, "reason": "无预测数据"}
 
             unreviewed = [p for p in preds_data if isinstance(p, dict) and not p.get("reviewed")]
             if not unreviewed:
                 logger.info("[自动复盘] 无待复盘记录")
-                return {"reviews": 0, "skipped": 0, "reason": "无待复盘记录"}
+                return {"reviews": 0, "skipped": 0, "holiday_skipped": 0, "reason": "无待复盘记录"}
 
             logger.info("[自动复盘] 发现 %d 条待复盘记录", len(unreviewed))
 
             reviewed_now = []
             skip_no_draw = 0
+            # JS-20261002-21：休市感知。国庆/春节停售期间本来就没有开奖，
+            # 复盘必然跳过——但此前日志只笼统写「未开奖跳过」，人和 AI 都
+            # 据此误判成「数据源断了/抓取挂了」，白白往错误方向排查一圈。
+            # 现在把「休市」单独计数并写进日志，让跳过原因自解释。
+            skip_holiday = 0
+            market_closed_msg = None
+            try:
+                from utils.market_calendar import current_holiday
+                _holiday = current_holiday()
+                if _holiday is not None:
+                    market_closed_msg = "%s（%s~%s，预计 %s 恢复）" % (
+                        _holiday.get("name", "休市"),
+                        _holiday.get("start"), _holiday.get("end"),
+                        _holiday.get("resume_date") or "待公告")
+            except Exception:  # 日历不可用不影响复盘主流程
+                pass
+
             for pred in unreviewed:
                 lot = pred.get("lot", "")
                 per = pred.get("period")
                 if not Data.has_period(lot, per):
-                    skip_no_draw += 1
+                    if market_closed_msg:
+                        skip_holiday += 1
+                    else:
+                        skip_no_draw += 1
                     continue
                 act, dt = Data.result(lot, per)
                 if not act:
-                    skip_no_draw += 1
+                    if market_closed_msg:
+                        skip_holiday += 1
+                    else:
+                        skip_no_draw += 1
                     continue
 
                 pn = clean_nums(pred.get("nums", ""))
@@ -432,14 +455,18 @@ class JinshuiyaoScheduler(TaskScheduler):
             except Exception as e:
                 logger.error("[自动复盘] 智能大脑学习失败: %s", e)
 
-            logger.info("[自动复盘] 复盘完成 (已复盘 %d 条 / 未开奖跳过 %d 条)",
-                        len(reviewed_now), skip_no_draw)
+            logger.info("[自动复盘] 复盘完成 (已复盘 %d 条 / 未开奖跳过 %d 条 / "
+                        "休市跳过 %d 条%s)",
+                        len(reviewed_now), skip_no_draw, skip_holiday,
+                        ("，原因: " + market_closed_msg)
+                        if (market_closed_msg and skip_holiday) else "")
 
         except Exception as e:
             logger.error("[自动复盘] 自动复盘异常: %s", e, exc_info=True)
-            return {"reviews": 0, "skipped": 0, "error": str(e)}
+            return {"reviews": 0, "skipped": 0, "holiday_skipped": 0, "error": str(e)}
 
-        return {"reviews": len(reviewed_now), "skipped": skip_no_draw}
+        return {"reviews": len(reviewed_now), "skipped": skip_no_draw,
+                "holiday_skipped": skip_holiday}
 
     @staticmethod
     def _task_knowledge_extract():
