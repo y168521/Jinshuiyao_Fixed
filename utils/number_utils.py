@@ -512,63 +512,11 @@ def _validate_dantuo_dlt(raw, red_min, red_max, blue_min, blue_max):
     return True
 
 
-def prize_level(lot, hit_detail):
-    """奖级复盘：根据命中详情返回奖级名称"""
-    if lot == "双色球":
-        red_hit = hit_detail.get("red_hit", 0)
-        blue_hit = hit_detail.get("blue_hit", 0)
-        if red_hit == 6 and blue_hit:
-            return "一等奖"
-        if red_hit == 6:
-            return "二等奖"
-        if red_hit == 5 and blue_hit:
-            return "三等奖"
-        if red_hit == 5 or (red_hit == 4 and blue_hit):
-            return "四等奖"
-        if red_hit == 4 or (red_hit == 3 and blue_hit):
-            return "五等奖"
-        if blue_hit:
-            return "六等奖"
-        return "未中奖"
-    elif lot == "大乐透":
-        red_hit = hit_detail.get("red_hit", 0)
-        blue_hit = hit_detail.get("blue_hit", 0)
-        if red_hit == 5 and blue_hit == 2:
-            return "一等奖"
-        if red_hit == 5 and blue_hit == 1:
-            return "二等奖"
-        if red_hit == 5:
-            return "三等奖"
-        if red_hit == 4 and blue_hit == 2:
-            return "四等奖"
-        if red_hit == 4 and blue_hit == 1:
-            return "五等奖"
-        if red_hit == 3 and blue_hit == 2:
-            return "六等奖"
-        if red_hit == 4 or (red_hit == 3 and blue_hit == 1) or (red_hit == 2 and blue_hit == 2):
-            return "七等奖"
-        if red_hit == 3 or (red_hit == 1 and blue_hit == 2) or (red_hit == 2 and blue_hit == 1) or blue_hit == 2:
-            return "八等奖"
-        if blue_hit == 1:
-            return "九等奖"
-        return "未中奖"
-    elif lot in ["福彩3D", "排列三"]:
-        hit_type = hit_detail.get("type", "none")
-        if hit_type == "直选":
-            return "直选奖"
-        if hit_type == "组六" or hit_type == "组三":
-            return "组选奖"
-        return "未中奖"
-    elif lot == "七星彩":
-        seq = hit_detail.get("seq_hit", 0)
-        if seq >= 6:
-            return f"{'一二三四五六七八九'[min(seq-1,8)]}等奖"
-        return "未中奖"
-    elif lot == "快乐8":
-        hit = hit_detail.get("hit", 0)
-        mapping = {10: "一等奖", 9: "二等奖", 8: "三等奖", 7: "四等奖", 6: "五等奖", 5: "六等奖", 4: "七等奖", 0: "无"}
-        return mapping.get(hit, f"选十中{hit}")
-    return "未知"
+# 奖级判定已统一收敛到 utils.lottery_prize.judge_prize（JS-20261002-15）。
+# 原 prize_level() 是一份按彩种硬编码的旧奖级表（大乐透仍写 9 奖级、含九等奖），
+# 属 MEMORY 铁律所禁的「第四份口径 / 非唯一判定端点」，且与 2026-01-31 起
+# 大乐透 7 奖级新规冲突。此处删除死代码，任何奖级判定都必须走 judge_prize 单一端点。
+# 如需「命中详情 → 奖级」，请用 judge_prize(lot, pred_str, actual_str) 反推。
 
 
 def count_hits(lot, predict_nums, actual_nums):

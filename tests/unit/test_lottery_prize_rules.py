@@ -66,13 +66,68 @@ class TestOfficialPrizeJudge(unittest.TestCase):
         r = judge_prize("双色球", "01,02,03,04,05,06+07", "01,02,03,04,05,06+16")
         self.assertEqual(r["tier"], "二等奖")
 
-    def test_dlt_blue_only_is_ninth_prize(self):
+    def test_dlt_only_one_back_is_no_prize(self):
+        """新规（2026-01-31 起 7 奖级）：只中 1 个后区(0+1) 已不再中奖（旧九等奖取消）"""
         r = judge_prize("大乐透", "01,02,03,04,05+06,07", "11,12,13,14,15+06,09")
-        self.assertEqual(r["tier"], "九等奖")
+        self.assertEqual(r["status"], STATUS_LOSE)
+        self.assertIsNone(r["tier"])
 
     def test_dlt_one_front_no_back_is_no_prize(self):
         r = judge_prize("大乐透", "01,02,03,04,05+06,07", "01,11,12,13,14+08,09")
         self.assertEqual(r["status"], STATUS_LOSE)
+
+    def test_dlt_two_back_is_seventh_prize(self):
+        """0+2（两个后区全中）属七等奖"""
+        r = judge_prize("大乐透", "01,02,03,04,05+06,07", "11,12,13,14,15+06,07")
+        self.assertEqual(r["tier"], "七等奖")
+
+    def test_dlt_three_front_is_seventh_prize(self):
+        r = judge_prize("大乐透", "01,02,03,04,05+06,07", "01,02,03,11,12+08,09")
+        self.assertEqual(r["tier"], "七等奖")
+
+    def test_dlt_five_front_is_third_prize(self):
+        r = judge_prize("大乐透", "01,02,03,04,05+06,07", "01,02,03,04,05+08,09")
+        self.assertEqual(r["tier"], "三等奖")
+
+    def test_dlt_four_front_two_back_is_third_prize(self):
+        r = judge_prize("大乐透", "01,02,03,04,05+06,07", "01,02,03,04,11+06,07")
+        self.assertEqual(r["tier"], "三等奖")
+
+    def test_dlt_four_front_one_back_is_fourth_prize(self):
+        r = judge_prize("大乐透", "01,02,03,04,05+06,07", "01,02,03,04,11+06,09")
+        self.assertEqual(r["tier"], "四等奖")
+
+    def test_dlt_four_front_is_fifth_prize(self):
+        r = judge_prize("大乐透", "01,02,03,04,05+06,07", "01,02,03,04,11+08,09")
+        self.assertEqual(r["tier"], "五等奖")
+
+    def test_dlt_three_front_two_back_is_fifth_prize(self):
+        r = judge_prize("大乐透", "01,02,03,04,05+06,07", "01,02,03,11,12+06,07")
+        self.assertEqual(r["tier"], "五等奖")
+
+    def test_dlt_three_front_one_back_is_sixth_prize(self):
+        r = judge_prize("大乐透", "01,02,03,04,05+06,07", "01,02,03,11,12+06,09")
+        self.assertEqual(r["tier"], "六等奖")
+
+    def test_dlt_two_front_two_back_is_sixth_prize(self):
+        r = judge_prize("大乐透", "01,02,03,04,05+06,07", "01,02,11,12,13+06,07")
+        self.assertEqual(r["tier"], "六等奖")
+
+    def test_dlt_jackpot(self):
+        r = judge_prize("大乐透", "01,02,03,04,05+06,07", "01,02,03,04,05+06,07")
+        self.assertEqual(r["tier"], "一等奖")
+
+    def test_dlt_second_prize(self):
+        r = judge_prize("大乐透", "01,02,03,04,05+06,07", "01,02,03,04,05+06,09")
+        self.assertEqual(r["tier"], "二等奖")
+
+    def test_dlt_high_pool_prize_recorded(self):
+        """奖池≥8亿 的上浮档须记录在 prize_high_pool 字段（不丢信息）"""
+        rules = load_rules(force=True)
+        dlt = rules["rules"]["大乐透"]
+        tier3 = next(t for t in dlt["tiers"] if t["tier"] == "三等奖")
+        self.assertEqual(tier3["prize"], 5000)
+        self.assertEqual(tier3["prize_high_pool"], 6666)
 
     def test_qlc_one_hit_is_seventh_prize(self):
         """七乐彩最低奖：中 1 个基本号即七等奖（开奖数据不含特别号，后区恒 0）"""
