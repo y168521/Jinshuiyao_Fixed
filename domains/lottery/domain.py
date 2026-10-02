@@ -350,6 +350,20 @@ class LotteryDomain(DomainBase):
                     # 复盘回写后刷新内存历史：本会话是常驻单例大脑，
                     # 不刷新则后续决策会一直用复盘前的旧历史（静默停摆）。
                     self._smart_brain.refresh_history()
+
+                    # 策略修正器复盘后学习（JS-20261002-18）：
+                    # update_after_review 此前全仓 0 调用点，导致换血/组六对冲
+                    # 永久失效。统一走 risk_controller.learn_from_review 单一入口。
+                    try:
+                        from engines.risk_controller import learn_from_review as _rc_learn
+                        latest = max(group["preds"], key=lambda p: p.get("nums", "")) \
+                            if group["preds"] else None
+                        _rc_learn(lot,
+                                  (latest or {}).get("nums", ""),
+                                  group["actual"][0] if group["actual"] else "",
+                                  max((p.get("hits", 0) for p in group["preds"]), default=0))
+                    except Exception as _e:
+                        logger.warning("策略修正器学习失败(降级跳过): %s", _e)
                 except Exception as e:
                     logger.warning("SmartBrain学习失败: %s", e)
 

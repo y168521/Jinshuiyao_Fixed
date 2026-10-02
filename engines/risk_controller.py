@@ -192,3 +192,44 @@ def get_corrector():
     if _corrector is None:
         _corrector = StrategyCorrector()
     return _corrector
+
+
+def learn_from_review(lot, pred_nums, actual_nums, hits):
+    """复盘后学习（**唯一接线点**）：把本期结果喂给策略修正器并落盘。
+
+    历史缺陷（JS-20261002-18）：
+        `update_after_review()` 此前**全仓 0 调用点**，而 `pool_zeros` /
+        `recent_forms` 只在它里面递增。后果是 `need_blood_change()` 恒为
+        False、`get_group3_weight_multiplier()` 恒为 1.0 —— 本模块文档声称的
+        「号码池换血 / 组六对冲 / 冷热自适应」三大修正机制**全部永久失效**，
+        且日志从不报错，只是静默地不生效。
+        硬证据：`金水谣数据/risk_state.json` 的 mtime 停在 2026-07-14，
+        两个半月没有被写过。
+
+    安全性（唤醒休眠逻辑前已审）：
+        仅改写 risk_state.json 自身的计数器/列表（recent_forms 封顶 10、
+        last_pool 有限），不触碰 predictions.json 等任何核心档案，故可安全接线。
+
+    Args:
+        lot: 彩种名
+        pred_nums: 预测号码（字符串或列表）
+        actual_nums: 开奖号码（字符串或列表）
+        hits: 命中数
+
+    Returns:
+        bool: 是否成功（失败只记日志，绝不打断复盘主流程）
+    """
+    try:
+        pool = parse_reds(pred_nums) if isinstance(pred_nums, str) else list(pred_nums or [])
+        acts = parse_reds(actual_nums) if isinstance(actual_nums, str) else list(actual_nums or [])
+        get_corrector().update_after_review(lot, pool, acts, int(hits or 0))
+        return True
+    except Exception as e:
+        # 复盘主链路不能被旁路功能打断
+        try:
+            import logging
+            logging.getLogger(__name__).warning(
+                "[策略修正] 复盘后更新失败(降级跳过): %s", e)
+        except Exception:
+            pass
+        return False

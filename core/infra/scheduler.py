@@ -390,6 +390,24 @@ class JinshuiyaoScheduler(TaskScheduler):
                 except Exception as e:
                     logger.warning("[自动复盘] 策略卡提炼失败(降级跳过): %s", e)
 
+                # 策略修正器复盘后学习（JS-20261002-18）：
+                # update_after_review 此前全仓 0 调用点 → 换血/组六对冲永久失效。
+                # 统一委托 engines.risk_controller.learn_from_review（单一入口）。
+                try:
+                    from engines.risk_controller import learn_from_review as _rc_learn
+                    for lot_name in sorted(reviewed_lots):
+                        lp = [p for p in reviewed_now if p.get("lot") == lot_name]
+                        if not lp:
+                            continue
+                        latest_p = max(lp, key=lambda p: p.get("period", 0))
+                        if Data.has_period(lot_name, latest_p.get("period", 0)):
+                            _ad, _ = Data.result(lot_name, latest_p.get("period", 0))
+                            if _ad:
+                                _rc_learn(lot_name, latest_p.get("nums", ""),
+                                          clean_nums(_ad), latest_p.get("hits", 0))
+                except Exception as e:
+                    logger.warning("[自动复盘] 策略修正器学习失败(降级跳过): %s", e)
+
                 # 自迭代闭环守卫：学习后刷新内存历史 + 链路失配探测。
                 # 修复「学了但决策还在用旧状态」的静默停摆：
                 # 复盘回写与大脑学习分处不同阶段，任一环节没跟上系统就会
