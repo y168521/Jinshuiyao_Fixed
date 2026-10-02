@@ -316,11 +316,22 @@ def _boot_self_iteration():
             data_dir = os.path.join(BASE, "金水谣数据")
 
             def _review_fn():
+                """同步触发自动复盘，并回传**真实**复盘条数。
+
+                JS-20261002-20：此前用 run_once 的异步触发，函数立刻返回
+                True，自迭代随即在「复盘还没跑完」的旧状态上做探测 →
+                失配恒为 True 的**假警**（常驻假警比没有探测更糟）；且拿不到
+                条数只能硬编码 -1，日志打出「复盘-1条」这种误导数字。
+                现改为 wait=True 同步等待（带超时兜底，超时不中断后台任务）。
+                """
                 try:
                     from core.infra.scheduler import get_scheduler
                     sched = get_scheduler()
-                    if sched.run_once("auto_review"):
-                        return {"reviews": -1}  # 实际条数由任务内部日志体现
+                    res = sched.run_once("auto_review", wait=True, timeout=300)
+                    if isinstance(res, dict):
+                        return res
+                    if res is None:
+                        return {"reviews": 0, "reason": "任务不存在或等待超时"}
                 except Exception as e:
                     print("[开机自迭代] 触发自动复盘失败(降级): %s" % e)
                 return {"reviews": 0}

@@ -290,6 +290,14 @@ class JinshuiyaoScheduler(TaskScheduler):
           （JS-20260924-32：统一走 utils.review_writeback.stamp_review 单一真源，
            此前手写字段漏了 actual，导致自动复盘的记录查不到开奖号）
         - 分组喂给 SmartBrain.learn_from_review 学习
+
+        Returns:
+            dict: {"reviews": 本次复盘条数, "skipped": 未开奖跳过条数,
+                   "reason"/"error": 可选说明}
+
+                JS-20261002-20：此前本函数**无任何带值 return**，调用方（开机
+                自迭代编排）永远拿不到复盘条数，只能硬编码 -1 哨兵占位，日志
+                打出「复盘-1条」这种误导性数字。现统一返回真实条数。
         """
         logger.info("[自动复盘] 开始自动复盘...")
 
@@ -305,12 +313,12 @@ class JinshuiyaoScheduler(TaskScheduler):
             preds_data = _load_pred_cache_cached()
             if not isinstance(preds_data, list) or not preds_data:
                 logger.info("[自动复盘] 无预测数据，跳过复盘")
-                return
+                return {"reviews": 0, "skipped": 0, "reason": "无预测数据"}
 
             unreviewed = [p for p in preds_data if isinstance(p, dict) and not p.get("reviewed")]
             if not unreviewed:
                 logger.info("[自动复盘] 无待复盘记录")
-                return
+                return {"reviews": 0, "skipped": 0, "reason": "无待复盘记录"}
 
             logger.info("[自动复盘] 发现 %d 条待复盘记录", len(unreviewed))
 
@@ -429,6 +437,9 @@ class JinshuiyaoScheduler(TaskScheduler):
 
         except Exception as e:
             logger.error("[自动复盘] 自动复盘异常: %s", e, exc_info=True)
+            return {"reviews": 0, "skipped": 0, "error": str(e)}
+
+        return {"reviews": len(reviewed_now), "skipped": skip_no_draw}
 
     @staticmethod
     def _task_knowledge_extract():

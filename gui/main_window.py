@@ -1815,6 +1815,10 @@ class App:
                 svc = PredictionService(
                     killer=self.killer,
                     evolve=self.evolve,
+                    # JS-20261002-20：此前漏传 brain，导致 self.brain=None，
+                    # _apply_brain_adjustments 因守卫整段跳过 → 大脑学到的
+                    # digit_bias 从未影响出号，"点今日预测还是旧数据"。
+                    brain=self.brain,
                     engine_states=self.engine_states,
                     hot_window=self.hot_window,
                     on_log=self.log
@@ -2001,6 +2005,10 @@ class App:
             svc = PredictionService(
                 killer=self.killer,
                 evolve=self.evolve,
+                # JS-20261002-20：此前漏传 brain → self.brain=None →
+                # _apply_brain_adjustments 守卫整段跳过，大脑学到的
+                # digit_bias 从未影响出号，用户表现为「点今日预测还是旧数据」。
+                brain=self.brain,
                 engine_states=self.engine_states,
                 hot_window=self.hot_window,
                 on_log=self.log

@@ -67,6 +67,17 @@ class MiroFishDB:
             logger.error("知识库加载失败: %s", e)
             return default
 
+    def save(self):
+        """公开保存接口（JS-20261002-20）。
+
+        历史静默 bug：`engines/prediction_service.py::_consult_knowledge`
+        更新完 use_count 后调用 `db.save()`，但本类**只有 `_save()`** →
+        AttributeError 被调用方的 `except` 吞掉，只留一行 WARNING 日志，
+        导致 use_count **永久不落盘**、经验卡「用得多的排前面」长期失真。
+        此处补公开别名，使 save() 名副其实，调用方无需再猜私有名。
+        """
+        return self._save()
+
     def _save(self):
         """保存数据库（原子写入）"""
         self._update_stats()

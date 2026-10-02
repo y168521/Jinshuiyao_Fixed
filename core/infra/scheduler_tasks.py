@@ -229,20 +229,50 @@ class TaskScheduler:
     # 手动触发
     # ------------------------------------------------------------------
 
-    def run_once(self, name):
+    def run_once(self, name, wait=False, timeout=None):
         """手动触发某个任务执行一次
 
         Args:
             name: 任务名称
+            wait: False(默认)=在独立线程异步执行并立即返回 True（旧行为）；
+                  True=**同步等待**执行完毕，并回传任务函数的返回值。
+            timeout: wait=True 时的最长等待秒数（None=不限）。
+                     超时返回 None，但后台线程会继续跑完，不中断任务。
 
         Returns:
-            bool: 是否成功触发
+            wait=False → bool（是否成功触发）
+            wait=True  → 任务函数返回值；任务不存在/执行异常/超时 → None
+
+        为什么需要 wait（JS-20261002-20）：
+            调用方若要在任务**做完之后**再读它写的数据（典型是开机自迭代：
+            先复盘 → 再探测「感知→推理→决策」链路是否闭合），异步触发会
+            让后续步骤读到任务完成前的旧状态，探测结果变成**恒真的假失配**
+            ——这比没有探测更糟，因为常驻假警会让人习惯性忽略真异常。
         """
         with self._lock:
             task = self._tasks.get(name)
             if task is None:
                 logger.warning("尝试执行不存在的任务 '%s'", name)
-                return False
+                return None if wait else False
+
+        if wait:
+            done = threading.Event()
+            box = {}
+
+            def _sync_run():
+                try:
+                    box["value"] = self._execute_task(name)
+                finally:
+                    done.set()
+
+            t = threading.Thread(target=_sync_run, daemon=True)
+            t.name = "scheduler_once_sync_{}".format(name)
+            t.start()
+            if not done.wait(timeout):
+                logger.warning("[调度器] 任务 '%s' 同步等待超时(%ss)，"
+                               "转为后台继续执行", name, timeout)
+                return None
+            return box.get("value")
 
         # 在独立线程中执行，避免阻塞调用方
         thread = threading.Thread(
@@ -270,6 +300,7 @@ class TaskScheduler:
               - next_run: 下次执行时间 (ISO 格式字符串或 None)
               - run_count: 累计执行次数
               - last_error: 上次错误信息 (或 None)
+              - last_result: 上次执行的产出（任务函数返回值，可能为 None）
         """
         with self._lock:
             result = []
@@ -282,6 +313,9 @@ class TaskScheduler:
                     "next_run": task["next_run"],
                     "run_count": task["run_count"],
                     "last_error": task["last_error"],
+                    # JS-20261002-20：任务上一次执行的产出（如复盘条数），
+                    # 便于外部确认"跑了"之外还能确认"跑出了什么"
+                    "last_result": task.get("last_result"),
                 })
             return result
 
@@ -364,6 +398,7 @@ class TaskScheduler:
         t_start = time.time()
         _exec_success = False
         _exec_error = None
+        result = None
 
         try:
             func = task["func"]
@@ -375,6 +410,10 @@ class TaskScheduler:
                 task["last_run"] = datetime.now().isoformat()
                 task["run_count"] += 1
                 task["last_error"] = None
+                # JS-20261002-20：保留任务产出，供 run_once(wait=True) 与
+                # status() 回传。此前 result 被丢弃，调用方拿不到任务结果
+                # （如自动复盘的条数），只能靠日志猜。
+                task["last_result"] = result
             # JS-20260925-04：仅在成功时落盘，失败留待下次补跑
             _persist_lastrun(name)
 
@@ -416,3 +455,7 @@ class TaskScheduler:
                 _f.write(_json.dumps(_entry, ensure_ascii=False) + "\n")
         except Exception:
             pass  # 日志写入失败不影响任务执行
+
+        # JS-20261002-20：回传任务产出（失败时为 None），
+        # 让 run_once(wait=True) 的调用方能拿到真实结果而不是 bool。
+        return result

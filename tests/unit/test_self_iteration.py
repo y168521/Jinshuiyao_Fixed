@@ -102,6 +102,44 @@ class TestProbeLinkage(_Base):
         self.assertFalse(status.spin_risk)
 
 
+class TestNoStateClobber(_Base):
+    """类2 隐患：同一持久化文件被多个实例写，最后写入者可能抹掉别人的学习成果。
+
+    brain_state.json 有多个写入方（smart_brain.learn_from_review /
+    prediction_service.generate / watchdog）。若某个长生命周期实例的
+    内存 state 是陈旧的，它一落盘就会把别的实例刚学到的 digit_bias 抹掉。
+    _ensure_fresh() 必须在写之前自愈，本测试把这个不变量锁死。
+    """
+
+    def test_stale_instance_does_not_clobber_fresh_learning(self):
+        # 实例 B：先加载（此时还没有任何学习成果），模拟常驻单例
+        b = _mk_brain(self._tmp)
+        _seed_preds(b.pred_file, 25, hits=1)
+        b.history = b._load_history()
+        self.assertEqual(b.state.get("digit_bias", {}).get("大乐透"), None)
+
+        # 实例 A：学习并落盘（另一条链路，如调度器自动复盘）
+        a = _mk_brain(self._tmp)
+        a.history = a._load_history()
+        a.learn_from_review(
+            "大乐透",
+            [{"nums": "01,02,03,04,05+06,07", "hits": 2}],
+            [1, 2, 3, 4, 5, 6, 7],
+        )
+        learned = dict(a.state["digit_bias"]["大乐透"])
+        self.assertTrue(learned, "学习成果未产生")
+
+        # 实例 B 走一次决策（assess_confidence 内部会 _ensure_fresh 自愈）后再落盘
+        b.assess_confidence("大乐透")
+        b._save_state()
+
+        # 关键断言：B 的落盘不得抹掉 A 学到的偏差
+        after = _mk_brain(self._tmp)
+        self.assertEqual(
+            dict(after.state["digit_bias"].get("大乐透", {})), learned,
+            "陈旧实例落盘抹掉了刚学到的 digit_bias（_ensure_fresh 未生效）")
+
+
 class TestRunSelfIteration(_Base):
     def test_run_self_iteration_closes_loop(self):
         from engines.self_iteration import run_self_iteration

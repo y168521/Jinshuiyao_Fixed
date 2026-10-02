@@ -196,7 +196,11 @@ def run_self_iteration(data_dir, review_fn=None, knowledge_refresh_fn=None):
     """
     report = {
         "data_dir": data_dir,
-        "reviews": 0,
+        # None = 未知（复盘阶段未同步等待/未提供条数）。
+        # 绝不用 -1 之类的哨兵数字占位——那会被日志打成「复盘-1条」，
+        # 读日志的人要么以为复盘失败，要么以为真复盘了负一条。
+        # JS-20261002-20。
+        "reviews": None,
         "learned": False,
         "knowledge_updated": False,
         "review_error": None,
@@ -211,7 +215,9 @@ def run_self_iteration(data_dir, review_fn=None, knowledge_refresh_fn=None):
     if review_fn is not None:
         try:
             res = review_fn() or {}
-            report["reviews"] = res.get("reviews", 0)
+            # None = 调用方未提供条数（未知），保持 None 而不填 0，
+            # 避免把「没数」伪装成「复盤了 0 条」
+            report["reviews"] = res.get("reviews")
         except Exception as e:
             report["review_error"] = str(e)
             logger.warning("[自迭代] 复盘阶段失败(降级继续): %s", e)
@@ -242,8 +248,12 @@ def run_self_iteration(data_dir, review_fn=None, knowledge_refresh_fn=None):
     except Exception as e:
         logger.warning("[自迭代] 闭环验证失败: %s", e)
 
-    logger.info("[自迭代] 完成: 复盘%d条 / 学习=%s / 知识更新=%s / 失配=%s",
-                report["reviews"], report["learned"],
-                report["knowledge_updated"],
-                (report["after"] or {}).get("mismatch_detected"))
+    after = report.get("after") or {}
+    reviews = report["reviews"]
+    # 未知就写「未知」，绝不写 -1 之类的魔数（JS-20261002-20）
+    reviews_txt = "未知" if reviews is None else str(reviews)
+    logger.info("[自迭代] 完成: 复盘%s条 / 学习=%s / 知识更新=%s / "
+                "失配=%s / 学习滞后=%s",
+                reviews_txt, report["learned"], report["knowledge_updated"],
+                after.get("mismatch_detected"), after.get("learning_lag"))
     return report
