@@ -163,5 +163,34 @@ class TestWiredIntoReview(unittest.TestCase):
         self.assertIn("holiday_skipped", src)
 
 
+class TestDrawDateColumnIsHonest(unittest.TestCase):
+    """「开奖日期」列不能拿生成时间冒充（JS-20261006-01）。
+
+    国庆休市期间 10-01 生成的号要到 10-05 才开奖，界面却把生成时间标成
+    「日期」，用户据此认为开奖日期出错。
+    """
+
+    def test_column_renamed(self):
+        src = io.open(os.path.join(BASE, "gui", "main_window.py"),
+                      encoding="utf-8").read()
+        self.assertIn('"开奖日期"', src)
+
+    def test_fills_via_helper(self):
+        """填充必须走 _fmt_draw_date，不能直接 p.get('date')。"""
+        src = io.open(os.path.join(BASE, "gui", "main_window.py"),
+                      encoding="utf-8").read()
+        self.assertIn("_fmt_draw_date(p)", src)
+        self.assertNotIn('date = str(p.get("date", ""))', src)
+
+    def test_helper_reads_draw_date(self):
+        src = io.open(os.path.join(BASE, "gui", "main_window.py"),
+                      encoding="utf-8").read()
+        i = src.find("def _fmt_draw_date")
+        self.assertGreater(i, 0)
+        body = src[i:i + 1200]
+        self.assertIn('pred.get("draw_date")', body)
+        self.assertIn("待开奖", body)
+
+
 if __name__ == "__main__":
     unittest.main()

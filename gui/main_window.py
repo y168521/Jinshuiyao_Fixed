@@ -63,8 +63,38 @@ PRED_TABLE_COLUMNS = (
     ("hits", "命中", 50),
     ("coverage", "覆盖度", 60),
     ("status", "状态", 70),
-    ("date", "日期", 130),
+    # JS-20261006-01：此列原名「日期」却显示 date（=生成时间），国庆休市期间
+    # 10-01 生成的号要到 10-05 才开奖，两者差 4 天，用户看到「日期不对」。
+    # 改为显示真正的开奖日期 draw_date；未开奖显示「待开奖」。
+    ("date", "开奖日期", 130),
 )
+
+
+def _fmt_draw_date(pred):
+    """预测记录「开奖日期」列的显示值（JS-20261006-01）。
+
+    此前该列取 `date` 字段——那是**生成时间**，不是开奖日期。平时两者只差
+    一天，看不出问题；但国庆休市期间 10-01 生成的号要到 10-05 才开奖，
+    差了 4 天，用户据此认为「开奖日期出现错误」。
+
+    改为：已开奖显示真实 `draw_date`；未开奖显示「待开奖」，若正逢休市则
+    一并说明原因与预计恢复日，避免用户以为系统坏了。
+    """
+    d = pred.get("draw_date")
+    if d:
+        return str(d)
+    if pred.get("reviewed"):
+        return "-"
+    try:
+        from utils.market_calendar import current_holiday
+        holiday = current_holiday()
+        if holiday is not None:
+            return "待开奖（%s，预计%s恢复）" % (
+                holiday.get("name", "休市"),
+                holiday.get("resume_date") or "待公告")
+    except Exception:
+        pass
+    return "待开奖"
 
 # ==================== 项目模块导入 ====================
 from config import (VERSION, LOT_ALL, LOT_ALIAS, LOTTERY_RULES, ENGINE_NAMES,
@@ -811,7 +841,8 @@ class App:
             cov_str = f"{coverage*100:.0f}%" if coverage is not None else "-"
             reviewed = p.get("reviewed", False)
             status = "已复盘" if reviewed else "待复盘"
-            date = str(p.get("date", ""))
+            # JS-20261006-01：显示真实开奖日期（而非生成时间）
+            date = _fmt_draw_date(p)
             row_tag = 'odd' if idx % 2 == 0 else 'even'
             status_tag = 'reviewed' if reviewed else 'pending'
             self.tree.insert("", tk.END, values=(period, lot, nums, ptype, scheme, sqi, hits_str, cov_str, status, date),
