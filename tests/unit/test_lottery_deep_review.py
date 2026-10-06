@@ -79,33 +79,37 @@ class TestJudgeConsistency(unittest.TestCase):
         self.assertAlmostEqual(p, 0.0667, delta=0.01)
 
 
-class TestKnownDantuoDefect(unittest.TestCase):
-    """已知缺陷留证：judge_prize 判不了胆拖
+class TestDantuoDefectFixed(unittest.TestCase):
+    """胆拖缺陷已修复 —— 本类由「已知缺陷留证」改造为回归锁（JS-20261006-03 / JS-20261007-02）
 
+    原缺陷：judge_prize / count_match 按逗号切分号码串，判不了胆拖。
     证据（大乐透 2026083 期）：nums=[前区胆:23,27 拖:14,16,25,26] [后区胆:12 拖:01,07]
-    正确结果 = 前区 4 + 后区 1 = 四等奖；系统判定 = 未中奖。
-    统计佐证：28 条大乐透胆拖平均命中 0.250，正确算法 0.929（低估 3.7 倍）。
+    正确结果 = 前区 4 + 后区 1 = 四等奖；修复前系统判定 = 未中奖（hits=1）。
+    统计佐证：大乐透胆拖平均命中修复前 0.241，修复后 0.897。
+    现已修复并把历史记录重算到位，故断言改为「必须正确」，防止回退。
     """
 
     DANTUO_NUMS = "[前区胆:23,27 拖:14,16,25,26] [后区胆:12 拖:01,07]"
     DANTUO_ACTUAL = "14,15,16,23,26+07,09"
 
-    @unittest.skip("已知缺陷待修复：judge_prize 按逗号切分，无法解析胆拖写法")
-    def test_judge_prize_should_handle_dantuo(self):
+    def test_judge_prize_handles_dantuo(self):
+        """修复后：judge_prize 必须能解析胆拖并判出四等奖"""
         from utils.lottery_prize import judge_prize
         res = judge_prize("大乐透", self.DANTUO_NUMS, self.DANTUO_ACTUAL)
         self.assertEqual(res.get("tier"), "四等奖")
 
-    def test_system_record_is_wrong(self):
-        """留证：系统里这注记的是 hits=1 / 未中奖"""
+    def test_system_record_is_now_correct(self):
+        """修复并重算后：历史记录必须是 hits=4 / 四等奖 / win"""
         import json
         preds = json.load(io.open(os.path.join(
             BASE, "金水谣数据", "predictions.json"), encoding="utf-8"))
         hit = [p for p in preds if p.get("lot") == "大乐透"
                and p.get("period") == 2026083 and p.get("type") == "胆拖"]
         self.assertTrue(hit, "该期胆拖记录应存在")
-        self.assertEqual(hit[0].get("hits"), 1)
-        self.assertIsNone(hit[0].get("prize_tier"))
+        self.assertEqual(hit[0].get("hits"), 4,
+                         "重算后应为 4；若为 1 说明修复或重算被回退")
+        self.assertEqual(hit[0].get("prize_tier"), "四等奖")
+        self.assertEqual(hit[0].get("prize_status"), "win")
 
     def test_correct_algorithm_finds_the_prize(self):
         """正确算法确实算出 4+1 四等奖 —— 证明上面那条 skip 不是误报"""

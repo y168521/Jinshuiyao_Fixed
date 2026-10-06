@@ -105,7 +105,10 @@ def count_match(lot, pred_str, actual_str):
         # 胆拖：按逗号切分会切出 "[前区胆:23" 这类片段，命中数严重失真
         # （实测 28 条大乐透胆拖：0.250 vs 正确 0.929）。走胆拖专用解析，
         # 取「最优一注」的前区命中数；解析不出则返回 0 且不判命中。
-        if is_dantuo(pred_str):
+        # 仅「有前后区结构」的彩种才走胆拖分支（JS-20261007-02）：
+        # 福彩3D/排列三按位比对、七星彩按位、快乐8集合交集，它们没有 k 个主号的
+        # 「胆+拖」语义，若被这里拦截会用 k=5 兜底算出错误命中数（回归风险）。
+        if is_dantuo(pred_str) and lot in ("双色球", "大乐透", "七乐彩"):
             st = parse_dantuo(pred_str)
             if st is None:
                 return 0, False

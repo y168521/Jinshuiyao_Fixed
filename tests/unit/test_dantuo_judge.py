@@ -60,6 +60,42 @@ class TestBackwardCompat(unittest.TestCase):
         self.assertEqual(count_match("福彩3D", "1,2,3", "1,2,3")[0], 3)
 
 
+class TestDantuoBranchScope(unittest.TestCase):
+    """胆拖分支的作用域（JS-20261007-02）
+
+    只有「有前后区结构」的彩种（双色球/大乐透/七乐彩）才走胆拖解析。
+    福彩3D/排列三/七星彩/快乐8 没有「k 个主号 + 胆拖」语义，被拦截后会用
+    k=5 兜底算出错误命中数 —— 那是**回归**不是修复，必须锁死。
+    """
+
+    def test_3d_dantuo_not_hijacked(self):
+        """3D 的胆拖字符串必须走 3D 按位/多重集逻辑，不得走胆拖分支"""
+        nums = "[胆:07]拖:02,06,09"
+        actual = "0,7,9"
+        n, _ = count_match("福彩3D", nums, actual)
+        # 走 3D 分支：从字符串里抽出的数字与开奖号做多重集交集
+        from utils.number_utils import parse_reds
+        from collections import Counter
+        pc = Counter(parse_reds(nums.split("+")[0]))
+        ac = Counter(parse_reds(actual.split("+")[0]))
+        expect = sum(min(v, ac.get(kk, 0)) for kk, v in pc.items())
+        self.assertEqual(n, expect,
+                         "3D 胆拖被胆拖分支拦截了（回归），实际=%r 期望=%r" % (n, expect))
+
+    def test_p3_dantuo_not_hijacked(self):
+        n, _ = count_match("排列三", "[胆:03]拖:01,04,05", "0,3,1")
+        self.assertLessEqual(n, 3, "排列三命中数不可能超过 3，实际=%r" % n)
+
+    def test_dlt_dantuo_still_uses_dantuo_branch(self):
+        """反向验证：大乐透胆拖仍必须走胆拖分支（算出 4，不是 0）"""
+        n, _ = count_match("大乐透", DLT_NUMS, DLT_ACTUAL)
+        self.assertEqual(n, 4)
+
+    def test_kl8_dantuo_not_hijacked(self):
+        n, _ = count_match("快乐8", "[胆:08,33,53]拖:03,07,11,18,24,36,38,39", "08,33,07,11,18")
+        self.assertLessEqual(n, 20, "快乐8 命中数异常=%r" % n)
+
+
 class TestUnparsableIsNotLose(unittest.TestCase):
     """判定不了必须说判定不了，不能伪装成「确实没中」"""
 
