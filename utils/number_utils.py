@@ -5,6 +5,18 @@ import random
 import datetime
 from config import LOTTERY_RULES, EXCLUDED_LOTS
 
+# 胆拖解析（JS-20261006-03）：本模块按逗号切分号码串，解析不了胆拖写法
+# （会切出 "[前区胆:23" 这类片段），需先走 utils.dantuo。
+try:
+    from utils.dantuo import is_dantuo, parse_dantuo, best_hits
+except Exception:  # pragma: no cover —— 解析模块缺失时降级为「无胆拖支持」
+    def is_dantuo(_s):
+        return False
+    def parse_dantuo(_s):
+        return None
+    def best_hits(*_a, **_k):
+        return (0, 0)
+
 
 def get_red_count(rule):
     red = rule.get("red")
@@ -90,6 +102,18 @@ def count_match(lot, pred_str, actual_str):
 
     lot = lot or ""
     try:
+        # 胆拖：按逗号切分会切出 "[前区胆:23" 这类片段，命中数严重失真
+        # （实测 28 条大乐透胆拖：0.250 vs 正确 0.929）。走胆拖专用解析，
+        # 取「最优一注」的前区命中数；解析不出则返回 0 且不判命中。
+        if is_dantuo(pred_str):
+            st = parse_dantuo(pred_str)
+            if st is None:
+                return 0, False
+            k = {"双色球": 6, "大乐透": 5, "七乐彩": 7}.get(lot, 5)
+            af = str(actual_str or "").split("+")
+            afs = set(parse_reds(af[0] if af else ""))
+            hf = best_hits(st, afs, set(), k, 0)[0]
+            return hf, hf > 0
         if lot in ("福彩3D", "排列三"):
             pc = Counter(_front(pred_str))
             ac = Counter(_front(actual_str))

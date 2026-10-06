@@ -54,6 +54,18 @@ STATUS_LOSE = "lose"
 STATUS_NO_RULE = "no_rule"
 STATUS_NOT_APPLICABLE = "not_applicable"
 
+# 胆拖解析（JS-20261006-03）：judge_prize / count_match 都按逗号切分号码串，
+# 解析不了胆拖写法，需先走本模块。非胆拖输入返回 None → 回退原逻辑。
+try:
+    from utils.dantuo import is_dantuo, parse_dantuo, best_hits
+except Exception:  # pragma: no cover —— 解析模块缺失时降级为「无胆拖支持」
+    def is_dantuo(_s):
+        return False
+    def parse_dantuo(_s):
+        return None
+    def best_hits(*_a, **_k):
+        return (0, 0)
+
 
 def load_rules(force: bool = False):
     """读取官方奖级规则（按 mtime 缓存，改文件即生效，无需重启）
@@ -161,10 +173,26 @@ def judge_prize(lot, pred_str, actual_str, rules=None):
     mode = spec.get("judge")
     try:
         if mode == "red_blue":
-            pf = str(pred_str or "").split("+")
+            # 胆拖：[前区胆:23,27 拖:..] [后区胆:12 拖:..] —— 不能用逗号切分，
+            # 否则切出 "[前区胆:23" 这类片段（JS-20261006-03）。
+            # 判据放宽到「含『胆』字」：解析不出就判不适用，绝不回退成普通单注
+            # 以免「算不出来」伪装成「确实没中」。
             af = str(actual_str or "").split("+")
-            front = len(set(_split(pf[0])) & set(_split(af[0])))
-            back = len(set(_split(pf[1])) & set(_split(af[1]))) if len(pf) > 1 and len(af) > 1 else 0
+            if is_dantuo(pred_str):
+                st = parse_dantuo(pred_str)
+                if st is None:
+                    return _ret(None, STATUS_NOT_APPLICABLE)
+                from utils.number_utils import parse_reds
+                pick = spec.get("pick") or {}
+                k = int(pick.get("front") or 5)
+                kb = int(pick.get("back") or 0)
+                afs = set(parse_reds(af[0] if af else ""))
+                abs_ = set(parse_reds(af[1])) if len(af) > 1 else set()
+                front, back = best_hits(st, afs, abs_, k, kb)
+            else:
+                pf = str(pred_str or "").split("+")
+                front = len(set(_split(pf[0])) & set(_split(af[0])))
+                back = len(set(_split(pf[1])) & set(_split(af[1]))) if len(pf) > 1 and len(af) > 1 else 0
             for t in spec.get("tiers", []):
                 for cond in t.get("match", []):
                     if len(cond) < 2:
