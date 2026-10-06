@@ -1,4 +1,4 @@
-# Jinshuiyao auto-sync (called by Windows Task Scheduler via 同步代码.bat, every 1 hour)
+﻿# Jinshuiyao auto-sync (called by Windows Task Scheduler via 同步代码.bat, every 1 hour)
 # 完整链路: pull -> 白名单提交源码/文档 -> push -> 双副本活文档回拷 -> vault刷新 -> 蒸馏 -> 数据守卫 -> 知识索引保鲜
 # 2026-08-12 修复: 计划任务实际只跑同步代码.bat(裸 pull+add -A)，本文件被绕过约10天；bat 已改为委托本 ps1。
 # Commits only source/docs, ignores runtime data. Exits silently when no changes.

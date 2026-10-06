@@ -1104,6 +1104,41 @@ def check_knowledge_store():
     return errors
 
 
+_PS1_SKIP_DIRS = {'.git', 'node_modules', '__pycache__', '.pytest_cache', 'venv', 'env'}
+
+
+def check_ps1_bom():
+    """PS1 编码闸：.ps1 必须 UTF-8 带 BOM（JS-20261007-01）
+
+    背景（真实事故）：计划任务用 `powershell.exe`（Windows PowerShell 5.1）执行脚本，
+    5.1 对**无 BOM** 的 .ps1 按本地 ANSI(cp936) 解码 ⇒ 脚本内中文路径（如「我的坚果云」）
+    全部变成乱码 ⇒ `Set-Location` 失败、日志**零写入**、任务 exit 1，外部只看到"没跑"。
+    `自动同步.ps1` 的 BOM 曾被提交 638b4c6 剥离，导致自动同步静默失效，故设此闸。
+
+    空文件不检（无内容可解码），避免假警。
+    """
+    errors = []
+    for dirpath, dirnames, filenames in os.walk(BASE_DIR):
+        dirnames[:] = [d for d in dirnames
+                       if d not in _PS1_SKIP_DIRS and not d.startswith('.')]
+        for fn in filenames:
+            if not fn.lower().endswith('.ps1'):
+                continue
+            p = os.path.join(dirpath, fn)
+            try:
+                with open(p, 'rb') as fh:
+                    head = fh.read(3)
+            except Exception:
+                continue
+            if not head:  # 空文件：无内容可解码，跳过
+                continue
+            if head != b'\xef\xbb\xbf':
+                rel = os.path.relpath(p, BASE_DIR).replace('\\', '/')
+                errors.append(
+                    "PS1-BOM: %s 缺 UTF-8 BOM（powershell.exe 5.1 会按 ANSI 解码，中文路径将乱码）" % rel)
+    return errors
+
+
 def run_all(changed_files=None):
     """运行全部检查。changed_files: pre-commit 增量模式的变更文件列表（相对 BASE_DIR）"""
     css_fn = check_css_classes
@@ -1122,6 +1157,7 @@ def run_all(changed_files=None):
         'AI决策卡新鲜度': check_ai_decisions_freshness,
         '告警落盘契约': check_alert_sink_writers,
         '知识存储一致性': check_knowledge_store,
+        'PS1编码(BOM)': check_ps1_bom,
     }
     all_ok = True
     report = []
