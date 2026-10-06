@@ -53,6 +53,14 @@
           "json_mode": true,
           "enabled": true,
           "note": "✅官方免费(价格表入¥0.0/出¥0.0/M, ctx=131072.0, json=True)"
+        },
+        {
+          "id": "XingChenAGI/Xing4.0-29B",
+          "priority": 7,
+          "quality": 40,
+          "json_mode": true,
+          "enabled": true,
+          "note": "✅官方免费(价格表入¥0.0/出¥0.0/M, ctx=262144.0, json=True)"
         }
       ]
     }
