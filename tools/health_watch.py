@@ -31,8 +31,11 @@ import os
 import sys
 import time
 import json
+import logging
 import argparse
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BASE_DIR not in sys.path:
@@ -237,8 +240,10 @@ def _load_baseline():
         if os.path.isfile(ARCHIVE_BASELINE_FILE):
             with open(ARCHIVE_BASELINE_FILE, "r", encoding="utf-8") as f:
                 return json.load(f)
-    except Exception:
-        pass
+    except Exception as e:
+        # 基线读不出来必须留痕：本文件第 3 条铁律就是"自身异常绝不静默"。
+        # 静默返回 {} 会让骤降告警永远算不出来，看门狗自己变成瞎子。
+        logger.warning("[health_watch] 档案基线读取失败(按空基线处理): %s", e)
     return {}
 
 
@@ -247,8 +252,9 @@ def _save_baseline(base):
         os.makedirs(os.path.dirname(ARCHIVE_BASELINE_FILE), exist_ok=True)
         with open(ARCHIVE_BASELINE_FILE, "w", encoding="utf-8") as f:
             json.dump(base, f, ensure_ascii=False, indent=2)
-    except Exception:
-        pass
+    except Exception as e:
+        # 水位写不进去 → 骤降告警会一直用旧水位比对，等于告警悄悄失真
+        logger.warning("[health_watch] 档案水位基线写入失败: %s", e)
 
 
 def check_archives():

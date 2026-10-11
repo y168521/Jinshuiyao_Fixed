@@ -17,6 +17,7 @@ if _PROJECT_DIR not in sys.path:
 
 # ==================== 标准库导入 ====================
 import datetime
+import logging
 import time
 import threading
 import queue
@@ -69,6 +70,8 @@ PRED_TABLE_COLUMNS = (
     ("date", "开奖日期", 130),
 )
 
+logger = logging.getLogger(__name__)
+
 
 def _fmt_draw_date(pred):
     """预测记录「开奖日期」列的显示值（JS-20261006-01）。
@@ -92,8 +95,10 @@ def _fmt_draw_date(pred):
             return "待开奖（%s，预计%s恢复）" % (
                 holiday.get("name", "休市"),
                 holiday.get("resume_date") or "待公告")
-    except Exception:
-        pass
+    except Exception as e:
+        # 日历不可用只降级为「待开奖」，但必须留痕：否则休市提示悄悄消失、
+        # 界面又退回「日期不对」的老毛病，而日志上什么都没有（JS-20261012-06）。
+        logger.warning("[休市提示] 读取休市日历失败(降级显示待开奖): %s", e)
     return "待开奖"
 
 # ==================== 项目模块导入 ====================

@@ -12,6 +12,9 @@ import os
 import json
 import time
 import threading
+import logging
+
+logger = logging.getLogger(__name__)
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _PATH = os.path.join(_PROJECT_ROOT, "金水谣数据", "telemetry.jsonl")
@@ -27,8 +30,10 @@ def record(**fields):
         with _lock:
             with open(_PATH, "a", encoding="utf-8") as f:
                 f.write(line + "\n")
-    except Exception:
-        pass
+    except Exception as e:
+        # 遥测是旁路，失败不抛错；但静默会让「看板缺数据」无法归因——
+        # 曾因没留痕，把「遥测写不进」误判成「本来就没调用」。
+        logger.warning("[遥测] 落盘失败(丢弃本条): %s", e)
 
 
 def recent(n=200):
@@ -40,8 +45,9 @@ def recent(n=200):
         for ln in lines[-n:]:
             try:
                 out.append(json.loads(ln))
-            except Exception:
-                pass
+            except Exception as e:
+                # 单行损坏跳过是合理的，但不留痕会让「文件被写坏一半」长期无人知晓
+                logger.warning("[遥测] 解析失败跳过一行: %s", e)
         return out
     except FileNotFoundError:
         return []

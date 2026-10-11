@@ -19,10 +19,13 @@
 import os
 import json
 import random
+import logging
 from collections import Counter
 from utils.number_utils import parse_reds, clean_nums
 from utils.safe_json import safe_load_json, safe_write_json
 
+
+logger = logging.getLogger(__name__)
 
 RISK_STATE_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)),
                                  "金水谣数据", "risk_state.json")
@@ -225,11 +228,8 @@ def learn_from_review(lot, pred_nums, actual_nums, hits):
         get_corrector().update_after_review(lot, pool, acts, int(hits or 0))
         return True
     except Exception as e:
-        # 复盘主链路不能被旁路功能打断
-        try:
-            import logging
-            logging.getLogger(__name__).warning(
-                "[策略修正] 复盘后更新失败(降级跳过): %s", e)
-        except Exception:
-            pass
+        # 复盘主链路不能被旁路功能打断，但失败必须留痕。
+        # 旧写法在「记日志」外面又套了一层 try/except: pass——万一 logging 自身
+        # 出错就彻底无声，等于给静默失败留了后门（JS-20261012-06）。
+        logger.warning("[策略修正] 复盘后更新失败(降级跳过): %s", e)
         return False

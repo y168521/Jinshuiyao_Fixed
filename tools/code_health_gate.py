@@ -324,11 +324,17 @@ def _verdict_baseline(results, baseline, blocking):
         return True, msg, False
     parts = []
     if new_f:
-        parts.append("新增超阈值 %d 个: %s" % (
-            len(new_f), "; ".join(r["file"] for r in new_f[:5])))
+        sample = "; ".join(r["file"] for r in new_f[:5])
+        if len(new_f) > 5:
+            # 教训（JS-20261012-06）：明细只列前 5 条时，我把它当成了全部规模，
+            # 实际是 19 个 —— 差点按「5 处」排工作量。截断必须显式说出来。
+            sample += " …（共%d个，完整清单见 --detail）" % len(new_f)
+        parts.append("新增超阈值 %d 个: %s" % (len(new_f), sample))
     if worse:
         sample = "; ".join("%s(%s %d→%d)" % (
             r["file"], d[0][0], d[0][1], d[0][2]) for r, d in worse[:5])
+        if len(worse) > 5:
+            sample += " …（共%d个，完整清单见 --detail）" % len(worse)
         parts.append("较基线恶化 %d 个: %s" % (len(worse), sample))
     msg = ("检出 %d 个超阈值文件，其中**需要处理的**：%s。存量挂账 %d 个（基线 %s，按年收敛）。"
            % (total, "；".join(parts), len(unchanged), gen))
@@ -393,6 +399,24 @@ if __name__ == "__main__":
     ok, msg, violated = check_code_health(use_baseline=use_bl)
     tag = "FAIL" if not ok else ("WARN" if violated else "OK")
     print("[%s] 代码体检门禁: %s" % (tag, msg))
+
+    if "--detail" in args:
+        # 完整清单（JS-20261012-06）：默认 msg 只列前 5 条，排工作量前必须看全量
+        res = scan_project()
+        bl = _load_baseline()
+        if bl is None:
+            print("\n  --detail 需要基线，当前基线不可读")
+        else:
+            new_f, worse, _fixed, _un = _diff_against_baseline(res, bl)
+            print("\n  【新增超阈值】共 %d 个" % len(new_f))
+            for r in new_f:
+                print("   - %s | 最大函数%d(%s) Any%d SQL%d 未超时%d 吞异常%d 裸except%d"
+                      % (r["file"], r["max_func"], r["max_func_name"], r["any"],
+                         r["sql"], r["untimed"], r.get("swallow", 0), r.get("bare", 0)))
+            print("\n  【较基线恶化】共 %d 个" % len(worse))
+            for r, d in worse:
+                print("   - %s | %s" % (r["file"],
+                                        "; ".join("%s %d→%d" % x for x in d)))
     if violated:
         print("  明细（前 15 个超阈值文件）:")
         for r in scan_project()[:15]:

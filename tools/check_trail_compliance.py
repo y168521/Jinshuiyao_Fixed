@@ -21,15 +21,20 @@
 
 import os
 import re
+import logging
 import subprocess
 import sys
 from datetime import date
 
+logger = logging.getLogger(__name__)
+
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-except Exception:
-    pass
+except Exception as e:
+    # 编码设置失败不阻断（Windows 控制台可能已被重定向），但留痕：
+    # 之后所有中文输出乱码时，这条是唯一的归因线索。
+    logger.warning("[留痕检查] 标准输出编码设置失败: %s", e)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 

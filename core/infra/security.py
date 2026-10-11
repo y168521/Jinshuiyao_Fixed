@@ -14,6 +14,9 @@ import base64
 import socket
 import ipaddress
 import urllib.parse
+import logging
+
+logger = logging.getLogger(__name__)
 
 _SECRETS_DIR = os.path.join(os.path.expanduser("~"), ".jinshuiyao-secrets")
 
@@ -95,8 +98,10 @@ def get_secret(name, env=None):
                     v = f.read().strip()
                 if v:
                     return v
-            except Exception:
-                pass
+            except Exception as e:
+                # 只记异常，绝不记密钥内容；降级回退必须留痕，否则
+                # 「明文也没读到」会被误当成「配置里本来就没这个密钥」。
+                logger.warning("[密钥] 读取明文回退失败 %s: %s", name, e)
         return ""
     if os.path.isfile(p):
         try:
@@ -104,8 +109,8 @@ def get_secret(name, env=None):
                 v = f.read().strip()
             if v:
                 return v
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("[密钥] 读取明文失败 %s: %s", name, e)
     if env:
         v = os.environ.get(env, "")
         if v:

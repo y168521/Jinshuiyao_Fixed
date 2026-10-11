@@ -182,8 +182,9 @@ class VideoExtractor:
         if self._cookie and self._session is not None:
             try:
                 self._session.cookies.clear()
-            except Exception:
-                pass
+            except Exception as e:
+                # 清不掉 cookie 会带着旧登录态重试，是风控误判的常见诱因，必须留痕
+                logger.warning("[video_extractor] 清理 session cookies 失败: %s", e)
             for part in self._cookie.split(';'):
                 part = part.strip()
                 if not part or '=' not in part:

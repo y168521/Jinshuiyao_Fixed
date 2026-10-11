@@ -453,8 +453,10 @@ class TaskScheduler:
             }
             with open(_log_path, "a", encoding="utf-8") as _f:
                 _f.write(_json.dumps(_entry, ensure_ascii=False) + "\n")
-        except Exception:
-            pass  # 日志写入失败不影响任务执行
+        except Exception as e:
+            # 日志写入失败不影响任务执行，但必须留痕：任务执行日志写不进去时，
+            # 「任务没跑」和「跑了但没记」在产物上完全一样，事后无法取证。
+            logger.warning("[调度任务] 执行日志写入失败 %s: %s", name, e)
 
         # JS-20261002-20：回传任务产出（失败时为 None），
         # 让 run_once(wait=True) 的调用方能拿到真实结果而不是 bool。

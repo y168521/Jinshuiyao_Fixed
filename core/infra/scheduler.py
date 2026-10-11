@@ -178,8 +178,10 @@ class JinshuiyaoScheduler(TaskScheduler):
                 with open(_cfg_path, "r", encoding="utf-8") as _f:
                     _user_cfg = _json.load(_f)
                 _defaults.update({k: v for k, v in _user_cfg.items() if isinstance(v, (int, float))})
-        except Exception:
-            pass  # 配置文件不存在或格式错误时用默认值
+        except Exception as e:
+            # 配置文件不存在或格式错误时用默认值——但必须留痕，否则
+            # 「配置没读进来」和「配置本来就是默认值」在日志上无法区分。
+            logger.warning("[调度器] 读取 config/scheduler.json 失败(用默认值): %s", e)
 
         # 1. 无条件任务（数据驱动注册）
         for _name, _meth, _key, _run_now, _first_delay in self._TASKS_ALWAYS:
@@ -338,8 +340,10 @@ class JinshuiyaoScheduler(TaskScheduler):
                         _holiday.get("name", "休市"),
                         _holiday.get("start"), _holiday.get("end"),
                         _holiday.get("resume_date") or "待公告")
-            except Exception:  # 日历不可用不影响复盘主流程
-                pass
+            except Exception as e:  # 日历不可用不影响复盘主流程
+                # 降级可以，静默不行：休市跳过原因写不进日志，事后就分不清
+                # 「真的没休市」和「日历模块挂了」（JS-20261012-06）。
+                logger.warning("[调度器] 读取休市日历失败(不影响复盘主流程): %s", e)
 
             for pred in unreviewed:
                 lot = pred.get("lot", "")

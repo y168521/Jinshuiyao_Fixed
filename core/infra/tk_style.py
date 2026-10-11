@@ -15,6 +15,9 @@
 这里，保证全站一致。
 """
 import sys
+import logging
+
+logger = logging.getLogger(__name__)
 
 try:
     import tkinter as tk
@@ -49,8 +52,10 @@ def apply_dark_style(root=None):
     style = ttk.Style(root)
     try:
         style.theme_use('clam')  # clam 主题支持完整自定义配色
-    except Exception:
-        pass
+    except Exception as e:
+        # 主题不可用只降级（后续配色仍会生效），但要留痕：
+        # 静默时界面"看起来能用"实则样式全线回退原生，难以归因。
+        logger.warning("[tk_style] clam 主题不可用(降级用原生主题): %s", e)
 
     fg = Theme.TEXT_PRIMARY
     fg_dim = Theme.TEXT_SECONDARY

@@ -30,12 +30,15 @@ from __future__ import annotations
 import argparse
 import datetime
 import json
+import logging
 import os
 import re
 import shutil
 import sys
 import tempfile
 from typing import Dict, Optional
+
+logger = logging.getLogger(__name__)
 
 # 让本模块能 import 同目录的 video_extractor / content_refiner
 _THIS = os.path.dirname(os.path.abspath(__file__))
@@ -246,8 +249,9 @@ def log(msg: str) -> None:
     """轻量日志：打印到控制台（video_to_kb 同步 MiroFishDB 时用）。"""
     try:
         print(f"[{datetime.datetime.now():%H:%M:%S}] {msg}", flush=True)
-    except Exception:
-        pass
+    except Exception as e:
+        # 控制台不可写时（无 TTY/重定向失败）至少落到日志，不留空
+        logger.warning("[video_to_kb] 控制台输出失败(内容: %s): %s", msg, e)
 
 
 # ---------------------------------------------------------------------------
@@ -399,8 +403,9 @@ def _self_test() -> None:
     # 清理
     try:
         shutil.rmtree(tmp_kb, ignore_errors=True)
-    except Exception:
-        pass
+    except Exception as e:
+        # 临时目录清不掉不阻断结论，但要留痕，否则磁盘会被悄悄堆满
+        logger.warning("[video_to_kb] 临时目录清理失败 %s: %s", tmp_kb, e)
     print("→ 自测全部通过 ✅")
 
 
