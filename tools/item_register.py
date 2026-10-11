@@ -36,6 +36,14 @@ except Exception:
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_FILE = os.path.join(BASE_DIR, "金水谣数据", "log", "本轮事项清单.json")
 
+# 申报新鲜度交叉校验的比对源：工作留痕总索引（留痕日期的唯一权威）。
+# 根镜像优先（与 closeout_gate 读交接中心/总索引的口径一致），缺失则退回仓库真源。
+_MODEL_DIR = os.path.dirname(BASE_DIR)
+INDEX_CANDIDATES = (
+    os.path.join(_MODEL_DIR, "工作留痕总索引.md"),
+    os.path.join(BASE_DIR, "工作留痕总索引.md"),
+)
+
 JS_RE = re.compile(r"^JS-\d{8}-\d{2}$")
 
 
@@ -147,18 +155,72 @@ def cmd_purge():
 # ---------------------------------------------------------------------------
 # 供 closeout_gate 调用
 # ---------------------------------------------------------------------------
+def _latest_index_js_date():
+    """总索引里最新一条留痕的日期（YYYY-MM-DD）；解析不出返回 None。
+
+    只认 `JS-YYYYMMDD-NN` 形态的编号，与清单事项的 js 字段同源可比。
+    """
+    for path in INDEX_CANDIDATES:
+        if not os.path.isfile(path):
+            continue
+        try:
+            with open(path, "r", encoding="utf-8", errors="replace") as f:
+                text = f.read()
+        except Exception:
+            continue
+        found = re.findall(r"JS-(\d{8})-\d{2}", text)
+        if found:
+            d = max(found)
+            return "%s-%s-%s" % (d[:4], d[4:6], d[6:8])
+    return None
+
+
+def _latest_item_date(items):
+    """清单里最新一次申报的日期（YYYY-MM-DD）；空清单返回 None。
+
+    优先取 js 编号里的日期（它直接对应留痕日），没有则退回 created_at。
+    """
+    ds = []
+    for it in items or []:
+        m = re.match(r"JS-(\d{8})-\d{2}", str(it.get("js") or ""))
+        if m:
+            ds.append(m.group(1))
+            continue
+        m2 = re.match(r"(\d{4})-(\d{2})-(\d{2})", str(it.get("created_at") or ""))
+        if m2:
+            ds.append(m2.group(1) + m2.group(2) + m2.group(3))
+    if not ds:
+        return None
+    d = max(ds)
+    return "%s-%s-%s" % (d[:4], d[4:6], d[6:8])
+
+
+def _date_diff_days(later, earlier):
+    """两个 YYYY-MM-DD 之间相差天数；解析失败返回 None。"""
+    try:
+        a = datetime.strptime(later, "%Y-%m-%d")
+        b = datetime.strptime(earlier, "%Y-%m-%d")
+        return (a - b).days
+    except Exception:
+        return None
+
+
 def check_items():
     """返回 (ok, msg, open_items, no_js_items)
 
     ok=False 的情形：
       - 有 status=open 的事项（干了事没留痕）
       - 有 done 但没有 js 编号的事项（留痕了但没编号）
+      - **申报新鲜度失配（JS-20261012-03）**：总索引里已有比清单更新的留痕，
+        说明这段时间干了活却从没 add 申报 ⇒ 本闸对它**零覆盖**（假绿）。
+
+    第三项的由来：清单 22 项全部闭环就打 [OK]，但那些项全停在 2026-09-25，
+    而 10-06/10-07/10-12 的工作一条都没申报——闸门看起来全绿，实际什么也没守。
+    **历史欠账不追究**（只比对最新日期，不要求逐日补齐），从今往后不申报就会被抓。
     """
     items = load_items()
     open_items = [i for i in items if i.get("status") == "open"]
     no_js = [i for i in items if i.get("status") == "done" and not i.get("js")]
-    if not items:
-        return True, "未申报事项（若本轮做过排查/诊断类工作，请先 add 登记）", [], []
     if open_items or no_js:
         parts = []
         if open_items:
@@ -168,9 +230,30 @@ def check_items():
             parts.append("缺编号 %d 项: %s" % (
                 len(no_js), "; ".join(f"#{i['id']} {i['title']}" for i in no_js[:5])))
         return False, "；".join(parts), open_items, no_js
+
+    # ---- 申报新鲜度交叉校验（JS-20261012-03）----
+    idx_date = _latest_index_js_date()
+    if idx_date is None:
+        # 闸门自己无法工作必须显形，不能静默放行（静默才是真敌人）
+        return False, ("申报新鲜度无法校验：总索引解析不出任何 JS-YYYYMMDD-NN 编号"
+                       "（已探测 %d 个候选路径） → 闸门无法工作，禁止收工"
+                       % len(INDEX_CANDIDATES)), [], []
+    list_date = _latest_item_date(items)
+    if list_date is None:
+        return False, ("清单中无任何申报事项，但总索引已有 %s 的留痕 → 本轮工作未申报，"
+                       "闸对它零覆盖。处理：python tools/item_register.py add \"事项\"，"
+                       "收工前 close <id> JS-YYYYMMDD-NN 回填" % idx_date), [], []
+    if idx_date > list_date:
+        days = _date_diff_days(idx_date, list_date)
+        tail = "（差 %d 天）" % days if days is not None else ""
+        return False, ("总索引最新留痕 %s 新于清单最新申报 %s%s → 这段工作从未申报，"
+                       "闸对它零覆盖。历史欠账不追究，只锁增量：补申报本轮事项即可变绿 —— "
+                       "python tools/item_register.py add \"事项\" 后 close 回填编号"
+                       % (idx_date, list_date, tail)), [], []
+
     done = [i for i in items if i.get("status") == "done"]
-    return True, "本轮 %d 项全部闭环: %s" % (
-        len(done), ", ".join(str(i.get("js")) for i in done)), [], []
+    return True, "本轮 %d 项全部闭环: %s；申报新鲜度一致（总索引最新 %s）" % (
+        len(done), ", ".join(str(i.get("js")) for i in done), idx_date), [], []
 
 
 def main():
