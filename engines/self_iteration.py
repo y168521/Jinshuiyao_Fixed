@@ -25,6 +25,8 @@
     系统能承诺的只有「学全了、没停摆」，不能承诺「学了就更准」。
 """
 import os
+import sys
+import json
 import logging
 from datetime import datetime
 
@@ -69,12 +71,67 @@ class LinkageStatus:
                     self.spin_risk))
 
 
+def _lag_baseline_path(pred_file):
+    """学习滞后基线文件路径（与 pred_file 同级的 log/ 目录下）。
+
+    与 code_health_baseline.json / archive_baseline.json 同等惯例：
+    基线类持久化放在 log/ 下，便于入仓与跨会话共享。
+    """
+    return os.path.join(os.path.dirname(pred_file) or ".", "log",
+                        "learning_lag_baseline.json")
+
+
+def _load_lag_baseline(pred_file):
+    """读已锁定的存量欠账基线；不存在/损坏返回 None。
+
+    **基线必须显式创建，绝不自动锁定**（JS-20261012-04）：
+    自动锁定会把「首次出现的真故障」当成存量基线吃掉——第一次见到 lag=50
+    时无法判断它是历史欠账还是刚断的链路，自动锁就等于永久放过它。
+    只有人工取证确认「这是存量欠账」后才写入基线文件。
+    返回 None 时 probe_linkage 行为与改造前完全一致（lag>0 即失配）。
+    """
+    path = _lag_baseline_path(pred_file)
+    if not os.path.isfile(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        v = data.get("baseline") if isinstance(data, dict) else None
+        return int(v) if isinstance(v, (int, float)) else None
+    except Exception as e:
+        # 读不出来按「无基线」处理 —— 退化方向是继续报警，不是静默放行
+        logger.warning("学习滞后基线读取失败，按无基线处理（继续报警）: %s (%s)", path, e)
+        return None
+
+
+def _save_lag_baseline(pred_file, value):
+    """落盘基线（仅在欠账被消化、水位下降时调用）。失败只告警，不影响探测。"""
+    path = _lag_baseline_path(pred_file)
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({"baseline": int(value),
+                       "updated_at": datetime.now().isoformat(timespec="seconds")},
+                      f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        logger.warning("学习滞后基线落盘失败（不影响探测）: %s (%s)", path, e)
+        return False
+
+
 def _count_reviewed(pred_file):
     """统计 predictions.json 中已复盘的记录数（兼容 list / dict 两种格式）。"""
     try:
         from utils.safe_json import safe_load_json
         data = safe_load_json(pred_file, default=None)
-    except Exception:
+    except Exception as e:
+        # JS-20261012-04：这里的 except 曾**完全静默**——CLI 直跑本模块时
+        # sys.path[0] 是 engines/，`utils` 包导入失败被吞成 return 0，
+        # 于是「学习滞后」被算成 0（假健康）。若拿这个 0 去 lock-baseline，
+        # 基线会被锁成 0，之后任何滞后都变成「新增」，告警反而天天响。
+        # 静默才是真敌人：读不出来必须留痕，让假健康信号无处藏身。
+        logger.warning("统计已复盘记录失败，按 0 处理（学习滞后会被低估）: %s (%s: %s)",
+                       pred_file, type(e).__name__, e)
         return 0
     if not data:
         return 0
@@ -129,6 +186,22 @@ def probe_linkage(brain, data_dir=None, knowledge_cards=None):
         learned = brain.state.get("total_reviews", 0)
     learning_lag = max(0, total_reviewed - int(learned))
 
+    # ── 存量欠账基线（JS-20261012-04）──
+    # learning_lag 是「已复盘 − 已学习」的**差值**。若分子分母同步增长，
+    # 差值恒定不变却仍被判「失配 + 空转风险」，于是每天喊狼来了。
+    # 实测该值自 2026-10-03 起恒为 3369（2026-09-24 批量回填 3202 条留下的
+    # 历史欠账），同期 learned 每轮都在涨 —— 学习链路正常，是告警口径错了。
+    # 故：失配/空转只由**相对基线的增量**判定；存量部分照常披露但不计失配。
+    baseline = _load_lag_baseline(pred_file)
+    if baseline is None:
+        lag_delta = learning_lag        # 无基线：行为与改造前一致
+    else:
+        lag_delta = learning_lag - baseline
+        if lag_delta < 0:
+            # 欠账被消化（水位下降）→ 认下这个新低水位，避免用旧的高基线虚报
+            _save_lag_baseline(pred_file, learning_lag)
+            lag_delta = 0
+
     pred_mt = _mtime(pred_file)
     state_mt = _mtime(state_file)
     decision_stale = bool(pred_mt and state_mt and pred_mt > state_mt)
@@ -150,17 +223,26 @@ def probe_linkage(brain, data_dir=None, knowledge_cards=None):
             knowledge_stale_days = max(ages)
 
     notes = []
-    if learning_lag > 0:
-        notes.append("学习滞后 %d 条（有复盘记录未进入大脑）" % learning_lag)
+    if lag_delta > 0:
+        if baseline is None:
+            notes.append("学习滞后 %d 条（有复盘记录未进入大脑）" % learning_lag)
+        else:
+            notes.append("学习滞后新增 %d 条（存量基线 %d → 当前 %d）："
+                         "新增的复盘未进入大脑" % (lag_delta, baseline, learning_lag))
+    elif learning_lag > 0:
+        # 存量欠账：如实披露数字，但明确标注不计失配（避免常驻假警）
+        notes.append("学习滞后 %d 条（均属已锁定的存量基线，本轮无新增，"
+                     "不计失配）" % learning_lag)
     if decision_stale:
         notes.append("决策陈旧（数据文件比大脑状态新）")
     if knowledge_stale_days is not None and knowledge_stale_days > KNOWLEDGE_STALE_DAYS:
         notes.append("知识陈旧（%d 天未更新）" % knowledge_stale_days)
 
-    mismatch_detected = bool(learning_lag > 0 or decision_stale
+    # 失配/空转只看**增量**：存量欠账不构成失配，否则告警永远变不了绿
+    mismatch_detected = bool(lag_delta > 0 or decision_stale
                              or (knowledge_stale_days is not None
                                  and knowledge_stale_days > KNOWLEDGE_STALE_DAYS))
-    spin_risk = bool(learning_lag > LEARNING_LAG_SPIN_THRESHOLD)
+    spin_risk = bool(lag_delta > LEARNING_LAG_SPIN_THRESHOLD)
 
     if not notes:
         notes.append("链路同步（已复盘 %d 条全部纳入大脑）" % total_reviewed)
@@ -257,3 +339,68 @@ def run_self_iteration(data_dir, review_fn=None, knowledge_refresh_fn=None):
                 reviews_txt, report["learned"], report["knowledge_updated"],
                 after.get("mismatch_detected"), after.get("learning_lag"))
     return report
+
+
+# ══════════════════════════════════════════════════════════════════
+# 存量欠账基线的显式锁定入口（JS-20261012-04）
+#
+# 为什么必须是显式命令：基线若由探测过程自动创建，第一次出现的真故障
+# （比如学习链路刚断、lag 从 0 跳到 50）会被当成「存量基线」吃掉，
+# 从此再也不报警。所以只有人工取证确认「这笔欠账是历史存量」后才落基线。
+#
+# 用法：
+#   python engines/self_iteration.py lock-baseline [数据目录]
+#   python engines/self_iteration.py show-baseline [数据目录]
+# ══════════════════════════════════════════════════════════════════
+def current_lag(pred_file):
+    """只读算出当前学习滞后条数；读不出状态按 0 处理（保守：不夸大欠账）。"""
+    total = _count_reviewed(pred_file)
+    state_file = os.path.join(os.path.dirname(pred_file) or ".", "brain_state.json")
+    learned = 0
+    try:
+        with open(state_file, "r", encoding="utf-8") as f:
+            st = json.load(f)
+        v = st.get("learned_review_count")
+        if v is None:
+            v = st.get("total_reviews", 0)
+        learned = int(v)
+    except Exception as e:
+        logger.warning("读取大脑状态失败，按已学习 0 条处理: %s (%s)", state_file, e)
+    return max(0, total - learned)
+
+
+def lock_lag_baseline(pred_file):
+    """把「当前 lag」显式锁定为存量基线。返回 (ok, value)。"""
+    lag = current_lag(pred_file)
+    return _save_lag_baseline(pred_file, lag), lag
+
+
+def _default_pred_file():
+    return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        "金水谣数据", "predictions.json")
+
+
+def _cli(argv):
+    cmd = argv[0] if argv else "help"
+    data_dir = argv[1] if len(argv) > 1 else None
+    pred_file = (os.path.join(data_dir, "predictions.json") if data_dir
+                 else _default_pred_file())
+    if cmd == "lock-baseline":
+        ok, lag = lock_lag_baseline(pred_file)
+        print("[lag-baseline] %s 锁定存量基线 = %d 条（路径 %s）" % (
+            "已" if ok else "未能", lag, _lag_baseline_path(pred_file)))
+        return 0 if ok else 1
+    if cmd == "show-baseline":
+        b = _load_lag_baseline(pred_file)
+        print("[lag-baseline] 当前滞后=%d 已锁基线=%s" % (
+            current_lag(pred_file), "无" if b is None else b))
+        return 0
+    print(__doc__ or "用法: lock-baseline | show-baseline [数据目录]")
+    return 1
+
+
+if __name__ == "__main__":
+    # 直跑本模块时 sys.path[0] 是 engines/，会导致 `utils` 等包导入失败，
+    # 进而让 _count_reviewed 静默返回 0（假健康）。先把项目根补进 sys.path。
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    sys.exit(_cli(sys.argv[1:]))
