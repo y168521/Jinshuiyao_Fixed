@@ -38,6 +38,42 @@ _DEFAULT_BACKUP_SUBDIR = "backups"
 # “全都跳过还假装成功”是最危险的静默失败。
 BACKUP_SKIP_WARN_COUNT = 20
 
+# JS-20261012-05：轮转副本的文件名特征。备份过程中它们被并发清理/轮转掉是
+# **预期内**的（本就是次级副本，主文件仍在），跳过不影响可恢复性。
+# 只有**主数据文件**被跳过才值得 ERROR —— 否则每次备份都会因为十几个
+# .bak.N 被跳过而喊「备份可能严重不完整」，这是常驻假警：它天天响、
+# 又永远修不好（并发轮转是设计本意），最后会被习惯性忽略。
+_ROTATED_COPY_PATTERNS = (".bak", "_bak", ".orig", ".rej",
+                          ".base.", ".local.", ".remote.")
+
+
+def _is_rotated_copy(path) -> bool:
+    """是否为轮转/备份副本（而非主数据文件）。"""
+    base = os.path.basename(str(path)).lower()
+    return any(p in base for p in _ROTATED_COPY_PATTERNS)
+
+
+def _skip_severity(skipped):
+    """对被跳过的文件定级，返回 (level, msg)。
+
+    level:
+      - "error"   有**主数据文件**被跳过 → 备份真的不完整，必须响
+      - "warning" 仅轮转副本被跳过 → 主数据完整，不谎报「严重不完整」
+      - None      没有文件被跳过
+    """
+    if not skipped:
+        return None, None
+    primary = [p for p in skipped if not _is_rotated_copy(p)]
+    rotated = [p for p in skipped if _is_rotated_copy(p)]
+    if primary:
+        return "error", ("备份跳过 %d 个**主数据文件**，备份严重不完整: %s"
+                         % (len(primary), "; ".join(primary[:5])))
+    if len(skipped) > BACKUP_SKIP_WARN_COUNT:
+        return "warning", ("备份跳过 %d 个文件，但**全部是轮转副本**（.bak/.bak.N 等，"
+                           "=%d 个），主数据完整，不影响可恢复性（并发轮转属预期行为）"
+                           % (len(skipped), len(rotated)))
+    return "warning", ("备份跳过 %d 个文件（均为轮转副本），主数据完整" % len(skipped))
+
 
 def _get_default_data_dir() -> str:
     """获取默认的金水谣数据目录路径
@@ -135,14 +171,12 @@ def backup_all(data_dir: Optional[str] = None, output_dir: Optional[str] = None)
                     continue
 
         file_size_mb = os.path.getsize(zip_path) / (1024 * 1024)
-        if skipped:
-            logger.warning(
-                "全量备份完成但有 %d 个文件被跳过: %s (%.2f MB)",
-                len(skipped), zip_path, file_size_mb)
-            if len(skipped) > BACKUP_SKIP_WARN_COUNT:
-                logger.error(
-                    "跳过文件数 %d 超过阈值 %d，备份可能严重不完整: %s",
-                    len(skipped), BACKUP_SKIP_WARN_COUNT, zip_path)
+        # JS-20261012-05：按「跳过的是主数据还是轮转副本」定级，
+        # 不再只看条数——否则 .bak.N 并发轮转会让 ERROR 天天响却又修不好。
+        level, skip_msg = _skip_severity(skipped)
+        if skip_msg:
+            getattr(logger, level)("%s (备份 %s, %.2f MB)",
+                                   skip_msg, zip_path, file_size_mb)
         else:
             logger.info("全量备份完成: %s (共 %d 个文件, 大小: %.2f MB)",
                         zip_path, len(files_to_backup), file_size_mb)
