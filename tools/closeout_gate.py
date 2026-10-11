@@ -202,6 +202,23 @@ def _check_code_health():
         return True
 
 
+def _hygiene_tag(ok: bool, msg: str) -> str:
+    """仓库卫生闸的标签判定（JS-20261012-02 · 抽为纯函数以便单测锁死）。
+
+    事故：`tools/repo_hygiene.py::check()` 在 git 不可用 / 仓库为空时返回
+    `(True, "SKIP ...")`，调用方只看 `ok` 就打成 `[OK]`，于是「整闸根本没跑」
+    和「检查通过」在日志里长得一模一样。实测收工门禁 2026-10-11 06:02、
+    2026-10-12 04:52 连续两次打印 `[OK] 仓库卫生: SKIP git 不可用或仓库为空`，
+    而仓库里明明有 830 个跟踪文件。
+
+    守卫有两种失败模式：报错和静默，静默才是真敌人 → SKIP 必须单独显形。
+    仍按 ok 决定是否阻断（git 不可用不是本次改动的错），但标签不许说谎。
+    """
+    if isinstance(msg, str) and msg.strip().upper().startswith("SKIP"):
+        return "SKIP"
+    return "OK" if ok else "FAIL"
+
+
 def _check_repo_hygiene():
     """6b 仓库卫生闸（JS-20260921-03 · 备份/临时类文件不得入仓）。
 
@@ -219,7 +236,11 @@ def _check_repo_hygiene():
         _rh = _ilu2.module_from_spec(_spec2)
         _spec2.loader.exec_module(_rh)
         ok_rh, msg_rh = _rh.check()
-        print(f"  [{'OK' if ok_rh else 'FAIL'}] 仓库卫生: {msg_rh}")
+        tag_rh = _hygiene_tag(ok_rh, msg_rh)
+        if tag_rh == "SKIP":
+            print(f"  [SKIP] 仓库卫生: {msg_rh} —— 守卫未生效，不算通过")
+        else:
+            print(f"  [{tag_rh}] 仓库卫生: {msg_rh}")
         return bool(ok_rh)
     except Exception as e:
         print(f"  [WARN] 仓库卫生: 检查不可用 ({e})")
