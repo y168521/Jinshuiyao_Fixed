@@ -174,9 +174,18 @@ def _run_capped(fn, timeout_sec):
 
     ⚠️ 诚实边界（2026-10-12 全网检索确认）：线程超时**只是停止等待，
     并不能杀死已经在跑的工作**——"Do Not Pretend Threads Kill Work"。
-    超时后该 AI 请求仍会在后台跑完（实测每个约 40s），daemon=True 仅保证
-    不阻碍进程退出。真正停止工作需要库层超时（socket/requests timeout），
-    那是最优解；此处是上层无法传参时的最后兜底。
+    超时后该 AI 请求仍会在后台跑完，daemon=True 仅保证不阻碍进程退出。
+
+    ── 2026-10-12 更正（JS-20261012-18，勿再做「推进到库层」的优化）──
+    上一版此处写「真正停止工作需要库层超时，那是最优解」，方向对但**场景用错**：
+    本仓 `core/ai/free_model_pool.py:: _http_call` 早就用
+    `urllib.request.urlopen(req, timeout=timeout)`，库层超时**一直就位**
+    （`_ais_try_free_first` 传 timeout=60）。实测每次约 40s 是**模型真实响应
+    耗时**（< 60s 上限，并未被截断），40s×3 ≈ 大乐透 124s，完全吻合。
+    因此「把超时推进到库层」在本仓是**伪优化，已撤销**。
+    剩余影响可控：兜底超时先触发后，那次请求仍在后台跑完约 40s，不阻塞出号。
+    （另注：DNS 解析确实不受 urlopen timeout 控制，但 socket.setdefaulttimeout
+    是**全局**设置，会波及 Ollama 探活与 server 监听，收益 < 风险，决定不做。）
     """
     import threading
     box = {}

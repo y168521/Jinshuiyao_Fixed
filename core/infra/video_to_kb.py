@@ -40,20 +40,27 @@ from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 
-# 让本模块能 import 同目录的 video_extractor / content_refiner
-_THIS = os.path.dirname(os.path.abspath(__file__))
-if _THIS not in sys.path:
-    sys.path.insert(0, _THIS)
-
-# 项目根（Jinshuiyao_Fixed）也加入 path，使 content_refiner 依赖的
-# `import core.ai.ai_service` 能正确解析（否则直接运行本脚本时，
-# 提炼器会因找不到 core 包而回退规则，并打印无害提示）
-_PROJECT_ROOT = os.path.dirname(_THIS)
-if _PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, _PROJECT_ROOT)
+# JS-20261012-18：修正两处静默缺陷（均因模块从未成功导入而潜伏）
+# ① _PROJECT_ROOT 原为 os.path.dirname(_THIS) —— 算出的是 core/ 而非仓库根，
+#    导致下方 KB_DIR 指向 core/knowledge/用户知识库（错误目录，数据会写到
+#    core/ 下而不是仓库根的 knowledge/）。仓库根应是再上一级。
+# ② content_refiner 实际位于 core/ai/，不在本目录；裸导入在以包方式
+#    （core.infra.video_to_kb）导入时必抛 ModuleNotFoundError，使
+#    server/handlers/knowledge.py 的 /api/video/ingest 运行期 500。
+#    改为包导入优先、裸导入回退（兼容 `python video_to_kb.py` 直接运行）。
+_THIS = os.path.dirname(os.path.abspath(__file__))          # …/core/infra
+_CORE_DIR = os.path.dirname(_THIS)                          # …/core
+_PROJECT_ROOT = os.path.dirname(_CORE_DIR)                  # 仓库根 Jinshuiyao_Fixed
+for _p in (_THIS, _CORE_DIR, _PROJECT_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 from video_extractor import VideoExtractor
-from content_refiner import ContentRefiner
+try:
+    from core.ai.content_refiner import ContentRefiner
+except ImportError:  # 兼容直接运行本脚本（此时 core.ai 包不可见）
+    logger.debug("video_to_kb: 包导入 content_refiner 失败，回退裸导入")
+    from content_refiner import ContentRefiner
 
 # 默认知识库目录（相对项目根：../knowledge/用户知识库）
 KB_DIR = os.path.join(_PROJECT_ROOT, "knowledge", "用户知识库")

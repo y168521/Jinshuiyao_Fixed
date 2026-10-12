@@ -960,7 +960,8 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
             with open(fp, 'rb') as f:
                 data = f.read()
         except Exception as e:
-            self._send_json({"error": f"读取失败: {e}"}, 500)
+            log(f'[ERROR-STATIC] 读取失败: {e}')  # JS-20261012-18 脱敏：内部路径只留痕不回传
+            self._send_json({"error": "文件读取失败，请稍后重试"}, 500)
             return
         self.send_response(200)
         self.send_header('Content-Type', mime)
