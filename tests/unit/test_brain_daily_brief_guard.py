@@ -8,6 +8,7 @@
 守卫两失败模式：报错与静默，**静默才是真敌人**——故每条都断言「AI 被跳过/被限时」，
 而不是只看返回值。
 """
+import json
 import os
 import time
 
@@ -109,3 +110,25 @@ def test_no_arr_never_calls_ai(brain_tmp, spy, monkeypatch):
     _set_cfg(monkeypatch, True, 15)
     assert bd.ensure_daily_brief("大乐透", None) is None
     assert spy["n"] == 0
+
+
+def test_negative_cache_expires_and_allows_retry(brain_tmp, spy, monkeypatch):
+    """负面缓存必须能自愈：TTL 过期后允许重试。
+
+    反模式防护——若把失败锁死一整天，瞬时故障（网络抖动/免费模型限流）
+    会导致简报当天再也不恢复，而用户修好根因后错误依旧，是负面缓存的
+    经典陷阱。故负面 TTL 必须远短于正面缓存且能自动过期。
+    """
+    _set_cfg(monkeypatch, True, 15)
+    monkeypatch.setattr(config, "LOTTERY_AI_BRIEF_NEGATIVE_TTL_SEC", 3600, raising=False)
+    spy["ret"] = None
+    bd.ensure_daily_brief("大乐透", [{"period": 1, "nums": "01,02"}])
+    assert spy["n"] == 1
+    # 把失败时间戳改到 2 小时前（超出 1 小时 TTL）
+    p = os.path.join(str(brain_tmp), "ai_brief_大乐透.json")
+    data = json.load(open(p, encoding="utf-8"))
+    assert data.get("failed") is True and data.get("failed_ts"), "负面缓存须带时间戳"
+    data["failed_ts"] = time.time() - 7200
+    json.dump(data, open(p, "w", encoding="utf-8"))
+    bd.ensure_daily_brief("大乐透", [{"period": 1, "nums": "01,02"}])
+    assert spy["n"] == 2, "TTL 过期后应允许重试，锁死整天是反模式"

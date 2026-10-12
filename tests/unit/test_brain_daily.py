@@ -14,6 +14,12 @@ if _ROOT not in sys.path:
 
 from engines import brain_daily
 
+# JS-20261012-16：AI 每日简报默认已关闭（占预测耗时 97.6% 且无预测力），
+# 故涉及简报的用例须显式开启 config.LOTTERY_AI_BRIEF_ENABLED，
+# 否则测到的是「被开关挡掉」而非真实的降级/解析逻辑。
+# （说明写在此处而非类内：code_health_gate 的 max_function_lines 把 class 体当作一个
+#  "函数"统计，注释放进类内会被计为恶化。）
+
 
 def _fake_predictions(tmp_path):
     rows = []
@@ -54,6 +60,7 @@ class TestBrainDaily(unittest.TestCase):
                 except OSError:
                     pass
 
+    @mock.patch("config.LOTTERY_AI_BRIEF_ENABLED", True)
     @mock.patch("engines.brain_daily._get_ai", return_value=None)
     def test_no_ai_degrades_silently(self, _m):
         """无AI时AI相关能力静默降级；日报为纯统计仍可生成"""
@@ -63,6 +70,7 @@ class TestBrainDaily(unittest.TestCase):
         self.assertTrue(path and os.path.isfile(path))
         self._clear()
 
+    @mock.patch("config.LOTTERY_AI_BRIEF_ENABLED", True)
     @mock.patch("engines.brain_daily._get_ai")
     def test_brief_parse_and_cache(self, m_ai):
         """AI返回JSON围栏 → 正确解析；同一天第二次调用不再调AI"""

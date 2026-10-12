@@ -69,6 +69,17 @@ DEGRADED_LOTS = {
     "大乐透": "大盘彩诚实回测无超越随机的证据：无预测力。固定小额娱乐可以，勿信任何选号策略。",
 }
 
+# JS-20261012-16：AI 每日简报守卫（由 engines/brain_daily.py 的 ensure_daily_brief 读取）
+# 依据：①实测预测 5 彩种共 336s，其中 97.6% 花在该简报的 AI 调用（_http_call×3 各约 40s）；
+#      ②简报失败时 generate 仍 success=True，即该环节对出号非必需；
+#      ③官方与学界已定性 AI 不能提高中奖概率（docs/AI与彩票能力边界_JS-20261012-15.md）。
+# 三道守卫：①总开关（默认关闭 → 336s 降至约 15s，约 20×）②开启时硬超时兜底 ③失败当天负面缓存。
+LOTTERY_AI_BRIEF_ENABLED = False
+LOTTERY_AI_BRIEF_TIMEOUT_SEC = 15
+# 负面缓存有效期（秒）：失败/超时后多久才允许重试。不锁死整天——瞬时故障被锁死
+# 是负面缓存的经典反模式（全网检索确认：负面 TTL 应远短于正面缓存且必须能自愈）。
+LOTTERY_AI_BRIEF_NEGATIVE_TTL_SEC = 3600
+
 LOT_ALL = [l for l in LOTTERY_RULES.keys() if l not in EXCLUDED_LOTS]
 LOT_ALIAS = {l: l for l in LOT_ALL}
 LOT_ALIAS.update({

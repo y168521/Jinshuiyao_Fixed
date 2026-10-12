@@ -17,6 +17,7 @@ import json
 import logging
 import os
 import re
+import time
 from datetime import datetime
 
 # 单一真源（债务-203）：期望命中基准在 prediction_service.py 模块级维护，此处复用不再各自维护
@@ -130,17 +131,110 @@ def _build_brief(lot, arr):
     }
 
 
+def _brief_enabled():
+    """简报总开关（config.LOTTERY_AI_BRIEF_ENABLED，默认 False）。
+
+    默认关闭的依据：预测 336s 中 97.6% 花在本简报的 AI 调用，而官方与学界已定性
+    AI 不能提高中奖概率，且简报失败时 generate 仍 success=True（对出号非必需）。
+    """
+    try:
+        import config as _cfg
+        return bool(getattr(_cfg, "LOTTERY_AI_BRIEF_ENABLED", False))
+    except Exception:
+        return False
+
+
+def _brief_timeout():
+    """简报 AI 调用硬超时（秒）。超时即降级为无简报，绝不拖住出号主流程。"""
+    try:
+        import config as _cfg
+        return int(getattr(_cfg, "LOTTERY_AI_BRIEF_TIMEOUT_SEC", 15))
+    except Exception:
+        return 15
+
+
+def _brief_negative_ttl():
+    """负面缓存有效期（秒），默认 3600（1 小时）。
+
+    为何不锁死一整天：负面缓存是反模式高发区——若是瞬时故障（网络抖动、
+    免费模型临时限流），锁死整天会导致当天再也不重试、简报整天缺失。
+    业界共识是负面 TTL 应**远短于**正面缓存，且必须能自愈。
+    """
+    try:
+        import config as _cfg
+        return int(getattr(_cfg, "LOTTERY_AI_BRIEF_NEGATIVE_TTL_SEC", 3600))
+    except Exception:
+        return 3600
+
+
+def _run_capped(fn, timeout_sec):
+    """在子线程执行 fn 并限时，返回 (结果, 是否超时)。
+
+    ai_service.chat() 不暴露 timeout 参数，故在此层用线程 join 兜底。
+
+    ⚠️ 诚实边界（2026-10-12 全网检索确认）：线程超时**只是停止等待，
+    并不能杀死已经在跑的工作**——"Do Not Pretend Threads Kill Work"。
+    超时后该 AI 请求仍会在后台跑完（实测每个约 40s），daemon=True 仅保证
+    不阻碍进程退出。真正停止工作需要库层超时（socket/requests timeout），
+    那是最优解；此处是上层无法传参时的最后兜底。
+    """
+    import threading
+    box = {}
+
+    def _run():
+        try:
+            box["v"] = fn()
+        except Exception:
+            box["v"] = None
+
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
+    t.join(timeout_sec)
+    if t.is_alive():
+        return None, True
+    return box.get("v"), False
+
+
 def ensure_daily_brief(lot, arr=None):
-    """生成前取当天AI简报（每天每彩种≤1次，当天缓存复用；失败返回 None）"""
+    """生成前取当天AI简报（每天每彩种≤1次；失败当天不再重试）
+
+    JS-20261012-16 三道守卫：
+    ① 总开关 LOTTERY_AI_BRIEF_ENABLED（默认 False）
+    ② 硬超时 LOTTERY_AI_BRIEF_TIMEOUT_SEC（默认 15s）
+    ③ 负面缓存：失败/超时也按天落盘，避免每次重复支付约 123s 的学费
+    """
+    if not _brief_enabled():
+        return None
     try:
         os.makedirs(_BRAIN_DIR, exist_ok=True)
         path = os.path.join(_BRAIN_DIR, "ai_brief_%s.json" % lot)
         data = _load_json(path, {})
-        if data.get("date") == _today() and isinstance(data.get("brief"), dict):
-            return data["brief"]
-        brief = _build_brief(lot, arr) if arr is not None else None
+        if data.get("date") == _today():
+            if isinstance(data.get("brief"), dict):
+                return data["brief"]
+            # ③ 负面缓存：当天失败过且在 TTL 内则跳过；TTL 过期后允许自愈重试
+            #    （不锁死整天——瞬时故障被锁死是负面缓存的经典反模式）
+            if data.get("failed"):
+                try:
+                    _fts = float(data.get("failed_ts") or 0)
+                except (TypeError, ValueError):
+                    _fts = 0.0
+                if _fts and (time.time() - _fts) < _brief_negative_ttl():
+                    logger.debug("brain_daily 简报负面缓存命中(%.0fs内)，跳过重试: %s",
+                                 time.time() - _fts, lot)
+                    return None
+        if arr is None:
+            return None
+        brief, timed_out = _run_capped(lambda: _build_brief(lot, arr), _brief_timeout())
+        if timed_out:
+            logger.warning("brain_daily 简报超时(>%ss)，本次降级为无简报: %s",
+                           _brief_timeout(), lot)
         if brief is not None:
             _save_json(path, {"date": _today(), "brief": brief})
+        else:
+            # 失败/超时也记一笔，但带时间戳与 TTL（默认 1h），过期自动重试自愈
+            _save_json(path, {"date": _today(), "brief": None, "failed": True,
+                              "failed_ts": time.time()})
         return brief
     except Exception as e:
         logger.debug("brain_daily 简报失败: %s", e)
