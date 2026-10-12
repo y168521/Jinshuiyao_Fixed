@@ -9,6 +9,41 @@ from config import DATA_SAVE, LOTTERY_RULES
 from utils.locks import json_lock, preds_lock
 from utils.safe_json import safe_load_json
 
+# ── JS-20261012-20：新鲜度阈值按彩种开奖节奏动态计算 ──
+# 背景（真实缺陷）：原全仓固定 1440 分钟（24h）。而大乐透 draw_days=[0,2,5]
+# 相邻开奖最长间隔 3 天（4320 分钟）⇒ **数据是新的也被判陈旧** ⇒
+# domains/lottery/domain.py 的 generate() 整批返回 stale_data 拒绝出号。
+# 实测取证（2026-10-12 21:05，周一，各彩种今晚均未到开奖时刻）：
+# 7 个彩种 is_fresh(1440) **全部 False**，而数据其实都是最新的 ⇒ 纯属误杀。
+# 正确语义：阈值应 ≥ 该彩种「相邻开奖日的最大间隔」，再加一段延迟缓冲。
+# 取向说明：**宁可晚发现陈旧（保守放行），不可天天误杀新鲜数据**——
+# 误杀会让「该开奖日整批没生成」这种真缺陷被伪装成「数据陈旧」而长期看不见。
+FRESH_SLACK_MINUTES = 720  # 12h：容忍抓取延迟 + 纯日期解析的误差，且仍能在一个完整开奖日后发现陈旧
+
+
+def suggest_fresh_threshold(name):
+    """按彩种开奖节奏给出新鲜度阈值（分钟）。
+
+    规则：阈值 = 相邻开奖日最大间隔(天) × 1440 + FRESH_SLACK_MINUTES。
+    - `draw_days="daily"` / 缺失 / 非法 → 按 1 天（1440+720=2160）
+    - 每周只开一天 → 间隔 7 天
+    - 多天：按环形相邻差的最大值（含跨周，如 [0,2,5] 的周六→周一）
+
+    返回纯计算结果，不读写文件，便于单测。
+    """
+    rule = LOTTERY_RULES.get(name) or {}
+    days = rule.get("draw_days")
+    gap_days = 1
+    if isinstance(days, (list, tuple)) and len(days) >= 1:
+        ds = sorted(int(d) for d in days if isinstance(d, int) and 0 <= d <= 6)
+        if len(ds) == 1:
+            gap_days = 7            # 一周只开一次
+        elif len(ds) >= 2:
+            gaps = [ds[i + 1] - ds[i] for i in range(len(ds) - 1)]
+            gaps.append(7 - ds[-1] + ds[0])   # 跨周回环（周六→周一）
+            gap_days = max(gaps)
+    return gap_days * 1440 + FRESH_SLACK_MINUTES
+
 
 class Data:
     _cache = {}           # {name: data} — 缓存按彩种名隔离（当前subsystem的彩种不会与其他subsystem冲突）
@@ -159,7 +194,8 @@ class Data:
         arr = Data.load(name)
         latest = None
         for d in arr:
-            ts = _parse_time_to_ts(d.get("time"))
+            # day_end=True：time 多为纯日期，按零点会虚增近 1 天 freshness（JS-20261012-20）
+            ts = _parse_time_to_ts(d.get("time"), day_end=True)
             if ts and (latest is None or ts > latest):
                 latest = ts
         if latest is not None:
@@ -170,16 +206,30 @@ class Data:
         return None
 
     @staticmethod
-    def is_fresh(name, threshold_min=1440, now=None):
-        """数据是否够新（距上次写入 <= threshold_min 分钟）。无数据视为不新鲜。"""
+    def is_fresh(name, threshold_min=None, now=None):
+        """数据是否够新（距上次更新 <= threshold_min 分钟）。无数据视为不新鲜。
+
+        threshold_min 省略时按**该彩种开奖节奏**动态取值（见 suggest_fresh_threshold）。
+        JS-20261012-20：原默认固定 1440，导致非每日型彩种在开奖日恒判陈旧。
+        """
+        if threshold_min is None:
+            threshold_min = suggest_fresh_threshold(name)
         fm = Data.freshness_minutes(name, now=now)
         if fm is None:
             return False
         return fm <= threshold_min
 
 
-def _parse_time_to_ts(t):
-    """把 'YYYY-MM-DD HH:MM:SS' / 'YYYY-MM-DD' 等解析为时间戳；失败返回 None。"""
+def _parse_time_to_ts(t, day_end=False):
+    """把 'YYYY-MM-DD HH:MM:SS' / 'YYYY-MM-DD' 等解析为时间戳；失败返回 None。
+
+    day_end=True：纯日期（无时刻）按**当日 23:59:59** 解析。
+    JS-20261012-20：本仓各彩种 time 字段全是纯日期（如 '2026-10-11'）。估算
+    「距今多久」时若按零点解析，会把当天已流逝的时间全部计入 freshness，
+    系统性虚增近 1 天（实测 daily 彩种虚增约 21 小时）⇒ 新鲜数据被判陈旧。
+    用当日结束时刻才符合「这期数据在这一天开奖后才可用」的语义。
+    默认 False **保持原行为**，不影响其他调用方（新增逻辑不侵入既有代码）。
+    """
     import time as _time
     if not t:
         return None
@@ -189,7 +239,11 @@ def _parse_time_to_ts(t):
     fmts = ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d")
     for f in fmts:
         try:
-            return _time.mktime(_time.strptime(s, f))
+            st = _time.strptime(s, f)
         except Exception:
             continue
+        if day_end and f == "%Y-%m-%d":
+            st = _time.struct_time((st.tm_year, st.tm_mon, st.tm_mday,
+                                    23, 59, 59, st.tm_wday, st.tm_yday, -1))
+        return _time.mktime(st)
     return None

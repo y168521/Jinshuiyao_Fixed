@@ -9,7 +9,7 @@ import logging
 from domains.base import DomainBase, project_data_dir
 from config import LOT_ALL, DEGRADED_LOTS
 from core.infra.context import run_in_subsystem
-from models.lottery_data import Data
+from models.lottery_data import Data, suggest_fresh_threshold
 
 logger = logging.getLogger(__name__)
 
@@ -182,19 +182,25 @@ class LotteryDomain(DomainBase):
         scheme = kwargs.get("scheme", "默认方案")
         hot_window = kwargs.get("hot_window", 50)
 
-        # 数据新鲜度门禁（S6 复用）：任一目标彩种数据陈旧则拒绝生成，避免静默陈旧预测。
-        # 阈值默认 1440 分钟（24h）；双色球/大乐透/七星彩 time 缺失时按文件 mtime 兜底已由 S6 覆盖，
-        # 此处以最新开奖 time 为准，无 time 则视为不新鲜需先抓取。
-        fresh_threshold = kwargs.get("fresh_threshold_min", 1440)
+        # 数据新鲜度门禁：任一目标彩种数据陈旧则拒绝生成，避免静默陈旧预测。
+        # JS-20261012-20：阈值改为**按彩种开奖节奏动态计算**（suggest_fresh_threshold）。
+        # 原固定 1440 分钟会让非每日型彩种（大乐透/七乐彩相邻开奖间隔 2~3 天）在数据
+        # 完全最新时也恒判陈旧 —— 实测 2026-10-12 七彩种 is_fresh 全 False 而数据都是新的
+        # ⇒ 整批返回 stale_data 拒绝出号 ⇒ 表象就是「某个开奖日压根没生成预测」。
+        # 调用方仍可用 fresh_threshold_min 显式覆盖（回测脚本等有明确意图的场景）。
+        default_threshold = kwargs.get("fresh_threshold_min")
         stale_lots = []
         for lot in target_lots:
             if lot in ("排除", ""):
                 continue
-            if not Data.is_fresh(lot, threshold_min=fresh_threshold):
+            thr = default_threshold or suggest_fresh_threshold(lot)
+            if not Data.is_fresh(lot, threshold_min=thr):
                 stale_lots.append(lot)
         if stale_lots:
+            thr_desc = ", ".join("%s(%d分钟)" % (l, default_threshold or suggest_fresh_threshold(l))
+                                 for l in stale_lots)
             msg = (f"⚠️ 数据陈旧，已拒绝生成预测：{', '.join(stale_lots)}"
-                   f"（超过 {fresh_threshold} 分钟未更新，请先抓取最新开奖）")
+                   f"（超过各自开奖节奏阈值未更新，请先抓取最新开奖；阈值：{thr_desc}）")
             logger.warning(msg)
             return {
                 "predictions": [],

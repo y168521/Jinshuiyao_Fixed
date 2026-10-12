@@ -14,7 +14,7 @@ import logging
 import json
 import traceback
 from config import LOTTERY_RULES, EXCLUDED_LOTS
-from models.lottery_data import Data
+from models.lottery_data import Data, suggest_fresh_threshold
 from utils.number_utils import parse_reds, fmt_period, sanitize_prediction
 from utils.ticket_validator import is_valid_period
 
@@ -724,13 +724,17 @@ class PredictionService:
             # 5. 数据质量门槛：新鲜度 + 历史期数
             try:
                 fm = Data.freshness_minutes(lot)
+                # JS-20261012-20：分档按**彩种开奖节奏**缩放。原固定 1440/2880/4320
+                # 会让非每日型彩种在正常状态下也永远落最低档（大乐透正常就 2700+ 分钟），
+                # 与 domain.py 的静态阀值是同一个根因的两个同类项。
+                _thr = suggest_fresh_threshold(lot)
                 if fm is None:
                     fresh_score = 60
-                elif fm <= 1440:
+                elif fm <= _thr:
                     fresh_score = 100
-                elif fm <= 2880:
+                elif fm <= _thr * 2:
                     fresh_score = 70
-                elif fm <= 4320:
+                elif fm <= _thr * 3:
                     fresh_score = 40
                 else:
                     fresh_score = 20
