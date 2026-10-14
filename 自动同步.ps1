@@ -22,7 +22,12 @@ function Log($m) { "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') $m" | Out-File -Fi
 #    改为候选路径探测，并把 git 所在目录临时加入 PATH（供 git 内部调用 ssh 等组件）。
 function Resolve-Git {
     $cands = @()
-    $cands += (Get-ChildItem "$env:LOCALAPPDATA\..\.workbuddy\binaries\PortableGit\versions\*\cmd\git.exe" -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
+    # JS-20261015-02 修复：原通配路径只回退一级，实际解析成 AppData\.workbuddy
+    # （不存在）⇒ 0 命中；计划任务环境 PATH 里又没有 git ⇒ Get-Command 兜底也失败
+    # ⇒ 自动同步每轮 FATAL「找不到 git.exe」。现把项目约定真源放在最前：
+    $cands += "E:\下载\Git\cmd\git.exe"
+    $cands += "E:\下载\Git\bin\git.exe"
+    $cands += (Get-ChildItem "$env:LOCALAPPDATA\..\..\.workbuddy\binaries\PortableGit\versions\*\cmd\git.exe" -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
     $cands += "C:\Users\Administrator\.workbuddy\binaries\PortableGit\versions\1.2.0\cmd\git.exe"
     $cands += "C:\Program Files\Git\cmd\git.exe"
     $cands += "C:\Program Files (x86)\Git\cmd\git.exe"
