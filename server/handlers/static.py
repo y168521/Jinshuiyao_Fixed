@@ -24,6 +24,7 @@ import subprocess
 
 from ..config import BASE_DIR, HTML_DIR, NAV_FILE, CONTROL_CENTER, ROOT_DIR, SYSTEM_PYTHON
 from ..utils import log, open_local_file
+from utils.list_query import normalize_text  # noqa: E402  JS-20261015-04：统一关键词归一化
 
 
 # ---------------------------------------------------------------------------
@@ -692,10 +693,28 @@ def handle_daily_report(handler):
         handler._send_json({'ok': False, 'message': '读取日报失败：%s' % e})
 
 
+def _knowledge_rank(card, kw):
+    """关键词命中等级：0=标题或标签，1=正文/来源，None=未命中。
+
+    扩到正文的同时保留「标题/标签权重更高」，否则相关性会被正文冲淡。
+    """
+    meta = normalize_text((card.get('title') or '') + ' '
+                          + ' '.join(card.get('tags') or []))
+    if kw in meta:
+        return 0
+    full = meta + ' ' + normalize_text(card.get('content') or '') \
+         + ' ' + normalize_text(card.get('source') or '')
+    if kw in full:
+        return 1
+    return None
+
+
 def handle_knowledge_list(handler):
     """GET /api/knowledge/list[?q=&subsystem=&limit=&offset=] — 知识卡片浏览（分页/筛选/搜索）
 
-    读取 knowledge/mirofish_db.json 全部知识卡片，按 subsystem 筛选、关键词匹配标题+标签。
+    读取 knowledge/mirofish_db.json 全部知识卡片，按 subsystem 筛选；
+    关键词匹配范围为 **标题 + 标签 + 正文 + 来源**（JS-20261015-04 由仅标题+标签扩展而来），
+    标题/标签命中排在正文命中之前。
     """
     q = urllib.parse.parse_qs(urllib.parse.urlparse(handler.path).query)
     limit, offset = 50, 0
@@ -705,7 +724,7 @@ def handle_knowledge_list(handler):
     except Exception:
         pass
     sub = q.get('subsystem', [''])[0]
-    kw = q.get('q', [''])[0].strip().lower()
+    kw = normalize_text(q.get('q', [''])[0])
     try:
         from knowledge.mirofish_db import MiroFishDB
         import datetime
@@ -714,17 +733,22 @@ def handle_knowledge_list(handler):
         handler._send_json({'ok': False, 'message': '读取知识库失败：%s' % e, 'total': 0, 'cards': []})
         return
     subs = {}
-    filtered = []
+    scored = []
     for c in cards:
         csub = c.get('subsystem') or c.get('category') or '其他'
         subs[csub] = subs.get(csub, 0) + 1
         if sub and csub != sub:
             continue
         if kw:
-            hay = ((c.get('title') or '') + ' ' + ' '.join(c.get('tags') or [])).lower()
-            if kw not in hay:
+            rank = _knowledge_rank(c, kw)
+            if rank is None:
                 continue
-        filtered.append(c)
+        else:
+            rank = 0
+        scored.append((rank, c))
+    # 标题/标签命中优先于正文命中，同级保持原始顺序（稳定排序）
+    scored.sort(key=lambda t: t[0])
+    filtered = [c for _, c in scored]
     total = len(filtered)
     page = filtered[offset:offset + limit]
     rows = []

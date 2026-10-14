@@ -20,6 +20,9 @@ import datetime
 import logging
 
 from ..config import PREDICTION_DIR, PREDICTION_FILE, _PRED_DOMAIN_KEYWORDS, _PRED_LOCK
+from utils.list_query import (  # noqa: E402  JS-20261015-04：列表查询统一层
+    QuerySpec, parse_query, apply_query, describe_filters, MAX_PAGE_SIZE,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -178,11 +181,38 @@ def record_prediction(question, answer, domain=None, confidence=None):
         return None
 
 
-def list_predictions(limit=200):
+# 关键词搜索覆盖的字段（彩票数据：期号/号码最常被搜）
+PRED_SEARCH_FIELDS = ("lot", "period", "date", "nums", "type", "scheme")
+
+
+def query_predictions(spec):
+    """按 QuerySpec 查询历史预测。
+
+    返回 {"ok","records","total","page","page_size","total_pages","filters"}。
+    其中 total 为**过滤后的总条数**（修复前返回的是当前页长度，恒 ≤ limit）。
+    """
     with _PRED_LOCK:  # P2-3: 读也加锁，与写路径统一原子读
         records = _load_predictions()
-        records.sort(key=lambda r: r.get('time', ''), reverse=True)
-        return records[:limit]
+        rows, total, pages = apply_query(records, spec, PRED_SEARCH_FIELDS)
+    return {
+        "ok": True,
+        "records": rows,
+        "total": total,
+        "page": spec.page,
+        "page_size": spec.page_size,
+        "total_pages": pages,
+        "filters": describe_filters(spec),
+    }
+
+
+def list_predictions(limit=200):
+    """旧签名保留：按 time 倒序取前 limit 条。
+
+    内部改走统一查询层，确保与 API 口径一致（不会出现两套排序）。
+    """
+    spec = QuerySpec(sort="time", desc=True, page=1,
+                     page_size=min(max(int(limit or 200), 1), MAX_PAGE_SIZE))
+    return query_predictions(spec)["records"]
 
 
 def set_prediction_outcome(rec_id, outcome):
@@ -214,16 +244,35 @@ def handle_prediction_record(handler):
 
 
 def handle_prediction_list(handler):
-    """POST /api/prediction/list — 列出历史预测"""
+    """POST /api/prediction/list — 列出历史预测（筛选/排序/分页）
+
+    入参（均可选）：
+        q          关键词（期号/号码/彩种；号码忽略空格与逗号差异）
+        lot        彩种，多个用逗号分隔
+        status     待复盘 / 已复盘 / 命中 / 未中
+        date_from  起始日期 YYYY-MM-DD
+        date_to    结束日期 YYYY-MM-DD
+        sort       time / period / sqi / hits，默认 time
+        order      desc / asc，默认 desc
+        page       页码，默认 1
+        limit      每页条数，默认 50，上限 200
+
+    出参含 total（过滤后总数）与 empty_reason（空态原因）：
+        ""         有数据
+        no_data    库里本来就没数据
+        no_match   有数据但被条件过滤光了
+    """
     cl = int(handler.headers.get('Content-Length', 0) or 0)
     body = handler.rfile.read(cl).decode('utf-8', errors='replace') if cl else '{}'
     try:
         data = json.loads(body) if body else {}
     except json.JSONDecodeError:
         data = {}
-    limit = int(data.get('limit', 200) or 200)
-    recs = list_predictions(limit)
-    handler._send_json({"ok": True, "records": recs, "total": len(recs)})
+    spec = parse_query(data)
+    result = query_predictions(spec)
+    result["empty_reason"] = "" if result["records"] else (
+        "no_data" if spec.is_empty() else "no_match")
+    handler._send_json(result)
 
 
 def handle_prediction_outcome(handler):
