@@ -46,6 +46,8 @@ build/
 金水谣数据/users/
 金水谣数据/fund/
 金水谣数据/music/*.wav
+# JS-20261012-20：当日购票记账（个人消费记录，属个人信息，不入仓）
+金水谣数据/purchase_log.json
 # 知识存储层运行时数据（WAL 只增不减，不适合进 git；历史版本由 archive/ 与版本链自持）
 金水谣数据/knowledge_store/
 *.log

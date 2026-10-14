@@ -17,3 +17,6 @@ preds_lock = threading.Lock()
 
 # 日志轮转锁（保护 JSONL 日志文件的轮转操作，防止并发重命名冲突）
 log_rotate_lock = threading.Lock()
+
+# 购票流水锁（保护 purchase_log.json 的并发读写，JS-20261012-20）
+purchase_lock = threading.Lock()
