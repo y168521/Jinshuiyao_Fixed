@@ -376,6 +376,14 @@
       "js": "JS-20261015-05",
       "created_at": "2026-10-15 09:06:00",
       "closed_at": "2026-10-15 09:07:26"
+    },
+    {
+      "id": 48,
+      "title": "修全量 pytest 静默失效: 模块级 sys.stdout 赋值污染调用方全局流致 no tests ran + 6 文件假红, 改用 reconfigure 并加 AST 导入副作用闸",
+      "status": "done",
+      "js": "JS-20261015-06",
+      "created_at": "2026-10-15 12:10:00",
+      "closed_at": "2026-10-15 12:50:00"
     }
   ]
 }
