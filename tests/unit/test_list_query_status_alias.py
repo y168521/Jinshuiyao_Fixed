@@ -40,9 +40,11 @@ def _qa(question, outcome, qid="x"):
             "time": "2026-10-01 10:00:00"}
 
 
-def _lot(lot, hits):
+def _lot(lot, hits, reviewed=True):
+    """真实彩票记录形态：必带 reviewed 字段（实测 3636/3636 全为 True）。"""
     return {"lot": lot, "period": "2026115", "nums": "01 02 03",
-            "hits": hits, "time": "2026-10-01 10:00:00"}
+            "hits": hits, "reviewed": reviewed,
+            "time": "2026-10-01 10:00:00"}
 
 
 class TestStatusAlias(unittest.TestCase):

@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-15 07:35:00",
+  "updated_at": "2026-10-15 09:07:26",
   "items": [
     {
       "id": 1,
@@ -368,6 +368,14 @@
       "js": "JS-20261015-04",
       "created_at": "2026-10-15 07:20:00",
       "closed_at": "2026-10-15 07:35:00"
+    },
+    {
+      "id": 47,
+      "title": "P0 检索层落地: 统一查询层 utils/list_query.py + 彩票预测列表接口 GET /api/lottery/predictions + GUI 与前端接入同一口径",
+      "status": "done",
+      "js": "JS-20261015-05",
+      "created_at": "2026-10-15 09:06:00",
+      "closed_at": "2026-10-15 09:07:26"
     }
   ]
 }
