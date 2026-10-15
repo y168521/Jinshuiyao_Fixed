@@ -11,7 +11,10 @@ import re
 import sys
 import io
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+# ⚠️ 这里曾是模块级的 `sys.stdout = io.TextIOWrapper(...)`。编码重配已移到
+# 文件末尾 `if __name__ == '__main__':` 内 —— 模块级赋值会在被 import 时污染
+# 调用方全局流，且关闭其底层 buffer（曾致全量 pytest 崩在 ValueError）。
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(BASE_DIR, '知识网关索引.md')
 
@@ -146,4 +149,10 @@ def main():
 
 
 if __name__ == '__main__':
+    # Windows 控制台默认 GBK，print 中文会乱码，故**仅在直接运行时**重配编码。
+    # 模块级严禁做这件事：被 import 会污染调用方全局流并关闭其底层 buffer（见文件头注释）。
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except (AttributeError, ValueError):
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
     main()

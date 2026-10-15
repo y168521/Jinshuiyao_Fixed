@@ -4,7 +4,15 @@
 用法: py -3.14 tools/gen_quick_search_index.py
 未来新增页面后重跑本脚本即可刷新 Ctrl+K 搜索索引。"""
 import io, os, re, sys, json
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+# Windows 控制台默认 GBK，print 中文会乱码，故重配编码。
+# 用 reconfigure 原地重配，**不用** `sys.stdout = io.TextIOWrapper(sys.stdout.buffer, ...)`：
+# 后者会新建包装器，被 import 时污染调用方全局流，且 GC 时关闭底层 buffer
+# （曾致全量 pytest 崩在 ValueError: I/O operation on closed file）。
+# 本文件是无 __main__ 的顺序脚本，无法把重配收进 main，故 reconfigure 是唯一安全解。
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+except (AttributeError, ValueError):
+    pass
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 registry = json.load(open(os.path.join(BASE, 'config', 'page_registry.json'), encoding='utf-8'))

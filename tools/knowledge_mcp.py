@@ -23,7 +23,15 @@ import json
 import os
 import sys
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', write_through=True)
+# MCP 走 stdio 逐行 JSON-RPC，stdout 就是**协议通道**，必须实时 flush（write_through）。
+# 用 reconfigure 原地重配，**不用** `sys.stdout = io.TextIOWrapper(sys.stdout.buffer, ...)`：
+# 后者新建包装器，一旦本模块被 import 就会替换宿主进程的全局 stdout（协议直接断），
+# 且 GC 时关闭底层 buffer（曾致全量 pytest 崩在 ValueError: I/O operation on closed file）。
+# reconfigure 不动底层 buffer 对象，保留 write_through 语义，对独立进程运行无影响。
+try:
+    sys.stdout.reconfigure(encoding='utf-8', write_through=True)
+except (AttributeError, ValueError):
+    pass
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 NAME = 'jinshuiyao-knowledge'

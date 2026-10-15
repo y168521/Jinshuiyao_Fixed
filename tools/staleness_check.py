@@ -14,7 +14,11 @@ import sys
 import time
 import io
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+# ⚠️ 这里曾经是模块级的 `sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')`。
+# 它造成了全量 `pytest tests/unit` 崩溃（ValueError: I/O operation on closed file），
+# 机制见 tests/unit/test_no_import_stdout_side_effect.py 的文档字符串。
+# 编码重配已移到文件末尾的 `if __name__ == '__main__':` 块内，仅在直接运行时生效。
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # 知识源（L1 原始层）→ 派生资产（L2/L3）
@@ -162,4 +166,11 @@ def check(verbose=True):
 
 
 if __name__ == '__main__':
+    # Windows 控制台默认 GBK，print 中文会乱码，因此**仅在直接运行本脚本时**重配编码。
+    # 严禁写回模块级：被 import 时会污染调用方的全局 sys.stdout，且新建的 TextIOWrapper
+    # 被 GC 时会关闭底层 buffer，直接搞崩 pytest 的 capture（见文件头注释）。
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except (AttributeError, ValueError):
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
     sys.exit(check())
