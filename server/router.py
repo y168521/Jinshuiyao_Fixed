@@ -292,6 +292,11 @@ class GuideHandler(http.server.SimpleHTTPRequestHandler):
             h_lottery.handle_sources_health(self)
             return
 
+        # /api/lottery/predictions — 彩票预测历史（筛选/排序/分页，JS-20261015-04）
+        if parsed.path.startswith('/api/lottery/predictions'):
+            h_prediction.handle_lottery_predictions_list(self)
+            return
+
         # /api/lottery/data-volume — 各彩种数据规模（期数/占用空间）
         if parsed.path == '/api/lottery/data-volume':
             h_lottery.handle_data_volume(self)

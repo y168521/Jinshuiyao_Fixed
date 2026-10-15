@@ -182,7 +182,9 @@ def record_prediction(question, answer, domain=None, confidence=None):
 
 
 # 关键词搜索覆盖的字段（彩票数据：期号/号码最常被搜）
-PRED_SEARCH_FIELDS = ("lot", "period", "date", "nums", "type", "scheme")
+PRED_SEARCH_FIELDS = ("question", "answer", "domain", "time")
+# Q&A 记录没有号码型字段，子串匹配已足够。
+PRED_NUMBER_FIELDS = ()
 
 
 def query_predictions(spec):
@@ -193,7 +195,8 @@ def query_predictions(spec):
     """
     with _PRED_LOCK:  # P2-3: 读也加锁，与写路径统一原子读
         records = _load_predictions()
-        rows, total, pages = apply_query(records, spec, PRED_SEARCH_FIELDS)
+        rows, total, pages = apply_query(records, spec, PRED_SEARCH_FIELDS,
+                                     PRED_NUMBER_FIELDS)
     return {
         "ok": True,
         "records": rows,
@@ -202,6 +205,8 @@ def query_predictions(spec):
         "page_size": spec.page_size,
         "total_pages": pages,
         "filters": describe_filters(spec),
+        "empty_reason": "" if rows else ("no_data" if spec.is_empty()
+                                         else "no_match"),
     }
 
 
@@ -213,6 +218,53 @@ def list_predictions(limit=200):
     spec = QuerySpec(sort="time", desc=True, page=1,
                      page_size=min(max(int(limit or 200), 1), MAX_PAGE_SIZE))
     return query_predictions(spec)["records"]
+
+
+# JS-20261015-04：彩票预测记录（金水谣数据/predictions.json）的检索字段口径。
+# 与 Q&A 预测沉淀（predictions/predictions.json）是**两个数据源**，别混用。
+LOTTERY_SEARCH_FIELDS = ("lot", "period", "date", "nums", "type", "scheme")
+# 仅这两个字段走号码结构化比对；date 若参与会产生假命中。
+LOTTERY_NUMBER_FIELDS = ("period", "nums")
+
+
+def query_lottery_predictions(spec):
+    """按 QuerySpec 查询彩票预测记录：筛选 → 排序 → 分页。
+
+    返回 {"ok","records","total","page","page_size","total_pages","filters"}；
+    total 为**过滤后**总数，不是当前页长度。
+    """
+    rows, total, pages = apply_query(_load_lottery_predictions_raw(),
+                                     spec, LOTTERY_SEARCH_FIELDS,
+                                     LOTTERY_NUMBER_FIELDS)
+    return {
+        "ok": True,
+        "records": rows,
+        "total": total,
+        "page": spec.page,
+        "page_size": spec.page_size,
+        "total_pages": pages,
+        "filters": describe_filters(spec),
+        "empty_reason": "" if rows else ("no_data" if spec.is_empty()
+                                         else "no_match"),
+    }
+
+
+def handle_lottery_predictions_list(handler):
+    """GET /api/lottery/predictions[?q=&lot=&status=&date_from=&date_to=&sort=&order=&page=&limit=]
+
+    彩票预测历史列表。入参全部可选，非法值一律兜底不报错。
+    出参含 total（过滤后总数）与 empty_reason（"" / no_data / no_match），
+    供前端区分「无数据」「筛选无结果」「加载失败」三种空态。
+    """
+    import urllib.parse as _up
+    try:
+        q = _up.parse_qs(_up.urlparse(handler.path).query)
+        spec = parse_query(q)
+        handler._send_json(query_lottery_predictions(spec))
+    except Exception as e:
+        log(f"[lottery-predictions] 查询失败: {e}")
+        handler._send_json({"ok": False, "error": f"查询失败: {e}",
+                            "records": [], "total": 0}, 500)
 
 
 def set_prediction_outcome(rec_id, outcome):
@@ -268,11 +320,7 @@ def handle_prediction_list(handler):
         data = json.loads(body) if body else {}
     except json.JSONDecodeError:
         data = {}
-    spec = parse_query(data)
-    result = query_predictions(spec)
-    result["empty_reason"] = "" if result["records"] else (
-        "no_data" if spec.is_empty() else "no_match")
-    handler._send_json(result)
+    handler._send_json(query_predictions(parse_query(data)))
 
 
 def handle_prediction_outcome(handler):

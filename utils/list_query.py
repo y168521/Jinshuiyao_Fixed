@@ -78,24 +78,29 @@ def numbers_match(hay: Any, needle: Any) -> bool:
     return set(extract_numbers(n)).issubset(extract_numbers(hay))
 
 
-def keyword_hit(record: Dict[str, Any], kw: str, fields: Sequence[str]) -> bool:
-    """关键词是否命中记录：先试子串（归一化后），再试号码结构化比对。
+def keyword_hit(record: Dict[str, Any], kw: str,
+                fields: Sequence[str],
+                number_fields: Sequence[str] = ()) -> bool:
+    """关键词是否命中记录。
 
-    号码优先走结构化比对 —— 这是本项目彩票数据的特殊性（号码常带空格/逗号）。
+    子串匹配（归一化后）对 fields 全生效；**号码结构化比对只对 number_fields 生效**。
+    不对所有字段生效的原因：把日期 "2026-10-11" 拆成号码集合会产生**假命中** ——
+    实测搜期号 "2026115" 会误中日期为 2026-10-11 的记录。
     """
     if not kw:
         return True
     nq = normalize_text(kw)
     if not nq:
         return True
+    numeric = nq.isdigit() and len(nq) >= 2
     for f in fields:
         val = get_field(record, f)
         if val is None:
             continue
         if nq and nq in normalize_text(val):
             return True
-        if numbers_match(val, nq):
-            return True
+        if numeric and f in number_fields and numbers_match(val, nq):
+                return True
     return False
 
 
@@ -112,6 +117,11 @@ def _get_nested(d: Dict[str, Any], path: str) -> Any:
 
 
 FIELD_GETTERS: Dict[str, Callable[[Dict[str, Any]], Any]] = {
+    # AI 问答预测沉淀（predictions/predictions.json）
+    "question": lambda r: r.get("question") or "",
+    "answer": lambda r: r.get("answer") or "",
+    "domain": lambda r: r.get("domain") or "",
+    # 彩票预测（金水谣数据/predictions.json）
     "lot": lambda r: r.get("lot") or r.get("彩种"),
     "period": lambda r: str(r.get("period") or r.get("期号") or ""),
     "date": lambda r: r.get("date") or (r.get("time") or "")[:10],
@@ -162,33 +172,55 @@ class QuerySpec:
 
 def _int_param(params: Dict[str, Any], key: str, default: int,
                lo: int, hi: int) -> int:
+    raw = _first(params.get(key, None), str(default))
     try:
-        v = int(params.get(key, default) or default)
+        v = int(raw or default)
     except (TypeError, ValueError):
         return default
     return max(lo, min(hi, v))
 
 
-def _split_lots(raw: Any) -> List[str]:
+def _split_scalar(s):
+    """按常见分隔符拆标量（逗号/顿号/分号/竖线/空白）。"""
+    return [p.strip() for p in re.split(r"[,，|;；\s]+", s) if p.strip()]
+
+
+def _split_lots(raw):
+    """解析彩种入参：支持标量、列表、以及「a,b」/「a，b」等分隔写法。
+
+    注意：来自 parse_qs 的入参本身就是列表（如 ["双色球,大乐透"]），
+    此时仍要对每个元素再拆一次，否则多选框的值会被当成单个彩种名。
+    """
     if raw is None:
         return []
     if isinstance(raw, (list, tuple)):
-        items = [str(x) for x in raw]
+        items = []
+        for x in raw:
+            items.extend(_split_scalar(str(x)))
     else:
-        items = re.split(r"[,，|;；\s]+", str(raw))
-    return [x.strip() for x in items if x and x.strip() not in ("", "全部")]
+        items = _split_scalar(str(raw))
+    return [x for x in items if x and x != "全部"]
+
+
+def _first(v, default=""):
+    """取值：兼容 urllib.parse_qs 的列表形态与 GUI 的标量形态。"""
+    if v is None:
+        return default
+    if isinstance(v, (list, tuple)):
+        v = v[0] if v else default
+    return str(v if v is not None else default).strip()
 
 
 def parse_query(params: Dict[str, Any], default_sort: str = "time") -> QuerySpec:
     """把 HTTP query / GUI 表单 转成 QuerySpec。非法值一律兜底，不抛异常。"""
     spec = QuerySpec()
-    spec.q = str(params.get("q", "") or "").strip()
+    spec.q = _first(params.get("q"))
     spec.lots = _split_lots(params.get("lot") or params.get("lots"))
-    spec.status = str(params.get("status", "") or "").strip()
-    spec.date_from = str(params.get("date_from", "") or "").strip()
-    spec.date_to = str(params.get("date_to", "") or "").strip()
-    spec.sort = str(params.get("sort", default_sort) or default_sort)
-    spec.desc = str(params.get("order", "desc") or "desc").lower() != "asc"
+    spec.status = _first(params.get("status"))
+    spec.date_from = _first(params.get("date_from"))
+    spec.date_to = _first(params.get("date_to"))
+    spec.sort = _first(params.get("sort"), default_sort)
+    spec.desc = _first(params.get("order"), "desc").lower() != "asc"
     spec.page = _int_param(params, "page", 1, 1, 10 ** 6)
     spec.page_size = _int_param(params, "limit",
                                  DEFAULT_PAGE_SIZE, 1, MAX_PAGE_SIZE)
@@ -208,7 +240,8 @@ def _to_num(v: Any) -> Optional[float]:
 
 
 def filter_records(records: Sequence[Dict[str, Any]], spec: QuerySpec,
-                   search_fields: Sequence[str]) -> List[Dict[str, Any]]:
+                 search_fields: Sequence[str],
+                 number_fields: Sequence[str] = ()) -> List[Dict[str, Any]]:
     """按 spec 过滤记录（关键词 + 彩种 + 状态 + 日期区间）。"""
     out: List[Dict[str, Any]] = []
     for r in records:
@@ -230,28 +263,40 @@ def filter_records(records: Sequence[Dict[str, Any]], spec: QuerySpec,
                 continue
             if spec.date_to and d and d > spec.date_to:
                 continue
-        if spec.q and not keyword_hit(r, spec.q, search_fields):
+        if spec.q and not keyword_hit(r, spec.q, search_fields,
+                                   number_fields):
             continue
         out.append(r)
     return out
 
 
-def _sort_key(spec: QuerySpec) -> Callable[[Dict[str, Any]], Any]:
-    name = spec.sort
+def _is_missing(record: Dict[str, Any], name: str) -> bool:
+    """字段是否有值（None / 空串视为缺失）。"""
+    v = get_field(record, name)
+    return v is None or v == ""
 
-    def key(r: Dict[str, Any]) -> Any:
-        v = get_field(r, name)
-        num = _to_num(v)
-        if num is not None:
-            return (0, num)
-        return (1, str(v or ""))
 
-    return key
+def _sort_value(record: Dict[str, Any], name: str) -> Any:
+    """排序取值：能转数字走数字轨(0)，否则走字符串轨(1)。
+
+    用「轨道标记 + 值」的元组而非裸值，保证跨类型比较不会 TypeError。
+    """
+    v = get_field(record, name)
+    num = _to_num(v)
+    return (0, num) if num is not None else (1, str(v or ""))
 
 
 def sort_records(records: List[Dict[str, Any]], spec: QuerySpec) -> List[Dict[str, Any]]:
-    """排序：数值型按数值，其余按字符串。None 排最后。"""
-    return sorted(records, key=_sort_key(spec), reverse=spec.desc)
+    """排序：数值按数值、其余按字符串；**缺失值恒排最后**，不随升降序翻转。
+
+    直接 `sorted(reverse=True)` 会把缺失值顶到最前 —— 用户看到一片空白行，
+    会误以为"排序把数据弄丢了"，故缺失值单独摘出拼到末尾。
+    """
+    name = spec.sort
+    have = [r for r in records if not _is_missing(r, name)]
+    lack = [r for r in records if _is_missing(r, name)]
+    have.sort(key=lambda r: _sort_value(r, name), reverse=spec.desc)
+    return have + lack
 
 
 def paginate(records: Sequence[Dict[str, Any]], spec: QuerySpec):
@@ -265,9 +310,11 @@ def paginate(records: Sequence[Dict[str, Any]], spec: QuerySpec):
 
 
 def apply_query(records: Sequence[Dict[str, Any]], spec: QuerySpec,
-                search_fields: Sequence[str]):
+                search_fields: Sequence[str],
+                number_fields: Sequence[str] = ()):
     """一站式：筛选 → 排序 → 分页，返回 (页数据, total, total_pages)。"""
-    rows = filter_records(records, spec, search_fields)
+    rows = filter_records(records, spec, search_fields,
+                                   number_fields)
     rows = sort_records(rows, spec)
     return paginate(rows, spec)
 
