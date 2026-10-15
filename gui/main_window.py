@@ -259,6 +259,8 @@ class App:
         # ----- 预测数据 -----
         self.preds = []
         self.reference_pool = []
+        # JS-20261015-04：预测列表的筛选/分页状态（与 web 端共用同一查询口径）
+        self._init_pred_query_state()
 
         # ----- 线程安全 -----
         self._lock = threading.Lock()
@@ -819,8 +821,205 @@ class App:
     # ------------------------------------------------------------------
     # 预测面板刷新
     # ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # 预测列表：筛选 / 分页（JS-20261015-04，对应评审 S-01 + S-02 + S-07 + S-08）
+    #
+    # 设计取向：筛选与排序分页**不在 GUI 里另写一套**，一律走 utils.list_query
+    # 统一层，与 web 端 `GET /api/lottery/predictions` 是同一套口径，
+    # 从根上避免「网页搜得到、桌面搜不到」的分裂。
+    # 字段口径复用 server.handlers.prediction 的唯一真源常量，不自带副本。
+    # ------------------------------------------------------------------
+    def _init_pred_query_state(self):
+        """初始化筛选/分页状态。缺控件时也是安全默认值，不抛异常。"""
+        self._pred_page = 1
+        self._pred_pages = 1
+        self._pred_kw_var = None
+        self._pred_lot_var = None
+        self._pred_status_var = None
+        self._pred_size_var = None
+
+    def _ensure_pred_query_vars(self):
+        """懒创建控件变量：表格尚未构建时被调用也不会崩。"""
+        if self._pred_kw_var is None:
+            self._pred_kw_var = tk.StringVar(value="")
+            self._pred_lot_var = tk.StringVar(value="")
+            self._pred_status_var = tk.StringVar(value="")
+            self._pred_size_var = tk.StringVar(value="50")
+        return self
+
+    def _pred_query_params(self):
+        """把筛选控件状态收成统一层认得的入参字典（键名与 HTTP query 一致）。"""
+        self._ensure_pred_query_vars()
+
+        def _v(var):
+            try:
+                return (var.get() or "").strip()
+            except Exception:
+                return ""
+
+        return {
+            "q": _v(self._pred_kw_var),
+            "lot": _v(self._pred_lot_var),
+            "status": _v(self._pred_status_var),
+            "sort": "time",
+            "order": "desc",
+            "page": self._pred_page,
+            "limit": _v(self._pred_size_var) or "50",
+        }
+
+    def _query_pred_page(self):
+        """走统一查询层取当前页。
+
+        返回 (rows, total, pages, empty_reason, error)。
+        **失败不静默降级为空列表** —— 必须回传 error 让 UI 显示错误态。
+        """
+        try:
+            from utils.list_query import parse_query, apply_query
+            from server.handlers.prediction import (LOTTERY_SEARCH_FIELDS,
+                                                    LOTTERY_NUMBER_FIELDS)
+        except Exception as e:
+            logger.error("预测列表查询层导入失败: %s", e)
+            return [], 0, 1, "", "查询组件加载失败：%s" % e
+        try:
+            spec = parse_query(self._pred_query_params())
+            rows, total, pages = apply_query(self.preds, spec,
+                                             LOTTERY_SEARCH_FIELDS,
+                                             LOTTERY_NUMBER_FIELDS)
+            # 末页记录被删后 page 会越界：paginate 内部夹取，这里同步回状态
+            if spec.page > pages:
+                spec.page = pages
+                rows, total, pages = apply_query(self.preds, spec,
+                                                 LOTTERY_SEARCH_FIELDS,
+                                                 LOTTERY_NUMBER_FIELDS)
+            self._pred_page = spec.page
+            self._pred_pages = pages
+            reason = "" if rows else ("no_data" if spec.is_empty()
+                                      else "no_match")
+            return rows, total, pages, reason, ""
+        except Exception as e:
+            logger.error("预测列表查询失败: %s", e)
+            return [], 0, 1, "", "查询失败：%s" % e
+
+    def _build_pred_filter_bar(self, parent):
+        """顶部筛选栏：关键词 / 彩种 / 状态 / 每页条数 / 查询 / 清空。"""
+        T = ModernTheme
+        self._ensure_pred_query_vars()
+        bar = tk.Frame(parent, bg=T.BG_DEEP)
+        bar.pack(fill=tk.X, pady=(0, 2))
+
+        def _lbl(text):
+            tk.Label(bar, text=text, bg=T.BG_DEEP, fg=T.TEXT_MUTED,
+                     font=("Microsoft YaHei UI", 9)).pack(side=tk.LEFT,
+                                                          padx=(8, 2))
+
+        def _combo(var, values, width):
+            ttk.Combobox(bar, textvariable=var, values=values, width=width,
+                         state="readonly").pack(side=tk.LEFT, padx=2)
+
+        def _btn(text, cmd):
+            tk.Button(bar, text=text, font=(T.FONT_FAMILY, 9),
+                      fg=T.TEXT_SECONDARY, bg=T.BG_HOVER,
+                      activebackground=T.BG_ACTIVE, bd=0, padx=10, pady=2,
+                      cursor='hand2', command=cmd).pack(side=tk.LEFT, padx=2)
+
+        _lbl("关键词")
+        ent = tk.Entry(bar, textvariable=self._pred_kw_var, width=16,
+                       bg=T.BG_CARD, fg=T.TEXT_PRIMARY,
+                       insertbackground=T.TEXT_PRIMARY, relief=tk.FLAT)
+        ent.pack(side=tk.LEFT, padx=2)
+        ent.bind("<Return>", lambda _e: self._on_pred_query())
+
+        _lbl("彩种")
+        _combo(self._pred_lot_var, [""] + sorted(_LOTTERY_PROBS.keys()), 10)
+
+        _lbl("状态")
+        _combo(self._pred_status_var, ["", "待复盘", "已复盘", "命中", "未中"], 8)
+
+        _lbl("每页")
+        _combo(self._pred_size_var, ["20", "50", "100", "200"], 5)
+
+        _btn("查询", self._on_pred_query)
+        _btn("清空", self._on_pred_reset)
+
+    def _build_pred_pager(self, parent):
+        """底部翻页栏：首页 / 上一页 / 页码 / 下一页 / 末页。"""
+        T = ModernTheme
+        bar = tk.Frame(parent, bg=T.BG_DEEP)
+        bar.pack(side=tk.BOTTOM, fill=tk.X, pady=(2, 0))
+
+        def _btn(text, cmd):
+            b = tk.Button(bar, text=text, font=(T.FONT_FAMILY, 9),
+                          fg=T.TEXT_SECONDARY, bg=T.BG_HOVER,
+                          activebackground=T.BG_ACTIVE, bd=0, padx=8,
+                          pady=2, cursor='hand2', command=cmd)
+            b.pack(side=tk.LEFT, padx=2)
+            return b
+
+        _btn("首页", self._pred_first_page)
+        _btn("上一页", self._pred_prev_page)
+
+        self._pred_page_label = tk.Label(
+            bar, text="-", bg=T.BG_DEEP, fg=T.TEXT_MUTED,
+            font=("Microsoft YaHei UI", 9), width=34, anchor="w")
+        self._pred_page_label.pack(side=tk.LEFT, padx=6)
+
+        _btn("下一页", self._pred_next_page)
+        _btn("末页", self._pred_last_page)
+
+    # ---- 筛选 / 翻页动作：条件变化才回第 1 页，翻页不改条件 ----
+    def _on_pred_query(self):
+        self._pred_page = 1
+        self.refresh_pred_panel()
+
+    def _on_pred_reset(self):
+        self._ensure_pred_query_vars()
+        self._pred_kw_var.set("")
+        self._pred_lot_var.set("")
+        self._pred_status_var.set("")
+        self._pred_size_var.set("50")
+        self._pred_page = 1
+        self.refresh_pred_panel()
+
+    def _pred_first_page(self):
+        self._pred_page = 1
+        self.refresh_pred_panel()
+
+    def _pred_prev_page(self):
+        self._pred_page = max(1, self._pred_page - 1)
+        self.refresh_pred_panel()
+
+    def _pred_next_page(self):
+        self._pred_page = self._pred_page + 1
+        self.refresh_pred_panel()
+
+    def _pred_last_page(self):
+        self._pred_page = 10 ** 6  # 由 paginate 内部夹取到末页
+        self.refresh_pred_panel()
+
+    def _update_pred_pager_label(self, total, pages, empty_reason, error):
+        """空态三分支（S-08）：加载失败 / 筛选无结果 / 真的没有数据。
+
+        三者处置完全不同，绝不能统一显示「暂无数据」。
+        """
+        if not hasattr(self, '_pred_page_label'):
+            return
+        if error:
+            text = "加载失败：%s" % error
+        elif empty_reason == "no_match":
+            text = "全量 %d 条中没有符合当前条件的记录（可点「清空」放宽）" % len(self.preds)
+        elif empty_reason == "no_data":
+            text = "还没有预测记录，先去生成一期"
+        else:
+            text = "第 %d/%d 页 · 共 %d 条" % (self._pred_page, pages, total)
+        self._pred_page_label.config(text=text)
+
     def refresh_pred_panel(self):
-        """刷新预测面板，从self.preds填充tree(Treeview)"""
+        """刷新预测面板：经统一查询层筛选/排序/分页后，**只渲染当前页**。
+
+        JS-20261015-04：此前是 `for p in self.preds` 一次性全量 insert Treeview，
+        3636 条时卡顿，且随数据增长持续恶化。现每页只插 page_size 条。
+        `self.preds` **仍保持全量语义**（复盘统计、导出依赖它），不被分页改写。
+        """
         if not hasattr(self, 'tree'):
             return
         T = ModernTheme
@@ -833,7 +1032,10 @@ class App:
         for item in self.tree.get_children():
             self.tree.delete(item)
         # 填充数据（列顺序：期号/彩种/号码/类型/方案/SQI/命中/覆盖度/状态/日期）
-        for idx, p in enumerate(self.preds):
+        # 走统一查询层：筛选 → 排序 → 分页，只拿当前页
+        rows, total, pages, empty_reason, error = self._query_pred_page()
+
+        for idx, p in enumerate(rows):
             period = str(p.get("period", ""))
             lot = str(p.get("lot", ""))
             nums = str(p.get("nums", ""))
@@ -854,6 +1056,7 @@ class App:
                              tags=(row_tag, status_tag))
         # 更新命中率统计
         self._update_hit_stats()
+        self._update_pred_pager_label(total, pages, empty_reason, error)
 
     def _update_hit_stats(self):
         """计算并显示命中率统计"""
@@ -1214,6 +1417,9 @@ class App:
         )
         self._stats_label.pack(fill=tk.X, pady=(0, 2))
 
+        # JS-20261015-04：顶部筛选栏（关键词 / 彩种 / 状态 / 每页条数）
+        self._build_pred_filter_bar(table_frame)
+
         columns = tuple(cid for cid, _, _ in PRED_TABLE_COLUMNS)
         self.tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=12)
 
@@ -1224,6 +1430,9 @@ class App:
         tree_scroll = ttk.Scrollbar(table_frame, orient=tk.VERTICAL,
                                     command=self.tree.yview)
         self.tree.configure(yscrollcommand=tree_scroll.set)
+
+        # JS-20261015-04：翻页栏先 pack 到底部，tree 再填充剩余空间
+        self._build_pred_pager(table_frame)
 
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         tree_scroll.pack(side=tk.RIGHT, fill=tk.Y)

@@ -233,8 +233,8 @@ def query_lottery_predictions(spec):
     返回 {"ok","records","total","page","page_size","total_pages","filters"}；
     total 为**过滤后**总数，不是当前页长度。
     """
-    rows, total, pages = apply_query(_load_lottery_predictions_raw(),
-                                     spec, LOTTERY_SEARCH_FIELDS,
+    records = _load_lottery_predictions_raw()
+    rows, total, pages = apply_query(records, spec, LOTTERY_SEARCH_FIELDS,
                                      LOTTERY_NUMBER_FIELDS)
     return {
         "ok": True,
@@ -244,9 +244,25 @@ def query_lottery_predictions(spec):
         "page_size": spec.page_size,
         "total_pages": pages,
         "filters": describe_filters(spec),
+        "facets": {"lots": _lottery_lot_facets(records)},
         "empty_reason": "" if rows else ("no_data" if spec.is_empty()
                                          else "no_match"),
     }
+
+
+def _lottery_lot_facets(records):
+    """彩种清单：基于**全量**数据，不受当前筛选影响。
+
+    刻意不硬编码彩种名 —— 新增彩种时下拉自动跟上，避免两处定义漂移。
+    """
+    out = []
+    for r in records:
+        if not isinstance(r, dict):
+            continue
+        lot = str(r.get("lot") or "").strip()
+        if lot and lot not in out:
+            out.append(lot)
+    return sorted(out)
 
 
 def handle_lottery_predictions_list(handler):

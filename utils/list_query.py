@@ -211,12 +211,32 @@ def _first(v, default=""):
     return str(v if v is not None else default).strip()
 
 
+# 状态入参别名：前端下拉用的是英文值（hit/miss/pending），
+# 而统一层内部判定只认中文规范值。两边不归一就会**静默返回空列表**。
+# 未知值原样透传 —— 不在入参层静默吞掉（本项目反复踩的坑）。
+_STATUS_ALIASES = {
+    "hit": "命中",
+    "miss": "未中",
+    "pending": "待复盘",
+    "reviewed": "已复盘",
+    "未判定": "待复盘",
+}
+
+
+def _normalize_status(raw: str) -> str:
+    """把状态入参归一成中文规范值；空值与未知值原样返回。"""
+    s = (raw or "").strip().lower()
+    if not s:
+        return ""
+    return _STATUS_ALIASES.get(s, raw)
+
+
 def parse_query(params: Dict[str, Any], default_sort: str = "time") -> QuerySpec:
     """把 HTTP query / GUI 表单 转成 QuerySpec。非法值一律兜底，不抛异常。"""
     spec = QuerySpec()
     spec.q = _first(params.get("q"))
     spec.lots = _split_lots(params.get("lot") or params.get("lots"))
-    spec.status = _first(params.get("status"))
+    spec.status = _normalize_status(_first(params.get("status")))
     spec.date_from = _first(params.get("date_from"))
     spec.date_to = _first(params.get("date_to"))
     spec.sort = _first(params.get("sort"), default_sort)
@@ -239,6 +259,42 @@ def _to_num(v: Any) -> Optional[float]:
         return None
 
 
+# 中文规范值 → 内部三态（"reviewed" 是流程维度，不是结果维度）
+_STATUS_TO_STATE = {
+    "命中": "hit",
+    "未中": "miss",
+    "待复盘": "pending",
+    "已复盘": "reviewed",
+}
+
+
+def _is_hit(record: Dict[str, Any]) -> bool:
+    """结果维度：是否命中。"""
+    if "outcome" in record:                        # Q&A 数据源
+        return record.get("outcome") == "hit"
+    return (_to_num(record.get("hits")) or 0) > 0  # 彩票数据源
+
+
+def _is_miss(record: Dict[str, Any]) -> bool:
+    """结果维度：是否未中。
+
+    两个数据源的 miss 语义本就不同，硬统一只会制造错误：
+      * Q&A：三态互斥 —— 只有 outcome 明确是 miss 才算未中，
+             未判定（outcome 为空）**不算**未中。
+      * 彩票：二值 —— 没有 outcome 概念，非命中即未中。
+    """
+    if "outcome" in record:
+        return record.get("outcome") == "miss"
+    return (_to_num(record.get("hits")) or 0) <= 0
+
+
+def _is_pending(record: Dict[str, Any]) -> bool:
+    """流程维度：是否待复盘。"""
+    if "outcome" in record:
+        return not bool(record.get("outcome"))
+    return not bool(record.get("reviewed"))
+
+
 def filter_records(records: Sequence[Dict[str, Any]], spec: QuerySpec,
                  search_fields: Sequence[str],
                  number_fields: Sequence[str] = ()) -> List[Dict[str, Any]]:
@@ -248,15 +304,22 @@ def filter_records(records: Sequence[Dict[str, Any]], spec: QuerySpec,
         if spec.lots and get_field(r, "lot") not in spec.lots:
             continue
         if spec.status:
-            st = get_field(r, "status")
-            if spec.status == "命中":
-                if not (_to_num(get_field(r, "hits")) or 0) > 0:
+            want = _STATUS_TO_STATE.get(spec.status, spec.status)
+            if want == "hit":
+                if not _is_hit(r):
                     continue
-            elif spec.status == "未中":
-                if (_to_num(get_field(r, "hits")) or 0) > 0:
+            elif want == "miss":
+                if not _is_miss(r):
                     continue
-            elif st != spec.status:
-                continue
+            elif want == "pending":
+                if not _is_pending(r):
+                    continue
+            elif want == "reviewed":
+                if _is_pending(r):        # 已复盘 = 已有结果
+                    continue
+            else:
+                if get_field(r, "status") != spec.status:
+                    continue
         if spec.date_from or spec.date_to:
             d = str(get_field(r, "date") or "")[:10]
             if spec.date_from and d and d < spec.date_from:

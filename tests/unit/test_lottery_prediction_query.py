@@ -145,3 +145,48 @@ def test_query_lottery_empty_reason():
         spec = P.parse_query({"q": "绝对不存在的词xyz"})
         r = P.query_lottery_predictions(spec)
         assert r["empty_reason"] == "no_match"
+
+
+# ---------------------------------------------------------------------------
+# 端到端：HTTP 入口层（跳过 socket，直接驱动 handler）
+#
+# 上面测的是 query_* 纯逻辑；这里补 `handle_*`，因为它是真实 HTTP 入口，
+# 负责把 URL query 解析成 QuerySpec —— 参数名写错、编码没处理好，
+# 都会在这一层出问题，而纯逻辑测试是测不出来的。
+# ---------------------------------------------------------------------------
+class _FakeGetHandler(object):
+    """只实现 GET 列表 handler 真正用到的接口。"""
+
+    def __init__(self, path):
+        self.path = path
+        self.sent = None
+
+    def _send_json(self, obj, code=200):
+        self.sent = (code, obj)
+
+
+def test_lottery_predictions_endpoint_returns_payload():
+    with _with_tmp(SAMPLE) as _:
+        h = _FakeGetHandler("/api/lottery/predictions?lot=%E5%BF%AB%E4%B9%908&page=1&limit=2")
+        P.handle_lottery_predictions_list(h)
+        assert h.sent is not None
+        code, body = h.sent
+        assert code == 200
+        assert body["ok"] is True
+        assert body["total"] == 2
+        assert body["page"] == 1
+        assert body["page_size"] == 2
+        assert body["total_pages"] == 1
+        # 回显与分面：前端 chips 与彩种下拉依赖它们
+        assert any(f.get("key") == "lot" for f in body["filters"])
+        assert "快乐8" in body["facets"]["lots"]
+
+
+def test_lottery_predictions_endpoint_empty_reason():
+    with _with_tmp(SAMPLE) as _:
+        h = _FakeGetHandler("/api/lottery/predictions?q=nope_xyz_123")
+        P.query_lottery_predictions  # noqa: B018  (确保符号存在)
+        P.handle_lottery_predictions_list(h)
+        _, body = h.sent
+        assert body["records"] == []
+        assert body["empty_reason"] == "no_match"

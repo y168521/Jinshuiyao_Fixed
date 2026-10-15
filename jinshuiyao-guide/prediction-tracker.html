@@ -76,21 +76,35 @@
     </div>
     <div style="margin-top:8px;font-size:12px;color:var(--muted);">💡 口径：每期所有已复盘预测条「覆盖率(命中数÷投注号码数)」的期均；趋势=最近窗口 vs 前一窗口，±2个百分点内视为持平。小样本波动大，仅作参考勿过度解读。</div>
   </div>
-  <div class="card">
+  <div class="card" id="detailCard">
     <h2 style="font-size:15px;margin:0 0 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       🗒 预测明细（按时间倒序）
-      <select id="flt" class="btn" style="margin-left:auto;">
-        <option value="">全部</option>
-        <option value="hit">仅命中</option>
-        <option value="miss">仅未命中</option>
-        <option value="pending">仅未判定</option>
+      <select id="src" class="btn" style="margin-left:auto;" title="切换数据源">
+        <option value="lottery">彩票选号预测</option>
+        <option value="qa">AI 问答预测</option>
       </select>
+      <select id="flt" class="btn" title="按结果筛选">
+        <option value="">全部</option>
+        <option value="hit">命中</option>
+        <option value="miss">未中</option>
+        <option value="pending">待复盘</option>
+      </select>
+      <select id="lotSel" class="btn" title="按彩种筛选（仅彩票数据源）">
+        <option value="">全部彩种</option>
+      </select>
+      <input id="kw" class="btn" style="width:150px;text-align:left;" placeholder="关键词 / 期号 / 号码" />
+      <button class="btn" onclick="onQuery()">查询</button>
+      <button class="btn" onclick="onReset()">清空</button>
       <button class="btn" onclick="exportCsv()">导出CSV</button>
     </h2>
+    <!-- S-07：已选条件回显（逐条可删 + 一键清空） -->
+    <div id="chips" style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px;"></div>
     <div class="scroll-x">
-      <table id="detailTable"><thead><tr><th>时间</th><th>领域</th><th>预测内容</th><th>答案</th><th>结果</th><th>标注</th></tr></thead>
+      <table id="detailTable"><thead><tr id="detailHead"></tr></thead>
       <tbody id="detailBody"><tr><td colspan="6" class="muted">加载中…</td></tr></tbody></table>
     </div>
+    <!-- S-02：后端真分页控件 -->
+    <div id="pager" style="display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap;"></div>
     <div style="margin-top:10px;font-size:12px;color:var(--muted);">💡 预测记录由 AI 助手/各子系统分析时自动收录，开奖后可在本页标注命中/未命中，形成准确率反馈闭环。</div>
   </div>
   <div id="errBox"></div>
@@ -228,35 +242,220 @@ function renderHitTrend(lots){
   if (window.enhanceTable) enhanceTable(document.getElementById('hitTrendTable'), { filter: false });
 }
 
+/* ---------------- 预测明细：统一查询（筛选 → 排序 → 分页） ----------------
+   口径与后端 utils/list_query 完全一致 —— web 与 GUI 共用同一套实现，
+   避免出现「网页搜得到、桌面搜不到」的分裂。
+   数据源：lottery = 彩票选号预测（数千条）；qa = AI 问答预测沉淀。
+------------------------------------------------------------------------- */
+const DETAIL_COLS = {
+  lottery: [
+    ['period', '期号'], ['lot', '彩种'], ['nums', '号码'], ['type', '类型'],
+    ['scheme', '方案'], ['confidence', 'SQI'], ['hits', '命中'],
+    ['reviewed', '状态'], ['draw_date', '开奖日期'],
+  ],
+  qa: [
+    ['time', '时间'], ['domain', '领域'], ['question', '预测内容'],
+    ['answer', '答案'], ['outcome', '结果'], ['_mark', '标注'],
+  ],
+};
+let detailPage = 1, detailPages = 1, detailTotal = 0;
+
+function detailQuery(){
+  const g = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+  return {
+    src: g('src') || 'lottery',
+    status: g('flt'),
+    lot: g('lotSel'),
+    q: (g('kw') || '').trim(),
+    page: detailPage,
+    limit: g('psize') || '20',
+  };
+}
+
+/* S-07：条件写入 URL，刷新/分享/后退都能原样恢复 */
+function syncUrl(q){
+  const p = new URLSearchParams();
+  if (q.src && q.src !== 'lottery') p.set('src', q.src);
+  if (q.status) p.set('status', q.status);
+  if (q.lot) p.set('lot', q.lot);
+  if (q.q) p.set('q', q.q);
+  if (q.page > 1) p.set('page', String(q.page));
+  if (String(q.limit) !== '20') p.set('limit', String(q.limit));
+  const s = p.toString();
+  history.replaceState(null, '', s ? ('?' + s) : location.pathname);
+}
+
+function readUrl(){
+  const p = new URLSearchParams(location.search);
+  const set = (id, v) => { const el = document.getElementById(id); if (el && v) el.value = v; };
+  set('src', p.get('src'));
+  set('flt', p.get('status'));
+  set('lotSel', p.get('lot'));
+  set('psize', p.get('limit'));
+  const kw = document.getElementById('kw');
+  if (kw) kw.value = p.get('q') || '';
+  const pg = parseInt(p.get('page') || '1', 10);
+  detailPage = (pg && pg > 0) ? pg : 1;
+}
+
 async function loadDetails(){
   const wrap = document.getElementById('detailBody');
   StateUI.loading(wrap, '明细加载中…');
+  const q = detailQuery();
+  syncUrl(q);
   try{
-    const r = await fetch('/api/prediction/list', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({limit:100})});
-    const j = await r.json();
+    let j;
+    if (q.src === 'qa'){
+      const r = await fetch('/api/prediction/list', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({status:q.status, q:q.q,
+                              page:q.page, limit:parseInt(q.limit,10)}),
+      });
+      j = await r.json();
+    }else{
+      const ps = new URLSearchParams();
+      if (q.status) ps.set('status', q.status);
+      if (q.q) ps.set('q', q.q);
+      if (q.lot) ps.set('lot', q.lot);
+      ps.set('page', String(q.page));
+      ps.set('limit', String(q.limit));
+      const r = await fetch('/api/lottery/predictions?'+ps.toString(),
+                        {cache:'no-store'});
+      j = await r.json();
+    }
     if(!j.ok) throw new Error(j.error||'接口错误');
     allRecords = j.records||[];
+    _fillLotOptions(j.facets && j.facets.lots);
+    detailTotal = j.total||0;
+    detailPages = j.total_pages||1;
+    detailPage = j.page||1;
     renderDetails();
   }catch(e){
+    // 三态分离：加载失败 ≠ 没有数据（S-08）
     StateUI.error(wrap, '明细加载失败：'+esc(e.message), loadDetails);
   }
 }
+
+/* 彩种下拉：用后端返回的**全量**清单填充，不硬编码彩种名 */
+function _fillLotOptions(lots){
+  const sel = document.getElementById('lotSel');
+  if (!sel || !lots || !lots.length) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">全部彩种</option>' +
+    lots.map(l => '<option value="'+esc(l)+'"'+(l === cur ? ' selected' : '')+'>'+esc(l)+'</option>').join('');
+}
+
+function cellHtml(col, x){
+  const k = col[0];
+  if (k === '_mark') return markBtns(x);
+  if (k === 'outcome') return outcomeBadge(x.outcome);
+  if (k === 'reviewed') return x.reviewed
+    ? '<span class="badge b-hit">已复盘</span>'
+    : '<span class="badge b-pend">待复盘</span>';
+  if (k === 'time') return '<span class="muted">'+fmtTs(x.time)+'</span>';
+  if (k === 'domain') return dn(x.domain);
+  const v = x[k];
+  const long = (k === 'question' || k === 'answer' || k === 'nums');
+  return '<td'+(long ? ' class="q" title="'+esc(v)+'"' : '')+'>'+
+         esc(v == null || v === '' ? '—' : v)+'</td>';
+}
+
 function renderDetails(){
-  const flt = document.getElementById('flt').value;
-  let recs = allRecords;
-  if(flt==='hit') recs = recs.filter(x=>x.outcome==='hit');
-  else if(flt==='miss') recs = recs.filter(x=>x.outcome==='miss');
-  else if(flt==='pending') recs = recs.filter(x=>!x.outcome);
   const wrap = document.getElementById('detailBody');
-  if(!recs.length){ StateUI.empty(wrap, flt ? '该筛选下暂无记录' : '暂无预测记录', '去 AI 助手提问，系统自动收录预测'); return; }
-  wrap.innerHTML = recs.map(x=>
-    '<tr data-id="'+esc(x.id||'')+'"><td class="muted">'+fmtTs(x.time)+'</td>'+
-    '<td>'+dn(x.domain)+'</td>'+
-    '<td class="q" title="'+esc(x.question)+'">'+esc(x.question)+'</td>'+
-    '<td class="q" title="'+esc(x.answer)+'">'+esc(x.answer)+'</td>'+
-    '<td>'+outcomeBadge(x.outcome)+'</td>'+
-    '<td>'+markBtns(x)+'</td></tr>').join('');
-  if (window.enhanceTable) enhanceTable(document.getElementById('detailTable'), { filter: true, pagination: true, pageSize: 15 });
+  const q = detailQuery();
+  const cols = DETAIL_COLS[q.src] || DETAIL_COLS.lottery;
+
+  const head = document.getElementById('detailHead');
+  if (head) head.innerHTML = cols.map(c=>'<th>'+c[1]+'</th>').join('');
+
+  renderChips(q);
+
+  if (!allRecords.length){
+    // S-08：空态分「无数据」与「筛选无结果」两种，处置不同
+    const filtered = !!(q.status || q.q || q.lot);
+    StateUI.empty(wrap,
+      filtered ? '没有符合当前条件的记录' : '暂无预测记录',
+      filtered ? '试试点「清空」放宽条件' : '去 AI 助手提问，系统自动收录预测');
+    renderPager(q);
+    return;
+  }
+  wrap.innerHTML = allRecords.map(x=>
+    '<tr data-id="'+esc(x.id||x.period||'')+'">'+
+      cols.map(c=>cellHtml(c,x)).join('')+
+    '</tr>').join('');
+  renderPager(q);
+}
+
+/* S-07：已选条件回显，逐条可删 + 一键清空 */
+function renderChips(q){
+  const box = document.getElementById('chips');
+  if (!box) return;
+  const items = [];
+  if (q.src === 'qa') items.push(['src', '数据源', 'AI 问答预测']);
+  if (q.status) items.push(['flt', '结果', q.status]);
+  if (q.lot) items.push(['lotSel', '彩种', q.lot]);
+  if (q.q) items.push(['kw', '关键词', q.q]);
+  if (!items.length){
+    box.innerHTML = '<span style="font-size:12px;color:var(--muted);">未设置筛选条件（显示全部）</span>';
+    return;
+  }
+  box.innerHTML = items.map(it=>
+    '<span style="display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border:1px solid rgba(201,169,110,.35);border-radius:999px;font-size:12px;color:var(--muted);">'+
+      esc(it[1])+'：'+esc(it[2])+
+      '<button onclick="clearCond(\'' + it[0] + '\')" title="移除此条件" '+
+        'style="border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:13px;line-height:1;">×</button>'+
+    '</span>').join('') +
+    '<button class="btn" style="font-size:12px;padding:2px 10px;" onclick="onReset()">清空全部</button>';
+}
+
+function clearCond(id){
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.value = (id === 'src') ? 'lottery' : '';
+  detailPage = 1;
+  loadDetails();
+}
+
+function onQuery(){ detailPage = 1; loadDetails(); }
+
+function onReset(){
+  const s = document.getElementById('src');    if (s) s.value = 'lottery';
+  const f = document.getElementById('flt');    if (f) f.value = '';
+  const l = document.getElementById('lotSel'); if (l) l.value = '';
+  const k = document.getElementById('kw');     if (k) k.value = '';
+  const p = document.getElementById('psize');  if (p) p.value = '20';
+  detailPage = 1;
+  loadDetails();
+}
+
+function goPage(p){
+  detailPage = Math.max(1, Math.min(detailPages, p));
+  loadDetails();
+}
+
+function renderPager(q){
+  const box = document.getElementById('pager');
+  if (!box) return;
+  const size = parseInt(q.limit, 10) || 20;
+  const from = detailTotal ? ((detailPage - 1) * size + 1) : 0;
+  const to = Math.min(detailTotal, detailPage * size);
+  const dis = (b) => b ? ' disabled style="opacity:.45;cursor:default;"' : '';
+  box.innerHTML =
+    '<span style="font-size:12px;color:var(--muted);">共 ' + detailTotal +
+      ' 条 · 第 ' + detailPage + '/' + detailPages + ' 页' +
+      (detailTotal ? ('（' + from + '-' + to + '）') : '') + '</span>' +
+    '<button class="btn" style="font-size:12px;padding:2px 10px;"' + dis(detailPage <= 1) +
+      ' onclick="goPage(1)">首页</button>' +
+    '<button class="btn" style="font-size:12px;padding:2px 10px;"' + dis(detailPage <= 1) +
+      ' onclick="goPage(detailPage-1)">上一页</button>' +
+    '<button class="btn" style="font-size:12px;padding:2px 10px;"' + dis(detailPage >= detailPages) +
+      ' onclick="goPage(detailPage+1)">下一页</button>' +
+    '<button class="btn" style="font-size:12px;padding:2px 10px;"' + dis(detailPage >= detailPages) +
+      ' onclick="goPage(detailPages)">末页</button>' +
+    '<select id="psize" class="btn" style="font-size:12px;padding:2px 6px;" onchange="onQuery()">' +
+      ['20','50','100','200'].map(v =>
+        '<option value="'+v+'"'+(v === String(q.limit) ? ' selected' : '')+'>'+v+' 条/页</option>').join('') +
+    '</select>';
 }
 function markBtns(x){
   if(!x.id) return '<span class="muted">—</span>';
@@ -280,8 +479,14 @@ function exportCsv(){
   exportTableCsv(tb, '预测明细_'+new Date().toISOString().slice(0,10)+'.csv');
   showToast('已导出 CSV', 'success');
 }
-document.getElementById('flt').addEventListener('change', renderDetails);
+document.getElementById('src').addEventListener('change', onQuery);
+document.getElementById('flt').addEventListener('change', onQuery);
+document.getElementById('lotSel').addEventListener('change', onQuery);
+document.getElementById('kw').addEventListener('keydown', function(e){
+  if (e.key === 'Enter') onQuery();
+});
 document.getElementById('htWin').addEventListener('change', loadHitTrend);
+readUrl();            // S-07：刷新/分享后从 URL 恢复筛选条件
 loadStats(); loadDetails(); loadHitTrend();
 setInterval(loadStats, 60000);
 setInterval(loadHitTrend, 120000);

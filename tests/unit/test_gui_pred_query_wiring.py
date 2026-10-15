@@ -71,12 +71,22 @@ class TestGuiPredQueryWiring(unittest.TestCase):
         func = _find_func(tree, "refresh_pred_panel")
         self.assertIsNotNone(func, "gui/main_window.py 里找不到 refresh_pred_panel")
 
+        # refresh_pred_panel 只负责渲染，取数必须委派给 _query_pred_page
         calls = set(_iter_calls(func))
-        self.assertTrue(
-            {"apply_query"} & calls,
-            "refresh_pred_panel 必须调用 utils.list_query 的 apply_query，"
-            "以保证 GUI 与 web 端筛选/排序/分页口径一致（当前调用：%s）"
-            % sorted(calls),
+        self.assertIn(
+            "_query_pred_page", calls,
+            "refresh_pred_panel 必须通过 _query_pred_page 取数（不得自己遍历 "
+            "self.preds 做筛选/分页），当前调用：%s" % sorted(calls),
+        )
+
+        # 而 _query_pred_page 必须真的落到统一层 apply_query 上
+        qfunc = _find_func(tree, "_query_pred_page")
+        self.assertIsNotNone(qfunc, "gui/main_window.py 里找不到 _query_pred_page")
+        qcalls = set(_iter_calls(qfunc))
+        self.assertIn(
+            "apply_query", qcalls,
+            "_query_pred_page 必须调用 utils.list_query 的 apply_query，"
+            "以保证 GUI 与 web 端口径一致（当前调用：%s）" % sorted(qcalls),
         )
 
 
