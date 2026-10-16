@@ -148,4 +148,4 @@ def test_alert_file_written(isolated):
 def test_thresholds_are_module_level():
     assert isinstance(hw.ASSET_STALE_DAYS, int) and hw.ASSET_STALE_DAYS > 0
     assert isinstance(hw.TASK_LATE_FACTOR, int) and hw.TASK_LATE_FACTOR >= 1
-    assert isinstance(hw.AI_DECISION_STALE_DAYS, int) and hw.AI_DECISION_STALE_DAYS > 0
+    assert isinstance(hw.AI_DECISION_STALE_WARN_DAYS, int) and hw.AI_DECISION_STALE_WARN_DAYS > 0

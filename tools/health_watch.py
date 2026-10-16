@@ -96,10 +96,13 @@ LASTRUN_FILE = os.path.join(BASE_DIR, "金水谣数据", "log", "scheduler_lastr
 SCHED_CFG = os.path.join(BASE_DIR, "config", "scheduler.json")
 AI_DECISIONS = os.path.join(BASE_DIR, "金水谣数据", "log", "ai_decisions.md")
 # 单一真源：决策卡阈值以门禁为准，此处不另写一份（两份数字迟早会漂移）
+# ⚠️ 常量名必须与 check_consistency.py 完全一致，写错会导致导入必败、悄无声息地
+#    回落到下面的降级值（JS-20261015-07 修正：原写作 AI_DECISION_STALE_DAYS，
+#    真名是 AI_DECISION_STALE_WARN_DAYS，故此处长期走的是 fallback 而非门禁值）。
 try:
-    from tools.check_consistency import AI_DECISION_STALE_DAYS  # noqa: E402
+    from tools.check_consistency import AI_DECISION_STALE_WARN_DAYS  # noqa: E402
 except Exception:  # 门禁模块不可用时降级，但绝不静默
-    AI_DECISION_STALE_DAYS = 14
+    AI_DECISION_STALE_WARN_DAYS = 14
 
 
 def _days_since(ts):
@@ -205,10 +208,10 @@ def check_decisions():
                      "how": "按十字段格式补写一张决策卡"}]
         last = max(dates)
         d = (datetime.now() - datetime(*[int(x) for x in last.split("-")])).days
-        if d > AI_DECISION_STALE_DAYS:
+        if d > AI_DECISION_STALE_WARN_DAYS:
             return [{"item": "决策卡断档", "name": "ai_decisions.md",
                      "detail": "已 %d 天无新增（最新 %s，阈值 %d 天）"
-                               % (d, last, AI_DECISION_STALE_DAYS),
+                               % (d, last, AI_DECISION_STALE_WARN_DAYS),
                      "how": "补写一张决策卡即可变绿"}]
         return []
     except Exception as e:
