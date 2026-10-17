@@ -86,7 +86,7 @@ class _FakeHeaders:
 
 
 class FakeRunner:
-    """ffmpeg/ffprobe 替身：按 argv 分派预置响应。"""
+    """ffmpeg/ffprobe 替身：按 argv 内容分派预置响应（子串匹配）。"""
 
     def __init__(self, responses):
         # responses: list of (match_substring, returncode, stdout, stderr)
@@ -96,9 +96,32 @@ class FakeRunner:
     def __call__(self, argv):
         self.calls.append(list(argv))
         for key, rc, out, err in self._responses:
-            if key in argv:
+            if any(key in a for a in argv):
                 return rc, out, err
         raise AssertionError("FakeRunner 未预置该命令: %s" % argv)
+
+
+def _load_fresh(path):
+    """从文件路径沙箱加载模块——绕开 pyc 缓存与 sys.modules 污染。
+
+    撤销验证专用：改文件 → exec 新源码 → 断言 → 恢复 → 再 exec 一次
+    原始源码断言闸门恢复。exec 期间把模块临时注册进 sys.modules——
+    因为 `from __future__ import annotations` 下 dataclass 装饰器要按
+    __module__ 去 sys.modules 取命名空间解析字符串注解；exec 完立刻摘除。
+    不写 pyc、不留 sys.modules 残痕，也不受时间戳 staleness 影响
+    （写-恢复若在同一秒，pyc 会把旧字节码当新的，曾致失败数 8↔10 波动）。
+    """
+    import types
+
+    src = open(path, encoding="utf-8").read()
+    mod = types.ModuleType("module_under_test")
+    mod.__file__ = path
+    sys.modules["module_under_test"] = mod
+    try:
+        exec(compile(src, path, "exec"), mod.__dict__)
+    finally:
+        sys.modules.pop("module_under_test", None)
+    return mod
 
 
 def _probe_json(duration=30.0, width=1080, height=1920, fps="30/1", audio=True):
@@ -358,10 +381,12 @@ class TestRuleTables:
 # ---------- 撤销验证（证明闸门真的在拦） ----------
 
 class TestGateReverseVerification:
-    def test_reverse_verification_rights_gate(self, tmp_path):
-        """临时把白名单放开成通配 → 越权测试必须变红 → 恢复后转绿。
+    def test_reverse_verification_rights_gate(self):
+        """撤销验证：把白名单判定临时改成恒真 → 越权商品必须不再被拦
+        （证明拦住靠的确实是白名单）→ 恢复后重新加载，闸门必须重新拦得住。
 
-        对应铁律：只跑绿不算验证，必须见它红。
+        对应铁律：只跑绿不算验证，必须见它红。用 exec 沙箱加载，
+        不碰 sys.modules / pyc（见 _load_fresh 注释）。
         """
         import hashlib
 
@@ -371,7 +396,6 @@ class TestGateReverseVerification:
         path = mod.__file__
         original = open(path, "rb").read()
         md5_before = hashlib.md5(original).hexdigest()
-        # 放开白名单：让 allowed 恒为真
         patched = original.replace(
             b"if goods_id not in self.allowed_goods_ids:",
             b"if False:",
@@ -379,22 +403,21 @@ class TestGateReverseVerification:
         assert patched != original, "撤销验证的注入点没匹配上，检查实现是否改名"
         try:
             open(path, "wb").write(patched)
-            for m in list(sys.modules):
-                if m.startswith("domains.pdd_video.harvest"):
-                    del sys.modules[m]
-            import domains.pdd_video.harvest as mod2
-
-            scope = mod2.HarvestScope(mode="own_store", allowed_goods_ids=frozenset())
+            ns = _load_fresh(path)
+            scope = ns.HarvestScope(mode="own_store", allowed_goods_ids=frozenset())
             spy = SpySource({"EVIL": GoodsVideoRef("EVIL", "http://x/v.mp4")})
-            report = mod2.Harvester(scope, spy).run(["EVIL"])
-            # 放开后越权商品不再被拦 → 反向验证成立的前提是「拦住时测试才绿」
-            assert report.by_id("EVIL").status != mod2.STATUS_OUT_OF_SCOPE, (
+            report = ns.Harvester(scope, spy).run(["EVIL"])
+            assert report.by_id("EVIL").status != ns.STATUS_OUT_OF_SCOPE, (
                 "白名单已放开却仍判越权，说明拦住靠的不是白名单"
             )
         finally:
             open(path, "wb").write(original)
-            restored = open(path, "rb").read()
-            assert hashlib.md5(restored).hexdigest() == md5_before, "恢复后 md5 不一致"
-        for m in list(sys.modules):
-            if m.startswith("domains.pdd_video.harvest"):
-                del sys.modules[m]
+            assert hashlib.md5(open(path, "rb").read()).hexdigest() == md5_before, (
+                "恢复后 md5 不一致"
+            )
+        ns2 = _load_fresh(path)
+        scope2 = ns2.HarvestScope(mode="own_store", allowed_goods_ids=frozenset())
+        report2 = ns2.Harvester(scope2, SpySource({})).run(["EVIL"])
+        assert report2.by_id("EVIL").status == ns2.STATUS_OUT_OF_SCOPE, (
+            "恢复后闸门没有重新拦住越权商品"
+        )

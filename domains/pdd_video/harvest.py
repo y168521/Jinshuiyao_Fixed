@@ -453,12 +453,16 @@ class VideoNormalizer:
             raise ProcessError("ffmpeg_error", "rc=%s err=%s" % (rc, err))
         return out
 
-    def probe(self, path: str) -> VideoMeta:
-        exe = self._ffmpeg_path or "ffprobe"
+    def _ffprobe_exe(self) -> str:
+        """ffprobe 路径：未显式给 ffmpeg_path 时用 PATH 上的 ffprobe；
+        给了则取兄弟路径（ffmpeg 旁边通常就是 ffprobe）。"""
         if not self._ffmpeg_path:
-            # 允许 runner 模式下用任意 argv 前缀，测试替身按 "ffprobe" 关键字分派
-            exe = "ffprobe"
-        out = self._run([exe, "-v", "quiet", "-print_format", "json",
+            return "ffprobe"
+        p = Path(self._ffmpeg_path)
+        return str(p.with_name("ffprobe" + p.suffix))
+
+    def probe(self, path: str) -> VideoMeta:
+        out = self._run([self._ffprobe_exe(), "-v", "quiet", "-print_format", "json",
                          "-show_format", "-show_streams", path])
         try:
             data = json.loads(out)

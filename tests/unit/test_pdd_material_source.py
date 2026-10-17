@@ -32,6 +32,22 @@ def _asset(md5="a" * 32, duration=30.0, width=1080, height=1920,
                            has_audio=has_audio, quality_issues=tuple(issues))
 
 
+def _load_fresh(path):
+    """exec 沙箱加载：绕开 pyc；exec 期间临时注册 sys.modules
+    （dataclass 字符串注解解析需要），用完即摘。撤销验证专用。"""
+    import types
+
+    src = open(path, encoding="utf-8").read()
+    mod = types.ModuleType("module_under_test")
+    mod.__file__ = path
+    sys.modules["module_under_test"] = mod
+    try:
+        exec(compile(src, path, "exec"), mod.__dict__)
+    finally:
+        sys.modules.pop("module_under_test", None)
+    return mod
+
+
 class TestRegister:
     def test_register_self_shot_ok(self, tmp_path):
         reg = MaterialRegistry()
@@ -136,8 +152,11 @@ class TestRuleTables:
 
 class TestReverseVerification:
     def test_reverse_verification_evidence_gate(self):
-        """撤销验证：清空 LICENSE_REQUIRES_EVIDENCE → 无凭证授权必须能被放行
-        （证明拒绝确实来自这张表，不是别处的偶然）→ 恢复后重新拒绝。"""
+        """撤销验证：清空 LICENSE_REQUIRES_EVIDENCE → 无凭证授权必须被放行
+        （证明拒绝确实来自这张表）→ 恢复后重新加载，必须重新拒绝。
+
+        用 exec 沙箱加载（不碰 sys.modules/pyc，避开时间戳 staleness）。
+        """
         import hashlib
 
         import domains.pdd_video.material_source as mod
@@ -152,26 +171,21 @@ class TestReverseVerification:
         assert patched != original, "撤销验证注入点没匹配上"
         try:
             open(path, "wb").write(patched)
-            for m in list(sys.modules):
-                if m.startswith("domains.pdd_video.material_source"):
-                    del sys.modules[m]
-            import domains.pdd_video.material_source as mod2
-
-            reg = mod2.MaterialRegistry()
-            rec = reg.register(goods_id="G1", license_type="merchant_authorized",
-                               evidence_path=None, license_expire_at=None,
-                               source_url="local", asset=_asset())
+            ns = _load_fresh(path)
+            rec = ns.MaterialRegistry().register(
+                goods_id="G1", license_type="merchant_authorized",
+                evidence_path=None, license_expire_at=None,
+                source_url="local", asset=_asset())
             assert rec is not None, "表已清空却仍拒绝，说明拒绝不来自这张表"
         finally:
             open(path, "wb").write(original)
             assert hashlib.md5(open(path, "rb").read()).hexdigest() == md5_before
-        for m in list(sys.modules):
-            if m.startswith("domains.pdd_video.material_source"):
-                del sys.modules[m]
-        import domains.pdd_video.material_source as mod3
-
-        with pytest.raises(mod3.LicenseError):
-            mod3.MaterialRegistry().register(
+        ns2 = _load_fresh(path)
+        try:
+            ns2.MaterialRegistry().register(
                 goods_id="G1", license_type="merchant_authorized",
                 evidence_path=None, license_expire_at=None,
                 source_url="local", asset=_asset())
+            raise AssertionError("恢复后无凭证授权竟然被放行")
+        except ns2.LicenseError:
+            pass

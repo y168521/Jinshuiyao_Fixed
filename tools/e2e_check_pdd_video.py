@@ -1,21 +1,42 @@
 # -*- coding: utf-8 -*-
-"""JS-20261017-03 · 多多视频带货 端到端自检脚本
+"""JS-20261017-03/04 · 多多视频带货 端到端自检脚本
 
-走完整链路：选品过滤 → 脚本生成 → 合规闸 → 素材规格闸 → 拍摄清单 → 可发布判定。
+走完整链路：选品过滤 → 脚本生成 → 合规闸 → 素材规格闸 → 拍摄清单 → 可发布判定
+→ 批量提取与授权登记（JS-20261017-04，含真实本地 HTTP 下载）。
 不依赖 pytest，可独立运行；退出码 0 = 全链路通。
 
 设计约束（对应项目铁律）：
   - 每一步都同时验「该拦的拦得住」和「不该拦的不误伤」
   - 无人脸检测能力时，露脸占比必须走人工申报三态，不得静默放过
+  - 提取链路权利受控：白名单外商品不碰数据源，research 模式只探测不下载
 """
+import functools
+import hashlib
+import http.server
+import json
 import os
 import sys
+import tempfile
+import threading
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from domains.pdd_video.compliance import SEVERITY_BLOCK, ComplianceGuard  # noqa: E402
+from domains.pdd_video.harvest import (  # noqa: E402
+    STATUS_HAS_VIDEO,
+    STATUS_OUT_OF_SCOPE,
+    STATUS_READY,
+    FFmpegMissingError,
+    HarvestReport,
+    HarvestScope,
+    Harvester,
+    ManifestGoodsVideoSource,
+    VideoFetcher,
+    VideoNormalizer,
+)
+from domains.pdd_video.material_source import LicenseError, MaterialRegistry  # noqa: E402
 from domains.pdd_video.models import ProductItem, PublishTask, VideoAsset  # noqa: E402
 from domains.pdd_video.product_filter import ProductFilter  # noqa: E402
 from domains.pdd_video.script_builder import ScriptBuilder  # noqa: E402
@@ -162,6 +183,120 @@ def main():
     res_exempt = cl.evaluate(checked=checked, category="宠物用品", face_ratio=None)
     check("清单：宠物类目豁免露脸", res_exempt.passed,
           "%s" % res_exempt.missing_blockers)
+
+    # ---------- 环节 6：批量提取与授权登记（真实 HTTP 下载） ----------
+    print("\n[6] 批量提取与授权登记（权利受控）")
+    tmpdir = tempfile.mkdtemp(prefix="pdd_e2e_")
+    payload = b"PK-FAKE-MP4-PAYLOAD-FOR-E2E-" * 64
+    with open(os.path.join(tmpdir, "sample.mp4"), "wb") as fh:
+        fh.write(payload)
+
+    class _QuietHandler(http.server.SimpleHTTPRequestHandler):
+        def log_message(self, *a):
+            pass
+
+    server = http.server.HTTPServer(
+        ("127.0.0.1", 0),
+        functools.partial(_QuietHandler, directory=tmpdir),
+    )
+    port = server.server_address[1]
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        video_url = "http://127.0.0.1:%d/sample.mp4" % port
+        src = ManifestGoodsVideoSource(
+            {"G1": video_url, "G2": video_url},
+            titles={"G1": "授权商品A", "G2": "授权商品B"},
+        )
+
+        def fake_runner(argv):
+            if "ffprobe" in argv[0]:
+                probe = json.dumps({
+                    "format": {"duration": "30.0"},
+                    "streams": [
+                        {"codec_type": "video", "width": 1080, "height": 1920,
+                         "avg_frame_rate": "30/1", "duration": "30.0"},
+                        {"codec_type": "audio", "duration": "30.0"},
+                    ],
+                })
+                return 0, probe, ""
+            return 0, "", ""
+
+        scope = HarvestScope(mode="own_store",
+                             allowed_goods_ids=frozenset({"G1", "G2"}))
+        h = Harvester(scope, src,
+                      fetcher=VideoFetcher(),
+                      normalizer=VideoNormalizer(runner=fake_runner,
+                                                 ffmpeg_path="/fake/ffmpeg"),
+                      work_dir=os.path.join(tmpdir, "work"))
+        report = h.run(["G1", "G2", "GHOST"])
+        check("提取：越权商品判 out_of_scope",
+              report.by_id("GHOST").status == STATUS_OUT_OF_SCOPE)
+        check("提取：两件授权商品就绪",
+              report.by_id("G1").status == STATUS_READY
+              and report.by_id("G2").status == STATUS_READY,
+              str(report.counts))
+        a1 = report.by_id("G1").asset
+        check("提取：真实下载 md5 与源文件一致",
+              a1.md5 == hashlib.md5(payload).hexdigest())
+        check("提取：下载文件落盘且字节一致",
+              open(a1.path, "rb").read() == payload)
+        check("提取：质检干净无问题项",
+              a1.quality_issues == (), str(a1.quality_issues))
+        r2 = HarvestReport.from_dict(report.to_dict())
+        check("提取：报告可序列化恢复（断点续跑）", r2.ok_ids == report.ok_ids)
+
+        # research 模式：只探测不下载
+        rscope = HarvestScope(mode="research_metadata_only",
+                              allowed_goods_ids=frozenset())
+        rrep = Harvester(rscope, src,
+                         work_dir=os.path.join(tmpdir, "work2")).run(["G1"])
+        check("调研：有视频但禁止下载",
+              rrep.by_id("G1").status == STATUS_HAS_VIDEO
+              and not rrep.by_id("G1").downloaded)
+
+        # ffmpeg 缺失显式三态
+        try:
+            VideoNormalizer().probe("x.mp4")
+            check("处理：ffmpeg 缺失显式报错", False, "竟然静默通过")
+        except FFmpegMissingError:
+            check("处理：ffmpeg 缺失显式报错", True)
+
+        # 授权登记
+        reg = MaterialRegistry()
+        rec1 = reg.register(goods_id="G1", license_type="merchant_authorized",
+                            evidence_path=os.path.join(tmpdir, "auth1.png"),
+                            license_expire_at="2027-01-01",
+                            source_url=video_url, asset=a1)
+        check("登记：授权素材登记成功", rec1.material_id == a1.md5[:12])
+        rec2 = reg.register(goods_id="G2", license_type="merchant_authorized",
+                            evidence_path=os.path.join(tmpdir, "auth2.png"),
+                            license_expire_at="2027-01-01",
+                            source_url=video_url,
+                            asset=report.by_id("G2").asset)
+        check("登记：同 md5 复用触发重复告警",
+              "duplicate_material" in rec2.warnings)
+        try:
+            reg.register(goods_id="G3", license_type="merchant_authorized",
+                         evidence_path=None, license_expire_at=None,
+                         source_url=video_url, asset=a1)
+            check("登记：缺授权凭证被拒", False, "竟然放行")
+        except LicenseError:
+            check("登记：缺授权凭证被拒", True)
+        rec3 = reg.register(goods_id="G1", license_type="network_flagged",
+                            evidence_path=None, license_expire_at=None,
+                            source_url=video_url, asset=a1)
+        check("登记：网络来源强制标识告警",
+              rec3.network_flag_required
+              and "network_source_requires_flag" in rec3.warnings)
+        check("登记：到期检测按 ISO 日期生效",
+              len(reg.expired_records(today="2026-10-17")) == 0
+              and len(reg.expired_records(today="2028-01-01")) == 2,
+              "records=%d expired@2028=%d" % (
+                  len(reg.records),
+                  len(reg.expired_records(today="2028-01-01"))))
+    finally:
+        server.shutdown()
+        server.server_close()
 
     # ---------- 汇总 ----------
     print("\n" + "=" * 66)
