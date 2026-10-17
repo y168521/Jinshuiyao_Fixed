@@ -27,10 +27,51 @@ from domains.pdd_video.compliance import (  # noqa: F401
 from domains.pdd_video.product_filter import ProductFilter, FilterResult  # noqa: F401
 from domains.pdd_video.script_builder import ScriptBuilder  # noqa: F401
 from domains.pdd_video.shoot_checklist import ShootChecklist, ChecklistResult  # noqa: F401
+from domains.pdd_video.harvest import (  # noqa: F401
+    ERROR_CODES,
+    ITEM_STATUSES,
+    SCOPE_MODES,
+    STATUS_FETCH_FAILED,
+    STATUS_HAS_VIDEO,
+    STATUS_NO_VIDEO,
+    STATUS_OUT_OF_SCOPE,
+    STATUS_READY,
+    ApiGoodsVideoSource,
+    FetchError,
+    FFmpegMissingError,
+    GoodsVideoRef,
+    HarvestItem,
+    Harvester,
+    HarvestReport,
+    HarvestScope,
+    ManifestGoodsVideoSource,
+    NormalizedAsset,
+    ProcessError,
+    RightsViolationError,
+    VideoFetcher,
+    VideoMeta,
+    VideoNormalizer,
+)
+from domains.pdd_video.material_source import (  # noqa: F401
+    LICENSE_REQUIRES_EVIDENCE,
+    LICENSE_TYPES,
+    LicenseError,
+    MaterialRecord,
+    MaterialRegistry,
+)
 
 __all__ = [
     "LEGAL_ASSET_SOURCES", "ProductItem", "PublishTask", "ScriptDraft", "VideoAsset",
     "SEVERITY_BLOCK", "SEVERITY_WARN", "ComplianceGuard", "Violation",
     "ProductFilter", "FilterResult", "ScriptBuilder",
     "ShootChecklist", "ChecklistResult",
+    "ERROR_CODES", "ITEM_STATUSES", "SCOPE_MODES",
+    "STATUS_FETCH_FAILED", "STATUS_HAS_VIDEO", "STATUS_NO_VIDEO",
+    "STATUS_OUT_OF_SCOPE", "STATUS_READY",
+    "ApiGoodsVideoSource", "FetchError", "FFmpegMissingError", "GoodsVideoRef",
+    "HarvestItem", "Harvester", "HarvestReport", "HarvestScope",
+    "ManifestGoodsVideoSource", "NormalizedAsset", "ProcessError",
+    "RightsViolationError", "VideoFetcher", "VideoMeta", "VideoNormalizer",
+    "LICENSE_REQUIRES_EVIDENCE", "LICENSE_TYPES", "LicenseError",
+    "MaterialRecord", "MaterialRegistry",
 ]
