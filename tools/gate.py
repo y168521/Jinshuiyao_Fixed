@@ -13,6 +13,7 @@ quality_gate / review / test / audit(跨文档一致性) 为单一入口。用�
   py -3.14 tools/gate.py --quality        # 质量基线（原 quality_gate）
   py -3.14 tools/gate.py --review         # AI 审查（原 run_review）
   py -3.14 tools/gate.py --test           # 全量测试（原 run_tests）
+  py -3.14 tools/gate.py --pdd            # 多多视频带货端到端自检
   py -3.14 tools/gate.py --all            # 全跑一遍
 各子命令透传额外参数（如 --quick, --skip-tests 等）。
 旧入口脚本保留作为兼容别名，但新调用请统一走 gate.py。
@@ -31,6 +32,18 @@ if sys.platform == "win32":
 BASE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(BASE)  # Jinshuiyao_Fixed/
 SCRIPTS = os.path.join(ROOT, "scripts")
+
+# tools/ 随脚本运行时天然位于 sys.path[0]，但经 `python -m` 或异目录调用时不在，
+# 故显式补齐后再 import。
+if BASE not in sys.path:
+    sys.path.insert(0, BASE)
+
+# 多多视频带货端到端自检：接进统一门禁（JS-20261017-03）。
+# 为什么必须是真实 import 而不是只在 docstring 里写文件名：
+#   孤儿检查器闸要求检查器有「执行语义」引用（import / 调用 / 命令行），
+#   散文提及不算 —— JS-20260925-05 复盘时 staleness_check 被 4 个文件提到、
+#   却一次都没被调用，潜伏 46 天无人发现。
+import e2e_check_pdd_video  # noqa: E402
 
 SCRIPT_MAP = {
     "check":     (os.path.join(BASE, "wrapup_check.py"),     "收工自检"),
@@ -71,6 +84,20 @@ def run_tests(extra_args):
         print(f"[gate] OK 全量测试通过")
     return result.returncode
 
+def run_pdd_check():
+    """--pdd: 多多视频带货端到端自检（真实 import 调用，非子进程）"""
+    print(f"[gate] {'='*50}")
+    print("[gate] 执行: 多多视频带货端到端自检")
+    print("[gate] 命令: import e2e_check_pdd_video; e2e_check_pdd_video.main()")
+    print(f"[gate] {'='*50}")
+    code = e2e_check_pdd_video.main()
+    if code != 0:
+        print(f"[gate] FAIL 多多视频带货端到端自检失败 (exit={code})")
+    else:
+        print("[gate] OK 多多视频带货端到端自检通过")
+    return code
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="金水谣统一门禁入口")
@@ -83,16 +110,19 @@ def main():
     parser.add_argument("--review", action="store_true", help="AI 审查（原 run_review）")
     parser.add_argument("--test", action="store_true", help="全量测试（原 run_tests）")
     parser.add_argument("--audit", action="store_true", help="跨文档一致性审计（cross_doc_audit）")
+    parser.add_argument("--pdd", action="store_true", help="多多视频带货端到端自检（e2e_check_pdd_video）")
     parser.add_argument("--all", action="store_true", help="全跑一遍")
     args, extra = parser.parse_known_args()
 
     selected = []
     if args.all:
-        selected = list(SCRIPT_MAP.keys())
+        selected = list(SCRIPT_MAP.keys()) + ["pdd"]
     else:
         for key in SCRIPT_MAP:
             if getattr(args, key, False):
                 selected.append(key)
+        if args.pdd:
+            selected.append("pdd")
 
     if not selected:
         parser.print_help()
@@ -103,6 +133,8 @@ def main():
     for key in selected:
         if key == "test":
             code = run_tests(extra)
+        elif key == "pdd":
+            code = run_pdd_check()
         else:
             script_path, label = SCRIPT_MAP[key]
             code = run_script(script_path, label, extra)
