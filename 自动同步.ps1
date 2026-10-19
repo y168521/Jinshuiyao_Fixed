@@ -147,6 +147,13 @@ if ($candidates.Count -gt 0) {
             git reset --mixed 2>&1 | Out-Null
             Log "skip commit: 缺留痕（交接中心/总索引/经验箱未登记当日改动），等下周期"
             Log $trailRc
+            # 【JS-20261020-02 · P0-1】静默跳过是本方案要根治的头号问题：
+            #   缺留痕 -> exit 0 -> 三件套永不更新 -> 收工门禁永远 FAIL -> 永远跳过，
+            #   而计划任务 LastTaskResult=0 完全看不出异常（本轮已实证踩过）。
+            #   守卫式跳过必须"留痕 + 告警"，不能无声退出。
+            if ($_py) {
+                & $_py "$Repo/utils/alert_hub.py" CRITICAL "自动同步" "缺留痕已跳过本次提交（改动滞留、未推送）" "补交接中心/总索引/经验箱当日登记" 2>&1 | Out-Null
+            }
             exit 0
         }
         $commitOut = git commit -m "auto-sync: automatic sync $(Get-Date -Format 'yyyy-MM-dd HH:mm')" 2>&1 | Out-String

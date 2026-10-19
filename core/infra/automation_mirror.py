@@ -68,6 +68,15 @@ MIRROR_TASKS = [
      "guard": "daily@23:45", "desc": "AI抽考门禁(免费模型)"},
     {"name": "mirror_knowledge_refresh", "script": "scripts/knowledge_refresh.py",
      "guard": "weekly@SUN@06:30", "desc": "联网新知注入(免费模型)"},
+    # ── JS-20261020-02：主动发现体系 ──
+    # 巡检聚合器：把已有但"结果没人看"的检查器统一跑一遍并**推送告警**
+    # （此前 health_watch 只写 md 文件，一条告警挂 25 天无人知晓）。
+    # 结果落 金水谣数据/log/inspect_status.json，告警走 utils/alert_hub.py。
+    {"name": "mirror_inspect_all", "script": "tools/inspect_all.py",
+     "guard": "daily@06:30", "desc": "巡检聚合器(一致性/AST/健康/卫生/API契约)+告警推送"},
+    # 每日告警摘要：把当天累计的 WARN 汇总弹一次（兜底，避免降噪制造盲区）
+    {"name": "mirror_alert_digest", "script": "tools/inspect_all.py",
+     "guard": "daily@21:00", "args": ["--digest"], "desc": "每日告警汇总弹窗"},
 ]
 
 _wd_map = {"MON": 0, "TUE": 1, "WED": 2, "THU": 3, "FRI": 4, "SAT": 5, "SUN": 6}
@@ -154,8 +163,11 @@ def _make_func(task):
                 sys.stderr.write("[mirror] 脚本缺失: %s\n" % script)
                 _write_log(name, desc, 127, "", "脚本缺失: %s" % script)
                 return
+            # JS-20261020-02：支持 task 的 args 字段（向后兼容，旧任务无此键则行为不变）。
+            # 不加这行的话 `--digest` 这类参数会被静默丢弃——又一处"配置写了但没生效"。
+            cmd = [sys.executable, script] + list(task.get("args") or [])
             r = subprocess.run(
-                [sys.executable, script],
+                cmd,
                 cwd=_proj, capture_output=True, text=True,
                 encoding='utf-8', errors='replace', timeout=900,
             )
