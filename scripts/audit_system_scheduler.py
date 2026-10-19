@@ -43,8 +43,10 @@ class AuditSystemScheduler:
             'check_interval_hours': 6,          # 检查间隔（小时）
             'notification_threshold': 60,       # 通知阈值（综合评分）
             'max_check_history': 100,           # 最大历史记录数
-            'enable_email_alerts': False,       # 启用邮件告警
-            'alert_recipients': [],             # 告警接收人
+            # 【已移除】'enable_email_alerts' / 'alert_recipients'（JS-20261020）：
+            # 全仓不存在任何 SMTP/邮件发送实现，该开关恒 False 且无消费者，
+            # 属"空头配置"——留着会让人误以为项目有邮件告警通道（这正是告警盲区的成因之一）。
+            # 真正的告警出口见 utils/notifier.py（Server酱）与 Windows 桌面弹窗。
             'critical_errors_trigger_immediate': True,  # 严重错误立即触发
         }
         

@@ -127,7 +127,14 @@ def notify_startup(ip="", port=18888):
     send(title, content)
 
 def notify_error(subsystem, error_msg):
-    """系统异常时推送告警"""
+    """系统异常时推送告警
+
+    ⚠️ 当前状态（JS-20261020 排查确认）：**全仓零调用点**，属"已实现未接线"。
+    **刻意保留而非删除**——它是「即时告警」方案（JS-20261020-02）要用到的出口，
+    届时在告警中枢里按级别调用本函数即可盘活。
+    注意：本函数依赖 sendkey.txt（缺失时 is_available() 为 False，静默跳过），
+    接线时必须同步确认凭据是否到位，否则又是一处"看起来在跑、什么都没发生"的假活。
+    """
     if not is_available():
         return
     import datetime
