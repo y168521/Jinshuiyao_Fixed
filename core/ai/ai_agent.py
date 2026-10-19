@@ -151,15 +151,29 @@ def _aa_get_vector_memory(self):
 
 
 def _aa_search_memory(self, query: str, top_k: int = 3) -> str:
+    """召回与当前问题相关的历史对话（JS-20261020-05：此前实现了却从未被调用，
+    "记事本锁在抽屉里"就是指这个）。
+
+    门槛由 agent_vector_memory 的模块级常量把关：短正文（寒暄，如 235 条"你好"）
+    与低相似度一律不召回，避免把噪声注入 prompt。
+    """
+    from core.ai.agent_vector_memory import (
+        VECTOR_MEM_MIN_SCORE, VECTOR_MEM_MIN_TEXT_LEN)
     vm = self._get_vector_memory()
     if not vm:
         return ""
-    results = vm.search(query, top_k=top_k)
+    results = vm.search(query, top_k=top_k,
+                        min_score=VECTOR_MEM_MIN_SCORE,
+                        min_text_len=VECTOR_MEM_MIN_TEXT_LEN)
     if not results:
         return ""
-    lines = ["[相关记忆]"]
+    lines = []
     for r in results:
-        lines.append(f"  - {r['summary']} (相似度:{r['score']})")
+        q = (r.get("text") or "").strip()
+        a = (r.get("summary") or "").strip()
+        if not q:
+            continue
+        lines.append(f"- 用户问过：{q}" + (f"；当时回答：{a}" if a else ""))
     return "\n".join(lines)
 
 
@@ -642,6 +656,14 @@ def _aa_chat_general(self, user_input) -> str:
         "如果用户问的是你专业领域的问题但数据不足，请说明。"
         "如果用户问的是其他话题，可以适当回答但建议回归专业领域。"
         "回答简洁、口语化、中文，直接输出文本，不要返回 JSON 格式。"
+        "\n\n【沟通约定】这个用户不懂技术、不看代码，只会描述"
+        "「我在哪个页面做了什么操作、看到了什么、希望是什么」。所以："
+        "①他说哪里不好用时，先用大白话判断最可能的原因并说明依据，"
+        "再给出他要照做的几步操作；②不要罗列一堆选项让他自己选；"
+        "③不要用术语和英文缩写，非用不可就换成生活里的说法；"
+        "④涉及界面或操作上的变化，必须提前说清楚；"
+        "⑤信息不够时，用一句大白话问他「你在哪个页面、做了什么、期望看到什么」，"
+        "不要让他做任何技术排查。"
     )
     try:
         from core.infra.knowledge_gateway import summarize
@@ -658,6 +680,11 @@ def _aa_chat_general(self, user_input) -> str:
     if profile_memories:
         system += ("\n\n你记着关于这个用户的事（自然融入回答，不要生硬罗列）：\n"
                    + "\n".join(f"- {m}" for m in profile_memories))
+    mem_text = _aa_search_memory(self, user_input)
+    if mem_text:
+        system += ("\n\n你以前和这个用户聊过下面这些相关的事"
+                   "（与当前问题有关才自然提起，无关就不要提，不要生硬罗列）：\n"
+                   + mem_text)
     context = "\n".join(
         f"{'用户' if r == 'user' else 'AI'}: {c}"
         for r, c in self._history[-6:]
