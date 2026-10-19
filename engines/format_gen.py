@@ -8,6 +8,12 @@ from collections import Counter
 from utils.number_utils import parse_reds, clean_nums, normalize_ticket, validate_prediction
 from config import LOTTERY_RULES
 from filters.smart_filter import SmartFilter
+from engines.group6_utils import (
+    DEFAULT_DIGIT_COUNT,
+    complete_pool,
+    normalize_pool,
+    validate_group6_fushi,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -97,8 +103,11 @@ class FormatGen:
         self.hot_window = hot_window
         # ===== V4.0 位置感知模式 =====
         self.position_aware = position_aware
-        # ===== 组选复式池大小（默认6码20注；play_plan 复式配置 digit_count=5 → 五码10注20元） =====
-        self.pool_size = 6
+        # ===== 组选复式池大小（默认五码10注20元；play_plan 复式 digit_count 可覆盖） =====
+        # 口径统一（JS-20261020）：此前默认 6 码，与 gui/play_plans.py 的 5码/20元
+        # 及 controllers/budget_controller.py 的 4码/8元 三处互相打架，
+        # 现统一以 engines/group6_utils.DEFAULT_DIGIT_COUNT 为唯一真源。
+        self.pool_size = DEFAULT_DIGIT_COUNT
         try:
             for p in self.play_plan:
                 if p.get("type") == "复式" and isinstance(p.get("config"), dict):
@@ -106,8 +115,10 @@ class FormatGen:
                     if isinstance(dc, int) and 3 <= dc <= 8:
                         self.pool_size = dc
                         break
-        except Exception:
-            pass
+        except Exception as e:
+            # 静默 pass 会让「复式口径被悄悄改写」无人知晓（JS-20261020 同类隐患）
+            logger.warning("[%s] play_plan 复式 digit_count 解析失败，回落默认 %d 码: %s",
+                           lot, self.pool_size, e)
         # 初始化智能过滤器（如果历史足够则使用七层过滤）
         if history and len(history) >= hot_window:
             self.smart_filter = SmartFilter(history, lot, hot_window=hot_window)
@@ -204,7 +215,9 @@ class FormatGen:
         1. 重号(1枚)：上期开奖号码中频次最高者，并列取小
         2. 邻号(2枚)：上期号码±1的并集，按近10期频次降序取前2
         3. 温冷号(2枚)：遗漏2-4期的号码，按遗漏升序→同遗漏频次降序
-        4. 去重补位到6码 → 6码组六复式(20注)
+        4. 去重补位到 pool_size 码（默认五码，JS-20261020 起由
+           engines/group6_utils.DEFAULT_DIGIT_COUNT 统一口径）→ 五码组六复式(10注/20元)
+           play_plan 若显式给出 digit_count(3-8) 则以之为准。
 
         L14组三防守规则：
         - 上期为组三 → 防2注组三
@@ -356,9 +369,17 @@ class FormatGen:
             if corrector.need_blood_change(self.lot):
                 pool = corrector.execute_blood_change(pool, self.history)
         except Exception as e:
-            logger.debug("[%s] 换血检查失败: %s", self.lot, e)
+            # 换血会改变输出口径，失败必须可见（原 debug 级在生产等于静默）
+            logger.warning("[%s] 换血检查失败（码池按原策略输出）: %s", self.lot, e)
 
+        # ===== 复式输出前保底：换血/形态替换可能改动码数，统一补齐不削减 =====
         # 组六复式：C(5,3)=10注(五码20元) / C(6,3)=20注(六码40元)
+        # 注数不再只写在注释里——由 group6_utils 真正展开并校验（JS-20261020）
+        pool = complete_pool(pool, self.pool_size)
+        ok, issues = validate_group6_fushi(pool, self.pool_size)
+        if not ok:
+            logger.warning("[%s] 组六复式校验未通过: %s（号码=%s）",
+                           self.lot, issues, pool)
         fushi_str = ",".join(f"{x:02d}" for x in pool)
 
         # ===== L14组三防守规则 =====
@@ -437,7 +458,7 @@ class FormatGen:
                     pattern = random.choice([(pair_num, pair_num, drag), (pair_num, drag, pair_num), (drag, pair_num, pair_num)])
                     group3_tickets.append(','.join(f"{x:02d}" for x in pattern))
 
-        # 返回结果：复式为主(五/六码组六复式)，组三防守为辅
+        # 返回结果：复式为主(默认五码组六复式，见 DEFAULT_DIGIT_COUNT)，组三防守为辅
         result = {"单注": group3_tickets, "复式": [fushi_str], "胆拖": []}
 
         # ===== V4.0 位置感知增强 =====
@@ -449,7 +470,7 @@ class FormatGen:
                 pa = PositionAnalyzer(self.lot, self.history, window=10)
                 pa_result = pa.analyze()
 
-                # 摆位引擎：用6码池做定位直选
+                # 摆位引擎：用当前码池（默认五码）做定位直选
                 re_engine = RepositionEngine(pa_result, pool)
                 direct_recs = re_engine.reposition(top_n=5)
 
@@ -536,20 +557,28 @@ class FormatGen:
             blue_extra = cfg.get("blue_extra", 0)
             reds = self._pick_reds(6 + red_extra)
             blues = self._pick_blues(1 + blue_extra)
-            return ",".join(f"{x:02d}" for x in sorted(reds)) + "+" + ",".join(f"{x:02d}" for x in sorted(blues))
+            # 去重（JS-20261020 同类防御）：与 3D/快乐8 分支口径一致，
+            # 避免底层选号偶发重复时产出非法复式。
+            return (",".join(f"{x:02d}" for x in sorted(set(reds))) + "+"
+                    + ",".join(f"{x:02d}" for x in sorted(set(blues))))
         elif self.lot == "大乐透":
             red_extra = cfg.get("red_extra", 1)
             blue_extra = cfg.get("blue_extra", 1)  # 【优化】蓝球多选1个，提升命中覆盖
             reds = self._pick_reds(5 + red_extra)
             blues = self._pick_blues(2 + blue_extra)
-            return ",".join(f"{x:02d}" for x in sorted(reds)) + "+" + ",".join(f"{x:02d}" for x in sorted(blues))
+            # 去重（JS-20261020 同类防御）
+            return (",".join(f"{x:02d}" for x in sorted(set(reds))) + "+"
+                    + ",".join(f"{x:02d}" for x in sorted(set(blues))))
         elif self.lot in ["福彩3D", "排列三"]:
-            digit_count = cfg.get("digit_count", 4)
-            nums = self._pick_reds(digit_count)
-            return ",".join(f"{x:02d}" for x in sorted(nums))
+            # 口径统一（JS-20261020）：默认由 4 改为 DEFAULT_DIGIT_COUNT(5)，
+            # 并对结果去重——此前 sorted(nums) 不去重，底层若返回重复号会产出非法复式。
+            digit_count = cfg.get("digit_count", DEFAULT_DIGIT_COUNT)
+            nums = normalize_pool(self._pick_reds(digit_count))
+            return ",".join(f"{x:02d}" for x in nums)
         elif self.lot == "七乐彩":
             nums = self._pick_reds(10)
-            return ",".join(f"{x:02d}" for x in sorted(nums))
+            # 去重（JS-20261020 同类防御）
+            return ",".join(f"{x:02d}" for x in sorted(set(nums)))
         elif self.lot == "快乐8":
             code_count = cfg.get("code_count", 11)
             nums = self._pick_reds(code_count)
@@ -605,8 +634,17 @@ class FormatGen:
             blues_tuo = sorted(set(blues_tuo) - set(blues_dan))[:2]
             return f"[前区胆:{','.join(f'{x:02d}' for x in dan)} 拖:{','.join(f'{x:02d}' for x in tuo)}] [后区胆:{','.join(f'{x:02d}' for x in blues_dan)} 拖:{','.join(f'{x:02d}' for x in blues_tuo)}]"
         elif self.lot in ["福彩3D", "排列三"]:
-            dan = self._pick_dan_reds(2)
+            # 去重（JS-20261020）：双色球/大乐透分支都做了 sorted(set(dan))，
+            # 唯独此分支没有 ⇒ 底层偶发返回重复胆码时会产出 "[胆:03,03]" 这种非法票。
+            dan = sorted(set(self._pick_dan_reds(2)))
             dan_set = set(dan)
+            # 去重后不足 2 胆时按升序补齐（不静默产出 1 胆票）
+            for x in range(10):
+                if len(dan_set) >= 2:
+                    break
+                if x not in dan_set:
+                    dan_set.add(x)
+            dan = sorted(dan_set)
             tuo_candidates = [x for x in range(10) if x not in dan_set and x not in self.kill]
             if len(tuo_candidates) < 3:
                 tuo_candidates = [x for x in range(10) if x not in dan_set]

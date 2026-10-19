@@ -504,7 +504,9 @@ class PredictionService:
                     return len(digits) == 3 and len(set(digits)) == 2
 
                 zu3_count = sum(1 for t in tickets["单注"] if _is_zu3(t))
-                zu6_count = len(tickets["单注"]) - zu3_count
+                # 注意（JS-20261020）：剩余部分是「非组三」而非「组六」——
+                # 豹子号（3同）也不满足 _is_zu3，旧代码把它计进 zu6_count 属命名误导；
+                # 该值未被使用，直接删掉以免后人当成组六数引用。
                 # 先补组三（至少1注）
                 attempts = 0
                 while zu3_count < 1 and attempts < 10:
@@ -541,6 +543,8 @@ class PredictionService:
                     for t in tickets.get("复式", []):
                         digits = [int(x) for x in str(t).replace(" ", "").split(",") if x.strip().isdigit()]
                         if len(digits) >= 3:
+                            # 仅作维度共识参考用：口径统一后复式应为 5 码，
+                            # >5 时截断（此处不参与出票，不影响正式结果）。
                             five = digits[:5]
                             break
                     if five is None and isinstance(hot, dict) and hot:

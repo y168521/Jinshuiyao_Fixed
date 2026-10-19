@@ -178,7 +178,7 @@ class TestFormatGenEngine(unittest.TestCase):
         # 至少应生成一个复式结果（3D默认走 _gen_3d_hot_freq）
         all_tickets = results.get("单注", []) + results.get("复式", [])
         self.assertGreater(len(all_tickets), 0, "应生成至少1注3D")
-        # 复式应包含6码（按 _gen_3d_hot_freq 返回6码）
+        # 复式码数（JS-20261020 起统一为五码10注，见 engines/group6_utils）
         fushi_list = results.get("复式", [])
         if fushi_list:
             for ticket in fushi_list[:1]:

@@ -16,6 +16,7 @@ import logging
 from itertools import product
 
 from utils.number_utils import parse_reds, clean_nums
+from engines.group6_utils import normalize_pool
 
 logger = logging.getLogger(__name__)
 
@@ -236,8 +237,9 @@ class RepositionEngine:
         str
             如 "02,03,05,07,08,09"
         """
-        sorted_pool = sorted(set(pool))
-        return ",".join(f"{x:02d}" for x in sorted_pool)
+        # 委托唯一真源（JS-20261020）：此前此处是第三份复式格式化实现，
+        # 与 format_gen 两条路径各自维护口径，容易再次漂移。
+        return ",".join(f"{x:02d}" for x in normalize_pool(pool))
 
     @staticmethod
     def format_direct_ticket(nums_tuple):

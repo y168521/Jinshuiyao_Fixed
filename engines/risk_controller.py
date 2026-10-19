@@ -23,6 +23,13 @@ import logging
 from collections import Counter
 from utils.number_utils import parse_reds, clean_nums
 from utils.safe_json import safe_load_json, safe_write_json
+from engines.group6_utils import (
+    DEFAULT_DIGIT_COUNT,
+    MAX_POOL_SIZE,
+    MIN_POOL_SIZE,
+    complete_pool,
+    normalize_pool,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -87,9 +94,16 @@ class StrategyCorrector:
         return ls["pool_zeros"] >= self.config["blood_change_zeros"]
 
     def execute_blood_change(self, current_pool, history):
-        """换血：用遗漏最大的5个号码替换码池（均值回归）
+        """换血：用遗漏最大的 N 个号码替换码池（均值回归）
+
+        N = **入池大小**（换血只换内容，不改码数）。
 
         不暂停预测，而是替换号码池让策略自动修正。
+
+        历史缺陷（JS-20261020）：
+            此前硬编码 ``candidates[:5]``，无视入池是 4 码还是 6 码
+            ⇒ 换血后码池大小被悄悄改写，「复式5码=10注」的口径被破坏，
+            且把杀号/热度/形态约束算出的结果整体丢掉。
         """
         if not history or len(history) < 5:
             return current_pool
@@ -100,9 +114,14 @@ class StrategyCorrector:
                     return history[-1]["period"] - d["period"]
             return 999
 
-        # 选遗漏最大的5个号码
+        # 保持入池码数（越界时夹到合法区间，不静默取 5）
+        target = len(normalize_pool(current_pool))
+        target = DEFAULT_DIGIT_COUNT if target < MIN_POOL_SIZE else target
+        target = min(target, MAX_POOL_SIZE)
+
+        # 选遗漏最大的 target 个号码
         candidates = sorted(range(10), key=lambda x: -get_missing(x))
-        return sorted(candidates[:5])
+        return complete_pool(candidates[:target], target)
 
     # ═══════════════════════════════════════════
     # 2. 组三/组六对冲
@@ -148,7 +167,16 @@ class StrategyCorrector:
 
         # 记录开奖形态（仅3D/排列三有3位号码可判断组三组六）
         if actual_nums and len(actual_nums) == 3:
-            form = "组三" if len(set(actual_nums)) == 2 else "组六"
+            # 三态显式判定（JS-20261020）：旧写法 "== 2 ? 组三 : 组六" 会把
+            # 豹子号（3同，len(set)==1）误记为组六，污染 recent_forms，
+            # 进而让「连续2期组三→组六对冲」判错。
+            distinct = len(set(actual_nums))
+            if distinct == 2:
+                form = "组三"
+            elif distinct == 3:
+                form = "组六"
+            else:
+                form = "豹子"  # 3同：既非组三也非组六
             ls["recent_forms"].append(form)
             if len(ls["recent_forms"]) > 10:
                 ls["recent_forms"] = ls["recent_forms"][-10:]
