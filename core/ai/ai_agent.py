@@ -649,6 +649,39 @@ def _aa_chat_summarize(self, subsystem, user_input, data_result) -> Optional[str
     return None
 
 
+# 【沟通约定】（JS-20261020-05）——用户不懂技术、不看代码，只描述使用现象。
+# 抽成常量而非写在函数体里：既让 _aa_chat_general 守在 50 行阈值内，
+# 也为将来「提示词外置」留出单一改动点（只改这一处即可）。
+_CHAT_CONTRACT = (
+    "\n\n【沟通约定】这个用户不懂技术、不看代码，只会描述"
+    "「我在哪个页面做了什么操作、看到了什么、希望是什么」。所以："
+    "①他说哪里不好用时，先用大白话判断最可能的原因并说明依据，"
+    "再给出他要照做的几步操作；②不要罗列一堆选项让他自己选；"
+    "③不要用术语和英文缩写，非用不可就换成生活里的说法；"
+    "④涉及界面或操作上的变化，必须提前说清楚；"
+    "⑤信息不够时，用一句大白话问他「你在哪个页面、做了什么、期望看到什么」，"
+    "不要让他做任何技术排查。"
+)
+
+
+def _aa_inject_recall(self, system: str, user_input: str) -> str:
+    """把「用户画像记忆 + 历史对话记忆」拼进 system prompt。
+
+    历史对话记忆走语义记事本召回（JS-20261020-05 首次接线）；
+    没有相关记忆时原样返回，不硬塞空壳，免得模型瞎联想。
+    """
+    profile_memories = _aa_get_memories(self, limit=15)
+    if profile_memories:
+        system += ("\n\n你记着关于这个用户的事（自然融入回答，不要生硬罗列）：\n"
+                   + "\n".join(f"- {m}" for m in profile_memories))
+    mem_text = _aa_search_memory(self, user_input)
+    if mem_text:
+        system += ("\n\n你以前和这个用户聊过下面这些相关的事"
+                   "（与当前问题有关才自然提起，无关就不要提，不要生硬罗列）：\n"
+                   + mem_text)
+    return system
+
+
 def _aa_chat_general(self, user_input) -> str:
     """纯聊天/无法识别：免费模型池优先，失败回退付费，最后给出不可用提示。"""
     system = (
@@ -656,14 +689,7 @@ def _aa_chat_general(self, user_input) -> str:
         "如果用户问的是你专业领域的问题但数据不足，请说明。"
         "如果用户问的是其他话题，可以适当回答但建议回归专业领域。"
         "回答简洁、口语化、中文，直接输出文本，不要返回 JSON 格式。"
-        "\n\n【沟通约定】这个用户不懂技术、不看代码，只会描述"
-        "「我在哪个页面做了什么操作、看到了什么、希望是什么」。所以："
-        "①他说哪里不好用时，先用大白话判断最可能的原因并说明依据，"
-        "再给出他要照做的几步操作；②不要罗列一堆选项让他自己选；"
-        "③不要用术语和英文缩写，非用不可就换成生活里的说法；"
-        "④涉及界面或操作上的变化，必须提前说清楚；"
-        "⑤信息不够时，用一句大白话问他「你在哪个页面、做了什么、期望看到什么」，"
-        "不要让他做任何技术排查。"
+        + _CHAT_CONTRACT
     )
     try:
         from core.infra.knowledge_gateway import summarize
@@ -676,15 +702,7 @@ def _aa_chat_general(self, user_input) -> str:
             )
     except Exception as e:
         logger.debug("[agent] 知识网关注入异常: %s", e)
-    profile_memories = _aa_get_memories(self, limit=15)
-    if profile_memories:
-        system += ("\n\n你记着关于这个用户的事（自然融入回答，不要生硬罗列）：\n"
-                   + "\n".join(f"- {m}" for m in profile_memories))
-    mem_text = _aa_search_memory(self, user_input)
-    if mem_text:
-        system += ("\n\n你以前和这个用户聊过下面这些相关的事"
-                   "（与当前问题有关才自然提起，无关就不要提，不要生硬罗列）：\n"
-                   + mem_text)
+    system = _aa_inject_recall(self, system, user_input)
     context = "\n".join(
         f"{'用户' if r == 'user' else 'AI'}: {c}"
         for r, c in self._history[-6:]
