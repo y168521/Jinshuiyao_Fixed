@@ -1589,10 +1589,18 @@
     })();
 
     inputBox.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-      }
+      // Enter 发送 / Shift+Enter 换行。
+      // 两个中文输入法相关的坑（2026-10-21 用户实测报障「回车发不出去，只能点飞机」）：
+      //   ① 部分中文输入法在组字/选词状态下，keydown 交出的 e.key 不是 'Enter'
+      //      （可能是 'Process'/'Unidentified'），但 keyCode 仍是 13 ⇒ 用 keyCode 兜底，
+      //      否则条件判不中，回车就"没反应"；
+      //   ② 反过来，组字中按回车是"确认上屏"，此时绝不能发送（会把拼音发出去）
+      //      ⇒ 用 isComposing / keyCode===229 守卫。
+      if (e.keyCode !== 13 && e.key !== 'Enter') return;
+      if (e.shiftKey) return;
+      if (e.isComposing || e.keyCode === 229) return;
+      e.preventDefault();
+      sendMessage();
     });
 
     inputBox.addEventListener('input', function() {
@@ -2982,6 +2990,14 @@
     if (items) show(items); else menu.style.display = 'none';
   });
   box.addEventListener('keydown', function (e) {
+    // 兜底：主输入监听若因初始化异常没绑上，这里补一份。
+    // sendMessage 开头有 isSending 防重，两个监听同时触发也不会发两次。
+    // 判定条件与主监听保持一致（keyCode 兜底 + 输入法组字守卫）。
+    if ((e.keyCode === 13 || e.key === 'Enter') && !e.shiftKey
+        && !e.isComposing && e.keyCode !== 229) {
+      var hasMenu = currentItems() && currentItems().length;
+      if (!hasMenu) { e.preventDefault(); sendMessage(); return; }
+    }
     var items = currentItems();
     if (!items || !items.length) return;
     var divs = menu.querySelectorAll('[data-i]');
