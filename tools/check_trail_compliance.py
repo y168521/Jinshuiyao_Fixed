@@ -21,6 +21,7 @@
 
 import os
 import re
+import time
 import logging
 import subprocess
 import sys
@@ -61,6 +62,14 @@ TRAIL_FILES = {
     "总索引": "工作留痕总索引.md",
     "经验箱": os.path.join("金水谣数据", "log", "经验收集箱.md"),
 }
+
+# 留痕新鲜度宽限（秒）——JS-20261020-06
+# 背景：原逻辑只检查「当日有没有任意登记」。2026-10-20 实测踩坑——
+# 自动同步在 07:23 把第一批改动直接提交，而当天早有 01/02 两条登记，
+# 于是「旧登记冒充新留痕」，改动没写任何记录就进了库。
+# 对策：留痕文件的修改时间不得早于「本次改动文件的最新修改时间」减本宽限。
+# 宽限 60s 是给文件系统时间精度/写入顺序留余量；改大等于拆掉这道关口。
+TRAIL_FRESHNESS_GRACE = 60
 
 
 def _run_git(args):
@@ -141,8 +150,17 @@ def date_variants(today: str) -> list[str]:
     ]
 
 
-def check_trail_file(name, rel_path):
-    """检查留痕文件是否有当日登记，返回 (ok, message)"""
+def _fmt_ts(ts):
+    return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ts))
+
+
+def check_trail_file(name, rel_path, min_mtime=None):
+    """检查留痕文件是否有当日登记，返回 (ok, message)
+
+    min_mtime：本次改动文件的最新修改时间。传入时额外做「新鲜度关口」——
+    留痕文件的修改时间不得早于 min_mtime 减宽限，否则判为
+    「旧登记冒充新留痕」（JS-20261020-06）。
+    """
     full = os.path.join(BASE_DIR, rel_path)
     if not os.path.isfile(full):
         return False, f"文件不存在: {rel_path}"
@@ -169,9 +187,37 @@ def check_trail_file(name, rel_path):
         date_alt = "|".join(re.escape(v) for v in variants)
         pattern = re.compile(rf"({date_alt}|JS-{compact}-\d{{2}})")
 
-    if pattern.search(content):
-        return True, "已登记"
-    return False, f"未找到 {today} 登记（支持格式：2026-09-24 / 2026/9/24 / 9月24日 / JS-20260924-NN）"
+    if not pattern.search(content):
+        return False, f"未找到 {today} 登记（支持格式：2026-09-24 / 2026/9/24 / 9月24日 / JS-20260924-NN）"
+
+    # 新鲜度关口（JS-20261020-06）：内容对不代表是本次的登记
+    if min_mtime is not None:
+        try:
+            trail_mtime = os.path.getmtime(full)
+        except OSError as e:
+            return False, f"读取修改时间失败: {e}"
+        if trail_mtime < min_mtime - TRAIL_FRESHNESS_GRACE:
+            return False, (
+                f"登记时间({_fmt_ts(trail_mtime)})早于本次改动"
+                f"({_fmt_ts(min_mtime)})，疑似旧登记冒充新留痕——"
+                f"请为本次改动补一条当日登记"
+            )
+
+    return True, "已登记"
+
+
+def latest_source_mtime(paths):
+    """取本次改动文件的最新修改时间；文件已不存在则跳过，全不存在返回 None。"""
+    latest = None
+    for p in paths:
+        full = os.path.join(BASE_DIR, p)
+        try:
+            m = os.path.getmtime(full)
+        except OSError:
+            continue
+        if latest is None or m > latest:
+            latest = m
+    return latest
 
 
 def main():
@@ -192,9 +238,12 @@ def main():
 
     print(f"[trail] 检测到 {len(need_trail)} 个需要留痕的文件改动，检查三件套...")
 
+    # 新鲜度基准：本次改动文件的最新修改时间（JS-20261020-06）
+    min_mtime = latest_source_mtime(need_trail)
+
     missing = []
     for name, rel in TRAIL_FILES.items():
-        ok, msg = check_trail_file(name, rel)
+        ok, msg = check_trail_file(name, rel, min_mtime=min_mtime)
         status = "OK" if ok else "MISS"
         print(f"[trail]   {status} {name}: {msg}")
         if not ok:
