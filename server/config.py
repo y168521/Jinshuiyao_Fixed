@@ -39,8 +39,12 @@ MAX_BODY = 1_000_000
 _EXTERNAL_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
     max_workers=4, thread_name_prefix="jinshuiyao-ext")
 # 各外部接口总超时（秒）；正常情况底层已有 15~60s timeout，不会触发熔断
+# ── 口径铁律（JS-20261021-02）───────────────────────────────────────────
+# 「外层总闸」必须显著大于「单次问答内部各步超时之和」，否则内层永远轮不到
+# 优雅降级（放弃 AI 总结、退回原始数据），必被外层硬掐成 504，用户只看到
+# 「请求失败」。当前内部预算：总结 40s + 复核 15s，故 chat 总闸取 100s。
 _EXT_TIMEOUT = {
-    "chat": 60,        # AI 对话（底层 30s）
+    "chat": 100,       # AI 对话（内部：取数 ~5s + 总结 40s + 复核 15s，留余量）
     "ask": 60,         # 智能代码助手（底层 30s）
     "video": 150,      # 视频提取+归档（可能较慢）
     "extract": 150,    # URL 提取+归档

@@ -403,13 +403,9 @@ class FundDomain(DomainBase):
                 "fund_type": item["fund_type"],
                 "style": item["style"],
                 "reason": reason,
-                "ai_recommendation": None,
             }
 
             predictions.append(prediction)
-
-        # 生成AI推荐语（可选）
-        self._enhance_with_ai(predictions)
 
         # 生成总结
         summary = self._generate_summary(predictions, len(results))
@@ -824,47 +820,6 @@ class FundDomain(DomainBase):
             parts.append(f"{item['style']}风格")
 
         return "，".join(parts) if parts else "综合评估"
-
-    # ------------------------------------------------------------------
-    # AI 增强推荐
-    # ------------------------------------------------------------------
-
-    def _enhance_with_ai(self, predictions):
-        """使用AI服务增强推荐语
-
-        Args:
-            predictions: 推荐列表（就地修改，添加 ai_recommendation 字段）
-        """
-        if not self._ai_service or not self._ai_service.is_available:
-            return
-
-        # 仅对前5只生成AI推荐（节省token）
-        for pred in predictions[:5]:
-            try:
-                # 构造分析内容
-                content = (
-                    f"基金：{pred['fund_name']}（{pred['fund_code']}）\n"
-                    f"类型：{pred['fund_type']}\n"
-                    f"年化收益：{pred['annual_return']}%\n"
-                    f"最大回撤：{pred['max_drawdown']}%\n"
-                    f"夏普比率：{pred['sharpe_ratio']}\n"
-                    f"基金经理：{pred['manager']}（{pred['manager_rating']}）\n"
-                    f"投资风格：{pred['style']}\n"
-                    f"综合评级：{pred['grade']}\n"
-                    f"建议：{pred['action']}\n"
-                    f"理由：{pred['reason']}\n"
-                )
-
-                ai_text = self._ai_service.analyze(
-                    "fund", content,
-                    extra_system="请针对这只基金给出简洁的投资建议和风险提示，控制在100字以内。"
-                )
-
-                if ai_text:
-                    pred["ai_recommendation"] = ai_text.strip()
-
-            except Exception as e:
-                logger.debug("AI推荐生成失败 %s: %s", pred["fund_code"], e)
 
     # ------------------------------------------------------------------
     # 总结生成

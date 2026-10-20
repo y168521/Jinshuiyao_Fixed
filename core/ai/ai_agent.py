@@ -34,6 +34,16 @@ logger = logging.getLogger(__name__)
 AGENT_MEM_KEEP_DAYS = 1095        # 按时间保留：3 年
 AGENT_MEM_MAX_RECORDS = 20000     # 条数兜底上限
 
+# 复核环节（_aa_review_with_free）的独立限时：它是「锦上添花」，合格回 OK、
+# 最多补一句，不能占用整次问答的预算。实测复核走免费推理模型要 47s，
+# 而 /api/chat 的接口总闸原先只有 60s —— 若不独立限时，会连带把正常回复一起顶穿。
+_AA_REVIEW_TIMEOUT = 15
+
+# 总结环节（_aa_summarize_with_free）的限时。原为 90s —— 比接口总闸还长，
+# 导致内层永远轮不到「放弃 AI 总结、退回原始数据」的优雅降级，必被外层硬掐成 504。
+# 现压到 40s：超时就退回原始数据表，用户仍能看到每只基金的评级/评分/年化/回撤。
+_AA_SUMMARY_TIMEOUT = 40
+
 # ---------------------------------------------------------------------------
 # 意图关键词映射（已拆分到 core/ai/intent_rules.py）
 # ---------------------------------------------------------------------------
@@ -227,7 +237,8 @@ def _aa_summarize_with_free(self, subsystem: str, user_input: str, data_result: 
         user_prompt = f"用户问题：{user_input}\n\n系统数据结果：\n{data_truncated}"
         text, err, meta = route("data_summary", system, user_prompt,
                                 max_tokens=800, temperature=0.3,
-                                force_json=False, data_len=len(data_truncated), timeout=90)
+                                force_json=False, data_len=len(data_truncated),
+                                timeout=_AA_SUMMARY_TIMEOUT)
         if text and not err:
             self._last_model_used = meta.get("used")
             return _aa_unwrap_reply(text)
@@ -251,9 +262,13 @@ def _aa_review_with_free(self, subsystem: str, user_input: str, data_result: str
             "若初稿合格，只回复「OK」；若需补充，用一句话补充最关键的一点（不要重写全文），直接输出文本，不要返回 JSON 格式。"
         )
         user_prompt = f"用户问题：{user_input}\n\n系统数据：\n{data_truncated}\n\n初稿：\n{draft}"
+        # 复核是「锦上添花」（合格就回 OK，最多补一句），不能吃掉整次问答的预算。
+        # 实测：复核走免费推理模型要 47s，而接口总闸只有 60s——多等 47s 只为加一句话，
+        # 代价是整次回复被掐断变「请求失败」。故独立限时 15s，超时就跳过不加补充。
         text, err, meta = route("review", system, user_prompt,
                                 max_tokens=200, temperature=0.2,
-                                force_json=False, data_len=len(data_truncated), timeout=60)
+                                force_json=False, data_len=len(data_truncated),
+                                timeout=_AA_REVIEW_TIMEOUT)
         if text and not err:
             note = _aa_unwrap_reply(text).strip()
             if note and note.upper() != "OK":

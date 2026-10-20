@@ -657,5 +657,5 @@ python tools/run_tests.py
 | 默认最大预算 | 149 元 | `config.py::DEFAULT_MAX_BUDGET` |
 | POST body 上限 | 1 MB | `server/config.py::MAX_BODY` |
 | 外部线程池 | 4 workers | `server/config.py::_EXTERNAL_EXECUTOR` |
-| AI 对话超时 | 60s | `server/config.py::_EXT_TIMEOUT["chat"]` |
+| AI 对话超时 | 100s | `server/config.py::_EXT_TIMEOUT["chat"]` |
 | 启动日志 | `%LOCALAPPDATA%\Jinshuiyao\launch.log` | `launch_jinshuiyao.py` |

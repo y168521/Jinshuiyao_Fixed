@@ -1718,7 +1718,10 @@
           addMessage('ai', humanizeReply(d.reply), d.model_used);
           updateBadgeByModel(d.model_used);
         } else {
-          addMessage('ai', humanizeReply(d.reply) || '请求失败，请稍后重试');
+          // 后端出错时正文在 reply 里，但也可能是只有 error 的形态
+          // （如 504 超时返回 {"ok":false,"error":"处理超时…"}）。
+          // 只读 reply 会把真实原因丢掉，用户只能看到「请求失败」。
+          addMessage('ai', humanizeReply(d.reply || d.error) || '请求失败，请稍后重试');
         }
         isSending = false;
         if (window.notifyAnswerDone) notifyAnswerDone(true, text);
@@ -1828,17 +1831,32 @@
       msg.className = 'msg msg-ai';
       msg.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
 
+      // 等了 5 秒还没回，就补一句「在干什么」——否则光转圈，用户会以为卡死了。
+      var hintTimer = setTimeout(function () {
+        if (!row.isConnected || msg.querySelector('.typing-hint')) return;
+        var hint = document.createElement('div');
+        hint.className = 'typing-hint';
+        hint.style.cssText = 'margin-top:6px;font-size:12px;line-height:1.5;opacity:.6;';
+        hint.textContent = '还在处理：基金/股票数据要联网逐只取，免费模型也可能慢一点。最多等 1 分钟。';
+        msg.appendChild(hint);
+      }, 5000);
+
       content.appendChild(msg);
       row.appendChild(avatar);
       row.appendChild(content);
       msgArea.appendChild(row);
       msgArea.scrollTop = msgArea.scrollHeight;
+      row._hintTimer = hintTimer;
       return row;
     }
 
     function humanizeReply(text) {
       if (!text) return text;
       // 把后端的技术性提示，翻译成零基础用户能看懂的话（准确区分真实原因）
+      // 「等太久」放最前面判断：超时是常见且原因明确的一类，不能让用户只看到「请求失败」。
+      if (text.indexOf('超时') !== -1 || text.indexOf('TIMEOUT') !== -1) {
+        return '这次算得太久了，等到 1 分钟还没算完，系统就先停了。\n\n多半是在联网逐只取基金/股票数据，或者免费模型此刻比较慢。你可以：\n① 直接再发一次——数据已经取到了，第二次会快很多；\n② 或者把问题问窄一点，比如只问一只基金，而不是"我买的那几只"。';
+      }
       if (text.indexOf('密钥未配置') !== -1 || text.indexOf('deepseek_key') !== -1 || text.indexOf('未检测到') !== -1) {
         return 'AI 对话暂时连不上（免费模型池和付费兜底都不可用，多半是网络断开或密钥未配置）。\n\n不过「工具 / 数据」类功能照常用：双色球预测、股票行情、足彩分析、系统状态、联网搜索都能问。检查网络或配置付费密钥后，自由聊天就会恢复。';
       }
