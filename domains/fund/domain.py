@@ -159,38 +159,52 @@ class FundDomain(DomainBase):
                 "success": bool,
                 "data": {fund_code: {nav, info, holdings}},
                 "message": str,
-                "mode": "real" | "mock",
+                "mode": "real" | "mock",   # mock = 本次有基金的数据不能自证真实
+                "mock_count": int,         # 不能自证真实的基金只数
+                "fund_count": int,
             }
         """
         target = funds or self.active_funds()
         results = {}
-        mock_fallback = False
         success_count = 0
+        mock_codes = []   # 本次运行里数据不能自证真实的基金代码（JS-20261021-04）
 
         try:
             if self._fetcher:
                 for code in target:
                     fund_data = {}
+                    sources = []
                     try:
                         # 获取净值数据
                         nav_df = self._fetcher.get_fund_nav(code)
                         if nav_df is not None and not nav_df.empty:
                             fund_data["nav"] = nav_df
+                            sources.append(self._fetcher.get_source("nav", code))
 
                         # 获取基本信息
                         info = self._fetcher.get_fund_info(code)
                         if info:
                             fund_data["info"] = info
+                            sources.append(self._fetcher.get_source("info", code))
 
                         # 获取持仓数据
                         holdings_df = self._fetcher.get_fund_holdings(code)
                         if holdings_df is not None and not holdings_df.empty:
                             fund_data["holdings"] = holdings_df
+                            sources.append(self._fetcher.get_source("holdings", code))
 
                         if fund_data:
+                            # 数据来源诚实标记（JS-20261021-04）：
+                            # 原来这里无条件写 "real"，akshare 一失败，取数层返回的
+                            # 模拟数据就被洗成真实数据。现在按取数层报的来源汇总 ——
+                            # 只要有一项是模拟/来源不明，整只基金就按不真实标记
+                            # （不能自证真实的，一律按不真实算）。
+                            mode = "real" if (sources and all(s == "real" for s in sources)) else "mock"
                             results[code] = fund_data
                             self._data_cache[code] = fund_data
-                            self._data_mode[code] = "real"
+                            self._data_mode[code] = mode
+                            if mode != "real":
+                                mock_codes.append(code)
                             success_count += 1
                     except Exception as e:
                         logger.warning("获取基金 %s 数据失败: %s", code, e)
@@ -199,13 +213,13 @@ class FundDomain(DomainBase):
 
             # 如果真实数据获取不足，补充模拟数据
             if success_count < len(target):
-                mock_fallback = True
                 logger.info("补充模拟数据，目标 %d 只，已获取 %d 只", len(target), success_count)
                 for code in target:
                     if code not in results:
                         results[code] = self._generate_mock_fund_data(code)
                         self._data_cache[code] = results[code]
                         self._data_mode[code] = "mock"
+                        mock_codes.append(code)
 
             self._last_run = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -213,7 +227,11 @@ class FundDomain(DomainBase):
                 "success": len(results) > 0,
                 "data": results,
                 "message": f"获取 {len(results)}/{len(target)} 只基金数据",
-                "mode": "mock" if mock_fallback else "real",
+                # mode: real 表示全部为真实数据；只要有一只不能自证真实就是 mock
+                # （JS-20261021-04：原来只有"整只取数失败"才算 mock，取数层内部
+                # 降级返回的模拟数据会被算成 real，用户看到的就是洗过的假数据）
+                "mode": "mock" if mock_codes else "real",
+                "mock_count": len(mock_codes),
                 "fund_count": len(results),
             }
         except Exception as e:

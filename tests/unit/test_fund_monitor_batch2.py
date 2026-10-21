@@ -8,6 +8,9 @@
 """
 import os
 import sys
+import json
+import shutil
+import tempfile
 import unittest
 
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -22,8 +25,14 @@ from scripts.daily_fund_monitor import ReportGenerator, FUND_CONFIG  # noqa: E40
 class TestRankRealOnly(unittest.TestCase):
     """诚实铁律：real_only=True 时真实数据不可用必须返回 None，不编造"""
 
+    def setUp(self):
+        # JS-20261021-04：一律用临时缓存目录，不碰真实缓存
+        # （原测试用默认目录，会把模拟排名写进 金水谣数据/fund/cache）
+        self.tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+
     def _make_fetcher(self):
-        f = FundFetcher()
+        f = FundFetcher(cache_dir=self.tmp)
         # 强制 akshare 不可用，使 get_rank 走降级分支，验证 real_only 拦截
         f._has_akshare = False
         return f
@@ -33,10 +42,21 @@ class TestRankRealOnly(unittest.TestCase):
         self.assertIsNone(f.get_rank(real_only=True))
 
     def test_real_only_none_even_with_stale_cache(self):
-        # 先写入模拟排名缓存，再确认 real_only=True 不会泄漏缓存（诚实铁律）
+        # 先落一个"标记为模拟"的排名缓存，再确认 real_only=True 不会泄漏它（诚实铁律）
         f = self._make_fetcher()
-        f.get_rank(real_only=False)  # 写入缓存（模拟）
+        cache_file = os.path.join(self.tmp, "rank_default.json")
+        with open(cache_file, "w", encoding="utf-8") as fh:
+            json.dump({"source": "mock",
+                       "records": [{"基金代码": "000001", "基金名称": "华夏成长混合"}]}, fh)
         self.assertIsNone(f.get_rank(real_only=True))  # 仍应返回 None
+
+    def test_mock_rank_not_written_to_cache(self):
+        """JS-20261021-04：模拟排名不再写缓存（修复前会写，污染后续读取）"""
+        f = self._make_fetcher()
+        f.get_rank(real_only=False)
+        self.assertFalse(
+            os.path.exists(os.path.join(self.tmp, "rank_default.json")),
+            "模拟排名绝不写缓存")
 
     def test_non_real_only_returns_mock_when_unavailable(self):
         f = self._make_fetcher()
@@ -45,7 +65,7 @@ class TestRankRealOnly(unittest.TestCase):
         self.assertIn("同类排名", df.columns)
 
     def test_real_only_none_on_fetch_failure(self):
-        f = FundFetcher()
+        f = FundFetcher(cache_dir=self.tmp)
         f._has_akshare = True
         f._breaker = None
 

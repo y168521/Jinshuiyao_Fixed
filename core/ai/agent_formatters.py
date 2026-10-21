@@ -253,6 +253,24 @@ def format_refined_result(refined: dict) -> str:
     return "\n".join(lines)
 
 
+def _fund_source_note(fetch_result):
+    """基金数据来源提示（JS-20261021-04）
+
+    数据是模拟兜底时必须**醒目提示**，不能只放在一行小字里 ——
+    用户会拿这些数字做决策，"一行小字"等于没提示（P0-1 的界面侧修复）。
+    """
+    mode = (fetch_result or {}).get("mode", "")
+    if mode == "real":
+        return "\n数据来源：真实行情（akshare）"
+    if mode == "mock":
+        count = (fetch_result or {}).get("mock_count")
+        scope = f"其中 {count} 只" if count else "以上数据"
+        return ("\n⚠️ 重要提示：" + scope + "为**模拟兜底数据**，不是真实行情！\n"
+                "这是联网取数失败时按内置规则估算出来的数字，只能用来演示流程，"
+                "不能作为投资决策依据。请检查网络/akshare 后重试。")
+    return ""
+
+
 def _fmt_fund_quote(fetch_result):
     if not fetch_result or not fetch_result.get("data"):
         return "暂无基金行情数据"
@@ -270,9 +288,9 @@ def _fmt_fund_quote(fetch_result):
                 latest = None
         latest_str = f"{latest:.4f}" if isinstance(latest, float) else "—"
         lines.append(f"\n{code} {name}: 净值 {latest_str}")
-    mode_note = fetch_result.get("mode", "")
-    if mode_note:
-        lines.append(f"\n数据来源: {'真实' if mode_note == 'real' else '模拟(降级)'}")
+    note = _fund_source_note(fetch_result)
+    if note:
+        lines.append(note)
     return "\n".join(lines)
 
 
@@ -309,7 +327,11 @@ def _fmt_fund_recommend(fetch_result, analysis, generate_result):
         if buy or hold or watch:
             lines.append(f"建议: 买入{buy} / 持有{hold} / 观望{watch}")
 
-    return "\n".join(lines) if len(lines) > 1 else "暂无基金数据"
+    text = "\n".join(lines) if len(lines) > 1 else "暂无基金数据"
+    # 数据来源提示（JS-20261021-04）：推荐链路原先压根没有来源提示，
+    # 模拟数据就这样被当成真实分析结果给出建议。
+    note = _fund_source_note(fetch_result)
+    return text + note if note else text
 
 
 def format_fund_result(fetch_result: dict, analysis: dict, generate_result: dict, mode: str = "recommend") -> str:

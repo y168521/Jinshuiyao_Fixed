@@ -12,6 +12,7 @@
   - football（足彩）
   - stock（股票）
   - lottery（彩票，数据来自官方开奖，不做时效性检测）
+  - fund（基金，JS-20261021-04 接入：缓存来源标记 + akshare 可用性）
 
 输出：结构化报告 dict，包含每个检测项的状态/详情/修复建议
 """
@@ -57,10 +58,27 @@ SOURCE_COLORS = {
 MATCH_STALE_WARN_DAYS = 30    # 历史赛果超过 30 天未补更 → warn
 MATCH_STALE_FAIL_DAYS = 180   # 历史赛果超过 180 天 → fail（赛季彻底过时）
 LOT_STALE_WARN_DAYS = 3       # 彩票数据文件超过 3 天未更新 → warn
+FUND_CACHE_STALE_HOURS = 24   # 基金缓存超过 24 小时未更新 → warn（JS-20261021-04）
+
+# 缓存文件里的「数据来源」标记取值。
+# 真源在 domains/fund/fetcher.py 的 SOURCE_REAL / SOURCE_MOCK；此处重复定义是为了
+# 让守卫不反向依赖 domains 层，两边取值一致性由
+# tests/unit/test_fund_data_source.py::TestFundCacheVocabulary 保证（防两套口径）。
+CACHE_SOURCE_REAL = "real"
+CACHE_SOURCE_MOCK = "mock"
 
 
 def _dtg_find_jinshuiyao_dir() -> str:
+    """定位 jinshuiyao 源码目录（各检查项再用 `..` 回到仓库根拼数据路径）
+
+    JS-20261021-04 修了一个"守卫自己瞎了"的坑：本文件从 core/data_truth_guard.py
+    迁到 core/infra/ 后，候选路径少了一层，`<仓库>/core/jinshuiyao` 根本不存在，
+    于是全部检查项都落在不存在的路径上 —— 足彩/彩票每项都报"文件不存在"（假警），
+    股票缓存报"无本地缓存"（假绿，实际 金水谣数据/stock/cache 有数据）。
+    真实布局是 `<仓库>/jinshuiyao`，即本文件再往上两层。
+    """
     candidates = [
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "jinshuiyao"),
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "jinshuiyao"),
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "Jinshuiyao_Fixed", "jinshuiyao"),
     ]
@@ -68,7 +86,7 @@ def _dtg_find_jinshuiyao_dir() -> str:
         p = os.path.normpath(p)
         if os.path.isdir(p):
             return p
-    return os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "jinshuiyao"))
+    return os.path.normpath(candidates[0])
 
 
 def _dtg_iter_csv_matches(csv_path: str):
@@ -331,7 +349,10 @@ def _dtg_check_akshare():
 
 
 def _dtg_check_stock_cache(jinshuiyao_dir: str):
-    cache_dir = os.path.normpath(os.path.join(jinshuiyao_dir, "..", "domains", "stock", "cache"))
+    # JS-20261021-04：原路径是 `<jinshuiyao_dir>/../domains/stock/cache`，
+    # 而股票缓存实际写在 `金水谣数据/stock/cache`（fetcher 里写死的相对路径），
+    # 老的拼法永远找不到 → 一直报"无本地缓存"假绿。改成正真实路径。
+    cache_dir = os.path.normpath(os.path.join(os.path.dirname(jinshuiyao_dir), "金水谣数据", "stock", "cache"))
     if not os.path.exists(cache_dir):
         return "pass", "无本地缓存（首次运行或缓存已清理）", None
     try:
@@ -389,6 +410,95 @@ def _dtg_check_stock(jinshuiyao_dir: str) -> dict:
     cb_s, cb_d, cb_a = _dtg_check_stock_circuit_breaker()
     checks.append({"name": "熔断器状态", "status": cb_s, "source": SOURCE_REAL_API,
                    "detail": cb_d, "action": cb_a, "count": 1})
+    statuses = [c["status"] for c in checks]
+    ss = "fail" if "fail" in statuses else ("warn" if "warn" in statuses else "pass")
+    return {"status": ss, "checks": checks}
+
+
+def _dtg_scan_fund_cache(cache_dir: str):
+    """扫描基金缓存目录，按来源标记分类计数（JS-20261021-04）"""
+    now = datetime.now()
+    total = mock_files = legacy_files = stale_files = 0
+    mock_names, legacy_names = [], []
+    for fname in os.listdir(cache_dir):
+        # .bak.N 是 safe_write_json 的滚动备份，不算在用的缓存
+        if not fname.endswith(".json") or ".bak." in fname:
+            continue
+        path = os.path.join(cache_dir, fname)
+        total += 1
+        try:
+            age_hours = (now - datetime.fromtimestamp(
+                os.path.getmtime(path))).total_seconds() / 3600
+            if age_hours > FUND_CACHE_STALE_HOURS:
+                stale_files += 1
+            with open(path, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+        except (OSError, ValueError):
+            continue
+        src = payload.get("source") if isinstance(payload, dict) else None
+        if src == CACHE_SOURCE_MOCK:
+            mock_files += 1
+            mock_names.append(fname)
+        elif src != CACHE_SOURCE_REAL:
+            legacy_files += 1
+            legacy_names.append(fname)
+    return total, stale_files, mock_files, mock_names, legacy_files, legacy_names
+
+
+def _dtg_check_fund_cache(jinshuiyao_dir: str):
+    """基金缓存来源标记检测（JS-20261021-04 · P0-1 的守卫侧）
+
+    修 P0-1 之前，akshare 一失败，模拟基金数据就会被写进
+    `金水谣数据/fund/cache/*.json`，之后每次读取都当成真实数据用。
+    本机实测：11 个 holdings_*.json 的十大重仓股逐字相同（同一套固定表），
+    物理上不可能 11 只基金持仓完全一样 ⇒ 确实是模拟数据，却被标成 real。
+
+    判据：带 source=mock → fail；无来源标记的旧格式 → warn；
+    超时未更新 → warn；全部真实且新鲜 → pass。
+    """
+    cache_dir = os.path.normpath(
+        os.path.join(os.path.dirname(jinshuiyao_dir), "金水谣数据", "fund", "cache"))
+    if not os.path.exists(cache_dir):
+        return "pass", "无基金缓存目录（尚未取过数）", None
+    try:
+        total, stale, mock_n, mock_names, legacy_n, legacy_names = _dtg_scan_fund_cache(cache_dir)
+    except Exception as e:
+        return "warn", f"基金缓存检测失败: {e}", None
+    if total == 0:
+        return "pass", "缓存目录为空", None
+    if mock_n > 0:
+        return ("fail",
+                f"{mock_n} 个缓存文件标记为模拟数据（{', '.join(mock_names[:3])}"
+                f"{' 等' if mock_n > 3 else ''}），模拟数据一旦落盘就会被当成真实数据用",
+                "删除这些缓存文件；模拟数据禁止写缓存（fetcher 已修）")
+    if legacy_n > 0:
+        return ("warn",
+                f"{legacy_n} 个缓存文件无来源标记（旧格式，{', '.join(legacy_names[:3])}"
+                f"{' 等' if legacy_n > 3 else ''}），已按不可信处理、下次取数会重拉真实数据",
+                "可手工清理旧格式缓存，让系统重新拉取真实数据")
+    if stale > 0:
+        return ("warn", f"共{total}个缓存，{stale}个超{FUND_CACHE_STALE_HOURS}小时未更新",
+                "清除过期缓存，重新拉取真实数据")
+    return "pass", f"{total}个缓存文件均为真实数据来源且未过期", None
+
+
+def _dtg_check_fund(jinshuiyao_dir: str) -> dict:
+    """基金子系统真实性检测（JS-20261021-04）
+
+    说明：这里**不查熔断器状态**。熔断器注册表是进程内单例，守卫通常跑在独立
+    进程里，Registry.get() 会当场新建一个 closed 的实例——直接报"熔断器正常"
+    就是假绿。要看实时熔断状态，请在服务进程内查看。
+    """
+    checks = []
+    ak_s, ak_d, ak_a = _dtg_check_akshare()
+    checks.append({"name": "akshare数据源", "status": ak_s,
+                   "source": SOURCE_REAL_API if ak_s == "pass" else SOURCE_FALLBACK,
+                   "detail": ak_d, "action": ak_a, "count": 1})
+    fc_s, fc_d, fc_a = _dtg_check_fund_cache(jinshuiyao_dir)
+    checks.append({"name": "缓存数据来源标记", "status": fc_s, "source": SOURCE_CACHE,
+                   "detail": fc_d, "action": fc_a, "count": 1,
+                   # 这是"检测项"不是"数据来源"，不参与来源分布统计
+                   "counts_as_source": False})
     statuses = [c["status"] for c in checks]
     ss = "fail" if "fail" in statuses else ("warn" if "warn" in statuses else "pass")
     return {"status": ss, "checks": checks}
@@ -465,6 +575,7 @@ def _dtg_run_full_check(jinshuiyao_dir: str) -> dict:
         "football": _dtg_check_football(jinshuiyao_dir),
         "stock": _dtg_check_stock(jinshuiyao_dir),
         "lottery": _dtg_check_lottery(jinshuiyao_dir),
+        "fund": _dtg_check_fund(jinshuiyao_dir),
     }
     source_dist = {SOURCE_REAL_API: 0, SOURCE_CACHE: 0, SOURCE_FALLBACK: 0, SOURCE_HARDCODED: 0, SOURCE_UNKNOWN: 0}
     for ss in subsystems.values():
@@ -514,7 +625,8 @@ def _dtg_format_report(report: dict) -> str:
             lines.append(f"  {SOURCE_LABELS.get(src, src)}: {count}条")
     status_map = {"pass": "✅", "warn": "⚠️", "fail": "❌"}
     for ss_name, ss in report.get("subsystems", {}).items():
-        ss_label = {"football": "足彩", "stock": "股票", "lottery": "彩票"}.get(ss_name, ss_name)
+        ss_label = {"football": "足彩", "stock": "股票", "lottery": "彩票",
+                    "fund": "基金"}.get(ss_name, ss_name)
         lines.extend(["", "-" * 40, f"  {ss_label}子系统 {status_map.get(ss['status'], '')}"])
         for chk in ss.get("checks", []):
             icon = status_map.get(chk.get("status", "pass"), "  ")
