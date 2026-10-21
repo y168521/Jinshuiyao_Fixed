@@ -54,6 +54,20 @@ NOISE_PATTERNS = [
     "schemes.json", "engines.json", "evolution_",
     "server/config.py", "__pycache__", ".ruff_cache", ".pytest_cache",
     ".git", "金水谣数据/backups", "金水谣数据/insurance",
+    # ── 运行时状态文件（JS-20261021-03 修）──────────────────────────────────
+    # 这些是**运行中的服务按小时自动重写**的产物，不是人改的源码。
+    # 它们曾是留痕新鲜度关口的基准来源：人 08:50 写完留痕，服务 08:51 重写一次
+    # archive_baseline.json，关口就判"留痕比本次改动旧 = 旧登记冒充新留痕"——
+    # 一周内误报三次（JS-20261021-01/02/03 全被拦过一次）。
+    # 判据必须是"人改的源码"，不能是"机器顺手写的状态"。
+    "金水谣数据/log/archive_baseline.json",
+    "金水谣数据/log/learning_lag_baseline.json",
+    "金水谣数据/log/code_health_baseline.json",
+    "金水谣数据/log/file_knowledge_index.json",
+    "金水谣数据/log/本轮事项清单.json",
+    "金水谣数据/log/健康告警.md",
+    "金水谣数据/log/待蒸馏队列.md",
+    "金水谣数据/log/system_alerts.md",
 ]
 
 # 三个留痕文件（相对项目根）

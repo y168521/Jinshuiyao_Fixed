@@ -163,3 +163,65 @@ class TestReverseVerification:
                                        min_mtime=os.path.getmtime(src))
         with pytest.raises(AssertionError):
             assert ok is False, "撤销验证失败：关口被拆了却依然拦得住（逻辑没走时间分支）"
+
+
+# ---------------------------------------------------------------------------
+# 四、运行时状态文件不得充当新鲜度基准（JS-20261021-03）
+# ---------------------------------------------------------------------------
+class TestRuntimeArtifactsExcluded:
+    """治「关口拿机器写的状态文件当基准」造成的假警。
+
+    实测案例：人 08:50 写完留痕，运行中的服务 08:51 重写了一次
+    `金水谣数据/log/archive_baseline.json`，关口即判
+    「登记时间早于本次改动 ⇒ 旧登记冒充新留痕」，把正常提交拦下。
+    一周内误报三次（JS-20261021-01/02/03 各被拦一次）。
+
+    判据必须是「人改的源码」，不能是「机器顺手写的运行时状态」。
+    """
+
+    RUNTIME = [
+        "金水谣数据/log/archive_baseline.json",
+        "金水谣数据/log/learning_lag_baseline.json",
+        "金水谣数据/log/code_health_baseline.json",
+        "金水谣数据/log/file_knowledge_index.json",
+        "金水谣数据/log/本轮事项清单.json",
+        "金水谣数据/log/健康告警.md",
+        "金水谣数据/log/待蒸馏队列.md",
+        "金水谣数据/log/system_alerts.md",
+    ]
+
+    @pytest.mark.parametrize("rel", RUNTIME)
+    def test_runtime_artifact_never_requires_trail(self, rel):
+        """运行时状态文件不得被要求留痕（否则它一被重写就来假警）。"""
+        assert ctc.is_trail_required(rel) is False, (
+            "%s 是运行中服务按小时重写的产物，不该要求留痕" % rel
+        )
+
+    def test_trail_files_themselves_are_not_runtime(self):
+        """三个留痕文件仍按原有逻辑排除（不能被误伤）。"""
+        for rel in ctc.TRAIL_FILES.values():
+            assert ctc.is_trail_required(rel) is False
+
+    def test_real_source_still_requires_trail(self):
+        """真源码仍然要求留痕——不能为了消假警把关口拆了。"""
+        assert ctc.is_trail_required("core/ai/ai_agent.py") is True
+        assert ctc.is_trail_required("server/handlers/ai.py") is True
+        assert ctc.is_trail_required("jinshuiyao-guide/ai-agent.html") is True
+
+    def test_runtime_artifact_rewrite_does_not_block(self, tmp_path, monkeypatch):
+        """端到端：留痕写完 → 服务重写运行时状态 → 必须放行（rc=0）。"""
+        monkeypatch.setattr(ctc, "BASE_DIR", str(tmp_path))
+        monkeypatch.setattr(ctc, "TRAIL_FRESHNESS_GRACE", 60)
+        now = time.time()
+        # 三件套都在 now-60 写过当日登记（内容含当日日期 ⇒ 内容检查过关）
+        for rel in ctc.TRAIL_FILES.values():
+            _write(tmp_path / rel, TRAIL_TODAY, mtime=now - 60)
+        # 运行中的服务在 now 时刻重写了一次运行时状态
+        _write(tmp_path / "金水谣数据" / "log" / "archive_baseline.json",
+               '{"x":1}', mtime=now)
+        # 人改的源码在 now-120（早于留痕 ⇒ 留痕是新的，应放行）
+        _write(tmp_path / "core" / "x.py", "print(1)\n", mtime=now - 120)
+        monkeypatch.setattr(ctc, "get_staged_files",
+                            lambda: ["core/x.py",
+                                     "金水谣数据/log/archive_baseline.json"])
+        assert ctc.main() == 0, "运行时状态文件重写后仍被当成改动基准，假警未除"
