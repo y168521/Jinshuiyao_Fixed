@@ -300,6 +300,10 @@ def set_prediction_outcome(rec_id, outcome):
 # ---------------------------------------------------------------------------
 def handle_prediction_record(handler):
     """POST /api/prediction/record — 保存一条预测记录"""
+    # 安全加固（P1-3，JS-20261021-06）：写操作仅允许本机，防局域网伪造预测记录
+    if not handler._is_local():
+        handler._send_json({"error": "安全限制：写操作仅允许本机操作。"}, 403)
+        return
     cl = int(handler.headers.get('Content-Length', 0) or 0)
     body = handler.rfile.read(cl).decode('utf-8', errors='replace') if cl else '{}'
     try:
@@ -341,6 +345,10 @@ def handle_prediction_list(handler):
 
 def handle_prediction_outcome(handler):
     """POST /api/prediction/outcome — 更新预测结果标注"""
+    # 安全加固（P1-3，JS-20261021-06）：写操作仅允许本机，防局域网篡改复盘标注
+    if not handler._is_local():
+        handler._send_json({"error": "安全限制：写操作仅允许本机操作。"}, 403)
+        return
     cl = int(handler.headers.get('Content-Length', 0) or 0)
     body = handler.rfile.read(cl).decode('utf-8', errors='replace') if cl else '{}'
     try:

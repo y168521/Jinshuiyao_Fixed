@@ -188,6 +188,10 @@ def handle_keys_list(handler):
 
 def handle_keys_save(handler):
     """POST /api/keys/save — 保存密钥到安全目录"""
+    # 安全加固（P1-3，JS-20261021-06）：可覆写密钥槽位，仅允许本机，防局域网破坏 AI 配置
+    if not handler._is_local():
+        handler._send_json({"error": "安全限制：写操作仅允许本机操作。"}, 403)
+        return
     try:
         body = json.loads(handler._read_body() or "{}")
     except Exception:

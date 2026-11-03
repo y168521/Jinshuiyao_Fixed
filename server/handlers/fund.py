@@ -511,6 +511,10 @@ def handle_portfolio_list(handler, parsed):
 
 def handle_portfolio_add(handler, parsed):
     """POST /api/fund/portfolio/add — 添加持仓"""
+    # 安全加固（P1-3，JS-20261021-06）：写操作仅允许本机，防局域网越权改写持仓
+    if not handler._is_local():
+        handler._send_json({"error": "安全限制：写操作仅允许本机操作。"}, 403)
+        return
     params = _parse_params(handler, parsed)
     mgr = _get_portfolio_manager()
     if mgr is None:
@@ -537,6 +541,10 @@ def handle_portfolio_add(handler, parsed):
 
 def handle_portfolio_update(handler, parsed):
     """POST /api/fund/portfolio/update — 更新持仓"""
+    # 安全加固（P1-3，JS-20261021-06）：写操作仅允许本机，防局域网越权改写持仓
+    if not handler._is_local():
+        handler._send_json({"error": "安全限制：写操作仅允许本机操作。"}, 403)
+        return
     params = _parse_params(handler, parsed)
     mgr = _get_portfolio_manager()
     if mgr is None:
@@ -557,6 +565,10 @@ def handle_portfolio_update(handler, parsed):
 
 def handle_portfolio_remove(handler, parsed):
     """POST /api/fund/portfolio/remove — 删除持仓"""
+    # 安全加固（P1-3，JS-20261021-06）：写操作仅允许本机，防局域网越权删持仓
+    if not handler._is_local():
+        handler._send_json({"error": "安全限制：写操作仅允许本机操作。"}, 403)
+        return
     params = _parse_params(handler, parsed)
     mgr = _get_portfolio_manager()
     if mgr is None:

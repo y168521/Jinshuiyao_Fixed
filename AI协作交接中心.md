@@ -983,3 +983,10 @@
 **`--all` 全量门禁 7 项失败已逐项定性**：wrapup（今日前 3 条 JS 缺「被否决方案/人工介入」字段 + scheduler.py 读取失败 + AGENTS.md 未登记 2 个引擎文件——**均既有挂账**）、smoke/smoke_e2e/review（safe-delete 钩子拦截脚本清理临时文件，**环境产物非代码失败**；另发现 gate SCRIPT_MAP 把 e2e 也指向 smoke_test.py 但该脚本不认 `--e2e` 参数，**接线缺陷**）、quality（「必需文件缺失」5 个——main.py/guide_server.py/启动导航.bat/scripts/smoke_test.py 确实不存在，**检查器清单过态**）、audit（引用不存在的 tools/e2e_check_gui_pred_query.py，**既有断链**）。pytest 全量结果见提交记录。
 
 - 关联：JS-20261017-04
+
+- **JS-20261103-01（2026-11-03）· 第二批安全三件套收尾 + 仓库被自动同步倒灌恢复**：
+  - 收尾 P1-3/4/5（第二批，JS-20261021-06 原号）：11 个写数据接口（fund/keys/prediction/knowledge/user-kb/quant/health/ai 主题保存）补齐 handler._is_local() 本机 403 收口；知识卡片弹窗 escapeHtml 升级为属性安全（引号一并转，断 XSS 链）；user-kb/detail 用 os.path.basename + 目录包含断言挡盘符/绝对路径逃逸。新增 AST 回归闸 tools/check_write_local_only.py（登记册 10 项全收口，PASS）+ 17 项单测。提交钩子加第 7/7 步。
+  - 启动日志复查发现根镜像一致性报错；深查发现自动同步把仓库工作区倒灌回旧版：3 份留痕被覆盖（差点丢 101/177/74 条）、11 个代码/配置文件被旧版覆盖、第二批新建的闸门脚本与测试被删除。已从 HEAD 恢复留痕与代码、从 git 对象库取回被删两新文件、从 stash 取回钩子第 7 步。清理 38 个调试草稿到回收备份。重新 GITSYNC 根镜像。
+  - 验证：写接口本机闸 PASS（10/10）；补今日登记后留痕合规通过；git status 不再有被倒灌的净删除。
+  - ⚠️ 根因：自动同步单向拓扑疑似被破坏（根→仓反向拷贝或 stash 后未干净恢复），后续需修自动同步防再次倒灌。
+- 关联：JS-20261021-06

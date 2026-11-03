@@ -24,6 +24,23 @@ from .utils import log, get_local_ip
 from .router import GuideHandler
 
 
+def _lan_write_warning(bind_host):
+    """开局域网访问时的安全警告（P1-3，JS-20261021-06）。
+
+    服务默认只绑本机；一旦显式开放到局域网，读接口可放宽，但**所有写操作接口
+    （新增/修改/删除数据、保存密钥、切换模式等）仅允许本机调用**——这句话必须
+    在启动日志里明说，不能等用户被局域网设备改坏数据后自己猜。
+    仅本机绑定时返回空列表（无警告可打印）。
+    """
+    if bind_host in ("127.0.0.1", "localhost", "::1"):
+        return []
+    return [
+        "!! 安全警告：当前已开放局域网访问（绑定 %s）。" % bind_host,
+        "   所有「写操作」接口（新增/修改/删除数据、保存密钥、切换模式等）仅允许本机调用，",
+        "   局域网设备只能读取；确需局域网写入时，请先补认证与限流，再逐个接口放开。",
+    ]
+
+
 def _background_startup_tasks():
     """后台执行启动自检 / 冒烟测试 / 自动模型审查 / AI模式检测（不阻塞端口绑定）。"""
     # === 修后审查 Pipeline（事前拦截V2，走全局统一入口 run_review） ===
@@ -199,9 +216,12 @@ def main(port=None):
     local_ip = get_local_ip()
     log(f'本机局域网IP: {local_ip}')
     if os.environ.get("JINSHUIYAO_BIND_HOST", "127.0.0.1") in ("127.0.0.1", "localhost"):
-        log(f'[提示] 当前仅本机回环访问（http://localhost:{_actual_port}/）。手机访问需设置 JINSHUIYAO_ALLOW_LAN=1 后重启（有安全前提，见下）')
+        log(f'[提示] 当前仅本机回环访问（http://localhost:{_actual_port}/）。手机访问需设置 JINSHUIYAO_BIND_HOST=0.0.0.0 且 JINSHUIYAO_ALLOW_LAN=1 后重启（有安全前提，见下）')
     else:
         log(f'手机端访问（同WiFi）: http://{local_ip}:{_actual_port}/')
+        # P1-3（JS-20261021-06）：开局域网必须明说"写操作仅本机"，别等数据被改坏才猜
+        for _w in _lan_write_warning(os.environ.get("JINSHUIYAO_BIND_HOST", "127.0.0.1")):
+            log(_w)
 
     log(f'[DEBUG] 启动HTTP服务器，端口: {_actual_port}')
 
@@ -223,6 +243,9 @@ def main(port=None):
         log('   如需临时对局域网开放，请显式设置环境变量 JINSHUIYAO_ALLOW_LAN=1 后再启动。')
         return
     log(f'[安全] 绑定地址校验通过：将仅监听 {_bind_host}（回环/本机）')
+    # P1-3（JS-20261021-06）：非本机绑定 = 局域网开放，写操作仍只收本机，启动日志明说
+    for _w in _lan_write_warning(_bind_host):
+        log(_w)
     httpd = None
     used_port = None
     last_err = None

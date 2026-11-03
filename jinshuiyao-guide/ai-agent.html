@@ -1873,7 +1873,9 @@
     var predictionRecords = [];
     var DOMAIN_LABEL = { lottery: '彩票', stock: '股票', football: '足球', music: '音乐', video: '视频', other: '其他' };
     var _esc = (typeof escapeHtml === 'function') ? escapeHtml : function(s) {
-      return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      // 与 escapeHtml 同口径（P1-4，JS-20261021-06）：引号一并转，属性上下文也安全
+      return (s == null ? '' : String(s)).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     };
 
     function loadPredictions() {
@@ -2024,9 +2026,13 @@
     }
 
     function escapeHtml(text) {
+      // P1-4（JS-20261021-06）：升级为属性安全——除 & < > 外连引号一起转，
+      // 这样同一函数在文本上下文和属性上下文（class/data-*/onclick）都安全。
+      // 背景：弹窗把 card.summary/content/tags/value 原样拼进 innerHTML，
+      // 而同文件列表视图用了转义——渲染端漏网就是一条完整的存储型 XSS 链。
       var div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
+      div.textContent = text == null ? '' : String(text);
+      return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
     function handleFeedback(btn, type) {
@@ -2479,10 +2485,10 @@
         var domainLabels = { lottery: '彩票', stock: '股票', football: '足彩', general: '通用' };
         var tc = tagClassMap[card.domain] || '';
         var dc = dmClassMap[card.domain] || '';
-        return '<div class="knowledge-card" data-domain="' + card.domain + '" onclick="openCardModal(' + card.id + ')">' +
+        return '<div class="knowledge-card" data-domain="' + _esc(card.domain) + '" onclick="openCardModal(' + _esc(card.id) + ')">' +
           '<div class="card-header">' +
             '<div class="card-title">' + _esc(card.title) + '</div>' +
-            '<span class="card-value-badge ' + card.value + '">' + valueLabels[card.value] + '</span>' +
+            '<span class="card-value-badge ' + _esc(card.value) + '">' + _esc(valueLabels[card.value] || '') + '</span>' +
           '</div>' +
           '<div class="card-summary">' + _esc(card.summary) + '</div>' +
           '<div class="card-tags">' +
@@ -2497,8 +2503,8 @@
             }).join('') +
           '</div>' +
           '<div class="card-meta">' +
-            '<span class="card-meta-domain ' + dc + '">' + (domainLabels[card.domain] || card.domain) + '</span>' +
-            '<span>' + (card.date || '') + '</span>' +
+            '<span class="card-meta-domain ' + dc + '">' + _esc(domainLabels[card.domain] || card.domain) + '</span>' +
+            '<span>' + _esc(card.date || '') + '</span>' +
           '</div>' +
         '</div>';
       }).join('');
@@ -2533,31 +2539,33 @@
       var domainLabels = { lottery: '彩票', stock: '股票', football: '足彩', general: '通用' };
 
       document.getElementById('modalTitle').textContent = card.title;
+      // P1-4（JS-20261021-06）：弹窗内所有用户字段必须转义后再拼 innerHTML
+      // （列表视图早就转了，这里是漏网；原样拼接 = 存储型 XSS 的渲染端入口）
       document.getElementById('modalBody').innerHTML =
         '<div class="card-modal-section">' +
           '<div class="card-modal-section-title">价值层级</div>' +
           '<div class="card-modal-section-content">' +
-            '<span class="card-value-badge ' + card.value + '" style="display:inline-block;padding:0.25rem 0.6rem;border-radius:6px;">' + valueLabels[card.value] + '</span>' +
+            '<span class="card-value-badge ' + _esc(card.value) + '" style="display:inline-block;padding:0.25rem 0.6rem;border-radius:6px;">' + _esc(valueLabels[card.value] || '') + '</span>' +
           '</div>' +
         '</div>' +
         '<div class="card-modal-section">' +
           '<div class="card-modal-section-title">摘要</div>' +
-          '<div class="card-modal-section-content">' + card.summary + '</div>' +
+          '<div class="card-modal-section-content">' + _esc(card.summary) + '</div>' +
         '</div>' +
         '<div class="card-modal-section">' +
           '<div class="card-modal-section-title">详细内容</div>' +
-          '<div class="card-modal-section-content" style="white-space:pre-wrap;">' + card.content + '</div>' +
+          '<div class="card-modal-section-content" style="white-space:pre-wrap;">' + _esc(card.content) + '</div>' +
         '</div>' +
         '<div class="card-modal-section">' +
           '<div class="card-modal-section-title">标签</div>' +
           '<div class="card-modal-tags">' +
-            card.tags.map(function(t) { return '<span class="card-modal-tag">' + t + '</span>'; }).join('') +
+            card.tags.map(function(t) { return '<span class="card-modal-tag">' + _esc(t) + '</span>'; }).join('') +
           '</div>' +
         '</div>' +
         '<div class="card-modal-section" style="margin-bottom:0;">' +
           '<div class="card-modal-section-title">信息</div>' +
           '<div class="card-modal-section-content" style="color:var(--muted);font-size:0.8rem;">' +
-            '领域：' + (domainLabels[card.domain] || card.domain) + ' | 日期：' + card.date +
+            '领域：' + _esc(domainLabels[card.domain] || card.domain) + ' | 日期：' + _esc(card.date) +
           '</div>' +
         '</div>' +
         '<div class="card-modal-section" id="crossLinkSection" style="margin-bottom:0;display:none;">' +

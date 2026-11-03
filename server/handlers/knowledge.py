@@ -372,6 +372,10 @@ def handle_knowledge_list(handler, parsed):
 
 def handle_knowledge_add(handler):
     """POST /api/knowledge/add — 添加知识卡片"""
+    # 安全加固（P1-3，JS-20261021-06）：写操作仅允许本机，防局域网越权写入/污染知识库
+    if not handler._is_local():
+        handler._send_json({"error": "安全限制：写操作仅允许本机操作。"}, 403)
+        return
     content_length = int(handler.headers.get('Content-Length', 0))
     body = handler.rfile.read(content_length).decode('utf-8', errors='replace')
     try:
@@ -559,8 +563,16 @@ def _load_user_kb_index():
 
 
 def _read_user_kb_card(filename):
-    """读取单张个人知识卡片内容"""
+    """读取单张个人知识卡片内容
+
+    P1-5（JS-20261021-06）：目录包含断言是平台无关的兜底——不管上游怎么传名，
+    拼完之后必须还在 _USER_KB_DIR 内（黑名单挡盘符这类漏网迟早再犯，
+    "断言结果"比"罗列坏输入"可靠）。
+    """
     filepath = os.path.join(_USER_KB_DIR, filename)
+    base = os.path.abspath(_USER_KB_DIR)
+    if not os.path.abspath(filepath).startswith(base + os.sep):
+        return None
     if not os.path.isfile(filepath):
         return None
     try:
@@ -614,9 +626,20 @@ def handle_user_kb_list(handler):
 
 def handle_user_kb_detail(handler, parsed):
     """GET /api/user-kb/detail?file=xxx.md — 个人知识库卡片详情"""
+    # 安全加固（P1-5，JS-20261021-06）：能读服务端磁盘文件的接口仅允许本机
+    if not handler._is_local():
+        handler._send_json({"error": "安全限制：个人知识库详情仅允许本机读取。"}, 403)
+        return
     params = urllib.parse.parse_qs(parsed.query)
     filename = params.get("file", [""])[0]
     if not filename or ".." in filename or "/" in filename or "\\" in filename:
+        handler._send_json({"error": "无效的文件名"}, 400)
+        return
+    # 盘符相对路径（D:x.txt / C:/x）不在上面的黑名单里，却能骗过 os.path.join
+    # 逃出目标目录（实测 join(目录, "D:secret.txt") 直接返回 "D:secret.txt"）。
+    # 只取最后一段从源头掐掉；目录包含断言在 _read_user_kb_card 里再兜一层。
+    filename = os.path.basename(filename)
+    if not filename:
         handler._send_json({"error": "无效的文件名"}, 400)
         return
     content = _read_user_kb_card(filename)

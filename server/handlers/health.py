@@ -219,6 +219,10 @@ def handle_ai_mode_set_get(handler):
 
 def handle_ai_mode_set_post(handler):
     """POST /api/ai/mode/set — 切换AI运行模式（JSON body: {"mode": "online"|"offline"}）"""
+    # 安全加固（P1-3，JS-20261021-06）：切换运行模式仅允许本机，防局域网擅自改写
+    if not handler._is_local():
+        handler._send_json({"error": "安全限制：写操作仅允许本机操作。"}, 403)
+        return
     try:
         content_length = int(handler.headers.get('Content-Length', 0))
         body = handler.rfile.read(content_length).decode('utf-8', errors='replace')

@@ -181,6 +181,10 @@ def handle_theme(handler, parsed=None):
         return
 
     if handler.command == "POST":
+        # 安全加固（P1-3，JS-20261021-06）：写操作仅允许本机（GET 读取保持放开）
+        if not handler._is_local():
+            handler._send_json({"error": "安全限制：写操作仅允许本机操作。"}, 403)
+            return
         try:
             cl = int(handler.headers.get('Content-Length', 0) or 0)
             raw = handler.rfile.read(cl).decode('utf-8', errors='replace') if cl else '{}'

@@ -138,7 +138,7 @@ echo "[pre-commit] OK 仓库卫生通过"
 # v6 (JS-20260924-09): 留痕合规检查 —— 有源码改动时必须先补交接中心/总索引/经验箱。
 #   背景：各 AI 反复漏写留痕，导致下一个 AI 无法溯源。本闸在 pre-commit 阶段硬阻断，
 #   强制"做完即登记"。SKIP_TRAIL_CHECK=1 可紧急跳过（仅用于自动同步自身配置变更等）。
-echo "[pre-commit] 6/6 留痕合规检查（源码改动必须先登记三件套）..."
+echo "[pre-commit] 6/7 留痕合规检查（源码改动必须先登记三件套）..."
 "$PY" "$ROOT/tools/check_trail_compliance.py"
 rc=$?
 if [ $rc -ne 0 ]; then
@@ -148,6 +148,22 @@ if [ $rc -ne 0 ]; then
   exit 1
 fi
 echo "[pre-commit] OK 留痕合规"
+
+# v7 (JS-20261021-06): 写操作仅本机收口闸 —— 10 个写数据接口必须含 handler._is_local()
+#   自卫（AST 判据）。背景：45 个入口缺本机校验、10 个真写数据；默认只绑本机所以
+#   风险低，但一开局域网（BIND_HOST+ALLOW_LAN）立即同网可写。兄弟接口早就收了口，
+#   漏的属"同型错误换入口重复犯"——登记册 + AST 闸防再犯。
+echo "[pre-commit] 7/7 写操作仅本机收口检查..."
+"$PY" "$ROOT/tools/check_write_local_only.py"
+rc=$?
+if [ $rc -ne 0 ]; then
+  echo "[pre-commit] FAIL 有写接口未收口，已阻止提交。"
+  echo "[pre-commit] 修复: 在该 handler 开头补 if not handler._is_local(): 403 return"
+  echo "[pre-commit]       （参照 server/handlers/knowledge.py 的 memory/user-kb 兄弟接口），"
+  echo "[pre-commit]       并在 tools/check_write_local_only.py 的 WRITE_HANDLERS 登记。"
+  exit 1
+fi
+echo "[pre-commit] OK 写操作收口合规"
 
 echo "[pre-commit] ========================================"
 echo "[pre-commit] 全部检查通过，可以提交！"

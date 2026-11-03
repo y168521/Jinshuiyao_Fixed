@@ -182,6 +182,10 @@ def handle_knowledge_search(handler, parsed):
 
 def handle_knowledge_upsert(handler, parsed):
     """POST /api/quant/knowledge — upsert 知识卡片（事件推演结论回写）"""
+    # 安全加固（P1-3，JS-20261021-06）：写操作仅允许本机，防局域网越权回写知识卡
+    if not handler._is_local():
+        handler._send_json({"error": "安全限制：写操作仅允许本机操作。"}, 403)
+        return
     try:
         cl = int(handler.headers.get("Content-Length", 0) or 0)
         raw = handler.rfile.read(cl).decode("utf-8", errors="replace") if cl else "{}"
