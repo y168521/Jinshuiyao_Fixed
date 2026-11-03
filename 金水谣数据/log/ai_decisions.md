@@ -1235,3 +1235,17 @@
 - 关联总索引：JS-20261103-01
 - 反事实对照：若当时直接 git add -A 闷头提交，会把已提交的几百条留痕和 100+ 行代码净删除永久冲掉，且第二批安全闸门脚本丢失导致钩子第 7 步卡死、提交被拦。
 - 置信度：高——git 对象库与 stash 实证两新文件可恢复、HEAD 实证留痕/代码可恢复，恢复后闸门与一致性均通过。
+
+### 2026-11-03 修复 fetcher.py 被自动同步倒灌退回旧版，解除基金来源诚实性测试带病入库
+- 属主：WorkBuddy
+- 做了什么：git checkout 5ba125e -- domains/fund/fetcher.py，把 fetcher.py 恢复到批次二（JS-20261021-04）意图的正确版本。该版本用 FundCache 缓存层 + 来源标记（get_source / _write_cache(source=) / real_only），写盘只收口真实数据；被倒灌退回的旧版只剩内联 _standardize_* 方法，导致 test_fund_data_source.py 自提交起一直 ImportError。
+- 为什么根因：与 JS-20261103-01 同一倒灌事故——自动同步破坏单向拓扑（根→仓反向），fetcher.py 被旧版覆盖且 c5c4acd 恢复时未从正确提交恢复（HEAD 已被旧版污染，git checkout HEAD 只是把旧版再写一遍），缺陷随 c5c4acd 带病入库。
+- 验证：test_fund_data_source.py 32 passed；基金相关测试簇（data_source / domain / fetcher / profile_risk / data_manager / api_contract / data_truth_guard）215 passed；git diff 5ba125e HEAD 确认全仓仅 fetcher.py 一处被退回，其余源码完好。
+- 坑：①倒灌恢复用 git checkout HEAD -- 会掩盖旧版污染——HEAD 本身已被旧版污染时，checkout 等于无效恢复；必须先 git diff 5ba125e HEAD 找出被退回的文件，再从正确提交恢复。②"测试收集失败"是红不是警告；带进库就是带病入库。
+- 有效方法：先证它红（跑测试看到 ImportError）→ git diff 5ba125e HEAD 定位被退回文件 → checkout 正确提交 → 重跑测试转绿 → 基金测试簇全量回归。
+- 关联文件：domains/fund/fetcher.py / tests/unit/test_fund_data_source.py / domains/fund/fund_cache.py
+- 关联总索引：JS-20261103-02
+- 被否决方案：在 fetcher 重补 SOURCE_* 常量 + get_source 并改测试适配——会偏离批次二已审定的"缓存层拆包"设计，且 fetcher 当前确有 mock 降级逻辑需保留来源语义，重补易错；直接恢复批次二正确版本最稳。
+- 反事实对照：若继续只 git checkout HEAD -- fetcher.py，旧版会永久入库，基金来源诚实性守卫（防假数据当真实数据展示）名存实亡，且任何运行该取数链路的会话都拿不到来源标记。
+- 成熟度：verified
+- 置信度：高——git 对象库实证 5ba125e 版 fetcher.py 含全部来源逻辑、基金测试簇 215 passed 实证恢复后语义正确。

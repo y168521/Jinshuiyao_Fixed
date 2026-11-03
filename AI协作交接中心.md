@@ -990,3 +990,10 @@
   - 验证：写接口本机闸 PASS（10/10）；补今日登记后留痕合规通过；git status 不再有被倒灌的净删除。
   - ⚠️ 根因：自动同步单向拓扑疑似被破坏（根→仓反向拷贝或 stash 后未干净恢复），后续需修自动同步防再次倒灌。
 - 关联：JS-20261021-06
+
+- **JS-20261103-02（2026-11-03）· 修复 fetcher.py 被倒灌退回旧版（基金来源诚实性测试带病入库）**：
+  - 背景：第二批（JS-20261021-04）提交的 test_fund_data_source.py 一直收集失败（ImportError: cannot import name 'SOURCE_REAL' from 'domains.fund.fetcher'）。根因是本次仓库倒灌事故把 fetcher.py 退回到了「拆包前旧版」——丢失 get_source() / _write_cache(source=) / real_only 参数与 FundCache 缓存层，只剩内联 _standardize_* 方法；缺陷随 c5c4acd 带病入库，直到本轮修测试红才暴露。
+  - 修复：git checkout 5ba125e -- domains/fund/fetcher.py，恢复到批次二意图的正确版本（FundCache 缓存层 + 来源标记 + 写盘只收口真实数据）。
+  - 验证：test_fund_data_source.py 32 passed；基金相关测试簇 7 文件 215 passed；git diff 5ba125e HEAD 确认全仓仅 fetcher.py 一处被退回，其余源码完好。
+  - 教训：倒灌恢复不能只 git checkout HEAD —— HEAD 若已被旧版污染，checkout 只是把旧版再写一遍；恢复前先 git diff 5ba125e HEAD 看哪些源码被退回，逐个从正确提交恢复。
+  - 关联：JS-20261103-01（同一倒灌事故的另一处遗留）
