@@ -996,4 +996,12 @@
   - 修复：git checkout 5ba125e -- domains/fund/fetcher.py，恢复到批次二意图的正确版本（FundCache 缓存层 + 来源标记 + 写盘只收口真实数据）。
   - 验证：test_fund_data_source.py 32 passed；基金相关测试簇 7 文件 215 passed；git diff 5ba125e HEAD 确认全仓仅 fetcher.py 一处被退回，其余源码完好。
   - 教训：倒灌恢复不能只 git checkout HEAD —— HEAD 若已被旧版污染，checkout 只是把旧版再写一遍；恢复前先 git diff 5ba125e HEAD 看哪些源码被退回，逐个从正确提交恢复。
+
+- **JS-20261105-01（2026-11-05）· 预测列表排序轴与显示列对齐（按开奖日期排 + 待开奖置顶）**：
+  - 触发：用户贴出预测记录列表，指出"时间排序颠倒和串了"。核查确认属实，但根因不是数据错——列表默认按生成时间 `time` 降序排，而表格那列叫"开奖日期"、显示的是真实开奖日期 `draw_date`，两轴不一致；且无彩种分组，6 个彩种混在一个时间轴，一期多注又分散，看着就乱。
+  - 根因：①`utils/list_query.py` 的 `FIELD_GETTERS` 无 `draw_date` 排序键，GUI `_pred_query_params` 写死 `sort="time"`；②筛选栏没有排序按钮，排序写死、界面无法切换。
+  - 修复：在 `list_query.py` 注册 `draw` 排序键（`_draw_sort_key`：待开奖置顶 + 开奖日期降序的二元组预计算键，并让 `_sort_value` 透传元组键避免跨类型比较报错）；`main_window.py` 默认 `sort` 改 `"draw"`。新增 2 项单测（待开奖置顶 + 已开奖部分日期降序）。
+  - 验证：test_list_query.py 26 passed（含 2 新增）；test_gui_pred_query_wiring.py 4 passed；端到端用真实 predictions.json 复算——待开奖 26 条正确置顶，其后已开奖部分开奖日期从 2026-11-04 → 2026-11-03 → … 单调递减（新→旧），显示列不再颠倒；同日期记录自然聚拢。
+  - 取舍：本次只对齐排序轴与显示列（解决"颠倒"+大幅缓解"串了"），未做强制彩种分组（会改变界面既有浏览习惯，用户本次只选了"按开奖日期排"，未要求）；若后续要"同彩种不混排"可再加分组键。
+  - 关联：JS-20261006-01（开奖日期列改显示 draw_date）
   - 关联：JS-20261103-01（同一倒灌事故的另一处遗留）

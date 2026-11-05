@@ -141,6 +141,42 @@ def test_sort_numeric_with_none_last():
     assert rows[-1]["confidence"] is None
 
 
+# JS-20261105-01：开奖日期(draw)排序——待开奖置顶 + 开奖日期降序，
+# 修复此前默认按生成时间(time)排导致显示列「开奖日期」读起来颠倒、跨彩种串列。
+DRAW_SAMPLE = [
+    {"lot": "大乐透", "period": "2026125", "time": "2026-11-04 20:57",
+     "reviewed": True, "draw_date": "2026-11-02"},
+    {"lot": "福彩3D", "period": "2026293", "time": "2026-11-03 21:01",
+     "reviewed": True, "draw_date": "2026-11-03"},
+    {"lot": "七乐彩", "period": "2026127", "time": "2026-11-04 20:57",
+     "reviewed": True, "draw_date": "2026-11-04"},
+    {"lot": "双色球", "period": "2026127", "time": "2026-11-05 20:25",
+     "reviewed": False, "draw_date": None},   # 待开奖
+    {"lot": "福彩3D", "period": "2026295", "time": "2026-11-05 20:25",
+     "reviewed": False, "draw_date": None},   # 待开奖
+]
+
+
+def test_sort_by_draw_pending_first_then_desc():
+    spec = QuerySpec(sort="draw", desc=True)
+    rows = sort_records(list(DRAW_SAMPLE), spec)
+    lots = [r["lot"] for r in rows]
+    # 待开奖(双色球/福彩3D)必须置顶，且其余按开奖日期降序
+    assert lots[0] in ("双色球", "福彩3D")
+    assert lots[1] in ("双色球", "福彩3D")
+    assert lots[2:] == ["七乐彩", "福彩3D", "大乐透"]
+
+
+def test_apply_query_draw_sort_end_to_end():
+    """apply_query 全链路：无筛选 + 按开奖日期排，顺序与 sort_records 一致。"""
+    spec = parse_query({"sort": "draw", "order": "desc", "page": 1, "limit": 50})
+    page, total, pages = apply_query(DRAW_SAMPLE, spec, FIELDS)
+    assert total == 5 and pages == 1
+    assert [r["lot"] for r in page][:2] == ["双色球", "福彩3D"] or \
+        [r["lot"] for r in page][:2] == ["福彩3D", "双色球"]
+    assert [r["lot"] for r in page][2:] == ["七乐彩", "福彩3D", "大乐透"]
+
+
 def test_paginate_basic():
     data = [{"i": i} for i in range(120)]
     spec = QuerySpec(page=1, page_size=50)

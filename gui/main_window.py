@@ -861,7 +861,10 @@ class App:
             "q": _v(self._pred_kw_var),
             "lot": _v(self._pred_lot_var),
             "status": _v(self._pred_status_var),
-            "sort": "time",
+            # JS-20261105-01：列表显示列是「开奖日期」(draw_date)，排序轴须与之
+            # 对齐，否则显示列读起来颠倒、跨彩种串在一起。默认按开奖日期降序、
+            # 待开奖置顶（draw 排序键在 utils/list_query._draw_sort_key）。
+            "sort": "draw",
             "order": "desc",
             "page": self._pred_page,
             "limit": _v(self._pred_size_var) or "50",

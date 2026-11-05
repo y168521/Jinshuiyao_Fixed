@@ -116,6 +116,20 @@ def _get_nested(d: Dict[str, Any], path: str) -> Any:
     return cur
 
 
+def _draw_sort_key(record: Dict[str, Any]):
+    """预测列表『开奖日期』列的排序键（JS-20261105-01）。
+
+    显示列是开奖日期 draw_date；但此前列表默认按生成时间 time 排序，
+    导致显示列读起来颠倒、跨彩种又串在一起。这里让**排序轴与显示列一致**：
+      * 待开奖（未复盘且无开奖日期）置顶——最该看的结果放在最上面；
+      * 其余按开奖日期降序（新的在前）。
+    用「(置顶标记, 日期)」元组做预计算键，避免跨类型比较 TypeError。
+    """
+    pending = (not record.get("reviewed")) and (not record.get("draw_date"))
+    # 待开奖=1（降序时排最前），已开奖=0；日期空串排在同级末尾。
+    return (1 if pending else 0, str(record.get("draw_date") or ""))
+
+
 FIELD_GETTERS: Dict[str, Callable[[Dict[str, Any]], Any]] = {
     # AI 问答预测沉淀（predictions/predictions.json）
     "question": lambda r: r.get("question") or "",
@@ -126,6 +140,9 @@ FIELD_GETTERS: Dict[str, Callable[[Dict[str, Any]], Any]] = {
     "period": lambda r: str(r.get("period") or r.get("期号") or ""),
     "date": lambda r: r.get("date") or (r.get("time") or "")[:10],
     "time": lambda r: r.get("time") or "",
+    # JS-20261105-01：列表显示列是「开奖日期」(draw_date)，排序应与之对齐。
+    # 用预计算键：待开奖置顶 + 开奖日期降序（见 _draw_sort_key）。
+    "draw": _draw_sort_key,
     "status": lambda r: "已复盘" if r.get("reviewed") else "待复盘",
     "reviewed": lambda r: bool(r.get("reviewed")),
     "purchased": lambda r: bool(r.get("purchased")),
@@ -343,8 +360,12 @@ def _sort_value(record: Dict[str, Any], name: str) -> Any:
     """排序取值：能转数字走数字轨(0)，否则走字符串轨(1)。
 
     用「轨道标记 + 值」的元组而非裸值，保证跨类型比较不会 TypeError。
+    若字段取值器直接返回元组/列表（如 `draw` 的预计算排序键），则原样
+    作为可比较键返回——此时调用方已保证同字段取值结构一致。
     """
     v = get_field(record, name)
+    if isinstance(v, (tuple, list)):
+        return tuple(v)
     num = _to_num(v)
     return (0, num) if num is not None else (1, str(v or ""))
 
