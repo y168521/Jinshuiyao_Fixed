@@ -195,7 +195,25 @@ class ModernTheme:
     CORNER_RADIUS_LARGE = 12
 
 
-# ==================== 命中率统计文本（纯函数，GUI 与测试共用） ====================
+# ==================== 命中率统计（纯函数，GUI 与测试共用） ====================
+def determine_hit_type(lot, ptype, pn, ac, hits):
+    """复盘命中类型判定（直选/组选/未中），与彩票看板口径一致（纯函数，GUI 与测试共用）。
+
+    JS-20261106-03 修正：此前对 福彩3D/排列三 不分预测类型，只要 pn!=ac 且 hits>=3
+    就标"组选"。但「直选类」预测（type∈直选/直选推荐）是位置精确投注，三码全中却
+    顺序错(pn!=ac 且 hits>=3)对它而言是「未中」而非「组选」，误标会污染命中类型语义。
+    现按预测类型分判：
+      - 直选类：位置精确匹配(pn==ac)才中直选；否则一律未中（即便 hits>=3）。
+      - 其余（组三/组六/组六复式/单注/胆拖/复式）：三码多重集全中(hits>=3)=组选。
+      - 其他彩种（多球种）：任意奖级命中(hits>0)近似组选。
+    """
+    if lot in ("福彩3D", "排列三"):
+        if ptype in ("直选", "直选推荐"):
+            return "直选" if pn == ac else "未中"
+        return "组选" if hits >= 3 else "未中"
+    return "组选" if hits > 0 else "未中"
+
+
 def build_hit_stats_text(reviewed):
     """由已复盘预测列表生成命中率统计文本（顶部面板用）。
 
@@ -2409,16 +2427,9 @@ class App:
                 # 与 domains/lottery/domain.py 的纯前区口径存在既存差异，另行统一。
                 if lot not in ("福彩3D", "排列三", "七星彩", "快乐8") and "+" in pn and "+" in ac:
                     hits += len(set(parse_reds(pn.split("+")[1])) & set(parse_reds(ac.split("+")[1])))
-                # 命中类型判定（直选/组选/未中）—— JS-20260724-02 口径统一：与彩票看板口径一致
-                hit_type = "未中"
-                if lot in ("福彩3D", "排列三"):
-                    if pn == ac:                       # 位置精确匹配 = 直选
-                        hit_type = "直选"
-                    elif hits >= 3:                    # 3码多重集全中 = 组选
-                        hit_type = "组选"
-                else:
-                    if hits > 0:                       # 多球种：任意奖级命中近似组选
-                        hit_type = "组选"
+                # 命中类型判定（直选/组选/未中）—— JS-20260724-02 口径统一 + JS-20261106-03 按预测类型分判
+                # （直选类三码全中但顺序错 = 未中，绝不标组选；逻辑抽成纯函数 determine_hit_type 以便单测）
+                hit_type = determine_hit_type(lot, p.get("type", ""), pn, ac, hits)
                 # 复式覆盖度 = 命中号码数 / 开奖号码总数 —— JS-20260724-03
                 # 衡量候选集合对开奖号码的覆盖程度（复式选更多号应覆盖更多）
                 act_num_count = len(parse_reds(ac.replace("+", ",")))

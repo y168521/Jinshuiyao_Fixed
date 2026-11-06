@@ -11,7 +11,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))))
 
-from gui.main_window import build_hit_stats_text  # noqa: E402
+from gui.main_window import build_hit_stats_text, determine_hit_type  # noqa: E402
 
 
 def test_empty_reviewed_shows_placeholder():
@@ -78,3 +78,42 @@ def test_direct_rate_empty_when_no_direct_type():
     ]
     text = build_hit_stats_text(reviewed)
     assert "直选命中率 暂无直选数据" in text
+
+
+# ==================== determine_hit_type（JS-20261106-03 按预测类型分判） ====================
+def test_determine_hit_type_direct_exact_match():
+    """直选类 + 位置精确匹配(pn==ac) => 直选。"""
+    assert determine_hit_type("福彩3D", "直选", "0,5,4", "0,5,4", 3) == "直选"
+    assert determine_hit_type("排列三", "直选推荐", "1,2,3", "1,2,3", 3) == "直选"
+
+
+def test_determine_hit_type_direct_wrong_order_is_not_group():
+    """JS-20261106-03 关键回归：直选类 + 三码全中但顺序错(pn!=ac, hits>=3) => 未中，绝不标组选。"""
+    # 这是此前被误标为"组选"的隐患：直选注顺序错即未中。
+    assert determine_hit_type("福彩3D", "直选", "0,5,4", "4,5,0", 3) == "未中"
+    assert determine_hit_type("排列三", "直选推荐", "1,2,3", "3,2,1", 3) == "未中"
+
+
+def test_determine_hit_type_direct_no_match():
+    """直选类 + 三码未全中 => 未中。"""
+    assert determine_hit_type("福彩3D", "直选", "0,5,4", "0,5,9", 2) == "未中"
+
+
+def test_determine_hit_type_group_hit():
+    """组选类（组六/组三/组六复式等）+ 三码多重集全中(hits>=3) => 组选（即便位置错）。"""
+    assert determine_hit_type("福彩3D", "组六", "0,5,4", "4,5,0", 3) == "组选"
+    assert determine_hit_type("排列三", "组三", "1,2,2", "2,2,1", 3) == "组选"
+    # 精确位置匹配对组选类同样是组选命中
+    assert determine_hit_type("福彩3D", "组六复式(5码)", "0,5,4", "0,5,4", 3) == "组选"
+
+
+def test_determine_hit_type_group_miss():
+    """组选类 + 三码未全中 => 未中。"""
+    assert determine_hit_type("福彩3D", "组六", "0,5,4", "0,5,9", 2) == "未中"
+
+
+def test_determine_hit_type_other_lottery_by_hits():
+    """其他彩种（多球种）：任意奖级命中(hits>0)近似组选，否则未中。"""
+    assert determine_hit_type("双色球", "复式", "01,02,03", "01,02,09", 2) == "组选"
+    assert determine_hit_type("大乐透", "单注", "01,02,03,04,05", "09,08,07,06,05", 1) == "组选"
+    assert determine_hit_type("快乐8", "选五", "01,02,03,04,05", "11,12,13,14,15", 0) == "未中"
