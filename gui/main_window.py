@@ -205,6 +205,9 @@ def build_hit_stats_text(reviewed):
 
     口径与彩票看板统一：组选命中率 / 直选命中率 / 平均覆盖度 / 各彩种组选命中率。
     抽成纯函数是为了让截断逻辑可单测（无需 tkinter 环境）。
+
+    JS-20261106-02 口径修正：直选命中率分母限定为「直选类」预测（type ∈ 直选/直选推荐），
+    排除组选类预测（其永远不可能中直选）；无直选类预测时显示"暂无直选数据"而非虚 0。
     """
     if not reviewed:
         return '命中率统计：暂无复盘数据（预测后点"复盘"按钮）'
@@ -212,20 +215,24 @@ def build_hit_stats_text(reviewed):
     # 组选命中率（任意 1+ 码中 / 任意奖级命中）—— 与看板"组选"口径一致
     group_hit = sum(1 for p in reviewed if p.get("hits", 0) > 0)
     group_rate = group_hit / total * 100 if total else 0
-    # 直选命中率（位置精确）—— 仅对 3D/排列三等有直选概念的彩种；历史无 hit_type 则降级不计入
+    # 直选命中率（位置精确命中）—— 字面口径：只统计「直选类」预测（type ∈ 直选/直选推荐），
+    # 因为只有真下直选注的才算直选命中；组选类预测永远不可能中直选，混入分母只会稀释虚低。
+    # JS-20261106-02 口径修正：此前分母含全部 福彩3D/排列三（含组选类），导致直选命中率被稀释、
+    # 且"直选未被计入"的误解；现限定为直选类预测。历史无 hit_type 的直选类预测不计入分母（防虚高/虚低）。
     direct_total = 0
     direct_hit = 0
     for p in reviewed:
         lot = p.get("lot", "")
         if lot not in ("福彩3D", "排列三"):
             continue
+        if p.get("type") not in ("直选", "直选推荐"):
+            continue  # 只有直选类预测才计入直选命中率分母
         ht = p.get("hit_type")
         if ht is None:
             continue  # 历史数据无明细，不计入直选分母避免虚高/虚低
         direct_total += 1
         if ht == "直选":
             direct_hit += 1
-    direct_rate = direct_hit / direct_total * 100 if direct_total else None
     # 按彩种分组（组选级）
     lot_stats = {}
     for p in reviewed:
@@ -240,8 +247,8 @@ def build_hit_stats_text(reviewed):
     avg_cov = sum(cov_vals) / len(cov_vals) if cov_vals else None
     # 组装文本（三口径：组选 + 直选 + 覆盖度，与彩票看板统一）
     parts = [f"组选命中率 {group_rate:.1f}%"]
-    parts.append(f"直选命中率 {direct_rate:.1f}%" if direct_rate is not None
-                 else "直选命中率 历史无明细")
+    parts.append(f"直选命中率 {direct_hit / direct_total * 100:.1f}%" if direct_total
+                 else "直选命中率 暂无直选数据")
     if avg_cov is not None:
         parts.append(f"平均覆盖度 {avg_cov * 100:.1f}%")
     # JS-20261106-01：显示**全部**彩种，不再因 [:4] 截断漏掉大乐透等
