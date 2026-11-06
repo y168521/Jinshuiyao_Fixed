@@ -195,6 +195,62 @@ class ModernTheme:
     CORNER_RADIUS_LARGE = 12
 
 
+# ==================== 命中率统计文本（纯函数，GUI 与测试共用） ====================
+def build_hit_stats_text(reviewed):
+    """由已复盘预测列表生成命中率统计文本（顶部面板用）。
+
+    JS-20261106-01 修复：此前按彩种命中率只显示「复盘数量前 4」(sorted(...)[:4])，
+    导致大乐透 / 七乐彩 / 七星彩 等有数据却被悄悄截断、用户在面板上看不到。
+    改为显示**全部彩种**，不再截断。
+
+    口径与彩票看板统一：组选命中率 / 直选命中率 / 平均覆盖度 / 各彩种组选命中率。
+    抽成纯函数是为了让截断逻辑可单测（无需 tkinter 环境）。
+    """
+    if not reviewed:
+        return '命中率统计：暂无复盘数据（预测后点"复盘"按钮）'
+    total = len(reviewed)
+    # 组选命中率（任意 1+ 码中 / 任意奖级命中）—— 与看板"组选"口径一致
+    group_hit = sum(1 for p in reviewed if p.get("hits", 0) > 0)
+    group_rate = group_hit / total * 100 if total else 0
+    # 直选命中率（位置精确）—— 仅对 3D/排列三等有直选概念的彩种；历史无 hit_type 则降级不计入
+    direct_total = 0
+    direct_hit = 0
+    for p in reviewed:
+        lot = p.get("lot", "")
+        if lot not in ("福彩3D", "排列三"):
+            continue
+        ht = p.get("hit_type")
+        if ht is None:
+            continue  # 历史数据无明细，不计入直选分母避免虚高/虚低
+        direct_total += 1
+        if ht == "直选":
+            direct_hit += 1
+    direct_rate = direct_hit / direct_total * 100 if direct_total else None
+    # 按彩种分组（组选级）
+    lot_stats = {}
+    for p in reviewed:
+        lot = p.get("lot", "?")
+        if lot not in lot_stats:
+            lot_stats[lot] = {"total": 0, "hit": 0}
+        lot_stats[lot]["total"] += 1
+        if p.get("hits", 0) > 0:
+            lot_stats[lot]["hit"] += 1
+    # 平均复式覆盖度（命中号码数 / 开奖号码总数）—— JS-20260724-03
+    cov_vals = [p.get("coverage") for p in reviewed if p.get("coverage") is not None]
+    avg_cov = sum(cov_vals) / len(cov_vals) if cov_vals else None
+    # 组装文本（三口径：组选 + 直选 + 覆盖度，与彩票看板统一）
+    parts = [f"组选命中率 {group_rate:.1f}%"]
+    parts.append(f"直选命中率 {direct_rate:.1f}%" if direct_rate is not None
+                 else "直选命中率 历史无明细")
+    if avg_cov is not None:
+        parts.append(f"平均覆盖度 {avg_cov * 100:.1f}%")
+    # JS-20261106-01：显示**全部**彩种，不再因 [:4] 截断漏掉大乐透等
+    for lot, s in sorted(lot_stats.items(), key=lambda x: -x[1]["total"]):
+        lot_rate = s["hit"] / s["total"] * 100 if s["total"] else 0
+        parts.append(f"{lot} {lot_rate:.0f}%")
+    return "  |  ".join(parts)
+
+
 # ==================== 主应用窗口 ====================
 class App:
     """金水谣万物引擎主应用窗口
@@ -1062,56 +1118,11 @@ class App:
         self._update_pred_pager_label(total, pages, empty_reason, error)
 
     def _update_hit_stats(self):
-        """计算并显示命中率统计"""
+        """计算并显示命中率统计（统计逻辑见 build_hit_stats_text，纯函数可测）。"""
         if not hasattr(self, '_stats_label'):
             return
-        reviewed = [p for p in self.preds if p.get("reviewed")]
-        if not reviewed:
-            self._stats_label.config(text="命中率统计：暂无复盘数据（预测后点\"复盘\"按钮）")
-            return
-        # 总体统计
-        total = len(reviewed)
-        # 组选命中率（任意1+码中 / 任意奖级命中）—— 与看板"组选"口径一致
-        group_hit = sum(1 for p in reviewed if p.get("hits", 0) > 0)
-        group_rate = group_hit / total * 100 if total else 0
-        # 直选命中率（位置精确）—— 仅对 3D/排列三等有直选概念的彩种；历史无 hit_type 则降级不计入
-        direct_total = 0
-        direct_hit = 0
-        for p in reviewed:
-            lot = p.get("lot", "")
-            if lot not in ("福彩3D", "排列三"):
-                continue
-            ht = p.get("hit_type")
-            if ht is None:
-                continue  # 历史数据无明细，不计入直选分母避免虚高/虚低
-            direct_total += 1
-            if ht == "直选":
-                direct_hit += 1
-        direct_rate = direct_hit / direct_total * 100 if direct_total else None
-        # 按彩种分组（组选级）
-        lot_stats = {}
-        for p in reviewed:
-            lot = p.get("lot", "?")
-            if lot not in lot_stats:
-                lot_stats[lot] = {"total": 0, "hit": 0}
-            lot_stats[lot]["total"] += 1
-            if p.get("hits", 0) > 0:
-                lot_stats[lot]["hit"] += 1
-        # 平均复式覆盖度（命中号码数 / 开奖号码总数）—— JS-20260724-03
-        cov_vals = [p.get("coverage") for p in reviewed if p.get("coverage") is not None]
-        avg_cov = sum(cov_vals) / len(cov_vals) if cov_vals else None
-        # 组装文本（三口径：组选 + 直选 + 覆盖度，与彩票看板统一）
-        parts = [f"组选命中率 {group_rate:.1f}%"]
-        if direct_rate is not None:
-            parts.append(f"直选命中率 {direct_rate:.1f}%")
-        else:
-            parts.append("直选命中率 历史无明细")
-        if avg_cov is not None:
-            parts.append(f"平均覆盖度 {avg_cov*100:.1f}%")
-        for lot, s in sorted(lot_stats.items(), key=lambda x: -x[1]["total"])[:4]:
-            lot_rate = s["hit"] / s["total"] * 100 if s["total"] else 0
-            parts.append(f"{lot} {lot_rate:.0f}%")
-        self._stats_label.config(text="  |  ".join(parts))
+        self._stats_label.config(text=build_hit_stats_text(
+            [p for p in self.preds if p.get("reviewed")]))
 
     # ------------------------------------------------------------------
     # 参考池管理
